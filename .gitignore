@@ -9,3 +9,9 @@ build/
 # Benchmark results (private)
 benchmark_results/
 bench-*
+
+# Dev VPS plan config (shared/private packages)
+dev-vps-plans.json
+
+# Tollgate build artifacts
+tollgate/cashu-tollgate
