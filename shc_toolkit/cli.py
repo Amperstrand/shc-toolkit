@@ -9,6 +9,7 @@ import sys
 import uuid
 
 from .client import SHCClient, SHCError
+from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns
 
 
 def _client(args) -> SHCClient:
@@ -213,7 +214,43 @@ def main():
     p.add_argument("snapshot_id")
     p.set_defaults(func=cmd_restore_snapshot)
 
-    args = parser.parse_args()
+    # nodns: DNS provisioning via Nostr
+    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop (Nostr)")
+    p.add_argument("--ip", required=True, help="VM IP address")
+    p.add_argument("--nsec", help="Existing nsec key (generates ephemeral if omitted)")
+    p.add_argument("--subdomain", help="Subdomain label (default: root @)")
+    p.add_argument("--wait", type=int, default=15, help="Seconds to wait for DNS propagation")
+    p.add_argument("--verify", action="store_true", help="Verify DNS resolution after publish")
+    p.set_defaults(func=cmd_nodns)
+
+    # dns-verify
+    p = sub.add_parser("dns-verify", help="Verify DNS resolution")
+    p.add_argument("fqdn", help="Fully qualified domain name")
+    p.add_argument("--type", default="A", help="Record type (default: A)")
+    p.add_argument("--nameserver", default="ns1.nodns.shop", help="Nameserver to query")
+    p.set_defaults(func=cmd_dns_verify)
+
+    def cmd_dns_verify(args):
+    result = verify_dns(args.fqdn, args.type, args.nameserver)
+    print(json.dumps(result, indent=2))
+
+
+def cmd_nodns(args):
+    keypair = NoDNSKeyPair.from_nsec(args.nsec) if args.nsec else None
+    result = provision_dns_for_vm(
+        ip=args.ip,
+        subdomain=args.subdomain,
+        wait_seconds=args.wait,
+        keypair=keypair,
+    )
+    print(json.dumps(result, indent=2, default=str))
+    if result["success"]:
+        print(f"\nFQDN: {result['fqdn']}")
+        print(f"nsec: {result['keypair']['nsec']}")
+        print("Save the nsec to update this DNS record later!")
+
+
+args = parser.parse_args()
     if not args.command:
         parser.print_help()
         sys.exit(1)

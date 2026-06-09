@@ -7,7 +7,7 @@ name = "shc-toolkit"
 version = "0.1.0"
 description = "Sovereign Hybrid Compute API client and CLI"
 requires-python = ">=3.11"
-dependencies = ["requests>=2.28"]
+dependencies = ["requests>=2.28", "nostr-sdk>=0.44"]
 
 [project.scripts]
 shc = "shc_toolkit.cli:main"
