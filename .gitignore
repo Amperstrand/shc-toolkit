@@ -5,3 +5,7 @@ dist/
 build/
 *.pyc
 .env
+
+# Benchmark results (private)
+benchmark_results/
+bench-*
