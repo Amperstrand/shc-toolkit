@@ -230,7 +230,19 @@ def main():
     p.add_argument("--nameserver", default="ns1.nodns.shop", help="Nameserver to query")
     p.set_defaults(func=cmd_dns_verify)
 
-    def cmd_dns_verify(args):
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    try:
+        args.func(args)
+    except SHCError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_dns_verify(args):
     result = verify_dns(args.fqdn, args.type, args.nameserver)
     print(json.dumps(result, indent=2))
 
@@ -248,18 +260,6 @@ def cmd_nodns(args):
         print(f"\nFQDN: {result['fqdn']}")
         print(f"nsec: {result['keypair']['nsec']}")
         print("Save the nsec to update this DNS record later!")
-
-
-args = parser.parse_args()
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    try:
-        args.func(args)
-    except SHCError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
 
 
 if __name__ == "__main__":

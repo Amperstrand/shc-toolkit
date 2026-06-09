@@ -104,54 +104,89 @@ def setup_caddy(host: str, fqdn: str, user: str = "debian") -> str:
     return ssh_cmd(host, "sudo systemctl restart caddy && sudo systemctl status caddy --no-pager -l | head -5")
 
 
+def generate_certbot_auth_hook(venv_path: str = "/home/debian/shc-toolkit", keypair_path: str = "/tmp/nodns-keypair.json") -> str:
+    """Generate a certbot manual auth hook script.
+
+    The hook reads CERTBOT_DOMAIN and CERTBOT_VALIDATION from the environment,
+    publishes _acme-challenge TXT via nodns, and waits for propagation.
+    """
+    return f"""#!/bin/sh
+# Certbot DNS-01 auth hook for nodns
+export PATH="{venv_path}/bin:$PATH"
+export PYTHONPATH="/home/debian:$PYTHONPATH"
+python3 -c "
+import sys, os, time, json
+sys.path.insert(0, '/home/debian')
+from nodns_vm import NoDNSKeyPair, publish_dns_records
+
+kp_data = json.load(open('{keypair_path}'))
+kp = NoDNSKeyPair.from_nsec(kp_data['nsec'])
+domain = os.environ.get('CERTBOT_DOMAIN', '')
+validation = os.environ.get('CERTBOT_VALIDATION', '')
+
+print(f'Auth hook: _acme-challenge.{{domain}} -> {{validation[:40]}}...')
+result = publish_dns_records(kp, [{{'type': 'TXT', 'name': '_acme-challenge', 'value': validation, 'ttl': 60}}])
+print(f'Published TXT to {{result[\"relays_sent\"]}} relays, waiting 15s...')
+time.sleep(15)
+print('Done')
+"
+"""
+
+
 def get_cert_dns01(
     host: str,
     fqdn: str,
-    email: str = "admin@nodns.shop",
+    keypair_path: str = "/tmp/nodns-keypair.json",
+    email: str = "admin@example.com",
     user: str = "debian",
 ) -> str:
-    """Get Let's Encrypt cert using certbot with manual DNS-01.
+    """Get Let's Encrypt cert using certbot with manual DNS-01 via nodns.
 
-    IMPORTANT: The ACME challenge TXT record must already be published
-    via nodns BEFORE calling this. Use nodns.publish_acme_challenge().
+    Prerequisites:
+    - nodns keypair saved to keypair_path on the VM
+    - nostr-sdk installed in /home/debian/shc-toolkit venv
+    - nodns_vm.py in /home/debian/
 
-    This uses certbot's manual authenticator with --manual-auth-hook disabled
-    since we handle DNS via nodns separately.
+    Pipeline:
+    1. Generate and deploy certbot auth hook to VM
+    2. Run certbot certonly with --manual-auth-hook pointing to our script
+    3. Auth hook publishes _acme-challenge TXT via nostr-sdk + nodns
+    4. certbot verifies TXT record, issues cert
     """
     log.info(f"Requesting cert for {fqdn} via DNS-01...")
 
-    # Create cert directory
-    ssh_cmd(host, "sudo mkdir -p /etc/ssl/certs /etc/ssl/private")
+    hook_script = generate_certbot_auth_hook(keypair_path=keypair_path)
+    hook_remote = "/tmp/certbot-auth-hook.sh"
 
-    # Use certbot certonly with manual DNS plugin
-    # --manual: interactive but we pre-place the challenge
-    # --preferred-challenges dns-01: use DNS challenge
-    # --manual-auth-hook: not used, we publish TXT via nodns separately
+    subprocess.run(
+        ["ssh", "-o", "StrictHostKeyChecking=no", f"{user}@{host}",
+         f"sudo tee {hook_remote} > /dev/null"],
+        input=hook_script,
+        text=True,
+        timeout=30,
+    )
+    ssh_cmd(host, f"sudo chmod +x {hook_remote}")
+
     result = ssh_cmd(
         host,
         f"""
-        sudo certbot certonly \\
-            --manual \\
-            --preferred-challenges dns \\
-            --manual-auth-hook /bin/true \\
-            --manual-cleanup-hook /bin/true \\
-            -d {fqdn} \\
-            --email {email} \\
-            --agree-tos \\
-            --non-interactive \\
-            --manual-public-ip-logging-ok \\
-            --dns-{fqdn}-01-wait 0 || true
-
-        # Copy certs to caddy-accessible location
-        sudo cp /etc/letsencrypt/live/{fqdn}/fullchain.pem /etc/ssl/certs/{fqdn}.pem 2>/dev/null
-        sudo cp /etc/letsencrypt/live/{fqdn}/privkey.pem /etc/ssl/private/{fqdn}.key 2>/dev/null
-        sudo chmod 644 /etc/ssl/certs/{fqdn}.pem
-        sudo chmod 600 /etc/ssl/private/{fqdn}.key
-        ls -la /etc/ssl/certs/{fqdn}.pem /etc/ssl/private/{fqdn}.key
+        sudo certbot certonly \
+            --manual \
+            --preferred-challenges dns \
+            --manual-auth-hook {hook_remote} \
+            --manual-cleanup-hook /bin/true \
+            -d {fqdn} \
+            --agree-tos \
+            --email {email} \
+            --non-interactive \
+            --manual-public-ip-logging-ok
         """,
         user=user,
         timeout=300,
     )
+
+    cert_dir = f"/etc/letsencrypt/live/{fqdn}"
+    log.info(f"Cert issued: {cert_dir}/fullchain.pem")
     return result
 
 
