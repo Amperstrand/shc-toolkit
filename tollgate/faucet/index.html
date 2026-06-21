@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cashu Tollgate — Faucet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+  .subtitle { color: #888; margin-bottom: 2rem; text-align: center; max-width: 500px; line-height: 1.5; }
+  .card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 560px;
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #fff; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step;
+    padding: 0.5rem 0 0.5rem 2.5rem;
+    position: relative;
+    line-height: 1.5;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #888;
+  }
+  button {
+    background: #f7931a;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #888;
+    min-height: 1.2em;
+  }
+  .token-box {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    word-break: break-all;
+    color: #f7931a;
+    max-height: 120px;
+    overflow-y: auto;
+    margin: 1rem 0;
+    user-select: all;
+  }
+  .ssh-box {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #4f4;
+    word-break: break-all;
+    user-select: all;
+    margin: 0.5rem 0;
+  }
+  .label {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .copy-btn {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    width: auto;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: #333; color: #fff; }
+  .hidden { display: none; }
+  .footer {
+    margin-top: auto;
+    padding-top: 2rem;
+    font-size: 0.75rem;
+    color: #444;
+    text-align: center;
+  }
+  a { color: #f7931a; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>Cashu Tollgate Faucet</h1>
+<p class="subtitle">
+  Get free test ecash tokens and use them to rent a Linux shell by the minute.
+  8 sats = 8 minutes. Powered by <a href="https://github.com/cashubtc/cashu" target="_blank">Cashu</a>.
+</p>
+
+<div class="card">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>Click the button below to mint a free test token (8 sats)</li>
+    <li>Copy the SSH command that appears</li>
+    <li>Paste it in your terminal — you get an interactive Linux shell for 8 minutes</li>
+    <li>Run <code>timeleft</code> inside the session to check remaining time</li>
+  </ol>
+</div>
+
+<div class="card">
+  <button id="mintBtn" onclick="mint()">Mint 8 sat token</button>
+  <div class="status" id="status"></div>
+
+  <div id="result" class="hidden">
+    <div class="label">Your token</div>
+    <div class="token-box" id="tokenBox"></div>
+    <button class="copy-btn" onclick="copyToken()">Copy token</button>
+
+    <div class="label">Run this command</div>
+    <div class="ssh-box" id="sshBox"></div>
+    <button class="copy-btn" onclick="copySSH()">Copy SSH command</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>What is this?</h2>
+  <p style="color:#aaa; font-size:0.9rem; line-height:1.6;">
+    This is a proof-of-concept <strong>pay-per-minute SSH server</strong> that accepts
+    <a href="https://cashu.space">Cashu ecash</a> tokens instead of passwords.
+    You paste a token as your SSH username, the server redeems it, creates a throwaway
+    guest account, and gives you an interactive bash shell for as many minutes as the
+    token is worth (1 sat = 1 minute). When time runs out or you disconnect, the account
+    is destroyed.
+  </p>
+  <p style="color:#666; font-size:0.8rem; margin-top:1rem;">
+    Tokens are from <a href="https://testnut.cashu.exchange">testnut</a> (test mint, no real bitcoin).
+    Source: <a href="https://github.com/Amperstrand/shc-toolkit/tree/main/tollgate">GitHub</a>
+  </p>
+</div>
+
+<div class="footer">
+  Cashu Tollgate — ecash for shell access
+</div>
+
+<script type="module">
+import { Wallet, getEncodedToken, MintQuoteState } from 'https://esm.sh/@cashu/cashu-ts@4.5.1';
+
+const MINT_URL = 'https://testnut.cashu.exchange';
+const TOLLGATE_HOST = 'npub1mv7l45exqsu5nr5tnefkr33ruhzjj4r8prg6qtcedv4lyf3rzguqptuwm4.nodns.shop';
+const AMOUNT = 8;
+
+let currentToken = '';
+
+window.mint = async function() {
+  const btn = document.getElementById('mintBtn');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+
+  btn.disabled = true;
+  result.classList.add('hidden');
+  status.textContent = 'Connecting to testnut...';
+
+  try {
+    const wallet = new Wallet(MINT_URL);
+    await wallet.loadMint();
+
+    status.textContent = 'Creating mint quote...';
+    const quote = await wallet.createMintQuoteBolt11(AMOUNT);
+
+    status.textContent = 'Waiting for payment (auto)...';
+
+    let checked = await wallet.checkMintQuoteBolt11(quote.quote);
+    let tries = 0;
+    while (checked.state !== MintQuoteState.PAID && tries < 30) {
+      await new Promise(r => setTimeout(r, 1000));
+      checked = await wallet.checkMintQuoteBolt11(quote.quote);
+      tries++;
+      status.textContent = `Waiting for payment... (${tries}s)`;
+    }
+
+    if (checked.state !== MintQuoteState.PAID) {
+      throw new Error('Payment timeout — the test mint may be down');
+    }
+
+    status.textContent = 'Minting token...';
+    const proofs = await wallet.mintProofsBolt11(AMOUNT, quote.quote);
+
+    const token = getEncodedToken({ mint: MINT_URL, proofs });
+    currentToken = token;
+
+    document.getElementById('tokenBox').textContent = token;
+    document.getElementById('sshBox').textContent = `ssh -t ${token}@${TOLLGATE_HOST}`;
+
+    result.classList.remove('hidden');
+    status.textContent = `Token minted! ${AMOUNT} sats = ${AMOUNT} minutes of shell time.`;
+
+  } catch (e) {
+    status.textContent = `Error: ${e.message}`;
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.copyToken = function() {
+  navigator.clipboard.writeText(currentToken);
+  const btn = event.target;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy token', 1500);
+};
+
+window.copySSH = function() {
+  const ssh = `ssh -t ${currentToken}@${TOLLGATE_HOST}`;
+  navigator.clipboard.writeText(ssh);
+  const btn = event.target;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy SSH command', 1500);
+};
+</script>
+</body>
+</html>
