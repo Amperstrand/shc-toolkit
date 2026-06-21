@@ -143,6 +143,14 @@ Values are the `value` field from the catalog, not `value_id`.
 - **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
 - **Single location**: Katy, Texas only.
 
+## Cashu Tollgate — SSH for ecash
+
+A pay-per-minute SSH server that accepts [Cashu](https://cashu.space) ecash tokens as payment. Users paste a token as their SSH username and get an interactive bash shell for as many minutes as the token is worth. Includes a static faucet page for minting free test tokens.
+
+→ **[Full documentation](tollgate/README.md)**
+
+⚠️ **Warning:** This creates ephemeral shell accounts on your server. Do not run on production infrastructure without understanding the security implications. Consult your IT department before running at work.
+
 ## License
 
 MIT
