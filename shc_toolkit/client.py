@@ -196,13 +196,14 @@ class SHCClient:
     def get_support_ticket(self, ticket_id: int) -> dict:
         return self._get(f"/support/tickets/{ticket_id}")
 
-    def create_support_ticket(self, subject: str, body: str, department_id: int | None = None,
-                              priority: str = "medium", service_id: int | None = None) -> dict:
-        data: dict[str, Any] = {"subject": subject, "body": body, "priority": priority}
-        if department_id:
-            data["department_id"] = department_id
+    def create_support_ticket(self, subject: str, message: str, department_id: int,
+                              priority: str = "medium", service_id: int | None = None,
+                              **kwargs) -> dict:
+        data: dict[str, Any] = {"subject": subject, "message": message,
+                                "department_id": department_id, "priority": priority}
         if service_id:
             data["service_id"] = service_id
+        data.update(kwargs)
         return self._post("/support/tickets", data)
 
     def reply_support_ticket(self, ticket_id: int, body: str) -> dict:

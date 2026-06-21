@@ -12,12 +12,24 @@ from typing import Any
 
 from .client import SHCClient, SHCError
 from .benchmark import run_full_suite, print_results as print_bench_results
-from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns
+
+try:
+    from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns
+except ImportError:
+    NoDNSKeyPair = None
+    provision_dns_for_vm = None
+    verify_dns = None
 
 
 def _client(args) -> SHCClient:
     return SHCClient(api_key=args.api_key or os.environ.get("SHC_API_KEY", ""))
 
+
+def _print(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+# ── VM Lifecycle ──────────────────────────────────────────
 
 def cmd_list(args):
     c = _client(args)
@@ -27,17 +39,50 @@ def cmd_list(args):
         return
     for vm in vms:
         ip = vm.get("ips", [{}])[0].get("ip", "no-ip") if vm.get("ips") else "no-ip"
-        print(
-            f"  id={vm['id']:>5}  {vm['hostname']:30s}  {vm['service_status']:10s}  "
-            f"{vm.get('runtime_status', '?'):10s}  {ip}"
-        )
+        print(f"  id={vm['id']:>5}  {vm['hostname']:30s}  {vm['service_status']:10s}  {vm.get('runtime_status', '?'):10s}  {ip}")
 
 
 def cmd_info(args):
     c = _client(args)
-    vm = c.get_vm_summary(args.service_id)
-    print(json.dumps(vm, indent=2, default=str))
+    _print(c.get_vm_summary(args.service_id))
 
+
+def cmd_metrics(args):
+    c = _client(args)
+    _print(c.get_vm_metrics(args.service_id))
+
+
+def cmd_bandwidth(args):
+    c = _client(args)
+    _print(c.get_vm_bandwidth(args.service_id))
+
+
+def cmd_detail(args):
+    c = _client(args)
+    _print(c.get_vm_detail(args.service_id))
+
+
+def cmd_start(args):
+    c = _client(args)
+    _print(c.start_vm(args.service_id))
+
+
+def cmd_stop(args):
+    c = _client(args)
+    _print(c.stop_vm(args.service_id))
+
+
+def cmd_restart(args):
+    c = _client(args)
+    _print(c.restart_vm(args.service_id))
+
+
+def cmd_cancel(args):
+    c = _client(args)
+    _print(c.cancel_vm(args.service_id))
+
+
+# ── Ordering ──────────────────────────────────────────────
 
 def cmd_order(args):
     c = _client(args)
@@ -48,16 +93,10 @@ def cmd_order(args):
         else:
             ssh_key = args.ssh_key
 
-    config = {}
-    for opt in args.option or []:
-        key, val = opt.split("=", 1)
-        config[key] = val
-
     kwargs: dict[str, Any] = {
         "hostname": args.hostname,
         "package_id": args.package_id,
         "pricing_id": args.pricing_id,
-        "config_options": config,
     }
     if args.module_group_id:
         kwargs["module_group_id"] = args.module_group_id
@@ -65,263 +104,266 @@ def cmd_order(args):
         kwargs["ssh_key"] = ssh_key
 
     if args.dry_run:
-        result = c.preview_order(**kwargs)
-        print(json.dumps(result, indent=2, default=str))
+        _print(c.preview_order(**kwargs))
         return
 
-    result = c.submit_order(**kwargs)
-    print(json.dumps(result, indent=2, default=str))
-
-    # Auto-pay if requested
-    if args.pay:
-        invoice_id = result.get("invoice", {}).get("invoice_id")
-        if invoice_id:
-            payment = c.pay_invoice(invoice_id, str(uuid.uuid4()))
-            print(f"\nPayment: {json.dumps(payment, indent=2)}")
-
-        # Wait for provisioning
-        service_ids = result.get("service_ids", [])
-        if service_ids:
-            print(f"\nWaiting for VM {service_ids[0]} to provision...")
-            vm = c.wait_for_provisioning(service_ids[0])
-            ips = vm.get("ips", [])
-            ip = ips[0].get("ip", "?") if ips else "?"
-            user = vm.get("os_user", "debian")
-            print(f"\nVM ready! SSH: ssh {user}@{ip}")
-
-
-def cmd_pay(args):
-    c = _client(args)
-    result = c.pay_invoice(args.invoice_id, args.idempotency_key or str(uuid.uuid4()))
-    print(json.dumps(result, indent=2, default=str))
-
-
-def cmd_start(args):
-    c = _client(args)
-    print(json.dumps(c.start_vm(args.service_id), indent=2, default=str))
-
-
-def cmd_stop(args):
-    c = _client(args)
-    print(json.dumps(c.stop_vm(args.service_id), indent=2, default=str))
-
-
-def cmd_restart(args):
-    c = _client(args)
-    print(json.dumps(c.restart_vm(args.service_id), indent=2, default=str))
-
-
-def cmd_cancel(args):
-    c = _client(args)
-    print(json.dumps(c.cancel_vm(args.service_id), indent=2, default=str))
-
-
-def cmd_snapshots(args):
-    c = _client(args)
-    snapshots = c.list_snapshots(args.service_id)
-    if not snapshots:
-        print("No snapshots.")
-        return
-    for s in snapshots:
-        print(f"  {s.get('id', '?'):20s}  {s.get('name', '(unnamed)'):30s}  {s.get('created_at', '?')}")
-
-
-def cmd_create_snapshot(args):
-    c = _client(args)
-    result = c.create_snapshot(args.service_id, args.name)
-    print(json.dumps(result, indent=2, default=str))
-
-
-def cmd_restore_snapshot(args):
-    c = _client(args)
-    result = c.restore_snapshot(args.service_id, args.snapshot_id)
-    print(json.dumps(result, indent=2, default=str))
+    idem = args.idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
+    result = c.submit_order(idempotency_key=idem, **kwargs)
+    _print(result)
 
 
 def cmd_catalog(args):
     c = _client(args)
-    catalog = c.get_catalog()
-    for pkg in catalog:
+    for pkg in c.get_catalog():
         cpu = pkg.get("cpu", "?")
         mem = pkg.get("memory_mb", "?")
         disk = pkg.get("disk_gb", "?")
-        daily = next(
-            (p for p in pkg.get("pricing", []) if p.get("period") == "day"), None
-        )
+        daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), None)
         price = daily["price"] if daily else "?"
         print(f"  pkg={pkg['package_id']:>3}  {pkg['name']:35s}  {cpu}C/{mem}MB/{disk}GB  ${price}/day")
 
 
 def cmd_pricing(args):
-    """Display detailed pricing table for all SHC plans."""
     c = _client(args)
     catalog = c.get_catalog()
-
-    groups: dict[str, list[dict[str, Any]]] = {}
     for pkg in catalog:
-        name = pkg.get("name", "")
-        if "NVMe" in name:
-            tier = "NVMe"
-        elif "SSD" in name:
-            tier = "SSD"
-        elif "HDD" in name:
-            tier = "HDD"
-        else:
-            tier = "Other"
-        groups.setdefault(tier, []).append(pkg)
+        name = pkg.get("name", "?")
+        daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
+        weekly = next((p for p in pkg.get("pricing", []) if p.get("period") == "week"), {})
+        monthly = next((p for p in pkg.get("pricing", []) if p.get("period") == "month"), {})
+        print(f"  pkg={pkg['package_id']:>3}  {name:35s}  ${daily.get('price','?')}/day  ${weekly.get('price','?')}/wk  ${monthly.get('price','?')}/mo")
 
-    last_plans: list[dict[str, Any]] = []
-    for tier_name in ["NVMe", "SSD", "HDD"]:
-        plans = groups.get(tier_name, [])
-        if not plans:
-            continue
-        last_plans = plans
 
-        print(f"\n{'═' * 78}")
-        print(f"  {tier_name} VPS Plans — Katy, Texas")
-        print(f"{'═' * 78}")
-        print(f"  {'Plan':35s} {'Base':>8s}  {'Daily':>8s}  {'Weekly':>8s}  {'Monthly':>9s}  {'Yearly':>9s}")
-        print(f"  {'─' * 35} {'─' * 8}  {'─' * 8}  {'─' * 8}  {'─' * 9}  {'─' * 9}")
+# ── Support Tickets ───────────────────────────────────────
 
-        for pkg in plans:
-            name = pkg["name"].replace(f"{tier_name} VPS - ", "")
-            cpu = pkg.get("cpu", "?")
-            mem_gb = pkg.get("memory_mb", 0) // 1024
-            disk_gb = pkg.get("disk_gb", "?")
-            bw_gb = pkg.get("bandwidth_gb", "?")
-            base = f"{cpu}C/{mem_gb}G/{disk_gb}G"
+def cmd_tickets(args):
+    c = _client(args)
+    if args.subcommand == "list":
+        result = c.list_support_tickets(limit=args.limit or 20)
+        items = result.get("items", result) if isinstance(result, dict) else result
+        if not items:
+            print("No tickets.")
+            return
+        for t in items:
+            print(f"  #{t.get('id','?'):>5}  [{t.get('status','?'):10s}]  {t.get('subject','?')[:60]}")
+    elif args.subcommand == "get":
+        _print(c.get_support_ticket(args.ticket_id))
+    elif args.subcommand == "create":
+        msg_text = args.body
+        if args.body_file:
+            msg_text = open(args.body_file).read()
+        result = c.create_support_ticket(
+            subject=args.subject,
+            message=msg_text,
+            department_id=args.department,
+            priority=args.priority,
+            service_id=args.service_id,
+        )
+        ticket_id = result.get("id") or result.get("ticket_id", "?")
+        print(f"Created ticket #{ticket_id}: {args.subject}")
+        _print(result)
+    elif args.subcommand == "reply":
+        _print(c.reply_support_ticket(args.ticket_id, args.body))
+    elif args.subcommand == "close":
+        _print(c.close_support_ticket(args.ticket_id))
+    elif args.subcommand == "departments":
+        for d in c.list_support_departments():
+            print(f"  id={d.get('id','?')}  {d.get('name','?')}")
+    else:
+        print("Usage: shc tickets {list|get|create|reply|close|departments}")
+        sys.exit(1)
 
-            prices: dict[str, str] = {}
-            for p in pkg.get("pricing", []):
-                period = p["period"]
-                if period == "day":
-                    prices["daily"] = p["price"]
-                elif period == "week":
-                    prices["weekly"] = p["price"]
-                elif period == "month":
-                    prices["monthly"] = p["price"]
-                elif period == "year":
-                    prices["yearly"] = p["price"]
 
-            print(
-                f"  {name:35s} {base:>8s}  "
-                f"${prices.get('daily', '?'):>7s}  "
-                f"${prices.get('weekly', '?'):>7s}  "
-                f"${prices.get('monthly', '?'):>8s}  "
-                f"${prices.get('yearly', '?'):>8s}"
-            )
+# ── Billing ───────────────────────────────────────────────
 
-    print(f"\n  All plans include {last_plans[0].get('bandwidth_gb', '?')}GB bandwidth/mo, 1 IPv4, 1 snapshot, 1 backup")
-    print(f"  OS options: Debian 12/13, Ubuntu 22.04/24.04, Fedora 43, Arch, NixOS 24.11")
-    print()
+def cmd_balance(args):
+    c = _client(args)
+    _print(c.get_billing_balance())
 
+
+def cmd_invoices(args):
+    c = _client(args)
+    if args.invoice_id:
+        _print(c.get_invoice(args.invoice_id))
+    else:
+        result = c.list_invoices()
+        items = result.get("items", result) if isinstance(result, dict) else result
+        if not items:
+            print("No invoices.")
+            return
+        for inv in items:
+            print(f"  #{inv.get('id','?'):>5}  ${inv.get('total','?'):>8s}  {inv.get('status','?'):10s}  {inv.get('date_created','?')[:10]}")
+
+
+def cmd_transactions(args):
+    c = _client(args)
+    result = c.list_transactions()
+    items = result.get("items", result) if isinstance(result, dict) else result
+    if not items:
+        print("No transactions.")
+        return
+    for t in items:
+        print(f"  {t.get('date','?')[:10]}  ${t.get('amount','?'):>8s}  {t.get('type','?'):15s}  {t.get('description','')[:40]}")
+
+
+def cmd_activity(args):
+    c = _client(args)
+    result = c.get_account_activity(limit=args.limit or 20)
+    items = result.get("items", result) if isinstance(result, dict) else result
+    for a in items:
+        print(f"  {str(a.get('created_at','?'))[:19]}  {a.get('type','?'):15s}  {str(a.get('description', a.get('summary','')))[:60]}")
+
+
+def cmd_emails(args):
+    c = _client(args)
+    result = c.list_emails()
+    items = result.get("items", result) if isinstance(result, dict) else result
+    for e in items:
+        print(f"  {str(e.get('date','?'))[:10]}  {e.get('subject','?')[:60]}")
+
+
+def cmd_pay(args):
+    c = _client(args)
+    _print(c.pay_invoice(args.invoice_id, args.idempotency_key or str(uuid.uuid4())))
+
+
+# ── Snapshots ─────────────────────────────────────────────
+
+def cmd_snapshots(args):
+    c = _client(args)
+    for s in c.list_snapshots(args.service_id):
+        print(f"  {s.get('id', '?'):20s}  {s.get('name', '(unnamed)'):30s}  {s.get('created_at', '?')}")
+
+
+def cmd_create_snapshot(args):
+    c = _client(args)
+    _print(c.create_snapshot(args.service_id, args.name))
+
+
+def cmd_restore_snapshot(args):
+    c = _client(args)
+    _print(c.restore_snapshot(args.service_id, args.snapshot_id))
+
+
+# ── Bench ─────────────────────────────────────────────────
 
 def cmd_bench(args):
-    """Run VPS benchmarks on a VM."""
     c = _client(args)
     vm = c.get_vm_summary(args.service_id)
     ips = vm.get("ips", [])
     if not ips:
         print(f"Error: VM {args.service_id} has no IP assigned yet.", file=sys.stderr)
         sys.exit(1)
-
     host = ips[0]["ip"]
     user = vm.get("os_user", "debian")
-
-    print(f"Benchmarking VM {args.service_id} ({host})...")
-    print(f"This will take 3-5 minutes. Installing sysbench + fio on first run.\n")
-
-    results = run_full_suite(
-        host,
-        user=user,
-        skip_disk=args.skip_disk,
-        skip_network=args.skip_network,
-    )
-
+    print(f"Benchmarking VM {args.service_id} ({host})...\n")
+    results = run_full_suite(host, user=user, skip_disk=args.skip_disk, skip_network=args.skip_network)
     print_bench_results(results)
 
-    if args.json:
-        print(f"\nFull JSON results: {results.get('_saved_to', '?')}")
 
+# ── NoDNS ─────────────────────────────────────────────────
 
 def cmd_nodns(args):
     keypair = NoDNSKeyPair.from_nsec(args.nsec) if args.nsec else None
-    result = provision_dns_for_vm(
-        ip=args.ip,
-        subdomain=args.subdomain,
-        wait_seconds=args.wait,
-        keypair=keypair,
-    )
-    print(json.dumps(result, indent=2, default=str))
+    result = provision_dns_for_vm(ip=args.ip, subdomain=args.subdomain, wait_seconds=args.wait, keypair=keypair)
+    _print(result)
     if result["success"]:
         print(f"\nFQDN: {result['fqdn']}")
         print(f"nsec: {result['keypair']['nsec']}")
-        print("Save the nsec to update this DNS record later!")
 
+
+def cmd_dns_verify(args):
+    _print(verify_dns(args.fqdn, args.type, args.nameserver))
+
+
+# ── Firewall ──────────────────────────────────────────────
+
+def cmd_firewall(args):
+    c = _client(args)
+    if args.subcommand == "show":
+        _print(c.get_firewall(args.service_id))
+    elif args.subcommand == "policy":
+        _print(c.set_firewall_policy(args.service_id, args.policy))
+    elif args.subcommand == "add-rule":
+        kwargs = {}
+        if args.action: kwargs["action"] = args.action
+        if args.protocol: kwargs["protocol"] = args.protocol
+        if args.port: kwargs["port"] = args.port
+        if args.src: kwargs["source"] = args.src
+        _print(c.create_firewall_rule(args.service_id, **kwargs))
+    elif args.subcommand == "del-rule":
+        _print(c.delete_firewall_rule(args.service_id, args.position))
+    else:
+        print("Usage: shc firewall <service_id> {show|policy|add-rule|del-rule}")
+        sys.exit(1)
+
+
+# ── Account ───────────────────────────────────────────────
+
+def cmd_account(args):
+    c = _client(args)
+    _print(c.get_account())
+
+
+# ── Main ──────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog="shc", description="Sovereign Hybrid Compute CLI"
-    )
+    parser = argparse.ArgumentParser(prog="shc", description="Sovereign Hybrid Compute CLI")
     parser.add_argument("--api-key", help="SHC API key (or set SHC_API_KEY)")
-
     sub = parser.add_subparsers(dest="command")
 
-    # list
     p = sub.add_parser("list", help="List VMs")
     p.set_defaults(func=cmd_list)
 
-    # info
     p = sub.add_parser("info", help="VM summary")
     p.add_argument("service_id", type=int)
     p.set_defaults(func=cmd_info)
 
-    # catalog
+    p = sub.add_parser("detail", help="Enriched VM detail")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_detail)
+
+    p = sub.add_parser("metrics", help="VM time-series metrics")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_metrics)
+
+    p = sub.add_parser("bandwidth", help="VM bandwidth usage")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_bandwidth)
+
     p = sub.add_parser("catalog", help="List available plans")
     p.set_defaults(func=cmd_catalog)
 
-    # pricing
-    p = sub.add_parser("pricing", help="Detailed pricing table for all plans")
+    p = sub.add_parser("pricing", help="Pricing table")
     p.set_defaults(func=cmd_pricing)
 
-    # bench
-    p = sub.add_parser("bench", help="Run VPS benchmarks (CPU, disk, memory, network)")
+    p = sub.add_parser("bench", help="Run VPS benchmarks")
     p.add_argument("service_id", type=int)
-    p.add_argument("--skip-disk", action="store_true", help="Skip disk benchmarks (slow)")
-    p.add_argument("--skip-network", action="store_true", help="Skip network benchmarks")
-    p.add_argument("--json", action="store_true", help="Print JSON results path")
+    p.add_argument("--skip-disk", action="store_true")
+    p.add_argument("--skip-network", action="store_true")
     p.set_defaults(func=cmd_bench)
 
-    # order
     p = sub.add_parser("order", help="Order a new VM")
     p.add_argument("--hostname", required=True)
     p.add_argument("--package-id", type=int, required=True)
     p.add_argument("--pricing-id", type=int, required=True)
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
-    p.add_argument("--option", "-o", action="append", help="config key=val (repeatable)")
+    p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")
     p.add_argument("--pay", action="store_true", help="Auto-pay and wait for provisioning")
     p.set_defaults(func=cmd_order)
 
-    # pay
     p = sub.add_parser("pay", help="Pay an invoice")
     p.add_argument("invoice_id", type=int)
     p.add_argument("--idempotency-key")
     p.set_defaults(func=cmd_pay)
 
-    # start/stop/restart/cancel
-    for name, func in [
-        ("start", cmd_start),
-        ("stop", cmd_stop),
-        ("restart", cmd_restart),
-        ("cancel", cmd_cancel),
-    ]:
+    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("restart", cmd_restart), ("cancel", cmd_cancel)]:
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
         p.set_defaults(func=func)
 
-    # snapshots
     p = sub.add_parser("snapshots", help="List snapshots")
     p.add_argument("service_id", type=int)
     p.set_defaults(func=cmd_snapshots)
@@ -336,20 +378,61 @@ def main():
     p.add_argument("snapshot_id")
     p.set_defaults(func=cmd_restore_snapshot)
 
-    # nodns: DNS provisioning via Nostr
-    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop (Nostr)")
-    p.add_argument("--ip", required=True, help="VM IP address")
-    p.add_argument("--nsec", help="Existing nsec key (generates ephemeral if omitted)")
-    p.add_argument("--subdomain", help="Subdomain label (default: root @)")
-    p.add_argument("--wait", type=int, default=15, help="Seconds to wait for DNS propagation")
-    p.add_argument("--verify", action="store_true", help="Verify DNS resolution after publish")
+    p = sub.add_parser("tickets", help="Support tickets")
+    p.add_argument("subcommand", choices=["list", "get", "create", "reply", "close", "departments"])
+    p.add_argument("--ticket-id", type=int)
+    p.add_argument("--subject")
+    p.add_argument("--body")
+    p.add_argument("--body-file", help="Read body from file")
+    p.add_argument("--department", type=int)
+    p.add_argument("--priority", default="medium")
+    p.add_argument("--service-id", type=int)
+    p.add_argument("--limit", type=int)
+    p.set_defaults(func=cmd_tickets)
+
+    p = sub.add_parser("balance", help="Account balance")
+    p.set_defaults(func=cmd_balance)
+
+    p = sub.add_parser("invoices", help="List or get invoices")
+    p.add_argument("invoice_id", type=int, nargs="?", default=None)
+    p.set_defaults(func=cmd_invoices)
+
+    p = sub.add_parser("transactions", help="List transactions")
+    p.set_defaults(func=cmd_transactions)
+
+    p = sub.add_parser("activity", help="Account activity log")
+    p.add_argument("--limit", type=int)
+    p.set_defaults(func=cmd_activity)
+
+    p = sub.add_parser("emails", help="Email/notice history")
+    p.set_defaults(func=cmd_emails)
+
+    p = sub.add_parser("account", help="Account profile")
+    p.set_defaults(func=cmd_account)
+
+    p = sub.add_parser("firewall", help="VM firewall management")
+    p.add_argument("service_id", type=int)
+    p.add_argument("subcommand", choices=["show", "policy", "add-rule", "del-rule"])
+    p.add_argument("--policy", choices=["ACCEPT", "DROP"])
+    p.add_argument("--action", choices=["accept", "drop", "reject"])
+    p.add_argument("--protocol", choices=["tcp", "udp", "icmp"])
+    p.add_argument("--port")
+    p.add_argument("--src")
+    p.add_argument("--position", type=int)
+    p.set_defaults(func=cmd_firewall)
+
+    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop")
+    p.add_argument("--ip", required=True)
+    p.add_argument("--nsec")
+    p.add_argument("--subdomain")
+    p.add_argument("--wait", type=int, default=15)
+    p.add_argument("--verify", action="store_true")
     p.set_defaults(func=cmd_nodns)
 
-    # dns-verify
     p = sub.add_parser("dns-verify", help="Verify DNS resolution")
-    p.add_argument("fqdn", help="Fully qualified domain name")
-    p.add_argument("--type", default="A", help="Record type (default: A)")
-    p.add_argument("--nameserver", default="ns1.nodns.shop", help="Nameserver to query")
+    p.add_argument("fqdn")
+    p.add_argument("--type", default="A")
+    p.add_argument("--nameserver", default="ns1.nodns.shop")
     p.set_defaults(func=cmd_dns_verify)
 
     args = parser.parse_args()
@@ -362,11 +445,6 @@ def main():
     except SHCError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-
-def cmd_dns_verify(args):
-    result = verify_dns(args.fqdn, args.type, args.nameserver)
-    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
