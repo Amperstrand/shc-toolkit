@@ -15,3 +15,9 @@ dev-vps-plans.json
 
 # Tollgate build artifacts
 tollgate/cashu-tollgate
+
+# OpenCode agent state
+.omo/
+
+# Playwright MCP session artifacts (logs, snapshots)
+.playwright-mcp/
