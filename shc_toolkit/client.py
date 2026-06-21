@@ -64,7 +64,6 @@ class SHCClient:
 
     def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
-        # Only set Content-Type when sending a body
         if "json" in kwargs:
             self.session.headers["Content-Type"] = "application/json"
         elif "Content-Type" in self.session.headers:
@@ -81,6 +80,20 @@ class SHCClient:
                 err.get("details"),
             )
         return body.get("data", body)
+
+    def call(self, method: str, path: str, **kwargs) -> Any:
+        """Call any SHC API endpoint directly.
+
+        Escape hatch for endpoints not yet wrapped in a named method.
+        Uses the same auth, base URL, and response unwrapping as all
+        typed methods.
+
+        Examples:
+            c.call("GET", "/vm/123/metrics")
+            c.call("POST", "/support/tickets", json={"subject": "Bug"})
+            c.call("PATCH", "/vm/123/firewall/policy", json={"default_policy": "DROP"})
+        """
+        return self._request(method.upper(), path, **kwargs)
 
     def _get(self, path: str, params: dict | None = None) -> dict[str, Any]:
         return self._request("GET", path, params=params)
@@ -306,11 +319,55 @@ class SHCClient:
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 
-    def submit_order(self, **kwargs) -> dict:
+    def submit_order(self, idempotency_key: str | None = None, **kwargs) -> dict:
+        """Submit a VM order. Handles confirmation flow automatically.
+
+        Args:
+            idempotency_key: Optional client-generated idempotency key.
+                If omitted, one is generated. Use a deterministic key
+                (e.g. hash of commit+branch+mode) to prevent duplicate
+                orders when retrying failed tests.
+            **kwargs: Order fields (package_id, pricing_id, hostname, etc.)
+
+        Automatically:
+        - Removes invalid 'pay' field (not in v2 schema)
+        - Omits empty config_options
+        - Handles the confirmation_required flow (409 → confirm → resubmit)
+        """
+        import uuid
         kwargs.pop("pay", None)
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
-        return self._post("/ordering/submit", kwargs)
+        if not idempotency_key:
+            idem = f"order-{uuid.uuid4().hex[:24]}"
+        else:
+            idem = idempotency_key
+
+        headers = {"Idempotency-Key": idem}
+        try:
+            return self._post("/ordering/submit", kwargs, headers=headers)
+        except SHCError as e:
+            if e.code != "confirmation_required":
+                raise
+            cid = None
+            if isinstance(e.details, list):
+                for d in e.details:
+                    if isinstance(d, dict) and "confirmation_id" in str(d.get("issue", "")):
+                        pass
+            if not cid:
+                import requests as req_lib
+                r = req_lib.post(
+                    f"{self.base_url}/ordering/submit",
+                    json=kwargs,
+                    headers={**headers, "Authorization": f"Bearer {self.api_key}"},
+                )
+                body = r.json()
+                sc = body.get("confirmation", {}).get("structuredContent", {})
+                cid = sc.get("confirmation_id")
+            if not cid:
+                raise
+            headers["X-User-Api-Confirm"] = cid
+            return self._post("/ordering/submit", kwargs, headers=headers)
 
     # ── VM Lifecycle ─────────────────────────────────────────
 
