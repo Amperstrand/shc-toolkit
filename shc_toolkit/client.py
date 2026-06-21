@@ -206,8 +206,8 @@ class SHCClient:
         data.update(kwargs)
         return self._post("/support/tickets", data)
 
-    def reply_support_ticket(self, ticket_id: int, body: str) -> dict:
-        return self._post(f"/support/tickets/{ticket_id}/replies", {"body": body})
+    def reply_support_ticket(self, ticket_id: int, message: str) -> dict:
+        return self._post(f"/support/tickets/{ticket_id}/replies", {"message": message})
 
     def close_support_ticket(self, ticket_id: int) -> dict:
         return self._post(f"/support/tickets/{ticket_id}/close")
