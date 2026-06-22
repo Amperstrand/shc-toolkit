@@ -12,7 +12,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -33,12 +35,31 @@ class SHCError(Exception):
         details: Any = None,
     ):
         self.code = code
+        self.message = message
         self.request_id = request_id
         self.details = details
+        self.confirmation_id: str | None = None
         super().__init__(
             f"[{code}] {message}"
             + (f" (req={request_id})" if request_id else "")
         )
+
+
+class ProvisioningStuckError(SHCError):
+    """VM stuck in a terminal failure pattern during provisioning.
+
+    The full health report dict is attached as ``.health_report``.
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        request_id: str | None = None,
+        details: Any = None,
+    ):
+        super().__init__(code, message, request_id, details)
+        self.health_report = details
 
 
 class SHCClient:
@@ -73,12 +94,20 @@ class SHCClient:
         body = resp.json()
         if not resp.ok:
             err = body.get("error", {})
-            raise SHCError(
+            exc = SHCError(
                 err.get("code", "unknown"),
                 err.get("message", resp.text),
                 err.get("request_id"),
                 err.get("details"),
             )
+            # Capture confirmation_id from 409 body so _confirmed_request
+            # can auto-resubmit without a second round-trip.
+            conf = body.get("confirmation", {})
+            if conf:
+                exc.confirmation_id = (
+                    conf.get("structuredContent", {}).get("confirmation_id")
+                )
+            raise exc
         return body.get("data", body)
 
     def call(self, method: str, path: str, **kwargs) -> Any:
@@ -109,6 +138,27 @@ class SHCClient:
 
     def _delete(self, path: str, **kwargs) -> dict[str, Any]:
         return self._request("DELETE", path, **kwargs)
+
+    def _confirmed_request(
+        self, method: str, path: str, *, confirm: bool = True, **kwargs
+    ) -> dict[str, Any]:
+        """Execute a request, auto-handling the confirmation_required 409 flow.
+
+        On confirmation_required, extracts the single-use confirmation_id
+        and resubmits with X-User-Api-Confirm header.  Pass confirm=False
+        to probe (will raise SHCError on 409 instead of auto-confirming).
+        """
+        try:
+            return self._request(method, path, **kwargs)
+        except SHCError as e:
+            if not confirm or e.code != "confirmation_required":
+                raise
+            cid = getattr(e, "confirmation_id", None)
+            if not cid:
+                raise
+            headers = dict(kwargs.pop("headers", None) or {})
+            headers["X-User-Api-Confirm"] = cid
+            return self._request(method, path, headers=headers, **kwargs)
 
     # ── Account ──────────────────────────────────────────────
 
@@ -321,54 +371,20 @@ class SHCClient:
         return self._post("/ordering/preview", kwargs)
 
     def submit_order(self, idempotency_key: str | None = None, **kwargs) -> dict:
-        """Submit a VM order. Handles confirmation flow automatically.
+        """Submit a VM order with auto-confirmation and idempotency.
 
-        Args:
-            idempotency_key: Optional client-generated idempotency key.
-                If omitted, one is generated. Use a deterministic key
-                (e.g. hash of commit+branch+mode) to prevent duplicate
-                orders when retrying failed tests.
-            **kwargs: Order fields (package_id, pricing_id, hostname, etc.)
-
-        Automatically:
-        - Removes invalid 'pay' field (not in v2 schema)
-        - Omits empty config_options
-        - Handles the confirmation_required flow (409 → confirm → resubmit)
+        Removes invalid 'pay' field, omits empty config_options, generates
+        an Idempotency-Key if none provided, and auto-handles confirmation.
         """
         import uuid
         kwargs.pop("pay", None)
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
-        if not idempotency_key:
-            idem = f"order-{uuid.uuid4().hex[:24]}"
-        else:
-            idem = idempotency_key
-
+        idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
-        try:
-            return self._post("/ordering/submit", kwargs, headers=headers)
-        except SHCError as e:
-            if e.code != "confirmation_required":
-                raise
-            cid = None
-            if isinstance(e.details, list):
-                for d in e.details:
-                    if isinstance(d, dict) and "confirmation_id" in str(d.get("issue", "")):
-                        pass
-            if not cid:
-                import requests as req_lib
-                r = req_lib.post(
-                    f"{self.base_url}/ordering/submit",
-                    json=kwargs,
-                    headers={**headers, "Authorization": f"Bearer {self.api_key}"},
-                )
-                body = r.json()
-                sc = body.get("confirmation", {}).get("structuredContent", {})
-                cid = sc.get("confirmation_id")
-            if not cid:
-                raise
-            headers["X-User-Api-Confirm"] = cid
-            return self._post("/ordering/submit", kwargs, headers=headers)
+        return self._confirmed_request(
+            "POST", "/ordering/submit", json=kwargs, headers=headers
+        )
 
     # ── VM Lifecycle ─────────────────────────────────────────
 
@@ -396,11 +412,15 @@ class SHCClient:
     def reset_vm(self, service_id: int) -> dict:
         return self._patch(f"/vm/{service_id}/reset")
 
-    def cancel_vm(self, service_id: int) -> dict:
-        return self._post(f"/vm/{service_id}/cancel")
+    def cancel_vm(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/cancel", confirm=confirm, json={}
+        )
 
-    def reinstall_vm(self, service_id: int, **kwargs) -> dict:
-        return self._patch(f"/vm/{service_id}/reinstall", kwargs)
+    def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "PATCH", f"/vm/{service_id}/reinstall", confirm=confirm, json=kwargs
+        )
 
     def get_vm_detail(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/detail")
@@ -443,14 +463,16 @@ class SHCClient:
             data["name"] = name
         return self._post(f"/vm/{service_id}/snapshots", data)
 
-    def restore_snapshot(self, service_id: int, snapshot_id: str) -> dict:
-        return self._post(
-            f"/vm/{service_id}/snapshots/restore", {"snapshot_id": snapshot_id}
+    def restore_snapshot(self, service_id: int, snapshot_id: str, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/snapshots/restore",
+            confirm=confirm, json={"snapshot_id": snapshot_id},
         )
 
-    def delete_snapshot(self, service_id: int, snapshot_id: str) -> dict:
-        return self._post(
-            f"/vm/{service_id}/snapshots/delete", {"snapshot_id": snapshot_id}
+    def delete_snapshot(self, service_id: int, snapshot_id: str, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/snapshots/delete",
+            confirm=confirm, json={"snapshot_id": snapshot_id},
         )
 
     # ── Backups ──────────────────────────────────────────────
@@ -464,11 +486,17 @@ class SHCClient:
             data["name"] = name
         return self._post(f"/vm/{service_id}/backups", data)
 
-    def restore_backup(self, service_id: int, backup_id: str) -> dict:
-        return self._post(f"/vm/{service_id}/backups/restore", {"backup_id": backup_id})
+    def restore_backup(self, service_id: int, backup_id: str, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/backups/restore",
+            confirm=confirm, json={"backup_id": backup_id},
+        )
 
-    def delete_backup(self, service_id: int, backup_id: str) -> dict:
-        return self._post(f"/vm/{service_id}/backups/delete", {"backup_id": backup_id})
+    def delete_backup(self, service_id: int, backup_id: str, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/backups/delete",
+            confirm=confirm, json={"backup_id": backup_id},
+        )
 
     def set_backup_protection(self, service_id: int, backup_id: str, protected: bool) -> dict:
         return self._patch(f"/vm/{service_id}/backups/protection", {"backup_id": backup_id, "protected": protected})
@@ -635,3 +663,215 @@ class SHCClient:
                 raise SHCError("job_failed", f"Job {job_id} failed: {job}")
             time.sleep(interval)
         raise SHCError("timeout", f"Job {job_id} not complete after {timeout}s")
+
+    # ── VM Health ───────────────────────────────────────────
+
+    _TERMINAL_DIAGNOSES = frozenset({
+        "CLOUD_INIT_DISABLED_DEADLOCK",
+        "NETWORK_UNREACHABLE",
+        "EMPTY_ACTIVITY_LOG",
+    })
+
+    def check_vm_health(self, service_id: int) -> dict:
+        """Return a structured health report diagnosing common failure patterns.
+
+        Gathers data from /vm, /vm/detail, /vm/summary, /firewall,
+        /activity, and /bandwidth, probes TCP port 22, and classifies
+        the VM's state into a diagnosis_code.
+        """
+        vm = self.get_vm(service_id)
+        # Prefer /detail over /summary for runtime status: /summary omits
+        # the runtime object entirely (returns null runtime_status even
+        # when the VM is actually running — confirmed API bug).
+        detail = self.get_vm_detail(service_id)
+        summary = self.get_vm_summary(service_id)
+        firewall = self.get_firewall(service_id)
+        activity = self.get_vm_activity(service_id)
+        bandwidth = self.get_vm_bandwidth(service_id)
+
+        hostname = vm.get("hostname", "")
+        service_status = vm.get("service_status", "unknown")
+        provisioning_state = vm.get("provisioning_state", "unknown")
+        bootstrap_completed_at = vm.get("bootstrap_completed_at")
+
+        runtime_status_summary = summary.get("runtime_status")
+        rt = detail.get("runtime") or {}
+        runtime_status_detail = rt.get("raw_status") or rt.get("state")
+        runtime_field_consistent = (
+            runtime_status_summary == runtime_status_detail
+        )
+
+        ips = vm.get("ips", [])
+        ip_assigned = ips[0]["ip"] if ips else None
+
+        port_22_reachable = False
+        if ip_assigned:
+            try:
+                s = socket.create_connection((ip_assigned, 22), timeout=3)
+                s.close()
+                port_22_reachable = True
+            except OSError:
+                pass
+
+        age_seconds = self._compute_vm_age(vm, bandwidth)
+
+        activity_count = len(activity)
+        bandwidth_used = bandwidth.get("used_bytes", 0)
+
+        diagnosis_code, diagnosis = self._diagnose(
+            provisioning_state=provisioning_state,
+            bootstrap_completed_at=bootstrap_completed_at,
+            age_seconds=age_seconds,
+            runtime_field_consistent=runtime_field_consistent,
+            ip_assigned=ip_assigned,
+            port_22_reachable=port_22_reachable,
+            runtime_status_detail=runtime_status_detail,
+            activity_count=activity_count,
+        )
+
+        return {
+            "service_id": service_id,
+            "hostname": hostname,
+            "age_seconds": age_seconds,
+            "service_status": service_status,
+            "provisioning_state": provisioning_state,
+            "bootstrap_completed_at": bootstrap_completed_at,
+            "runtime_status_summary": runtime_status_summary,
+            "runtime_status_detail": runtime_status_detail,
+            "runtime_field_consistent": runtime_field_consistent,
+            "ip_assigned": ip_assigned,
+            "port_22_reachable": port_22_reachable,
+            "firewall_policy": firewall.get("policy", {}),
+            "activity_events": activity_count,
+            "bandwidth_used_bytes": bandwidth_used,
+            "diagnosis": diagnosis,
+            "diagnosis_code": diagnosis_code,
+        }
+
+    @staticmethod
+    def _compute_vm_age(vm: dict, bandwidth: dict) -> int:
+        """Estimate VM age in seconds from date_created.
+
+        Handles server-side timezone offset bug where date_created can
+        be hours ahead of real UTC; falls back to bandwidth as_of epoch,
+        then to abs(delta) so stuck VMs always report a large age.
+        """
+        date_created = vm.get("date_created")
+        if not date_created:
+            return 0
+        try:
+            created = datetime.fromisoformat(date_created)
+        except (ValueError, TypeError):
+            return 0
+        now = datetime.now(timezone.utc)
+        delta = int((now - created).total_seconds())
+        if delta >= 0:
+            return delta
+        as_of_epoch = bandwidth.get("as_of_epoch")
+        if as_of_epoch:
+            delta2 = int(as_of_epoch - created.timestamp())
+            if delta2 >= 0:
+                return delta2
+        return abs(delta)
+
+    @staticmethod
+    def _diagnose(
+        *,
+        provisioning_state: str,
+        bootstrap_completed_at: str | None,
+        age_seconds: int,
+        runtime_field_consistent: bool,
+        ip_assigned: str | None,
+        port_22_reachable: bool,
+        runtime_status_detail: str | None,
+        activity_count: int,
+    ) -> tuple[str, str]:
+        """Classify VM state into a (diagnosis_code, diagnosis) tuple."""
+        if (
+            provisioning_state == "provisioning"
+            and bootstrap_completed_at is None
+            and age_seconds > 300
+        ):
+            return (
+                "CLOUD_INIT_DISABLED_DEADLOCK",
+                "VM stuck in provisioning; cloud-init likely disabled or "
+                "failed. Bootstrap signal never fired.",
+            )
+        if not runtime_field_consistent:
+            return (
+                "RUNTIME_FIELD_DIVERGENCE",
+                "API field inconsistency: /summary and /detail disagree on "
+                "runtime_status. Use /detail.",
+            )
+        if (
+            ip_assigned
+            and not port_22_reachable
+            and runtime_status_detail == "running"
+        ):
+            return (
+                "NETWORK_UNREACHABLE",
+                "VM is running and has an IP assigned, but port 22 is "
+                "unreachable from outside. Likely network/bridge/hypervisor "
+                "issue.",
+            )
+        if activity_count == 0 and age_seconds > 600:
+            return (
+                "EMPTY_ACTIVITY_LOG",
+                "No activity events recorded despite VM age > 10min. "
+                "Observability gap.",
+            )
+        if provisioning_state == "ready" and port_22_reachable:
+            return ("HEALTHY", "VM is healthy and SSH-reachable.")
+        if provisioning_state == "provisioning" and age_seconds <= 300:
+            return (
+                "PROVISIONING_IN_PROGRESS",
+                "VM is still provisioning (within normal timeframe).",
+            )
+        return ("UNKNOWN", "No specific diagnosis matched.")
+
+    def wait_for_provisioning_healthy(
+        self,
+        service_id: int,
+        timeout: int = 300,
+        interval: int = 10,
+        *,
+        probe_port_22: bool = True,
+    ) -> dict:
+        """Poll until VM is healthy or a terminal failure is detected.
+
+        Returns the VM dict on success.  Raises ProvisioningStuckError
+        (with .health_report) when check_vm_health returns a terminal
+        diagnosis code.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            health = self.check_vm_health(service_id)
+            code = health["diagnosis_code"]
+            log.info(
+                f"VM {service_id} health: {code} "
+                f"(prov={health['provisioning_state']}, "
+                f"ssh={health['port_22_reachable']})"
+            )
+            if code in self._TERMINAL_DIAGNOSES:
+                raise ProvisioningStuckError(
+                    "provisioning_stuck",
+                    f"VM {service_id}: {health['diagnosis']}",
+                    details=health,
+                )
+            if health["provisioning_state"] == "ready":
+                if probe_port_22 and not health["port_22_reachable"]:
+                    raise ProvisioningStuckError(
+                        "provisioning_stuck",
+                        f"VM {service_id} provisioned but port 22 "
+                        f"unreachable.",
+                        details=health,
+                    )
+                return self.get_vm(service_id)
+            time.sleep(interval)
+        health = self.check_vm_health(service_id)
+        raise SHCError(
+            "timeout",
+            f"VM {service_id} not healthy after {timeout}s "
+            f"(last diagnosis: {health['diagnosis_code']})",
+            details=health,
+        )
