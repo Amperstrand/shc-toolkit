@@ -69,30 +69,25 @@ echo "  Paid for:       ${AMOUNT} minutes"
 TIMELEOF
 chmod +x /usr/local/bin/timeleft
 
-echo "=== 5. Move admin SSH to port 2222 ==="
-CURRENT_PORT=$(grep -E "^#?Port " /etc/ssh/sshd_config | head -1 | awk '{print $2}')
-if [ "$CURRENT_PORT" != "2222" ]; then
-    sed -i 's/^#\?Port .*/Port 2222/' /etc/ssh/sshd_config
+echo "=== 5. Create tollgate-guests group + sudoers ==="
+groupadd -f tollgate-guests
+cat > /etc/sudoers.d/tollgate << 'SUDOEOF'
+nobody ALL=(root) NOPASSWD: /usr/sbin/useradd -m -d /home/g-[a-f0-9]* -s /bin/bash -G tollgate-guests g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/sbin/userdel -r -f g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/pkill -u g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/chmod * /home/g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/chown g-[a-f0-9]*:g-[a-f0-9]* /home/g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/tee /home/g-[a-f0-9]*/*
+nobody ALL=(%tollgate-guests) NOPASSWD: /bin/bash -i
+nobody ALL=(cashu-wallet) NOPASSWD: /usr/local/bin/cdk-cli *
+SUDOEOF
+chmod 440 /etc/sudoers.d/tollgate
+visudo -cf /etc/sudoers.d/tollgate || { echo "FATAL: sudoers syntax error"; exit 1; }
+echo "  sudoers installed"
 
-    # Ubuntu 24.04 uses socket activation — disable it so the Port directive takes effect
-    if systemctl list-unit-files | grep -q ssh.socket; then
-        systemctl disable --now ssh.socket 2>/dev/null || true
-        mkdir -p /etc/systemd/system/ssh.socket.d
-        cat > /etc/systemd/system/ssh.socket.d/override.conf << 'SOCKEOF'
-[Socket]
-ListenStream=
-ListenStream=2222
-SOCKEOF
-    fi
-
-    systemctl daemon-reload
-    systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null
-    echo "  admin SSH now on port 2222 (connect: ssh -p 2222 <user>@<ip>)"
-else
-    echo "  admin SSH already on port 2222"
-fi
-
-echo "=== 6. Create systemd service ==="
+echo "=== 6. Create systemd service (runs as nobody) ==="
+mkdir -p "$INSTALL_DIR"
+chown nobody:nogroup "$INSTALL_DIR"
 cat > /etc/systemd/system/cashu-tollgate.service << SVCEOF
 [Unit]
 Description=Cashu Tollgate SSH Server
@@ -100,6 +95,8 @@ After=network.target
 
 [Service]
 Type=simple
+User=nobody
+Group=nogroup
 ExecStart=${INSTALL_DIR}/cashu-tollgate
 Restart=on-failure
 RestartSec=5
@@ -111,7 +108,7 @@ SVCEOF
 
 systemctl daemon-reload
 systemctl enable --now cashu-tollgate
-echo "  tollgate service started (port 22)"
+echo "  tollgate service started as nobody:nogroup (port 2222)"
 
 echo "=== 7. Verify ==="
 sleep 2
@@ -123,19 +120,18 @@ else
     exit 1
 fi
 
-# Check port 22 is bound by tollgate
-if ss -tlnp | grep -q ':22 '; then
-    echo "  port 22: LISTENING"
+if ss -tlnp | grep -q ':2222 '; then
+    echo "  port 2222: LISTENING (tollgate)"
 else
-    echo "  port 22: NOT LISTENING (check service logs)"
+    echo "  port 2222: NOT LISTENING (check service logs)"
     exit 1
 fi
 
 echo ""
 echo "=== DEPLOY COMPLETE ==="
-echo "Tollgate SSH: port 22 (Cashu token auth)"
-echo "Admin SSH:    port 2222 (key auth)"
+echo "Admin SSH:    port 22 (standard sshd, key auth)"
+echo "Tollgate SSH: port 2222 (Cashu token auth, runs as nobody)"
 echo "Wallet:       $WALLET_HOME"
 echo ""
 echo "Test: mint a token at https://testnut.cashu.exchange, then:"
-echo "  ssh -t cashuB...@$(hostname -I | awk '{print $1}')"
+echo "  ssh -p 2222 -t cashuB...@$(hostname -I | awk '{print $1}')"

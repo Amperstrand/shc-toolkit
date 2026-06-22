@@ -28,13 +28,20 @@ import (
 // --- Configuration ---
 
 const (
-	Port            = 22
+	Port            = 2222
 	RateSecPerSat   = 60
 	BaseDir         = "/opt/cashu-tollgate"
 	WalletFile      = BaseDir + "/wallet.jsonl"
 	TokensLogFile   = BaseDir + "/tokens.log"
 	SpentHashesFile = BaseDir + "/spent.txt"
 )
+
+func sudoWriteFile(path string, content []byte, mode os.FileMode) {
+	cmd := exec.Command("sudo", "-n", "tee", path)
+	cmd.Stdin = bytes.NewReader(content)
+	cmd.Run()
+	exec.Command("sudo", "-n", "chmod", fmt.Sprintf("%o", mode), path).Run()
+}
 
 // --- Token Types ---
 
@@ -336,32 +343,32 @@ func guestUsername(tokenStr string) string {
 }
 
 func createGuestUser(name string) error {
-	cmd := exec.Command("useradd", "-m", "-d", "/home/"+name, "-s", "/bin/bash", name)
+	cmd := exec.Command("sudo", "-n", "useradd", "-m", "-d", "/home/"+name, "-s", "/bin/bash", "-G", "tollgate-guests", name)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("useradd failed: %s: %w", strings.TrimSpace(string(out)), err)
 	}
 
 	home := "/home/" + name
-	exec.Command("chmod", "700", home).Run()
+	exec.Command("sudo", "-n", "chmod", "700", home).Run()
 
 	bashrc := "export PS1=\"\\u@tollgate:\\w\\$ \"\nexport PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/games\"\n"
 	rcPath := home + "/.bashrc"
-	os.WriteFile(rcPath, []byte(bashrc), 0644)
-	exec.Command("chown", name+":"+name, rcPath).Run()
+	sudoWriteFile(rcPath, []byte(bashrc), 0644)
+	exec.Command("sudo", "-n", "chown", name+":"+name, rcPath).Run()
 
 	return nil
 }
 
 func cleanupGuest(name string) {
 	log.Printf("Cleaning up guest: %s", name)
-	exec.Command("pkill", "-u", name).Run()
-	exec.Command("userdel", "-r", "-f", name).Run()
+	exec.Command("sudo", "-n", "pkill", "-u", name).Run()
+	exec.Command("sudo", "-n", "userdel", "-r", "-f", name).Run()
 }
 
 func redeemToken(tokenStr string) (int, error) {
 	cmd := exec.Command(
-		"sudo", "-u", "cashu-wallet",
+		"sudo", "-n", "-u", "cashu-wallet",
 		"cdk-cli",
 		"--work-dir", "/var/lib/cashu-wallet",
 		"receive",
@@ -410,8 +417,8 @@ func writeSessionMeta(guest string, tokenData *TokenData, seconds int) {
 	}
 	data, _ := json.Marshal(meta)
 	path := "/home/" + guest + "/.tollgate"
-	os.WriteFile(path, data, 0600)
-	exec.Command("chown", guest+":"+guest, path).Run()
+	sudoWriteFile(path, data, 0600)
+	exec.Command("sudo", "-n", "chown", guest+":"+guest, path).Run()
 }
 
 // --- MOTD ---
@@ -531,7 +538,7 @@ func main() {
 
 		// 9. Spawn bash as guest inside a PTY
 		ptyReq, winCh, isPty := s.Pty()
-		cmd := exec.Command("sudo", "-u", guest, "-H", "bash", "-i")
+		cmd := exec.Command("sudo", "-n", "-u", guest, "-H", "bash", "-i")
 		if isPty {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
 		}

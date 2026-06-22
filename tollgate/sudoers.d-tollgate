@@ -1,0 +1,18 @@
+# /etc/sudoers.d/tollgate — allows the tollgate SSH server (running as nobody)
+# to manage JIT guest users and redeem Cashu tokens via restricted sudo.
+
+# Guest user lifecycle (useradd creates users in the tollgate-guests group)
+nobody ALL=(root) NOPASSWD: /usr/sbin/useradd -m -d /home/g-[a-f0-9]* -s /bin/bash -G tollgate-guests g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/sbin/userdel -r -f g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/pkill -u g-[a-f0-9]*
+
+# File operations in guest home directories
+nobody ALL=(root) NOPASSWD: /usr/bin/chmod * /home/g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/chown g-[a-f0-9]*:g-[a-f0-9]* /home/g-[a-f0-9]*
+nobody ALL=(root) NOPASSWD: /usr/bin/tee /home/g-[a-f0-9]*/*
+
+# Shell access as guest users (tollgate-guests group members only)
+nobody ALL=(%tollgate-guests) NOPASSWD: /bin/bash -i
+
+# Cashu token redemption as the isolated wallet user
+nobody ALL=(cashu-wallet) NOPASSWD: /usr/local/bin/cdk-cli *
