@@ -23,10 +23,11 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 
-def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120) -> str:
+def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port: int = 22) -> str:
     """Run a command on the VM via SSH."""
     result = subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", f"ConnectTimeout={min(timeout, 15)}",
+        ["ssh", "-p", str(port),
+         "-o", "StrictHostKeyChecking=no", "-o", f"ConnectTimeout={min(timeout, 15)}",
          f"{user}@{host}", cmd],
         capture_output=True,
         text=True,
@@ -40,10 +41,10 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120) -> st
     return result.stdout.strip()
 
 
-def scp_to_vm(host: str, local: str, remote: str, user: str = "debian") -> str:
+def scp_to_vm(host: str, local: str, remote: str, user: str = "debian", port: int = 22) -> str:
     """Copy file to VM via scp."""
     result = subprocess.run(
-        ["scp", "-o", "StrictHostKeyChecking=no", "-O",
+        ["scp", "-P", str(port), "-o", "StrictHostKeyChecking=no", "-O",
          local, f"{user}@{host}:{remote}"],
         capture_output=True,
         text=True,

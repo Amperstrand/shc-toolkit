@@ -31,7 +31,7 @@ def _ensure_results_dir() -> str:
     return RESULTS_DIR
 
 
-def _install_deps(host: str, user: str = "debian") -> None:
+def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
     """Install benchmark dependencies (sysbench, fio) if missing."""
     log.info("Installing benchmark dependencies...")
     ssh_cmd(host, """
@@ -44,13 +44,13 @@ def _install_deps(host: str, user: str = "debian") -> None:
             sudo apt-get install -y -qq $need_install
         fi
         echo "deps ready: sysbench=$(command -v sysbench), fio=$(command -v fio)"
-    """, user=user, timeout=180)
+    """, user=user, port=port, timeout=180)
 
 
 # ── System Info ───────────────────────────────────────────────
 
 
-def collect_sysinfo(host: str, user: str = "debian") -> dict[str, Any]:
+def collect_sysinfo(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Collect basic system information."""
     log.info("Collecting system info...")
     raw = ssh_cmd(host, """
@@ -68,7 +68,7 @@ def collect_sysinfo(host: str, user: str = "debian") -> dict[str, Any]:
         uptime
         echo "=== kernel_modules ==="
         grep -c 'vmx\\|svm' /proc/cpuinfo 2>/dev/null || echo "0"
-    """, user=user)
+    """, user=user, port=port)
 
     info: dict[str, Any] = {"raw": raw}
 
@@ -83,7 +83,7 @@ def collect_sysinfo(host: str, user: str = "debian") -> dict[str, Any]:
         elif line.startswith("Core(s) per socket:"):
             info["cores_per_socket"] = int(line.split(":")[1].strip())
         elif line.startswith("CPU MHz:"):
-            info["cpu_mhz"] = float(line.split(":")[1].strip())
+            info["cpu_mhz"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
         elif line.startswith("L3 cache:"):
             info["l3_cache"] = line.split(":")[1].strip()
 
@@ -96,39 +96,39 @@ def collect_sysinfo(host: str, user: str = "debian") -> dict[str, Any]:
 # ── CPU Benchmarks ────────────────────────────────────────────
 
 
-def bench_cpu(host: str, user: str = "debian") -> dict[str, Any]:
+def bench_cpu(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Run CPU benchmarks: sysbench prime test + openssl speed."""
     log.info("Running CPU benchmarks...")
 
     # sysbench CPU — single-threaded prime calculation
     sb_out = ssh_cmd(host, """
         sysbench cpu --cpu-max-prime=20000 --threads=1 run 2>&1
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     sb_multi = ssh_cmd(host, """
         sysbench cpu --cpu-max-prime=20000 --threads=$(nproc) run 2>&1
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     # openssl speed — RSA and AES
     ssl_out = ssh_cmd(host, """
         openssl speed -seconds 3 rsa2048 aes-256-cbc 2>&1
-    """, user=user, timeout=60)
+    """, user=user, port=port, timeout=60)
 
     result: dict[str, Any] = {}
 
     # Parse sysbench single-thread
     for line in sb_out.splitlines():
         if "total time:" in line.lower():
-            result["sysbench_st_time_s"] = float(line.split(":")[1].strip())
+            result["sysbench_st_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
         elif "events per second:" in line.lower():
-            result["sysbench_st_eps"] = float(line.split(":")[1].strip())
+            result["sysbench_st_eps"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
 
     # Parse sysbench multi-thread
     for line in sb_multi.splitlines():
         if "total time:" in line.lower():
-            result["sysbench_mt_time_s"] = float(line.split(":")[1].strip())
+            result["sysbench_mt_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
         elif "events per second:" in line.lower():
-            result["sysbench_mt_eps"] = float(line.split(":")[1].strip())
+            result["sysbench_mt_eps"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
 
     # Parse openssl
     for line in ssl_out.splitlines():
@@ -156,7 +156,7 @@ def bench_cpu(host: str, user: str = "debian") -> dict[str, Any]:
 # ── Disk Benchmarks ───────────────────────────────────────────
 
 
-def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
+def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Run disk I/O benchmarks: sequential + random 4K using fio."""
     log.info("Running disk benchmarks (fio)...")
 
@@ -169,7 +169,7 @@ def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     # Sequential write
     seq_write = ssh_cmd(host, r"""
@@ -180,7 +180,7 @@ def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     # Random 4K read
     rand_read = ssh_cmd(host, r"""
@@ -191,7 +191,7 @@ def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     # Random 4K write
     rand_write = ssh_cmd(host, r"""
@@ -202,7 +202,7 @@ def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     result: dict[str, Any] = {}
 
@@ -241,14 +241,14 @@ def bench_disk(host: str, user: str = "debian") -> dict[str, Any]:
 # ── Memory Benchmark ──────────────────────────────────────────
 
 
-def bench_memory(host: str, user: str = "debian") -> dict[str, Any]:
+def bench_memory(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Run memory benchmark: sysbench memory test."""
     log.info("Running memory benchmark...")
 
     out = ssh_cmd(host, """
         sysbench memory --memory-block-size=1K --memory-total-size=10G \
             --memory-oper=read --threads=1 run 2>&1
-    """, user=user, timeout=120)
+    """, user=user, port=port, timeout=120)
 
     result: dict[str, Any] = {}
     for line in out.splitlines():
@@ -262,7 +262,7 @@ def bench_memory(host: str, user: str = "debian") -> dict[str, Any]:
                 except ValueError:
                     pass
         elif "total time:" in line.lower():
-            result["time_s"] = float(line.split(":")[1].strip())
+            result["time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
         elif "operations per second" in line.lower() or "events per second" in line.lower():
             parts = line.split(":")
             if len(parts) == 2:
@@ -278,7 +278,7 @@ def bench_memory(host: str, user: str = "debian") -> dict[str, Any]:
 # ── Network Benchmark ─────────────────────────────────────────
 
 
-def bench_network(host: str, user: str = "debian") -> dict[str, Any]:
+def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Run network benchmark: download speed from public test servers."""
     log.info("Running network benchmark...")
 
@@ -294,21 +294,21 @@ def bench_network(host: str, user: str = "debian") -> dict[str, Any]:
         echo ""
         echo "=== hostname ==="
         hostname
-    """, user=user, timeout=60)
+    """, user=user, port=port, timeout=60)
 
     result: dict[str, Any] = {"raw": out}
 
     for line in out.splitlines():
         if line.startswith("cf_100mb_download_speed_bytes_per_s:"):
             try:
-                bps = float(line.split(":")[1].strip())
+                bps = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
                 result["download_mbps"] = round(bps * 8 / 1_000_000, 2)
                 result["download_bytes_per_s"] = round(bps, 0)
             except (ValueError, IndexError):
                 pass
         elif line.startswith("cf_100mb_total_time_s:"):
             try:
-                result["download_time_s"] = float(line.split(":")[1].strip())
+                result["download_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
             except (ValueError, IndexError):
                 pass
 
@@ -337,6 +337,7 @@ def bench_network(host: str, user: str = "debian") -> dict[str, Any]:
 def run_full_suite(
     host: str,
     user: str = "debian",
+    port: int = 22,
     skip_disk: bool = False,
     skip_network: bool = False,
 ) -> dict[str, Any]:
@@ -347,7 +348,7 @@ def run_full_suite(
     log.info(f"Starting full benchmark suite against {host}...")
     start = time.time()
 
-    _install_deps(host, user)
+    _install_deps(host, user, port)
 
     results: dict[str, Any] = {
         "host": host,
@@ -356,23 +357,23 @@ def run_full_suite(
     }
 
     # System info (always run)
-    results["sysinfo"] = collect_sysinfo(host, user)
+    results["sysinfo"] = collect_sysinfo(host, user, port)
 
     # CPU
-    results["benchmarks"]["cpu"] = bench_cpu(host, user)
+    results["benchmarks"]["cpu"] = bench_cpu(host, user, port)
 
     # Memory
-    results["benchmarks"]["memory"] = bench_memory(host, user)
+    results["benchmarks"]["memory"] = bench_memory(host, user, port)
 
     # Disk (can be slow)
     if not skip_disk:
-        results["benchmarks"]["disk"] = bench_disk(host, user)
+        results["benchmarks"]["disk"] = bench_disk(host, user, port)
     else:
         results["benchmarks"]["disk"] = {"skipped": True}
 
     # Network
     if not skip_network:
-        results["benchmarks"]["network"] = bench_network(host, user)
+        results["benchmarks"]["network"] = bench_network(host, user, port)
     else:
         results["benchmarks"]["network"] = {"skipped": True}
 
