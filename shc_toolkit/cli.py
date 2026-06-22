@@ -72,9 +72,26 @@ def cmd_stop(args):
     _print(c.stop_vm(args.service_id))
 
 
+def cmd_shutdown(args):
+    c = _client(args)
+    _print(c.shutdown_vm(args.service_id))
+
+
 def cmd_restart(args):
     c = _client(args)
     _print(c.restart_vm(args.service_id))
+
+
+def cmd_health(args):
+    c = _client(args)
+    import json as _json
+    health = c.check_vm_health(args.service_id)
+    print(_json.dumps(health, indent=2, default=str))
+
+
+def cmd_reinstall(args):
+    c = _client(args)
+    _print(c.reinstall_vm(args.service_id, args.template))
 
 
 def cmd_cancel(args):
@@ -359,10 +376,19 @@ def main():
     p.add_argument("--idempotency-key")
     p.set_defaults(func=cmd_pay)
 
-    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("restart", cmd_restart), ("cancel", cmd_cancel)]:
+    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("shutdown", cmd_shutdown), ("restart", cmd_restart), ("cancel", cmd_cancel)]:
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
         p.set_defaults(func=func)
+
+    p = sub.add_parser("health", help="VM health diagnostics (provisioning, network, runtime)")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_health)
+
+    p = sub.add_parser("reinstall", help="Reinstall OS from template")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--template", default="debian13-cloud", help="OS template name")
+    p.set_defaults(func=cmd_reinstall)
 
     p = sub.add_parser("snapshots", help="List snapshots")
     p.add_argument("service_id", type=int)
