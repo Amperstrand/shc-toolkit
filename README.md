@@ -139,7 +139,7 @@ Values are the `value` field from the catalog, not `value_id`.
 
 ## Known Limitations
 
-- **No nested KVM**: SHC does not expose VMX/SVM to guests. QEMU runs in TCG (software emulation) only.
+- **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo`.
 - **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
 - **Single location**: Katy, Texas only.
 
