@@ -21,3 +21,9 @@ tollgate/cashu-tollgate
 
 # Playwright MCP session artifacts (logs, snapshots)
 .playwright-mcp/
+
+# Console diagnostic screenshots (session artifacts, not source)
+console-*.png
+diag-*.png
+popout-*.png
+r[0-9]-*.png
