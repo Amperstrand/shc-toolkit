@@ -15,6 +15,8 @@ import json
 import logging
 import os
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
@@ -45,6 +47,133 @@ def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
         fi
         echo "deps ready: sysbench=$(command -v sysbench), fio=$(command -v fio)"
     """, user=user, port=port, timeout=180)
+
+
+# ── Pricing ───────────────────────────────────────────────────
+
+
+SHC_CATALOG_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
+HETZNER_PRICING_URL = "https://api.hetzner.cloud/v1/pricing"
+SHC_DAILY_PRICE = "0.49"  # fallback when API is unreachable
+
+
+def _http_get_json(url: str, headers: dict[str, str] | None = None, timeout: int = 15) -> Any:
+    """GET a URL and return parsed JSON. Raises on HTTP/parse error."""
+    req = urllib.request.Request(url, headers=headers or {})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _collect_pricing_shc() -> dict[str, Any]:
+    """Pull live pricing from SHC catalog API."""
+    api_key = os.environ.get("SHC_API_KEY")
+    fetched_at = datetime.now(timezone.utc).isoformat()
+    if not api_key:
+        return {
+            "provider": "shc",
+            "daily_price": SHC_DAILY_PRICE,
+            "hourly_price": f"{float(SHC_DAILY_PRICE) / 24:.4f}",
+            "currency": "USD",
+            "billing_model": "pro-rata",
+            "minimum_charge_hours": 1,
+            "source_api": SHC_CATALOG_URL,
+            "fetched_at": fetched_at,
+            "note": "SHC_API_KEY not set; using fallback price",
+        }
+    try:
+        data = _http_get_json(
+            SHC_CATALOG_URL, headers={"Authorization": f"Bearer {api_key}"}
+        )
+        daily = _extract_shc_daily_price(data)
+        return {
+            "provider": "shc",
+            "daily_price": daily,
+            "hourly_price": f"{float(daily) / 24:.4f}",
+            "currency": "USD",
+            "billing_model": "pro-rata",
+            "minimum_charge_hours": 1,
+            "source_api": SHC_CATALOG_URL,
+            "fetched_at": fetched_at,
+        }
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError) as e:
+        log.warning(f"SHC pricing API unreachable: {e}")
+        return {
+            "provider": "shc",
+            "daily_price": SHC_DAILY_PRICE,
+            "hourly_price": f"{float(SHC_DAILY_PRICE) / 24:.4f}",
+            "currency": "USD",
+            "billing_model": "pro-rata",
+            "minimum_charge_hours": 1,
+            "source_api": SHC_CATALOG_URL,
+            "fetched_at": fetched_at,
+            "note": f"API unreachable ({e}); using fallback price",
+        }
+
+
+def _extract_shc_daily_price(catalog: Any) -> str:
+    """Best-effort extraction of daily price from SHC catalog JSON."""
+    if not isinstance(catalog, dict):
+        return SHC_DAILY_PRICE
+    # Walk the catalog looking for a pricing entry with term "day"
+    def _walk(obj):
+        if isinstance(obj, dict):
+            term = str(obj.get("term", "")).lower()
+            price = obj.get("price")
+            if term in ("day", "daily", "1") and price is not None:
+                return str(price)
+            for v in obj.values():
+                found = _walk(v)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = _walk(item)
+                if found:
+                    return found
+        return None
+    return _walk(catalog) or SHC_DAILY_PRICE
+
+
+def _collect_pricing_hetzner() -> dict[str, Any]:
+    """Pull live pricing from Hetzner public pricing endpoint."""
+    fetched_at = datetime.now(timezone.utc).isoformat()
+    try:
+        data = _http_get_json(HETZNER_PRICING_URL)
+        pricing = data.get("pricing", {}) if isinstance(data, dict) else {}
+        return {
+            "provider": "hetzner",
+            "currency": pricing.get("currency", "EUR"),
+            "vat_rate": pricing.get("vat_rate"),
+            "image_prices": pricing.get("image", {}),
+            "floating_ip_prices": pricing.get("floating_ip", {}),
+            "traffic_prices": pricing.get("traffic", {}),
+            "source_api": HETZNER_PRICING_URL,
+            "fetched_at": fetched_at,
+        }
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as e:
+        log.warning(f"Hetzner pricing API unreachable: {e}")
+        return {
+            "provider": "hetzner",
+            "pricing_available": False,
+            "source_api": HETZNER_PRICING_URL,
+            "fetched_at": fetched_at,
+            "note": f"API unreachable ({e})",
+        }
+
+
+def collect_pricing(host: str, provider: str = "shc") -> dict[str, Any]:
+    """Fetch live pricing for the given provider. Falls back gracefully."""
+    log.info(f"Collecting pricing for provider={provider} (host={host})...")
+    if provider == "auto":
+        if os.environ.get("SHC_API_KEY"):
+            provider = "shc"
+        else:
+            provider = "unknown"
+    if provider == "shc":
+        return _collect_pricing_shc()
+    if provider == "hetzner":
+        return _collect_pricing_hetzner()
+    return {"provider": "unknown", "pricing_available": False}
 
 
 # ── System Info ───────────────────────────────────────────────
@@ -238,6 +367,65 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
     return result
 
 
+def bench_disk_yabs(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
+    """Run YABS-standard fio randrw tests across 4k/64k/512k/1m blocksizes."""
+    log.info("Running YABS-compatible disk benchmarks (fio randrw)...")
+
+    # Single SSH call runs all 4 blocksizes and emits a delimited stream of JSON blobs.
+    raw = ssh_cmd(host, r"""
+        for BS in 4k 64k 512k 1m; do
+            echo "===FIO_START_${BS}==="
+            fio --name=rand_rw \
+                --ioengine=libaio \
+                --rw=randrw \
+                --rwmixread=50 \
+                --bs=${BS} \
+                --iodepth=64 \
+                --numjobs=2 \
+                --size=2G \
+                --runtime=30 \
+                --gtod_reduce=1 \
+                --direct=1 \
+                --group_reporting \
+                --output-format=json 2>/dev/null
+            echo "===FIO_END_${BS}==="
+        done
+    """, user=user, port=port, timeout=300)
+
+    results: dict[str, Any] = {}
+
+    def _parse_one(label: str, blob: str) -> None:
+        try:
+            data = json.loads(blob)
+            job = data.get("jobs", [{}])[0]
+            r = job.get("read", {})
+            w = job.get("write", {})
+            # fio JSON 'bw' is in KiB/s
+            r_bw_kib = r.get("bw", 0)
+            w_bw_kib = w.get("bw", 0)
+            results[label] = {
+                "read_iops": round(r.get("iops", 0.0), 2),
+                "write_iops": round(w.get("iops", 0.0), 2),
+                "read_mb_s": round(r_bw_kib / 1024, 2),
+                "write_mb_s": round(w_bw_kib / 1024, 2),
+            }
+        except (json.JSONDecodeError, IndexError, KeyError, TypeError) as e:
+            results[label] = {"error": str(e), "raw": blob[:500]}
+
+    for bs in ("4k", "64k", "512k", "1m"):
+        start_marker = f"===FIO_START_{bs}==="
+        end_marker = f"===FIO_END_{bs}==="
+        si = raw.find(start_marker)
+        ei = raw.find(end_marker)
+        if si == -1 or ei == -1 or ei <= si:
+            results[bs] = {"error": f"markers not found for {bs}"}
+            continue
+        blob = raw[si + len(start_marker):ei].strip()
+        _parse_one(bs, blob)
+
+    return results
+
+
 # ── Memory Benchmark ──────────────────────────────────────────
 
 
@@ -331,6 +519,114 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
     return result
 
 
+def bench_network_iperf3(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
+    """Run iperf3 against 3 public servers (Paris, Fremont, Amsterdam)."""
+    log.info("Running iperf3 network benchmarks...")
+
+    servers = {
+        "bouygues.testdebit.info": "Paris",
+        "iperf.he.net": "Fremont, CA",
+        "speedtest.wtnet.de": "Amsterdam",
+    }
+
+    ssh_cmd(host, """
+        command -v iperf3 >/dev/null 2>&1 || {
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt-get update -qq && sudo apt-get install -y -qq iperf3
+        }
+        echo "iperf3 ready: $(command -v iperf3 || echo MISSING)"
+    """, user=user, port=port, timeout=120)
+
+    results: dict[str, Any] = {}
+
+    for server, location in servers.items():
+        # || true keeps ssh_cmd from raising when a server is unreachable
+        raw = ssh_cmd(host, f"""
+            iperf3 -c {server} -P 8 -t 10 -J 2>/dev/null || echo "IPERF3_FAILED_{server}"
+        """, user=user, port=port, timeout=30)
+
+        if f"IPERF3_FAILED_{server}" in raw:
+            results[server] = {"location": location, "available": False}
+            log.info(f"iperf3 server {server} unreachable, skipping")
+            continue
+
+        try:
+            data = json.loads(raw)
+            end = data.get("end", {})
+            sum_recv = end.get("sum_received", end.get("sum", {}))
+            bps = sum_recv.get("bits_per_second", 0)
+            retransmits = end.get("sum_sent", end.get("sum", {})).get("retransmits", 0)
+            results[server] = {
+                "location": location,
+                "available": True,
+                "download_bps": round(bps, 0),
+                "download_mbps": round(bps / 1_000_000, 2),
+                "retransmits": retransmits,
+            }
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            results[server] = {"location": location, "available": False, "error": str(e)}
+
+    return results
+
+
+# ── Geekbench 6 (optional) ────────────────────────────────────
+
+
+GEEKBENCH_URL = "https://cdn.geekbench.com/Geekbench-6.3.0-Linux.tar.gz"
+
+
+def bench_geekbench(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
+    """Download, run Geekbench 6, parse single/multi-core scores. Optional."""
+    log.info("Running Geekbench 6 (optional)...")
+
+    raw = ssh_cmd(host, f"""
+        set -e
+        cd /tmp
+        curl -fsSL -o geekbench6.tar.gz {GEEKBENCH_URL} || {{
+            echo "GB_DOWNLOAD_FAILED"
+            exit 0
+        }}
+        tar xzf geekbench6.tar.gz
+        GB_DIR=$(ls -d Geekbench-6*-Linux 2>/dev/null | head -1)
+        if [ -z "$GB_DIR" ]; then
+            echo "GB_EXTRACT_FAILED"
+            exit 0
+        fi
+        cd "$GB_DIR"
+        ./geekbench6 --json > /tmp/gb_result.json 2>/dev/null || {{
+            echo "GB_RUN_FAILED"
+            exit 0
+        }}
+        echo "===GB_START==="
+        cat /tmp/gb_result.json
+        echo "===GB_END==="
+    """, user=user, port=port, timeout=600)
+
+    if "GB_DOWNLOAD_FAILED" in raw:
+        return {"available": False, "reason": "download failed"}
+    if "GB_EXTRACT_FAILED" in raw:
+        return {"available": False, "reason": "extract failed"}
+    if "GB_RUN_FAILED" in raw:
+        return {"available": False, "reason": "run failed (license required?)"}
+
+    si = raw.find("===GB_START===")
+    ei = raw.find("===GB_END===")
+    if si == -1 or ei == -1:
+        return {"available": False, "reason": "no output markers", "raw": raw[:500]}
+
+    try:
+        data = json.loads(raw[si + len("===GB_START==="):ei].strip())
+        scores = data.get("scores", {})
+        return {
+            "available": True,
+            "single_core": scores.get("singleCore", scores.get("single_core", {})).get("score"),
+            "multi_core": scores.get("multiCore", scores.get("multi_core", {})).get("score"),
+            "version": data.get("version", "?"),
+        }
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        return {"available": False, "reason": f"parse error: {e}", "raw": raw[:500]}
+
+
 # ── Full Suite ────────────────────────────────────────────────
 
 
@@ -340,6 +636,11 @@ def run_full_suite(
     port: int = 22,
     skip_disk: bool = False,
     skip_network: bool = False,
+    run_yabs: bool = True,
+    run_iperf3: bool = True,
+    run_geekbench: bool = False,
+    collect_pricing: bool = True,
+    provider: str = "auto",
 ) -> dict[str, Any]:
     """Run the full benchmark suite and return structured results.
 
@@ -356,6 +657,19 @@ def run_full_suite(
         "benchmarks": {},
     }
 
+    if collect_pricing:
+        prov = provider
+        if prov == "auto":
+            prov = "shc" if os.environ.get("SHC_API_KEY") else "unknown"
+        if prov == "shc":
+            results["pricing"] = _collect_pricing_shc()
+        elif prov == "hetzner":
+            results["pricing"] = _collect_pricing_hetzner()
+        else:
+            results["pricing"] = {"provider": "unknown", "pricing_available": False}
+    else:
+        results["pricing"] = {"pricing_available": False, "skipped": True}
+
     # System info (always run)
     results["sysinfo"] = collect_sysinfo(host, user, port)
 
@@ -371,11 +685,29 @@ def run_full_suite(
     else:
         results["benchmarks"]["disk"] = {"skipped": True}
 
+    # YABS-compatible fio tests
+    if run_yabs and not skip_disk:
+        results["benchmarks"]["disk_yabs"] = bench_disk_yabs(host, user, port)
+    else:
+        results["benchmarks"]["disk_yabs"] = {"skipped": True}
+
     # Network
     if not skip_network:
         results["benchmarks"]["network"] = bench_network(host, user, port)
     else:
         results["benchmarks"]["network"] = {"skipped": True}
+
+    # iperf3 network tests
+    if run_iperf3 and not skip_network:
+        results["benchmarks"]["network_iperf3"] = bench_network_iperf3(host, user, port)
+    else:
+        results["benchmarks"]["network_iperf3"] = {"skipped": True}
+
+    # Geekbench 6 (optional)
+    if run_geekbench:
+        results["benchmarks"]["geekbench"] = bench_geekbench(host, user, port)
+    else:
+        results["benchmarks"]["geekbench"] = {"skipped": True}
 
     elapsed = time.time() - start
     results["elapsed_seconds"] = round(elapsed, 1)
@@ -400,10 +732,24 @@ def print_results(results: dict[str, Any]) -> None:
     """Print benchmark results in a readable table format."""
     sysinfo = results.get("sysinfo", {})
     bench = results.get("benchmarks", {})
+    pricing = results.get("pricing", {})
 
     print("\n" + "=" * 60)
     print(f"  VPS Benchmark: {results.get('host', '?')}")
     print("=" * 60)
+
+    if pricing and not pricing.get("skipped"):
+        pprov = pricing.get("provider", "?")
+        if pricing.get("pricing_available", True) and "daily_price" in pricing:
+            daily = pricing["daily_price"]
+            hourly = pricing.get("hourly_price", "?")
+            model = pricing.get("billing_model", "?")
+            min_hrs = pricing.get("minimum_charge_hours", "?")
+            src = "SHC catalog API" if pprov == "shc" else f"{pprov} API"
+            print(f"\n  Price: ${hourly}/hr (${daily}/day, {model} {min_hrs}hr min)"
+                  f"  — source: {src}")
+        elif pprov != "unknown":
+            print(f"\n  Price: ({pprov} pricing unavailable)")
 
     # System info
     print(f"\n  CPU:     {sysinfo.get('cpu_model', '?')}")
@@ -427,6 +773,19 @@ def print_results(results: dict[str, Any]) -> None:
             print(f"  OpenSSL RSA2048 sign:    {cpu['openssl_rsa2048_sign_per_s']:.0f} ops/s")
         if "openssl_rsa2048_verify_per_s" in cpu:
             print(f"  OpenSSL RSA2048 verify:  {cpu['openssl_rsa2048_verify_per_s']:.0f} ops/s")
+
+    # Geekbench (optional, show early near CPU)
+    gb = bench.get("geekbench", {})
+    if gb and gb.get("available"):
+        print(f"\n{'─' * 60}")
+        print(f"  GEEKBENCH 6 (v{gb.get('version', '?')})")
+        print(f"{'─' * 60}")
+        sc = gb.get("single_core")
+        mc = gb.get("multi_core")
+        if sc is not None:
+            print(f"  Single-core:  {sc}")
+        if mc is not None:
+            print(f"  Multi-core:   {mc}")
 
     # Memory
     mem = bench.get("memory", {})
@@ -457,6 +816,20 @@ def print_results(results: dict[str, Any]) -> None:
                       f"{d['iops']:>10.0f} IOPS  "
                       f"lat={d['lat_mean_us']:.1f}µs")
 
+    # YABS-compatible disk tests
+    yabs = bench.get("disk_yabs", {})
+    if yabs and not yabs.get("skipped"):
+        print(f"\n{'─' * 60}")
+        print("  DISK BENCHMARKS — YABS (fio randrw)")
+        print(f"{'─' * 60}")
+        print(f"  {'BS':>5s}  {'R IOPS':>10s} {'W IOPS':>10s}  "
+              f"{'R MB/s':>8s} {'W MB/s':>8s}")
+        for bs in ("4k", "64k", "512k", "1m"):
+            d = yabs.get(bs, {})
+            if isinstance(d, dict) and "read_iops" in d:
+                print(f"  {bs:>5s}  {d['read_iops']:>10.0f} {d['write_iops']:>10.0f}  "
+                      f"{d['read_mb_s']:>8.1f} {d['write_mb_s']:>8.1f}")
+
     # Network
     net = bench.get("network", {})
     if net and not net.get("skipped"):
@@ -470,6 +843,23 @@ def print_results(results: dict[str, Any]) -> None:
             loc = f"{ipinfo.get('city', '?')}, {ipinfo.get('country', '?')}"
             print(f"  Location:                {loc}")
             print(f"  ISP:                     {ipinfo.get('org', '?')}")
+
+    # iperf3 network tests
+    iperf = bench.get("network_iperf3", {})
+    if iperf and not iperf.get("skipped"):
+        print(f"\n{'─' * 60}")
+        print("  NETWORK BENCHMARKS — iperf3 (8 parallel, 10s)")
+        print(f"{'─' * 60}")
+        for _server, info in iperf.items():
+            if not isinstance(info, dict):
+                continue
+            loc = info.get("location", "?")
+            if info.get("available"):
+                mbps = info.get("download_mbps", 0)
+                retr = info.get("retransmits", 0)
+                print(f"  {loc:20s}  {mbps:>10.1f} Mbps  (retransmits: {retr})")
+            else:
+                print(f"  {loc:20s}  (unavailable)")
 
     elapsed = results.get("elapsed_seconds", 0)
     print(f"\n  Completed in {elapsed:.0f}s")

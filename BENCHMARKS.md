@@ -1,20 +1,23 @@
 # SHC VPS Benchmarks
 
-Performance comparison across providers, measured with our `shc_toolkit.benchmark` suite (YABS-modeled: sysbench CPU, fio disk, openssl, memory, network).
+Raw performance data across providers, measured with our `shc_toolkit.benchmark` suite (YABS-compatible: sysbench CPU, fio disk, iperf3 network, openssl, memory, optional Geekbench 6).
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Summary
 
-| Provider | Instance | CPU ST | CPU MT | Mem (MiB/s) | Rand 4K IOPS | $/day | Nested KVM |
-|---|---|---|---|---|---|---|---|
-| **SHC Dev VPS** | Standard (2C/8GB) | 435 | 849 | 6,550 | **117,878** | $0.49 | ✅ |
-| **SHC NVMe VPS** | Standard (2C/8GB) | 451 | 898 | 6,549 | 44,527 | $0.49 | ❌ |
-| **Hetzner** | CX22 (2C/4GB) | **602** | **1192** | 5,690 | 47,301 | ~$0.15 | ❌ |
-| **GCP** | e2-standard-2 (2C/8GB) | 4,340¹ | 4,340¹ | N/A | 56,200¹ | ~$1.63 | ✅² |
+| Provider | Instance | CPU ST | CPU MT | Mem (MiB/s) | Rand 4K IOPS | $/hour | $/day | Nested KVM |
+|---|---|---|---|---|---|---|---|---|
+| **SHC Dev VPS** | Standard (2C/8GB) | 435 | 849 | 6,550 | 117,878 | $0.0204 | $0.49 | ✅ |
+| **SHC NVMe VPS** | Standard (2C/8GB) | 451 | 898 | 6,549 | 44,527 | $0.0204 | $0.49 | ❌ |
+| **Hetzner** | CX22 (2C/4GB) | 602 | 1192 | 5,690 | 47,301 | ~$0.006 | ~$0.15 | ❌ |
+| **GCP** | e2-standard-2 (2C/8GB) | 4,340¹ | 4,340¹ | N/A | 56,200¹ | ~$0.068 | ~$1.63 | ✅² |
 
 ¹ Published numbers from [vpsbenchmarks.com](https://vpsbenchmarks.com/yabs/google_compute_engine-2c-4gb-49d111) — not measured by us.
+
 ² GCP nested virtualization requires `--enable-nested-virtualization` flag on the instance template.
+
+> **Note:** GCP raised peering/CDN egress rates effective May 1, 2026.
 
 ## Detailed results
 
@@ -27,7 +30,7 @@ Last updated: 2026-06-22
 | **sysbench ST** | 435 events/s | |
 | **sysbench MT** | 849 events/s | |
 | **Memory read** | 6,550 MiB/s | |
-| **Rand 4K Read IOPS** | 117,878 | **2.5x Hetzner, 2.7x SHC NVMe** |
+| **Rand 4K Read IOPS** | 117,878 | |
 | **Rand 4K Read latency** | 271 µs | |
 | **Location** | Parsons, Kansas | AS394468 Wave Wireless LLC |
 | **Nested KVM** | ✅ /dev/kvm with VMX flags | Required for tollgate router testing |
@@ -55,9 +58,9 @@ Last updated: 2026-06-22
 |---|---|---|
 | **CPU** | AMD EPYC-Rome | |
 | **vCPUs** | 2 | |
-| **sysbench ST** | 602 events/s | **+33% vs SHC** |
-| **sysbench MT** | 1192 events/s | **+40% vs SHC** |
-| **Memory read** | 5,690 MiB/s | -13% vs SHC |
+| **sysbench ST** | 602 events/s | |
+| **sysbench MT** | 1192 events/s | |
+| **Memory read** | 5,690 MiB/s | |
 | **Rand 4K Read IOPS** | 47,301 | |
 | **Rand 4K Read latency** | 676 µs | |
 | **Location** | Falkenstein, Germany | AS24940 Hetzner |
@@ -66,24 +69,24 @@ Last updated: 2026-06-22
 
 ## Pricing comparison
 
-| Provider | Instance | $/day | $/month | vCPU | RAM | Disk | Nested KVM |
-|---|---|---|---|---|---|---|---|
-| **SHC Dev VPS** | Standard | $0.49 | $14.83 | 2 | 8 GB | 16 GB | ✅ |
-| **SHC NVMe VPS** | Standard | $0.49 | $14.83 | 2 | 8 GB | 16 GB | ❌ |
-| **Hetzner** | CX22 | ~$0.15 | $4.59 | 2 | 4 GB | 40 GB | ❌ |
-| **GCP** | e2-standard-2 | ~$1.63 | $48.92 | 2 | 8 GB | pd-ssd | ✅ (flag) |
+| Provider | Instance | $/hour | $/day | $/month | vCPU | RAM | Disk | Nested KVM |
+|---|---|---|---|---|---|---|---|---|
+| **SHC Dev VPS** | Standard | $0.0204 | $0.49 | $14.83 | 2 | 8 GB | 16 GB | ✅ |
+| **SHC NVMe VPS** | Standard | $0.0204 | $0.49 | $14.83 | 2 | 8 GB | 16 GB | ❌ |
+| **Hetzner** | CX22 | ~$0.006 | ~$0.15 | $4.59 | 2 | 4 GB | 40 GB | ❌ |
+| **GCP** | e2-standard-2 | ~$0.068 | ~$1.63 | $48.92 | 2 | 8 GB | pd-ssd | ✅ (flag) |
 
-SHC Dev VPS is **3.3x cheaper** than GCP for the same specs + nested KVM.
-Hetzner is **3.2x cheaper** than SHC but lacks nested KVM and has half the RAM.
+> SHC bills per day but refunds pro-consumed. Minimum charge is 1 hour.
+> Pricing source: SHC catalog API (live) — `GET https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog`
 
 ## Provisioning time comparison
 
 | Provider | Order → SSH ready | Notes |
 |---|---|---|
-| **SHC Dev VPS** | ~90 seconds | Fastest of all providers tested |
+| **SHC Dev VPS** | ~90 seconds | |
 | **SHC NVMe VPS** | ~120 seconds | |
 | **GCP** | ~120 seconds | From baked snapshot (instant deps) |
-| **Hetzner** | ~15 seconds | Fastest provisioning |
+| **Hetzner** | ~15 seconds | |
 
 ## CI cycle time comparison
 
@@ -98,12 +101,11 @@ Hetzner is **3.2x cheaper** than SHC but lacks nested KVM and has half the RAM.
 | Run quick tests | ~5 min | ~5 min | ~5 min |
 | **Full cycle** | **~7.5 min** | **~14 min** | **~7 min** |
 
-SHC with snapshot restore matches GCP's cycle time. Without snapshots, SHC adds ~6.5 min of setup per run.
-
 ## Benchmarking methodology
 
 Our benchmark suite (`shc_toolkit.benchmark`) uses:
 
+- **Pricing source**: SHC catalog API (live) — fetched at benchmark start via `collect_pricing()`. Hetzner pricing from `https://api.hetzner.cloud/v1/pricing`.
 - **CPU**: `sysbench cpu --cpu-max-prime=20000 --threads=1` (single) and `--threads=$(nproc)` (multi)
 - **CPU crypto**: `openssl speed -seconds 3 rsa2048 aes-256-cbc`
 - **Disk**: `fio` with 4 profiles:
@@ -111,19 +113,29 @@ Our benchmark suite (`shc_toolkit.benchmark`) uses:
   - Sequential write: `--rw=write --bs=1M --size=1G --iodepth=32`
   - Random 4K read: `--rw=randread --bs=4K --size=1G --iodepth=32`
   - Random 4K write: `--rw=randwrite --bs=4K --size=1G --iodepth=32`
+- **Disk (YABS)**: `fio --rw=randrw --rwmixread=50 --iodepth=64 --numjobs=2 --size=2G --runtime=30` across 4k/64k/512k/1m blocksizes
 - **Memory**: `sysbench memory --memory-block-size=1K --memory-total-size=10G --memory-oper=read`
 - **Network**: 100MB download from Cloudflare speed test
+- **Network (iperf3)**: `iperf3 -c <server> -P 8 -t 10 -J` against bouygues.testdebit.info (Paris), iperf.he.net (Fremont), speedtest.wtnet.de (Amsterdam)
+- **Geekbench 6** (optional): Downloaded from cdn.geekbench.com, run with `--json`
 
-All tests use `--direct=1` (bypass page cache) and `--ioengine=libaio`.
+All fio tests use `--direct=1` (bypass page cache) and `--ioengine=libaio`.
 
 ## Running benchmarks
 
 ```bash
-# On any SHC VM:
+# On any SHC VM (full suite with live pricing + YABS + iperf3):
 shc bench <service_id>
 
-# Or directly:
+# Or directly (all tests):
 python3 -m shc_toolkit.benchmark <host> [--user <user>] [--port <port>]
+
+# With optional Geekbench 6:
+python3 -c "
+from shc_toolkit.benchmark import run_full_suite, print_results
+r = run_full_suite('<host>', user='debian', run_geekbench=True, provider='shc')
+print_results(r)
+"
 ```
 
 Results are saved to `benchmark_results/bench_<host>_<timestamp>.json`.
@@ -137,14 +149,14 @@ Re-run benchmarks when:
 - When comparing new instance types
 
 ```bash
-# Generate fresh comparison:
+# Generate fresh data with live pricing:
 python3 -c "
 from shc_toolkit.benchmark import run_full_suite, print_results
 # Dev VPS
-r1 = run_full_suite('66.92.204.238', user='debian', port=22)
+r1 = run_full_suite('66.92.204.238', user='debian', port=22, provider='shc')
 # NVMe VPS
-r2 = run_full_suite('<nvme-ip>', user='ubuntu', port=22)
+r2 = run_full_suite('<nvme-ip>', user='ubuntu', port=22, provider='shc')
 # Hetzner
-r3 = run_full_suite('nodns.shop', user='root', port=22)
+r3 = run_full_suite('nodns.shop', user='root', port=22, provider='hetzner')
 "
 ```
