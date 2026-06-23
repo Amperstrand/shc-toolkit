@@ -17,6 +17,12 @@ import os
 import time
 import urllib.error
 import urllib.request
+try:
+    import certifi
+    import ssl
+    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL_CTX = None
 from datetime import datetime, timezone
 from typing import Any
 

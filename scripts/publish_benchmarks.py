@@ -46,6 +46,10 @@ KIND_APP_DATA = 30078
 SHC_CATALOG_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
 SHC_DAILY_PRICE_FALLBACK = "0.49"
 
+import certifi
+import ssl
+_SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+
 
 # --- Utility functions ---
 
@@ -162,7 +166,7 @@ def upload_to_blossom(
     req = urllib.request.Request(upload_url, data=file_data, headers=headers, method="PUT")
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with urllib.request.urlopen(req, timeout=60, context=_SSL_CTX) as response:
             body = json.loads(response.read())
             blob_url = body.get("url", f"{blossom_server.rstrip('/')}/{sha256}")
             print(f"  Uploaded: {blob_url}")
