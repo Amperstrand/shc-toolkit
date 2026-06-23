@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>if(location.protocol==='http:'&&location.hostname.includes('tollgate.me'))location.replace('https://'+location.host+location.pathname+location.hash)</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHC Benchmarks — Raw Results</title>
+  <meta name="description" content="VPS benchmark results fetched live from Nostr. CPU, disk, memory, network, and pricing data. No scoring, no comparisons — raw measurements only.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a0a'/><text x='50' y='70' font-size='50' font-weight='bold' text-anchor='middle' fill='%23e0e0e0' font-family='monospace'>SH</text></svg>">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <div id="app">
+
+    <header>
+      <div class="header-left">
+        <button id="menu-toggle" aria-label="Toggle runs list">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="header-brand">
+          <span class="logo-mark">SH</span>
+          <h1>SHC Benchmarks</h1>
+        </div>
+        <span class="subtitle">Raw VPS Performance Data</span>
+      </div>
+      <div class="header-right">
+        <span id="conn-status" class="conn-badge offline">Offline</span>
+        <a href="https://github.com/OpenTollGate/shc-toolkit" target="_blank" class="link" rel="noopener">GitHub</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+      <aside id="runs-list">
+        <div class="loading" id="runs-loading">
+          <div class="connecting">
+            <div class="spinner"></div>
+            <p>Connecting to relays&hellip;</p>
+          </div>
+        </div>
+      </aside>
+
+      <section id="run-view">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="M7 14l4-4 4 4 5-5"/>
+            </svg>
+          </div>
+          <p class="empty-title">Select a benchmark run</p>
+          <p class="empty-hint empty-hint-desktop">&larr; Choose a run from the sidebar</p>
+          <p class="empty-hint empty-hint-mobile">Tap a run to view details</p>
+          <p class="hint">Runs are fetched live from Nostr relays.<br>
+          Detail files load on demand from <a href="https://blossom.psbt.me" target="_blank" rel="noopener">blossom.psbt.me</a></p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Powered by
+        <a href="https://github.com/nostr-protocol/nips/blob/master/78.md" target="_blank" rel="noopener">NIP-78</a> (kind 30078) +
+        <a href="https://github.com/hzrd149/blossom" target="_blank" rel="noopener">Blossom</a>
+      </span>
+    </footer>
+  </div>
+
+  <script defer src="app.js?v=1"></script>
+</body>
+</html>
