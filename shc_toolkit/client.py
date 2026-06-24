@@ -91,7 +91,12 @@ class SHCClient:
             del self.session.headers["Content-Type"]
 
         resp = self.session.request(method, url, **kwargs)
-        body = resp.json()
+        text = resp.text
+        json_start = text.find("{")
+        if json_start > 0:
+            text = text[json_start:]
+        import json as _json
+        body = _json.loads(text) if text.strip() else {}
         if not resp.ok:
             err = body.get("error", {})
             exc = SHCError(
@@ -412,9 +417,10 @@ class SHCClient:
     def reset_vm(self, service_id: int) -> dict:
         return self._patch(f"/vm/{service_id}/reset")
 
-    def cancel_vm(self, service_id: int, *, confirm: bool = True) -> dict:
+    def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/cancel", confirm=confirm, json={}
+            "POST", f"/vm/{service_id}/cancel", confirm=confirm,
+            json={"immediate": True} if immediate else {},
         )
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
@@ -536,7 +542,7 @@ class SHCClient:
         return self._delete("/ssh-key", params={"service_id": service_id})
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
-        return self._post(f"/vm/{service_id}/ssh-keys/apply-live", {"public_key": public_key})
+        return self._post(f"/vm/{service_id}/ssh-keys/apply-live", {"ssh_key": public_key})
 
     def remove_ssh_key_live(self, service_id: int, public_key: str) -> dict:
         return self._delete(f"/vm/{service_id}/ssh-keys/live", params={"public_key": public_key})
