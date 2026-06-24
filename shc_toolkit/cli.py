@@ -126,6 +126,60 @@ def cmd_order(args):
 
     idem = args.idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
     result = c.submit_order(idempotency_key=idem, **kwargs)
+
+    if args.pay or args.pay_qr:
+        invoice = result.get("invoice", {})
+        invoice_id = invoice.get("invoice_id")
+        service_ids = result.get("service_ids", [])
+        service_id = service_ids[0] if service_ids else None
+
+        if not invoice_id:
+            print("Could not find invoice ID in order result:")
+            _print(result)
+            return
+
+        # Trigger BTCPay checkout
+        pay_result = c._confirmed_request(
+            "POST", f"/payment/{invoice_id}/checkout",
+            confirm=True,
+            json={"gateway": "btcpay_server", "idempotency_key": f"pay-{idem}"},
+        )
+
+        checkout_url = pay_result.get("checkout_url", "")
+        btcpay_id = pay_result.get("btcpay_invoice_id", "")
+
+        if pay_result.get("status") == "paid":
+            print(f"Invoice #{invoice_id} already paid.")
+        elif args.pay_qr and checkout_url:
+            from .jit_pay import jit_pay
+            paid = jit_pay(c, invoice_id, checkout_url, btcpay_id)
+            if not paid:
+                print(f"\nPayment not received. Pay manually: {checkout_url}")
+                return
+        elif checkout_url:
+            print(f"Pay at: {checkout_url}")
+        else:
+            _print(pay_result)
+            return
+
+        if service_id:
+            print(f"\nWaiting for VM {service_id} to provision...")
+            try:
+                c.wait_for_provisioning(service_id, timeout=300)
+                print(f"VM {service_id} is ready!\n")
+                vm = c.get_vm(service_id)
+                ips = vm.get("ips", [])
+                ip = ips[0]["ip"] if ips else "no-ip"
+                print(f"  Hostname: {vm.get('hostname', '?')}")
+                print(f"  IP:       {ip}")
+                print(f"  User:     {vm.get('os_user', 'debian')}")
+                print(f"  Status:   {vm.get('service_status', '?')}")
+                print(f"\n  SSH: ssh {vm.get('os_user', 'debian')}@{ip}")
+            except Exception as e:
+                print(f"Provisioning check: {e}")
+                _print(c.get_vm(service_id))
+        return
+
     _print(result)
 
 
@@ -369,6 +423,8 @@ def main():
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")
     p.add_argument("--pay", action="store_true", help="Auto-pay and wait for provisioning")
+    p.add_argument("--pay-qr", action="store_true",
+                   help="Show Lightning QR code for just-in-time payment (no balance needed)")
     p.set_defaults(func=cmd_order)
 
     p = sub.add_parser("pay", help="Pay an invoice")

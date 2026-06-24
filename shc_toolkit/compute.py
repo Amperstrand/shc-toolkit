@@ -324,6 +324,27 @@ def cmd_instances(args):
             client.stop_vm(sid)
             print(f"Stopped [{name}]")
 
+    elif sub == "reset":
+        name = args[1] if len(args) > 1 else ""
+        vm = _find_vm_by_name(client, name)
+        if vm:
+            sid = vm.get("id") or vm.get("service_id")
+            client.reset_vm(sid)
+            print(f"Reset [{name}]")
+
+    elif sub == "set-machine-type":
+        name = args[1] if len(args) > 1 else ""
+        machine_type = ""
+        for a in args[2:]:
+            if a.startswith("--machine-type="):
+                machine_type = a.split("=", 1)[1]
+        vm = _find_vm_by_name(client, name)
+        if vm:
+            sid = vm.get("id") or vm.get("service_id")
+            mt = MACHINE_TYPE_MAP.get(machine_type, MACHINE_TYPE_MAP["n1-standard-2"])
+            result = client.upgrade_vm(sid, mt["package_id"])
+            print(f"Machine type changed for [{name}] -> {machine_type}")
+
     elif sub == "add-metadata":
         name = args[1] if len(args) > 1 else ""
         metadata = {}
@@ -395,6 +416,32 @@ def cmd_snapshots(args):
             print(f"Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
 
+    elif sub == "delete":
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        quiet = "--quiet" in args or "-q" in args
+        md = _load_metadata()
+        deleted = False
+        for hostname, meta in md.items():
+            sid = meta.get("service_id")
+            if sid:
+                try:
+                    snaps = client.list_snapshots(int(sid))
+                    for s in snaps:
+                        sname = s.get("name", s.get("id", ""))
+                        if sname == snapshot_name or str(s.get("id", "")) == snapshot_name:
+                            client._post(f"/vm/{sid}/snapshots/delete",
+                                         {"backup_id": s.get("id", sname)})
+                            if not quiet:
+                                print(f"Deleted [{snapshot_name}]")
+                            deleted = True
+                            break
+                except Exception:
+                    pass
+            if deleted:
+                break
+        if not deleted and not quiet:
+            print(f"Snapshot {snapshot_name} not found", file=sys.stderr)
+
     else:
         print(f"Unknown snapshots subcommand: {sub}", file=sys.stderr)
         sys.exit(1)
@@ -430,17 +477,106 @@ def cmd_ssh(args):
 
 
 def cmd_firewall_rules(args):
+    client = _get_client()
     sub = args[0] if args else ""
-    if sub == "describe":
-        fmt = None
-        for a in args:
-            if a.startswith("--format="):
-                fmt = a.split("=", 1)[1]
-        _output({"name": args[1] if len(args) > 1 else "", "allowed": [{"IPProtocol": "tcp", "ports": ["22"]}]}, fmt)
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+
+    if sub == "describe" or sub == "list":
+        md = _load_metadata()
+        all_rules = []
+        for hostname, meta in md.items():
+            sid = meta.get("service_id")
+            if sid:
+                try:
+                    fw = client.get_firewall(int(sid))
+                    for rule in fw.get("rules", []):
+                        all_rules.append({
+                            "name": rule.get("comment", f"rule-{rule.get('pos', '?')}"),
+                            "network": "default",
+                            "direction": rule.get("type", "INGRESS"),
+                            "action": rule.get("action", "ACCEPT").upper() if rule.get("action") == "pass" else "DENY",
+                            "sourceRanges": [rule.get("source", "0.0.0.0/0")] if rule.get("source") else ["0.0.0.0/0"],
+                            "allowed": [{"IPProtocol": rule.get("proto", "tcp"), "ports": [rule.get("dport", "")].filter(None)}],
+                            "instance": hostname,
+                        })
+                except Exception:
+                    pass
+        _output(all_rules, fmt)
+
     elif sub == "create":
-        pass
-    elif sub == "list":
-        _output([], None)
+        rule_name = ""
+        action = "allow"
+        protocol = "tcp"
+        ports = ""
+        source = "0.0.0.0/0"
+        vm_name = ""
+        for a in args[1:]:
+            if a.startswith("--action=") and "deny" in a: action = "drop"
+            elif a.startswith("--rules="):
+                parts = a.split("=", 1)[1].split(":")
+                if len(parts) >= 2:
+                    protocol = parts[0]
+                    ports = parts[1]
+            elif a.startswith("--source-ranges="):
+                source = a.split("=", 1)[1]
+            elif not a.startswith("-") and not vm_name:
+                vm_name = a
+        vm = _find_vm_by_name(client, vm_name)
+        if vm:
+            sid = vm.get("id") or vm.get("service_id")
+            client.create_firewall_rule(int(sid), {
+                "action": action,
+                "direction": "in",
+                "name": rule_name or f"rule-{ports}",
+                "source": source,
+                "dest_port": ports,
+                "protocol": protocol,
+            })
+            print(f"Firewall rule created for [{vm_name}]: {protocol}:{ports} from {source}")
+        else:
+            print(f"Instance {vm_name} not found", file=sys.stderr)
+            sys.exit(1)
+
+    elif sub == "delete":
+        vm_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        rule_pos = ""
+        for a in args[2:]:
+            if not a.startswith("-"):
+                rule_pos = a
+        vm = _find_vm_by_name(client, vm_name)
+        if vm:
+            sid = vm.get("id") or vm.get("service_id")
+            pos = int(rule_pos) if rule_pos.isdigit() else 0
+            client.delete_firewall_rule(int(sid), pos)
+            print(f"Deleted firewall rule {rule_pos} for [{vm_name}]")
+        else:
+            print(f"Instance {vm_name} not found", file=sys.stderr)
+
+
+def cmd_images(args):
+    client = _get_client()
+    sub = args[0] if args else ""
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+    if sub == "list":
+        try:
+            templates = client.list_templates()
+            images = []
+            for t in templates:
+                images.append({
+                    "name": t.get("name", t.get("id", "")),
+                    "family": t.get("family", ""),
+                    "status": "READY",
+                    "arch": "x86_64",
+                })
+            _output(images, fmt)
+        except Exception as e:
+            _output([], fmt)
 
 
 def cmd_config(args):
@@ -475,6 +611,8 @@ def main():
             cmd_ssh(rest)
         elif resource == "firewall-rules":
             cmd_firewall_rules(rest)
+        elif resource == "images":
+            cmd_images(rest)
         else:
             print(f"Unknown resource: {resource}", file=sys.stderr)
             sys.exit(1)

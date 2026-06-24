@@ -200,8 +200,14 @@ class SHCClient:
     def set_credit_handling(self, **kwargs) -> dict:
         return self._put("/account/credit-handling", kwargs)
 
-    def add_credit(self, amount: str, currency: str = "USD") -> dict:
-        return self._post("/account/credit", {"amount": amount, "currency": currency})
+    def add_credit(self, amount: str, currency: str = "USD", idempotency_key: str | None = None) -> dict:
+        import uuid
+        idem = idempotency_key or f"credit-{uuid.uuid4().hex[:24]}"
+        return self._post("/account/credit", {
+            "amount": amount,
+            "currency": currency,
+            "idempotency_key": idem,
+        })
 
     def get_account_balance(self) -> dict:
         return self._get("/account/balance")
@@ -375,16 +381,25 @@ class SHCClient:
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 
-    def submit_order(self, idempotency_key: str | None = None, **kwargs) -> dict:
+    def submit_order(self, idempotency_key: str | None = None, *, include_dev_vps_options: bool = True, **kwargs) -> dict:
         """Submit a VM order with auto-confirmation and idempotency.
 
         Removes invalid 'pay' field, omits empty config_options, generates
         an Idempotency-Key if none provided, and auto-handles confirmation.
+
+        When include_dev_vps_options is True (default) and the caller has not
+        already supplied order_form_id/options, injects the Dev VPS defaults
+        (order_form_id=11, template=debian13-cloud, ipv4=none). Without these
+        options SHC's Proxmox layer does not know which template to deploy and
+        the VM sits in ``pending`` indefinitely.
         """
         import uuid
         kwargs.pop("pay", None)
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
+        if include_dev_vps_options and "options" not in kwargs:
+            kwargs.setdefault("order_form_id", 11)
+            kwargs["options"] = {"126": "debian13-cloud", "109": "none"}
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
         return self._confirmed_request(
