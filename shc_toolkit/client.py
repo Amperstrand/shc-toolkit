@@ -542,9 +542,10 @@ class SHCClient:
     # ── SSH Keys ─────────────────────────────────────────────
 
     def list_ssh_keys(self, service_id: int | None = None) -> list[dict]:
+        items = self._get("/ssh-key").get("items", [])
         if service_id:
-            return self._get(f"/vm/{service_id}/ssh-keys").get("items", [])
-        return self._get("/ssh-key").get("items", [])
+            return [k for k in items if k.get("service_id") == service_id]
+        return items
 
     def add_ssh_key(self, service_id: int, public_key: str, label: str = "") -> dict:
         return self._post(
@@ -579,7 +580,7 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/firewall/rules/{position}", kwargs)
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
-        return self._delete(f"/vm/{service_id}/firewall/rules/{position}")
+        return self._confirmed_request("DELETE", f"/vm/{service_id}/firewall/rules/{position}")
 
     # ── ISO ──────────────────────────────────────────────────
 
