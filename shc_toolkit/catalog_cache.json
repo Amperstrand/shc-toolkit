@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "description": "Local cache of SHC catalog data. CI validates against live API.",
+    "last_verified": "2026-06-25T00:00:00Z",
+    "api_version": "2.2.0",
+    "source": "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
+  },
+  "packages": [
+    {
+      "package_id": 80,
+      "name": "Dev VPS - Starter",
+      "product_line": "dev-vps",
+      "location": "Cherryvale, Kansas",
+      "module_group_id": 7,
+      "order_form_id": 11,
+      "default_template": "debian13-cloud",
+      "specs": {"cpu": 1, "memory_mb": 4096, "disk_gb": 8, "bandwidth_gb": 500},
+      "pricings": [{"pricing_id": 241, "term": 1, "period": "day", "price": "0.25"}]
+    },
+    {
+      "package_id": 81,
+      "name": "Dev VPS - Standard",
+      "product_line": "dev-vps",
+      "location": "Cherryvale, Kansas",
+      "module_group_id": 7,
+      "order_form_id": 11,
+      "default_template": "debian13-cloud",
+      "specs": {"cpu": 2, "memory_mb": 8192, "disk_gb": 16, "bandwidth_gb": 1000},
+      "pricings": [{"pricing_id": 245, "term": 1, "period": "day", "price": "0.49"}]
+    },
+    {
+      "package_id": 82,
+      "name": "Dev VPS - Professional",
+      "product_line": "dev-vps",
+      "location": "Cherryvale, Kansas",
+      "module_group_id": 7,
+      "order_form_id": 11,
+      "default_template": "debian13-cloud",
+      "specs": {"cpu": 4, "memory_mb": 16384, "disk_gb": 32, "bandwidth_gb": 2000},
+      "pricings": [{"pricing_id": 249, "term": 1, "period": "day", "price": "0.96"}]
+    },
+    {
+      "package_id": 83,
+      "name": "Dev VPS - Business",
+      "product_line": "dev-vps",
+      "location": "Cherryvale, Kansas",
+      "module_group_id": 7,
+      "order_form_id": 11,
+      "default_template": "debian13-cloud",
+      "specs": {"cpu": 8, "memory_mb": 32768, "disk_gb": 64, "bandwidth_gb": 4000},
+      "pricings": [{"pricing_id": 253, "term": 1, "period": "day", "price": "1.91"}]
+    }
+  ],
+  "templates": [
+    {"name": "debian13-cloud", "display_name": "Debian 13", "default_user": "debian", "cloudinit": true},
+    {"name": "debian12-cloud", "display_name": "Debian 12", "default_user": "debian", "cloudinit": true},
+    {"name": "ubuntu2404-cloud", "display_name": "Ubuntu 24.04", "default_user": "ubuntu", "cloudinit": true}
+  ],
+  "ordering_defaults": {
+    "dev_vps_order_form_id": 11,
+    "dev_vps_module_group_id": 7,
+    "note": "Dev VPS defaults to debian13-cloud template automatically. No config_options needed for basic ordering."
+  }
+}

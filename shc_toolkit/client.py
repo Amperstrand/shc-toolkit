@@ -397,9 +397,8 @@ class SHCClient:
         kwargs.pop("pay", None)
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
-        if include_dev_vps_options and "options" not in kwargs:
+        if include_dev_vps_options and "config_options" not in kwargs and "options" not in kwargs:
             kwargs.setdefault("order_form_id", 11)
-            kwargs["options"] = {"126": "debian13-cloud", "109": "none"}
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
         return self._confirmed_request(
@@ -536,6 +535,9 @@ class SHCClient:
 
     def set_data_preferences(self, service_id: int, **kwargs) -> dict:
         return self._patch(f"/vm/{service_id}/data-preferences", kwargs)
+
+    def get_vm_credentials(self, service_id: int) -> dict:
+        return self._get(f"/vm/{service_id}/credentials")
 
     # ── SSH Keys ─────────────────────────────────────────────
 
