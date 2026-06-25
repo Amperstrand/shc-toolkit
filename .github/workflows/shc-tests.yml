@@ -1,0 +1,99 @@
+name: SHC API Tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['shc_toolkit/**', 'tests/**']
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  smoke-tests:
+    name: Read-only smoke tests (no VM creation)
+    runs-on: ubuntu-latest
+    env:
+      SHC_API_KEY: ${{ secrets.SHC_API_KEY_READ_ONLY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e . -q
+      - run: pip install pytest -q
+      - name: Run read-only tests
+        run: python -m pytest tests/test_shc_api.py -v -k "test_account_balance or test_ordering_catalog or test_vm_templates or test_list_vms or test_openapi" --tb=short
+
+  integration-tests:
+    name: Full integration tests (creates + destroys VMs)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    env:
+      SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e . -q
+      - run: pip install pytest -q
+      - name: Run full test suite
+        run: python -m pytest tests/test_shc_api.py -v --tb=short
+      - name: Verify no orphaned VMs
+        if: always()
+        run: |
+          python -c "
+          import os
+          from shc_toolkit.client import SHCClient
+          c = SHCClient()
+          vms = c.list_vms()
+          for vm in vms:
+              if 'pytest' in vm.get('hostname', '').lower() or 'test' in vm.get('hostname', '').lower():
+                  print(f'CLEANUP: Cancelling orphaned VM #{vm[\"id\"]} ({vm[\"hostname\"]})')
+                  c.cancel_vm(vm['id'], immediate=True)
+          remaining = c.list_vms()
+          print(f'After cleanup: {len(remaining)} VMs')
+          assert len([v for v in remaining if 'test' in v.get('hostname','').lower()]) == 0, 'Orphaned test VMs remain!'
+          "
+
+  openapi-drift:
+    name: OpenAPI spec drift detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch live OpenAPI spec
+        run: |
+          curl -s https://blesta.sovereignhybridcompute.com/user-api/openapi.json > /tmp/live-spec.json
+          python3 -c "
+          import json
+          with open('/tmp/live-spec.json') as f:
+              live = json.load(f)
+          with open('shc_toolkit/openapi.json') as f:
+              cached = json.load(f)
+
+          live_version = live.get('info', {}).get('version', '?')
+          cached_version = cached.get('info', {}).get('version', '?')
+          live_paths = set(live.get('paths', {}).keys())
+          cached_paths = set(cached.get('paths', {}).keys())
+
+          print(f'Live version: {live_version} ({len(live_paths)} paths)')
+          print(f'Cached version: {cached_version} ({len(cached_paths)} paths)')
+
+          new_paths = live_paths - cached_paths
+          removed_paths = cached_paths - live_paths
+
+          if new_paths:
+              print(f'::warning::New endpoints not in cache: {new_paths}')
+          if removed_paths:
+              print(f'::warning::Endpoints removed from API: {removed_paths}')
+          if live_version != cached_version:
+              print(f'::warning::API version changed: {cached_version} → {live_version}')
+              print('Run: curl https://blesta.sovereignhybridcompute.com/user-api/openapi.json > shc_toolkit/openapi.json')
+              exit(1)
+          if new_paths or removed_paths:
+              print('Endpoint set changed. Update cached spec.')
+              exit(1)
+          print('No drift detected ✅')
+          "
