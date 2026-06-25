@@ -316,6 +316,49 @@ def cmd_restore_snapshot(args):
     _print(c.restore_snapshot(args.service_id, args.snapshot_id))
 
 
+def cmd_delete_snapshot(args):
+    c = _client(args)
+    _print(c.delete_snapshot(args.service_id, args.snapshot_id))
+
+
+# ── Backups ───────────────────────────────────────────────
+
+def cmd_backup_list(args):
+    c = _client(args)
+    backups = c.list_backups(args.service_id)
+    if not backups:
+        print("No backups found.")
+        return
+    for b in backups:
+        bid = b.get("id", b.get("backup_id", "?"))
+        name = b.get("name", "(unnamed)")
+        protected = "🔒" if b.get("protected") else ""
+        created = b.get("created_at", b.get("date_created", "?"))
+        print(f"  {str(bid):30s}  {name:25s}  {protected:2s}  {created}")
+
+
+def cmd_backup_create(args):
+    c = _client(args)
+    result = c.create_backup(args.service_id, name=args.name)
+    _print(result)
+
+
+def cmd_backup_restore(args):
+    c = _client(args)
+    _print(c.restore_backup(args.service_id, args.backup_id))
+
+
+def cmd_backup_delete(args):
+    c = _client(args)
+    _print(c.delete_backup(args.service_id, args.backup_id))
+
+
+def cmd_backup_protect(args):
+    c = _client(args)
+    protected = not args.off
+    _print(c.set_backup_protection(args.service_id, args.backup_id, protected))
+
+
 # ── Bench ─────────────────────────────────────────────────
 
 def cmd_bench(args):
@@ -459,6 +502,36 @@ def main():
     p.add_argument("service_id", type=int)
     p.add_argument("snapshot_id")
     p.set_defaults(func=cmd_restore_snapshot)
+
+    p = sub.add_parser("snapshot-delete", help="Delete snapshot")
+    p.add_argument("service_id", type=int)
+    p.add_argument("snapshot_id")
+    p.set_defaults(func=cmd_delete_snapshot)
+
+    p = sub.add_parser("backups", help="List backups")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_backup_list)
+
+    p = sub.add_parser("backup-create", help="Create backup")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--name")
+    p.set_defaults(func=cmd_backup_create)
+
+    p = sub.add_parser("backup-restore", help="Restore backup")
+    p.add_argument("service_id", type=int)
+    p.add_argument("backup_id")
+    p.set_defaults(func=cmd_backup_restore)
+
+    p = sub.add_parser("backup-delete", help="Delete backup")
+    p.add_argument("service_id", type=int)
+    p.add_argument("backup_id")
+    p.set_defaults(func=cmd_backup_delete)
+
+    p = sub.add_parser("backup-protect", help="Toggle backup protection")
+    p.add_argument("service_id", type=int)
+    p.add_argument("backup_id")
+    p.add_argument("--off", action="store_true", help="Remove protection (default: add)")
+    p.set_defaults(func=cmd_backup_protect)
 
     p = sub.add_parser("tickets", help="Support tickets")
     p.add_argument("subcommand", choices=["list", "get", "create", "reply", "close", "departments"])
