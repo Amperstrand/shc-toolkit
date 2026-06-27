@@ -90,7 +90,18 @@ class SHCClient:
         elif "Content-Type" in self.session.headers:
             del self.session.headers["Content-Type"]
 
-        resp = self.session.request(method, url, **kwargs)
+        for attempt in range(3):
+            try:
+                resp = self.session.request(method, url, timeout=30, **kwargs)
+            except requests.exceptions.RequestException:
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
+                continue
+            if resp.status_code >= 500 and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            break
         text = resp.text
         json_start = text.find("{")
         if json_start > 0:
