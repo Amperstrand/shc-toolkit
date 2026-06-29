@@ -11,6 +11,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  unit-tests:
+    name: Unit tests (no API key needed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e . -q && pip install pytest -q
+      - run: python -m pytest tests/test_unit.py -v --tb=short
+
   smoke-tests:
     name: Read-only smoke tests (no VM creation)
     runs-on: ubuntu-latest

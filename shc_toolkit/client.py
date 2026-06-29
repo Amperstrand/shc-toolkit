@@ -386,8 +386,14 @@ class SHCClient:
 
     # ── Ordering ─────────────────────────────────────────────
 
-    def get_catalog(self) -> list[dict]:
-        return self._get("/ordering/catalog").get("items", [])
+    def get_catalog(self, view: str = "full") -> list[dict]:
+        """List buyable VM plans.
+
+        Args:
+            view: 'full' (default, includes config_options) or 'lean' (slim payload).
+        """
+        params = {"view": view} if view != "full" else None
+        return self._get("/ordering/catalog", params=params).get("items", [])
 
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
@@ -638,24 +644,6 @@ class SHCClient:
 
     def get_job(self, service_id: int, job_id: str) -> dict:
         return self._get(f"/vm/{service_id}/jobs/{job_id}")
-
-    # ── Billing ──────────────────────────────────────────────
-
-    def list_invoices(self) -> list[dict]:
-        return self._get("/invoices").get("items", [])
-
-    def get_invoice(self, invoice_id: int) -> dict:
-        return self._get(f"/invoices/{invoice_id}")
-
-    def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict:
-        """Pay an invoice via BTCPay. Returns checkout info or paid status."""
-        return self._post(
-            f"/payment/{invoice_id}/checkout",
-            {
-                "gateway": "btcpay_server",
-                "idempotency_key": idempotency_key,
-            },
-        )
 
     # ── Wait / Poll ──────────────────────────────────────────
 

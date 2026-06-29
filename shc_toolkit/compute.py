@@ -37,6 +37,12 @@ from pathlib import Path
 
 from .client import SHCClient, SHCError
 
+# create_client is the transport-aware factory (respects SHC_TRANSPORT env).
+# Imported lazily to avoid circular import at package init time.
+def _create_client(api_key: str | None = None):
+    from shc_toolkit import create_client
+    return create_client(api_key=api_key)
+
 MACHINE_TYPE_MAP = {
     "n1-standard-2": {"package_id": 81, "pricing_id": 245, "name": "Dev VPS - Standard"},
     "n1-standard-4": {"package_id": 82, "pricing_id": 249, "name": "Dev VPS - Professional"},
@@ -66,7 +72,7 @@ def _get_client() -> SHCClient:
     if not key:
         print("ERROR: SHC_API_KEY environment variable not set", file=sys.stderr)
         sys.exit(1)
-    return SHCClient(api_key=key)
+    return _create_client(api_key=key)
 
 
 def _vm_to_gcloud_format(vm: dict, metadata: dict | None = None) -> dict:

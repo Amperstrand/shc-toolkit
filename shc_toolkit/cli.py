@@ -22,7 +22,10 @@ except ImportError:
 
 
 def _client(args) -> SHCClient:
-    return SHCClient(api_key=args.api_key or os.environ.get("SHC_API_KEY", ""))
+    from shc_toolkit import create_client
+    return create_client(
+        api_key=args.api_key or os.environ.get("SHC_API_KEY", "") or None,
+    )
 
 
 def _print(data):
@@ -75,6 +78,11 @@ def cmd_stop(args):
 def cmd_shutdown(args):
     c = _client(args)
     _print(c.shutdown_vm(args.service_id))
+
+
+def cmd_reset(args):
+    c = _client(args)
+    _print(c.reset_vm(args.service_id))
 
 
 def cmd_restart(args):
@@ -279,6 +287,9 @@ def cmd_transactions(args):
 
 def cmd_activity(args):
     c = _client(args)
+    if getattr(args, "service_id", None):
+        _print(c.get_vm_activity(args.service_id))
+        return
     result = c.get_account_activity(limit=args.limit or 20)
     items = result.get("items", result) if isinstance(result, dict) else result
     for a in items:
@@ -419,6 +430,127 @@ def cmd_account(args):
     _print(c.get_account())
 
 
+# ── VM Lifecycle extras ───────────────────────────────────
+
+def cmd_vm_activity(args):
+    c = _client(args)
+    _print(c.get_vm_activity(args.service_id))
+
+
+def cmd_network(args):
+    c = _client(args)
+    _print(c.get_vm_network(args.service_id))
+
+
+def cmd_payments(args):
+    c = _client(args)
+    _print(c.get_vm_payments(args.service_id))
+
+
+# ── Upgrades ──────────────────────────────────────────────
+
+def cmd_upgrade_options(args):
+    c = _client(args)
+    _print(c.list_upgrade_options(args.service_id))
+
+
+def cmd_upgrade_preview(args):
+    c = _client(args)
+    _print(c.preview_upgrade(args.service_id, args.package_id))
+
+
+def cmd_upgrade(args):
+    c = _client(args)
+    _print(c.upgrade_vm(args.service_id, args.package_id))
+
+
+# ── Jobs ──────────────────────────────────────────────────
+
+def cmd_jobs(args):
+    c = _client(args)
+    for j in c.list_jobs(args.service_id):
+        print(f"  id={j.get('id','?'):>10}  {j.get('status','?'):12s}  {str(j.get('created_at','?'))[:19]}")
+
+
+def cmd_job(args):
+    c = _client(args)
+    _print(c.get_job(args.service_id, args.job_id))
+
+
+# ── SSH Keys ──────────────────────────────────────────────
+
+def cmd_ssh_keys(args):
+    c = _client(args)
+    _print(c.list_ssh_keys(args.service_id))
+
+
+def cmd_ssh_key_add(args):
+    c = _client(args)
+    if os.path.isfile(os.path.expanduser(args.key)):
+        key = open(os.path.expanduser(args.key)).read().strip()
+    else:
+        key = args.key
+    _print(c.add_ssh_key(args.service_id, key, args.label or ""))
+
+
+def cmd_ssh_key_live(args):
+    c = _client(args)
+    _print(c.apply_ssh_key_live(args.service_id, args.key))
+
+
+# ── ISO ───────────────────────────────────────────────────
+
+def cmd_iso(args):
+    c = _client(args)
+    _print(c.list_isos(args.service_id))
+
+
+def cmd_iso_mount(args):
+    c = _client(args)
+    _print(c.mount_iso(args.service_id, args.iso_id))
+
+
+def cmd_iso_unmount(args):
+    c = _client(args)
+    _print(c.unmount_iso(args.service_id))
+
+
+# ── Reverse DNS ───────────────────────────────────────────
+
+def cmd_rdns(args):
+    c = _client(args)
+    _print(c.list_rdns(args.service_id))
+
+
+def cmd_rdns_set(args):
+    c = _client(args)
+    _print(c.set_rdns(args.service_id, args.ip, args.ptr))
+
+
+def cmd_rdns_clear(args):
+    c = _client(args)
+    _print(c.clear_rdns(args.service_id, args.ip))
+
+
+# ── Console ───────────────────────────────────────────────
+
+def cmd_console(args):
+    c = _client(args)
+    _print(c.get_console_availability(args.service_id))
+
+
+def cmd_console_session(args):
+    c = _client(args)
+    _print(c.create_console_session(args.service_id))
+
+
+# ── Templates ─────────────────────────────────────────────
+
+def cmd_templates(args):
+    c = _client(args)
+    _print(c.list_templates())
+
+
 # ── Main ──────────────────────────────────────────────────
 
 def main():
@@ -475,7 +607,7 @@ def main():
     p.add_argument("--idempotency-key")
     p.set_defaults(func=cmd_pay)
 
-    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("shutdown", cmd_shutdown), ("restart", cmd_restart), ("cancel", cmd_cancel)]:
+    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("shutdown", cmd_shutdown), ("restart", cmd_restart), ("reset", cmd_reset), ("cancel", cmd_cancel)]:
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
         p.set_defaults(func=func)
@@ -555,7 +687,8 @@ def main():
     p = sub.add_parser("transactions", help="List transactions")
     p.set_defaults(func=cmd_transactions)
 
-    p = sub.add_parser("activity", help="Account activity log")
+    p = sub.add_parser("activity", help="Account activity log, or VM activity with service_id")
+    p.add_argument("service_id", type=int, nargs="?", default=None)
     p.add_argument("--limit", type=int)
     p.set_defaults(func=cmd_activity)
 
@@ -589,6 +722,91 @@ def main():
     p.add_argument("--type", default="A")
     p.add_argument("--nameserver", default="ns1.nodns.shop")
     p.set_defaults(func=cmd_dns_verify)
+
+    p = sub.add_parser("network", help="VM network details")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_network)
+
+    p = sub.add_parser("payments", help="VM payment history")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_payments)
+
+    p = sub.add_parser("upgrade-options", help="List upgrade options for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_upgrade_options)
+
+    p = sub.add_parser("upgrade-preview", help="Preview a VM upgrade")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--package-id", type=int, required=True)
+    p.set_defaults(func=cmd_upgrade_preview)
+
+    p = sub.add_parser("upgrade", help="Upgrade a VM")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--package-id", type=int, required=True)
+    p.set_defaults(func=cmd_upgrade)
+
+    p = sub.add_parser("jobs", help="List jobs for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_jobs)
+
+    p = sub.add_parser("job", help="Get a specific job")
+    p.add_argument("service_id", type=int)
+    p.add_argument("job_id")
+    p.set_defaults(func=cmd_job)
+
+    p = sub.add_parser("ssh-keys", help="List SSH keys for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_ssh_keys)
+
+    p = sub.add_parser("ssh-key-add", help="Add an SSH key to a VM")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--key", required=True, help="Public key string or path to pubkey file")
+    p.add_argument("--label")
+    p.set_defaults(func=cmd_ssh_key_add)
+
+    p = sub.add_parser("ssh-key-live", help="Apply an SSH key to a running VM")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--key", required=True, help="Public key string")
+    p.set_defaults(func=cmd_ssh_key_live)
+
+    p = sub.add_parser("iso", help="List ISOs for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_iso)
+
+    p = sub.add_parser("iso-mount", help="Mount an ISO on a VM")
+    p.add_argument("service_id", type=int)
+    p.add_argument("iso_id")
+    p.set_defaults(func=cmd_iso_mount)
+
+    p = sub.add_parser("iso-unmount", help="Unmount ISO from a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_iso_unmount)
+
+    p = sub.add_parser("rdns", help="List reverse DNS records for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_rdns)
+
+    p = sub.add_parser("rdns-set", help="Set reverse DNS for an IP")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--ip", required=True)
+    p.add_argument("--ptr", required=True, help="PTR hostname")
+    p.set_defaults(func=cmd_rdns_set)
+
+    p = sub.add_parser("rdns-clear", help="Clear reverse DNS for an IP")
+    p.add_argument("service_id", type=int)
+    p.add_argument("--ip", required=True)
+    p.set_defaults(func=cmd_rdns_clear)
+
+    p = sub.add_parser("console", help="Console availability for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_console)
+
+    p = sub.add_parser("console-session", help="Create a console session for a VM")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_console_session)
+
+    p = sub.add_parser("templates", help="List OS templates")
+    p.set_defaults(func=cmd_templates)
 
     args = parser.parse_args()
     if not args.command:

@@ -1,0 +1,209 @@
+"""Transport-agnostic interface for SHC API operations.
+
+Defines the SHCTransport Protocol that both SHCRESTClient (REST v2) and
+SHCMCPClient (MCP Streamable HTTP) implement. The factory in __init__.py
+selects the transport at runtime via SHC_TRANSPORT env var or explicit
+parameter.
+
+Transport selection:
+    SHC_TRANSPORT=rest   → SHCRESTClient (default, 85+ methods)
+    SHC_TRANSPORT=mcp    → SHCMCPClient  (23 core tools, 116 total)
+    SHC_TRANSPORT=auto   → try MCP, fall back to REST
+
+Both transports share identical method names and return shapes for all
+core operations. The REST client has additional methods (snapshots, ISO,
+rDNS, console, etc.) that the MCP client exposes via its full 116-tool
+catalog (request with header X-MCP-Tools: all).
+"""
+
+from __future__ import annotations
+
+from typing import Any, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class SHCTransport(Protocol):
+    """Interface contract for SHC API transports.
+
+    Both SHCRESTClient and SHCMCPClient must implement these methods.
+    Method signatures match SHCRESTClient (client.py) exactly.
+
+    The 23 core methods below are guaranteed on BOTH transports.
+    REST-only methods (snapshots, ISO, rDNS, console, firewall detail,
+    contacts, affiliate, KB, etc.) are available on REST always, and on
+    MCP when the full tool catalog is loaded.
+    """
+
+    # ── Account ──────────────────────────────────────────────
+
+    def get_account(self) -> dict: ...
+    def get_account_balance(self) -> dict: ...
+    def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict: ...
+
+    # ── API Keys ─────────────────────────────────────────────
+
+    def list_api_keys(self) -> list[dict]: ...
+
+    # ── VM Lifecycle (core) ──────────────────────────────────
+
+    def list_vms(self) -> list[dict]: ...
+    def get_vm(self, service_id: int) -> dict: ...
+    def get_vm_summary(self, service_id: int) -> dict: ...
+    def get_vm_detail(self, service_id: int) -> dict: ...
+    def start_vm(self, service_id: int) -> dict: ...
+    def stop_vm(self, service_id: int) -> dict: ...
+    def restart_vm(self, service_id: int) -> dict: ...
+    def shutdown_vm(self, service_id: int) -> dict: ...
+    def reset_vm(self, service_id: int) -> dict: ...
+    def cancel_vm(
+        self, service_id: int, *, immediate: bool = True, confirm: bool = True
+    ) -> dict: ...
+    def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict: ...
+
+    # ── VM Data ──────────────────────────────────────────────
+
+    def get_vm_metrics(self, service_id: int) -> dict: ...
+    def get_vm_bandwidth(self, service_id: int) -> dict: ...
+
+    # ── Backups ──────────────────────────────────────────────
+
+    def list_backups(self, service_id: int) -> list[dict]: ...
+    def create_backup(self, service_id: int, name: str | None = None) -> dict: ...
+    def restore_backup(
+        self, service_id: int, backup_id: str, *, confirm: bool = True
+    ) -> dict: ...
+    def delete_backup(
+        self, service_id: int, backup_id: str, *, confirm: bool = True
+    ) -> dict: ...
+
+    # ── Snapshots ────────────────────────────────────────────
+
+    def list_snapshots(self, service_id: int) -> list[dict]: ...
+    def create_snapshot(self, service_id: int, name: str | None = None) -> dict: ...
+    def restore_snapshot(
+        self, service_id: int, snapshot_id: str, *, confirm: bool = True
+    ) -> dict: ...
+    def delete_snapshot(
+        self, service_id: int, snapshot_id: str, *, confirm: bool = True
+    ) -> dict: ...
+
+    # ── Jobs ─────────────────────────────────────────────────
+
+    def list_jobs(self, service_id: int) -> list[dict]: ...
+    def get_job(self, service_id: int, job_id: str) -> dict: ...
+
+    # ── Ordering ─────────────────────────────────────────────
+
+    def get_catalog(self, **kwargs) -> list[dict]: ...
+    def preview_order(self, **kwargs) -> dict: ...
+    def submit_order(self, idempotency_key: str | None = None, **kwargs) -> dict: ...
+
+    # ── Upgrades ─────────────────────────────────────────────
+
+    def list_upgrade_options(self, service_id: int) -> list[dict]: ...
+    def preview_upgrade(self, service_id: int, package_id: int) -> dict: ...
+    def upgrade_vm(self, service_id: int, package_id: int) -> dict: ...
+
+    # ── SSH Keys ─────────────────────────────────────────────
+
+    def list_ssh_keys(self, service_id: int | None = None) -> list[dict]: ...
+    def add_ssh_key(
+        self, service_id: int, public_key: str, label: str = ""
+    ) -> dict: ...
+    def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict: ...
+
+    # ── Firewall ─────────────────────────────────────────────
+
+    def get_firewall(self, service_id: int) -> dict: ...
+    def set_firewall_policy(self, service_id: int, policy: str) -> dict: ...
+    def create_firewall_rule(self, service_id: int, **kwargs) -> dict: ...
+    def delete_firewall_rule(self, service_id: int, position: int) -> dict: ...
+
+    # ── ISO ──────────────────────────────────────────────────
+
+    def list_isos(self, service_id: int) -> list[dict]: ...
+    def mount_iso(self, service_id: int, iso_id: str) -> dict: ...
+    def unmount_iso(self, service_id: int) -> dict: ...
+
+    # ── Reverse DNS ──────────────────────────────────────────
+
+    def list_rdns(self, service_id: int) -> list[dict]: ...
+    def set_rdns(self, service_id: int, ip: str, ptr: str) -> dict: ...
+    def clear_rdns(self, service_id: int, ip: str) -> dict: ...
+
+    # ── Console ──────────────────────────────────────────────
+
+    def get_console_availability(self, service_id: int) -> dict: ...
+    def create_console_session(self, service_id: int) -> dict: ...
+
+    # ── Templates ────────────────────────────────────────────
+
+    def list_templates(self) -> list[dict]: ...
+
+    # ── Billing ──────────────────────────────────────────────
+
+    def list_invoices(self, **params) -> dict: ...
+    def get_invoice(self, invoice_id: int) -> dict: ...
+    def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict: ...
+    def list_transactions(self, limit: int = 20, offset: int = 0) -> dict: ...
+
+    # ── Support ──────────────────────────────────────────────
+
+    def list_support_tickets(self, limit: int = 20, offset: int = 0) -> dict: ...
+    def create_support_ticket(
+        self,
+        subject: str,
+        message: str,
+        department_id: int,
+        priority: str = "medium",
+        service_id: int | None = None,
+        **kwargs,
+    ) -> dict: ...
+
+    # ── Wait / Poll ──────────────────────────────────────────
+
+    def wait_for_provisioning(
+        self, service_id: int, timeout: int = 300, interval: int = 10
+    ) -> dict: ...
+    def wait_for_job(
+        self, service_id: int, job_id: str, timeout: int = 600, interval: int = 10
+    ) -> dict: ...
+
+    # ── Health ───────────────────────────────────────────────
+
+    def check_vm_health(self, service_id: int) -> dict: ...
+
+
+# ── Transport Selection ────────────────────────────────────────
+
+MCP_ENDPOINT = "https://mcp.sovereignhybridcompute.com/"
+REST_BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
+
+
+def resolve_transport(explicit: str | None = None) -> str:
+    """Determine which transport to use.
+
+    Priority:
+    1. Explicit parameter
+    2. SHC_TRANSPORT env var
+    3. Default: 'rest' (MCP requires optional dependency)
+
+    Returns 'rest' or 'mcp'.
+    """
+    import os
+
+    choice = explicit or os.environ.get("SHC_TRANSPORT", "rest")
+    choice = choice.lower().strip()
+
+    if choice == "auto":
+        # REST is the stable transport. MCP is opt-in only because the
+        # flagship MCP server has a known auth proxy issue (as of 2026-06).
+        # Users who want MCP must set SHC_TRANSPORT=mcp explicitly.
+        return "rest"
+
+    if choice not in ("rest", "mcp"):
+        raise ValueError(
+            f"Invalid transport '{choice}'. Use 'rest', 'mcp', or 'auto'."
+        )
+
+    return choice

@@ -124,9 +124,48 @@ The SHC User API has full documentation available at:
 
 This toolkit covers the most common endpoints (VM lifecycle, ordering, snapshots, billing). For operations not yet wrapped (reinstall, backups, etc.), use `SHCClient._request()` directly or open a PR.
 
+## MCP Transport
+
+The toolkit supports dual transport: REST v2 (default) or MCP Streamable HTTP.
+
+The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
+116 tools over Streamable HTTP. Every spend and destructive op is confirm-gated.
+
+### Using MCP transport
+
+```python
+from shc_toolkit import create_client
+
+# Auto-detect (MCP if available, else REST)
+c = create_client(transport="auto")
+
+# Force MCP
+c = create_client(transport="mcp")
+
+# Force REST (default)
+c = create_client(transport="rest")
+```
+
+Or via environment variable:
+
+```bash
+export SHC_TRANSPORT=mcp   # or 'rest' or 'auto'
+```
+
+Install the MCP optional dependency:
+
+```bash
+pip install shc-toolkit[mcp]
+```
+
+Both transports implement the same `SHCTransport` interface — your code works
+unchanged regardless of which backend is selected.
+
 ## Config Option IDs
 
-Option IDs are found via `shc catalog` or `GET /ordering/catalog`. For NVMe Starter (package_id 23):
+Option IDs differ by VPS line. Always read them from `shc catalog` or `GET /ordering/catalog`.
+
+For NVMe Starter (package_id 23):
 
 | Option | ID | Example values |
 |--------|-----|---------------|
@@ -134,16 +173,27 @@ Option IDs are found via `shc catalog` or `GET /ordering/catalog`. For NVMe Star
 | CPU | 107 | `1` (base), `2`, `4` |
 | Disk | 108 | `8` (base), `32`, `50`, `100` |
 | IPv4 | 109 | `1` (base), `2`, `4` |
-| Template | 126 | `debian12-cloud`, `debian13-cloud`, `ubuntu2404-cloud` |
-| GUI | 167 | `none`, `gnome`, `kde` |
+| Template (NVMe/HDD/SSD) | 126 | `debian13-cloud`, `debian12-cloud`, `ubuntu2404-cloud`, `ubuntu2204-cloud`, `fedora43-cloud`, `arch-cloud`, `nixos-cloud`, `almalinux9-cloud`, `alpine323-cloud`, `devuan5-cloud`, `openbsd79-cloud` |
+| Template (Dev VPS) | 174 | Same as above |
+| GUI | 167 | `none`, `gnome`, `kde`, `xfce`, `cinnamon`, `mate` |
 
 Values are the `value` field from the catalog, not `value_id`.
+
+### Windows BYOL
+
+Windows is available bring-your-own-license on all VPS lines: Windows Server 2022/2025 (Core or Desktop) and Windows 11 Pro. Windows Server requires >=32GB disk; Windows 11 requires >=64GB disk. Apply your own license after first boot.
+
+### GUI requirements
+
+GUI requires >=16GB disk AND >=4GB RAM.
 
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo`.
 - **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
 - **Single location**: Katy, Texas only.
+- **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.
+- **Snapshots & backups not available on Dev VPS**: Dev VPS plans (pkg 80–84, Cherryvale, KS) do NOT have storage infrastructure for snapshots or backups. The API returns `upstream_failure: "Unable to load storage inventory"`. NVMe/SSD/HDD VPS plans (pkg 23+, Katy, TX) support snapshots, backups, and all other storage features. All other API features (firewall, rDNS, ISO, console, jobs, metrics, upgrades) work on both plan types.
 
 ## Cashu Tollgate — SSH for ecash
 
