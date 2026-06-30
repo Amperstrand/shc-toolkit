@@ -79,9 +79,9 @@ def install_certbot(host: str, user: str = "debian") -> str:
 
 
 def generate_caddyfile(fqdn: str, backend_port: int = 8080) -> str:
-    """Generate a Caddyfile that serves HTTPS with manual cert + reverse proxy."""
+    """Generate a Caddyfile that serves HTTPS with Let's Encrypt cert + reverse proxy."""
     return f"""{fqdn} {{
-    tls /etc/ssl/certs/{fqdn}.pem /etc/ssl/private/{fqdn}.key
+    tls /etc/letsencrypt/live/{fqdn}/fullchain.pem /etc/letsencrypt/live/{fqdn}/privkey.pem
     reverse_proxy localhost:{backend_port}
     respond /health "OK" 200
 }}

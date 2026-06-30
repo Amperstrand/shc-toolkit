@@ -197,6 +197,19 @@ def cmd_order(args):
                 print(f"  User:     {vm.get('os_user', 'debian')}")
                 print(f"  Status:   {vm.get('service_status', '?')}")
                 print(f"\n  SSH: ssh {vm.get('os_user', 'debian')}@{ip}")
+
+                if getattr(args, "nodns", False) and ip != "no-ip":
+                    print(f"\n  Publishing NoDNS record ({args.zone})...")
+                    try:
+                        from .nodns import provision_dns_for_vm
+                        dns_result = provision_dns_for_vm(ip=ip, zone=getattr(args, "zone", "nodns.shop"))
+                        if dns_result.get("success"):
+                            print(f"  FQDN: {dns_result['fqdn']}")
+                            print(f"  nsec: {dns_result['keypair']['nsec']}")
+                        else:
+                            print(f"  NoDNS publish incomplete: {dns_result}")
+                    except Exception as dns_err:
+                        print(f"  NoDNS error: {dns_err}")
             except Exception as e:
                 print(f"Provisioning check: {e}")
                 _print(c.get_vm(service_id))
@@ -403,8 +416,11 @@ def cmd_bench(args):
 # ── NoDNS ─────────────────────────────────────────────────
 
 def cmd_nodns(args):
-    keypair = NoDNSKeyPair.from_nsec(args.nsec) if args.nsec else None
-    result = provision_dns_for_vm(ip=args.ip, subdomain=args.subdomain, wait_seconds=args.wait, keypair=keypair)
+    keypair = NoDNSKeyPair.from_nsec(args.nsec, zone=args.zone) if args.nsec else None
+    result = provision_dns_for_vm(
+        ip=args.ip, subdomain=args.subdomain, wait_seconds=args.wait,
+        keypair=keypair, zone=args.zone,
+    )
     _print(result)
     if result["success"]:
         print(f"\nFQDN: {result['fqdn']}")
@@ -617,6 +633,8 @@ def main():
     p.add_argument("--cpu", type=int, help="Min CPU cores (finds cheapest match)")
     p.add_argument("--ram", type=int, help="Min RAM in MB (finds cheapest match)")
     p.add_argument("--disk", type=int, help="Min disk in GB (finds cheapest match)")
+    p.add_argument("--nodns", action="store_true", help="Auto-publish NoDNS record after VM creation")
+    p.add_argument("--zone", default="nodns.shop", help="NoDNS zone: nodns.shop or dns4sats.xyz")
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
@@ -733,10 +751,11 @@ def main():
     p.add_argument("--position", type=int)
     p.set_defaults(func=cmd_firewall)
 
-    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop")
+    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop or dns4sats.xyz")
     p.add_argument("--ip", required=True)
     p.add_argument("--nsec")
     p.add_argument("--subdomain")
+    p.add_argument("--zone", default="nodns.shop", help="DNS zone: nodns.shop or dns4sats.xyz")
     p.add_argument("--wait", type=int, default=15)
     p.add_argument("--verify", action="store_true")
     p.set_defaults(func=cmd_nodns)

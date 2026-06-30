@@ -92,12 +92,12 @@ class NoDNSKeyPair:
 def build_record_tag(
     rtype: str, name: str, rdata: str, ttl: int = 300
 ) -> Tag:
-    """Build an 11-element record tag per NoDNS spec.
+    """Build a canonical 5-element record tag per NoDNS spec.
 
-    Tag format: ["record", TYPE, NAME, RDATA, "", "", "", "", "", "", TTL]
+    Tag format: ["record", TYPE, NAME, TTL, RDATA]
     """
     return Tag.parse(
-        ["record", rtype, name, rdata, "", "", "", "", "", "", str(ttl)]
+        ["record", rtype, name, str(ttl), rdata]
     )
 
 
@@ -205,6 +205,7 @@ def provision_dns_for_vm(
     ttl: int = 300,
     wait_seconds: int = 15,
     keypair: NoDNSKeyPair | None = None,
+    zone: str = DEFAULT_ZONE,
 ) -> dict:
     """Full DNS provisioning: generate key, publish A record, verify.
 
@@ -214,12 +215,13 @@ def provision_dns_for_vm(
         ttl: DNS TTL in seconds.
         wait_seconds: Time to wait for DNS propagation (usually 3-5s).
         keypair: Existing keypair to reuse, or None to generate ephemeral.
+        zone: DNS zone (nodns.shop or dns4sats.xyz).
 
     Returns:
         Dict with keypair info, FQDN, and verification status.
     """
     if keypair is None:
-        keypair = NoDNSKeyPair.generate()
+        keypair = NoDNSKeyPair.generate(zone=zone)
 
     name = subdomain if subdomain else "@"
     records = [{"type": "A", "name": name, "value": ip, "ttl": ttl}]
