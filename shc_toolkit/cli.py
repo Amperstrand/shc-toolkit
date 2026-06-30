@@ -854,6 +854,17 @@ def main():
     p = sub.add_parser("sizes", help="List named VM sizes")
     p.set_defaults(func=cmd_sizes)
 
+    p = sub.add_parser("contextvm", help="Install ContextVM MCP server on a VM")
+    p.add_argument("--host", required=True, help="VM IP address")
+    p.add_argument("--user", default="debian")
+    p.add_argument("--name", default="shc-vm", help="Server name for discovery")
+    p.add_argument("--relay", default="wss://relay.contextvm.org")
+    p.set_defaults(func=lambda a: _print(
+        __import__("shc_toolkit.contextvm", fromlist=["install_contextvm"]).install_contextvm(
+            host=a.host, user=a.user, server_name=a.name, relay=a.relay
+        )
+    ))
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
