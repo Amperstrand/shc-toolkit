@@ -281,7 +281,10 @@ class SHCMCPClient:
 
         sc = result.get("structuredContent")
         if isinstance(sc, dict) and "data" in sc:
-            return sc["data"]
+            data = sc["data"]
+            if isinstance(data, dict) and "data" in data:
+                data = data["data"]
+            return data
 
         content = result.get("content", [])
         if not content:
