@@ -211,3 +211,23 @@ A pay-per-minute SSH server that accepts [Cashu](https://cashu.space) ecash toke
 ## License
 
 MIT
+
+## Testing Status
+
+### MCP Transport (Verified 2026-06-30)
+- READS: All working (getAccount, getBillingBalance, listVirtualMachines, getOrderingCatalog)
+- WRITES: All working (createVirtualMachineOrder with confirmation flow, cancelVirtualMachine)
+- CI: Randomly selects REST or MCP per run for equal coverage
+- Ticket #220 resolved by SHC (SQL drift + timestamp bug + missing firewall rule)
+
+### NoDNS (Blocked — Infrastructure Issue)
+- Code is complete and correct (keypair generation, event publishing, DNS verification)
+- `nodns.shop` has a wildcard DNS record — all subdomains resolve to 46.224.104.12 regardless of published Nostr events
+- `dns4sats.xyz` does not resolve published records — the nodns bot may be offline after recent refactoring
+- Next step: verify nodns bot is running and connected to the right relays
+
+### ContextVM (Untested — VM Provisioning Timeout)
+- Bootstrap code complete (`shc_toolkit/contextvm.py`)
+- Installs Bun + @contextvm/sdk, deploys gateway server, sets up systemd
+- Not yet validated on a real VM (Dev VPS provisioning timed out during test)
+- Next step: retry with NVMe VPS or longer timeout
