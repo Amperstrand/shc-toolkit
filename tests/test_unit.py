@@ -186,6 +186,14 @@ class TestMcpUnwrapResult:
         data = SHCMCPClient._unwrap_tool_result(resp)
         assert data == {"credit": []}
 
+    def test_unwraps_double_wrapped_data(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        resp = {"result": {"isError": False, "structuredContent": {
+            "data": {"data": {"service_ids": [123], "order": {"id": 1}}}
+        }}}
+        data = SHCMCPClient._unwrap_tool_result(resp)
+        assert data == {"service_ids": [123], "order": {"id": 1}}
+
     def test_extracts_text_content_fallback(self):
         from shc_toolkit.mcp_client import SHCMCPClient
         resp = {"result": {"content": [{"type": "text", "text": '{"key": "val"}'}]}}
