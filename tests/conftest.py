@@ -4,20 +4,22 @@ import time
 import pytest
 
 from shc_toolkit.client import SHCClient
+from shc_toolkit import create_client
 
 _created_service_ids = []
 
 
 @pytest.fixture(scope="session")
 def client():
+    transport = os.environ.get("SHC_TEST_TRANSPORT", "rest")
     try:
-        c = SHCClient()
-    except ValueError as e:
-        pytest.skip(f"SHC_API_KEY not set: {e}")
+        c = create_client(transport=transport)
+    except (ValueError, ImportError) as e:
+        pytest.skip(f"Cannot create {transport} client: {e}")
     try:
         c.get_account_balance()
     except Exception as e:
-        pytest.skip(f"SHC API is not accessible: {e}")
+        pytest.skip(f"SHC API is not accessible via {transport}: {e}")
     return c
 
 

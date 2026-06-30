@@ -48,8 +48,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -e . -q
-      - run: pip install pytest -q
+      - run: pip install -e . -q && pip install pytest -q
+      - name: Pick random transport (REST or MCP)
+        run: |
+          if [ $((RANDOM % 2)) -eq 0 ]; then
+            echo "SHC_TEST_TRANSPORT=rest" >> $GITHUB_ENV
+            echo "Testing via: REST"
+          else
+            echo "SHC_TEST_TRANSPORT=mcp" >> $GITHUB_ENV
+            echo "Testing via: MCP"
+          fi
       - name: Run full test suite
         run: python -m pytest tests/test_shc_api.py -v --tb=short
       - name: Verify no orphaned VMs

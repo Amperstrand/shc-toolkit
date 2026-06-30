@@ -196,9 +196,6 @@ def resolve_transport(explicit: str | None = None) -> str:
     choice = choice.lower().strip()
 
     if choice == "auto":
-        # REST is the stable transport. MCP is opt-in only because the
-        # flagship MCP server has a known auth proxy issue (as of 2026-06).
-        # Users who want MCP must set SHC_TRANSPORT=mcp explicitly.
         return "rest"
 
     if choice not in ("rest", "mcp"):

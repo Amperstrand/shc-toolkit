@@ -127,16 +127,21 @@ This toolkit covers the most common endpoints (VM lifecycle, ordering, snapshots
 ## MCP Transport
 
 The toolkit supports dual transport: REST v2 (default) or MCP Streamable HTTP.
+Both transports are **fully functional** for all operations including reads,
+writes, spend/destructive actions with confirmation flow, and upgrades.
 
 The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
 116 tools over Streamable HTTP. Every spend and destructive op is confirm-gated.
+
+CI tests randomly select REST or MCP per run, ensuring both transports receive
+equal coverage over time without doubling test cost.
 
 ### Using MCP transport
 
 ```python
 from shc_toolkit import create_client
 
-# Auto-detect (MCP if available, else REST)
+# Auto (defaults to REST — change with SHC_TRANSPORT=mcp)
 c = create_client(transport="auto")
 
 # Force MCP
