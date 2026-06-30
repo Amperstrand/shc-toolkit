@@ -58,6 +58,18 @@ jobs:
             echo "SHC_TEST_TRANSPORT=mcp" >> $GITHUB_ENV
             echo "Testing via: MCP"
           fi
+      - name: Check credit balance
+        run: |
+          BALANCE=$(python -c "
+          from shc_toolkit import create_client
+          c = create_client(transport='rest')
+          print(c.get_available_credit())
+          ")
+          echo "Available credit: \$$BALANCE"
+          if (( $(echo "$BALANCE < 0.50" | bc -l) )); then
+            echo "::error::Insufficient credit (\$$BALANCE). Need at least \$0.50 for integration tests."
+            exit 1
+          fi
       - name: Run full test suite
         run: python -m pytest tests/test_shc_api.py -v --tb=short
       - name: Verify no orphaned VMs

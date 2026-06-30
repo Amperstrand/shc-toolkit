@@ -9,12 +9,12 @@ Base URL: https://blesta.sovereignhybridcompute.com/user-api/v2
 
 from __future__ import annotations
 
-import json
+import json as _json
 import logging
 import os
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 import requests
@@ -22,6 +22,8 @@ import requests
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
+
+_CACHE_TTL = 300
 
 
 class SHCError(Exception):
@@ -62,6 +64,19 @@ class ProvisioningStuckError(SHCError):
         self.health_report = details
 
 
+class InsufficientCreditError(SHCError):
+    """Raised when account balance is too low to complete an order."""
+
+    def __init__(self, required: float, available: float):
+        self.required = required
+        self.available = available
+        super().__init__(
+            "insufficient_credit",
+            f"Insufficient credit: need ${required:.2f}, have ${available:.2f}. "
+            f"Add credit at https://blesta.sovereignhybridcompute.com/client/",
+        )
+
+
 class SHCClient:
     """Lightweight client for the SHC User API.
 
@@ -71,15 +86,81 @@ class SHCClient:
         summary = c.get_vm_summary(123)
 
     Auth: Bearer token (API key from /account/api-keys).
+
+    Caching:
+        Catalog, templates, balance, and upgrade options are cached with a
+        5-minute TTL. Use cache_ttl=0 to disable or call invalidate_cache().
     """
 
-    def __init__(self, api_key: str | None = None, base_url: str = BASE_URL):
+    def __init__(self, api_key: str | None = None, base_url: str = BASE_URL, cache_ttl: int = _CACHE_TTL):
         self.api_key = api_key or os.environ.get("SHC_API_KEY", "")
         if not self.api_key:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Bearer {self.api_key}"
+        self._cache_ttl = cache_ttl
+        self._cache: dict[str, tuple[float, Any]] = {}
+
+    # ── Cache ───────────────────────────────────────────────
+
+    def _cache_get(self, key: str) -> Any | None:
+        if self._cache_ttl <= 0:
+            return None
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        ts, data = entry
+        if time.time() - ts > self._cache_ttl:
+            del self._cache[key]
+            return None
+        return data
+
+    def _cache_set(self, key: str, data: Any) -> Any:
+        if self._cache_ttl > 0:
+            self._cache[key] = (time.time(), data)
+        return data
+
+    def invalidate_cache(self, prefix: str | None = None):
+        """Clear cached data. If prefix given, only clear keys starting with it."""
+        if prefix is None:
+            self._cache.clear()
+        else:
+            self._cache = {k: v for k, v in self._cache.items() if not k.startswith(prefix)}
+
+    # ── Credit ──────────────────────────────────────────────
+
+    def get_available_credit(self) -> float:
+        """Return available USD credit. Cached for cache_ttl seconds."""
+        cached = self._cache_get("credit")
+        if cached is not None:
+            return cached
+        result = self._get("/billing/balance")
+        balances = result.get("balances", result.get("credit", []))
+        for b in balances:
+            if b.get("currency") == "USD":
+                amt = float(b.get("available_credit", b.get("amount", 0)))
+                return self._cache_set("credit", amt)
+        return 0.0
+
+    def check_credit(self, required: float) -> None:
+        """Raise InsufficientCreditError if balance < required."""
+        available = self.get_available_credit()
+        if available < required:
+            raise InsufficientCreditError(required, available)
+
+    def estimate_daily_cost(self, package_id: int) -> float:
+        """Look up daily price for a package. Cached."""
+        cache_key = f"price:{package_id}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+        for pkg in self.get_catalog():
+            if pkg.get("package_id") == package_id:
+                daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
+                price = float(daily.get("price", 0))
+                return self._cache_set(cache_key, price)
+        return 0.0
 
     # ── Internal ─────────────────────────────────────────────
 
@@ -106,7 +187,6 @@ class SHCClient:
         json_start = text.find("{")
         if json_start > 0:
             text = text[json_start:]
-        import json as _json
         body = _json.loads(text) if text.strip() else {}
         if not resp.ok:
             err = body.get("error", {})
@@ -387,31 +467,45 @@ class SHCClient:
     # ── Ordering ─────────────────────────────────────────────
 
     def get_catalog(self, view: str = "full") -> list[dict]:
-        """List buyable VM plans.
-
-        Args:
-            view: 'full' (default, includes config_options) or 'lean' (slim payload).
-        """
+        """List buyable VM plans. Cached for cache_ttl seconds."""
+        cache_key = f"catalog:{view}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
         params = {"view": view} if view != "full" else None
-        return self._get("/ordering/catalog", params=params).get("items", [])
+        data = self._get("/ordering/catalog", params=params).get("items", [])
+        return self._cache_set(cache_key, data)
 
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 
-    def submit_order(self, idempotency_key: str | None = None, *, include_dev_vps_options: bool = True, **kwargs) -> dict:
-        """Submit a VM order with auto-confirmation and idempotency.
+    def submit_order(
+        self,
+        idempotency_key: str | None = None,
+        *,
+        include_dev_vps_options: bool = True,
+        check_credit: bool = True,
+        **kwargs,
+    ) -> dict:
+        """Submit a VM order with auto-confirmation, idempotency, and credit pre-check.
 
-        Removes invalid 'pay' field, omits empty config_options, generates
-        an Idempotency-Key if none provided, and auto-handles confirmation.
+        When check_credit is True (default), queries the daily price for the
+        selected package and raises InsufficientCreditError if the balance is
+        too low. This prevents creating orders that can't be paid.
 
         When include_dev_vps_options is True (default) and the caller has not
-        already supplied order_form_id/options, injects the Dev VPS defaults
-        (order_form_id=11, template=debian13-cloud, ipv4=none). Without these
-        options SHC's Proxmox layer does not know which template to deploy and
-        the VM sits in ``pending`` indefinitely.
+        already supplied order_form_id/options, injects the Dev VPS defaults.
         """
         import uuid
         kwargs.pop("pay", None)
+
+        if check_credit:
+            pkg_id = kwargs.get("package_id", 0)
+            if pkg_id:
+                daily_cost = self.estimate_daily_cost(pkg_id)
+                if daily_cost > 0:
+                    self.check_credit(daily_cost)
+
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
         if include_dev_vps_options and "config_options" not in kwargs and "options" not in kwargs:
@@ -449,10 +543,12 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/reset")
 
     def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
-        return self._confirmed_request(
+        result = self._confirmed_request(
             "POST", f"/vm/{service_id}/cancel", confirm=confirm,
             json={"immediate": True} if immediate else {},
         )
+        self.invalidate_cache("credit")
+        return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
         return self._confirmed_request(
@@ -637,7 +733,10 @@ class SHCClient:
     # ── Templates ────────────────────────────────────────────
 
     def list_templates(self) -> list[dict]:
-        return self._get("/vm/templates").get("items", [])
+        cached = self._cache_get("templates")
+        if cached is not None:
+            return cached
+        return self._cache_set("templates", self._get("/vm/templates").get("items", []))
 
     def list_images(self) -> list[dict]:
         return self._get("/image").get("items", [])

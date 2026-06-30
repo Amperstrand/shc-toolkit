@@ -357,3 +357,69 @@ class TestComputeWiring:
         from shc_toolkit import compute
         src = inspect.getsource(compute)
         assert "_create_client" in src or "create_client" in src
+
+
+class TestCaching:
+    def test_cache_get_returns_none_on_empty(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            assert c._cache_get("nothing") is None
+
+    def test_cache_set_and_get(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("key1", {"data": 42})
+            assert c._cache_get("key1") == {"data": 42}
+
+    def test_cache_expires(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient(cache_ttl=0)
+            c._cache_set("key1", "val")
+            assert c._cache_get("key1") is None
+
+    def test_invalidate_cache_all(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("a", 1)
+            c._cache_set("b", 2)
+            c.invalidate_cache()
+            assert len(c._cache) == 0
+
+    def test_invalidate_cache_prefix(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("credit", 1.0)
+            c._cache_set("catalog:full", [])
+            c.invalidate_cache("credit")
+            assert "credit" not in c._cache
+            assert "catalog:full" in c._cache
+
+
+class TestCreditCheck:
+    def test_insufficient_credit_error_message(self):
+        from shc_toolkit.client import InsufficientCreditError
+        err = InsufficientCreditError(required=0.50, available=0.12)
+        assert err.required == 0.50
+        assert err.available == 0.12
+        assert "0.50" in str(err)
+        assert "0.12" in str(err)
+
+    def test_check_credit_raises_when_low(self):
+        from shc_toolkit.client import SHCClient, InsufficientCreditError
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("credit", 0.10)
+            with pytest.raises(InsufficientCreditError):
+                c.check_credit(0.50)
+
+    def test_check_credit_passes_when_sufficient(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("credit", 5.00)
+            c.check_credit(0.50)
