@@ -17,6 +17,7 @@ Dual-transport client for SHC: REST v2 (default) or MCP Streamable HTTP.
 
 from .client import SHCClient, SHCError, ProvisioningStuckError
 from .transport import resolve_transport
+from .sizes import SIZE_MAP, resolve_size, resolve_specs, list_sizes
 
 __all__ = [
     "SHCClient",
@@ -24,6 +25,10 @@ __all__ = [
     "ProvisioningStuckError",
     "SHCTransport",
     "create_client",
+    "SIZE_MAP",
+    "resolve_size",
+    "resolve_specs",
+    "list_sizes",
 ]
 
 # Re-export Protocol for type checking

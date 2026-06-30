@@ -118,10 +118,24 @@ def cmd_order(args):
         else:
             ssh_key = args.ssh_key
 
+    from .sizes import resolve_size, resolve_specs
+
+    if args.size:
+        package_id, pricing_id = resolve_size(args.size)
+    elif args.cpu or args.ram or args.disk:
+        package_id, pricing_id = resolve_specs(
+            cpu=args.cpu, ram_mb=args.ram, disk_gb=args.disk
+        )
+    elif args.package_id and args.pricing_id:
+        package_id, pricing_id = args.package_id, args.pricing_id
+    else:
+        print("Error: provide --size, --cpu/--ram/--disk, or --package-id + --pricing-id", file=sys.stderr)
+        sys.exit(1)
+
     kwargs: dict[str, Any] = {
         "hostname": args.hostname,
-        "package_id": args.package_id,
-        "pricing_id": args.pricing_id,
+        "package_id": package_id,
+        "pricing_id": pricing_id,
     }
     if args.module_group_id:
         kwargs["module_group_id"] = args.module_group_id
@@ -551,6 +565,12 @@ def cmd_templates(args):
     _print(c.list_templates())
 
 
+def cmd_sizes(args):
+    from .sizes import list_sizes
+    for s in list_sizes():
+        print(f"  {s['size']:20s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB  ${s.get('name',''):30s}  pkg={s['package_id']}")
+
+
 # ── Main ──────────────────────────────────────────────────
 
 def main():
@@ -591,8 +611,12 @@ def main():
 
     p = sub.add_parser("order", help="Order a new VM")
     p.add_argument("--hostname", required=True)
-    p.add_argument("--package-id", type=int, required=True)
-    p.add_argument("--pricing-id", type=int, required=True)
+    p.add_argument("--package-id", type=int, help="SHC package ID (or use --size)")
+    p.add_argument("--pricing-id", type=int, help="SHC pricing ID (or use --size)")
+    p.add_argument("--size", help="Named size: starter, standard, professional, business, enterprise, dev-*")
+    p.add_argument("--cpu", type=int, help="Min CPU cores (finds cheapest match)")
+    p.add_argument("--ram", type=int, help="Min RAM in MB (finds cheapest match)")
+    p.add_argument("--disk", type=int, help="Min disk in GB (finds cheapest match)")
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
@@ -807,6 +831,9 @@ def main():
 
     p = sub.add_parser("templates", help="List OS templates")
     p.set_defaults(func=cmd_templates)
+
+    p = sub.add_parser("sizes", help="List named VM sizes")
+    p.set_defaults(func=cmd_sizes)
 
     args = parser.parse_args()
     if not args.command:
