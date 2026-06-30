@@ -92,12 +92,12 @@ class NoDNSKeyPair:
 def build_record_tag(
     rtype: str, name: str, rdata: str, ttl: int = 300
 ) -> Tag:
-    """Build a canonical 5-element record tag per NoDNS spec.
+    """Build a record tag per NoDNS spec.
 
-    Tag format: ["record", TYPE, NAME, TTL, RDATA]
+    Uses 11-element format for maximum compatibility with deployed nodns bots.
     """
     return Tag.parse(
-        ["record", rtype, name, str(ttl), rdata]
+        ["record", rtype, name, rdata, "", "", "", "", "", "", str(ttl)]
     )
 
 
