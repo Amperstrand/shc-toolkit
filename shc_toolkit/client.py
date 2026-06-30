@@ -474,14 +474,19 @@ class SHCClient:
     def get_vm_network(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/network")
 
-    def upgrade_vm(self, service_id: int, package_id: int) -> dict:
-        return self._patch(f"/vm/{service_id}/upgrade", {"package_id": package_id})
-
-    def preview_upgrade(self, service_id: int, package_id: int) -> dict:
-        return self._post(f"/vm/{service_id}/upgrade/preview", {"package_id": package_id})
-
     def list_upgrade_options(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/upgrade-options").get("items", [])
+        result = self._get(f"/vm/{service_id}/upgrade-options")
+        return result.get("upgradable", result.get("items", []))
+
+    def preview_upgrade(self, service_id: int, pricing_ref: int) -> dict:
+        return self._post(f"/vm/{service_id}/upgrade/preview", {"pricing_ref": pricing_ref})
+
+    def upgrade_vm(self, service_id: int, pricing_ref: int, *, confirm: bool = True) -> dict:
+        import uuid
+        return self._confirmed_request(
+            "PATCH", f"/vm/{service_id}/upgrade", confirm=confirm,
+            json={"pricing_ref": pricing_ref, "idempotency_key": f"upgrade-{uuid.uuid4().hex[:24]}"},
+        )
 
     def get_vm_payments(self, service_id: int) -> list[dict]:
         return self._get(f"/vm/{service_id}/payments").get("items", [])
