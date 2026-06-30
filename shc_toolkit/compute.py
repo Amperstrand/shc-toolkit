@@ -180,6 +180,26 @@ def _vm_matches_filters(vm_gcloud: dict, filters: dict) -> bool:
     return True
 
 
+def _firewall_rules_to_gcloud(fw: dict, instance_name: str = "") -> list[dict]:
+    rules_out = []
+    for rule in fw.get("rules", []):
+        dport = rule.get("dport", "")
+        ports = [str(dport)] if str(dport) and str(dport) != "*" else []
+        action_raw = str(rule.get("action", "pass")).lower()
+        direction_raw = str(rule.get("direction", rule.get("type", "in"))).lower()
+        rules_out.append({
+            "name": rule.get("comment") or f"rule-{rule.get('pos', '?')}",
+            "network": "default",
+            "direction": "EGRESS" if direction_raw.startswith("out") else "INGRESS",
+            "action": "ALLOW" if action_raw in ("pass", "accept", "allow") else "DENY",
+            "sourceRanges": [rule["source"]] if rule.get("source") else ["0.0.0.0/0"],
+            "allowed": [{"IPProtocol": rule.get("proto", "tcp"), "ports": ports}],
+            "instance": instance_name,
+            "position": rule.get("pos", ""),
+        })
+    return rules_out
+
+
 def cmd_instances(args):
     client = _get_client()
     fmt = None
@@ -212,6 +232,21 @@ def cmd_instances(args):
             sys.exit(1)
         md = _load_metadata()
         instance = _vm_to_gcloud_format(vm, md)
+        sid = vm.get("id") or vm.get("service_id")
+        try:
+            detail = client.get_vm_detail(sid)
+            power_state = detail.get("power_state") or detail.get("status", {})
+            if isinstance(power_state, dict):
+                instance["powerState"] = power_state.get("state", str(power_state))
+            else:
+                instance["powerState"] = str(power_state)
+        except Exception:
+            instance["powerState"] = instance.get("status", "")
+        try:
+            fw = client.get_firewall(sid)
+            instance["firewalls"] = _firewall_rules_to_gcloud(fw, instance["name"])
+        except Exception:
+            instance["firewalls"] = []
         _output(instance, fmt)
 
     elif sub == "create":
@@ -344,12 +379,20 @@ def cmd_instances(args):
         for a in args[2:]:
             if a.startswith("--machine-type="):
                 machine_type = a.split("=", 1)[1]
+        if "/" in machine_type:
+            machine_type = machine_type.rstrip("/").split("/")[-1]
         vm = _find_vm_by_name(client, name)
-        if vm:
-            sid = vm.get("id") or vm.get("service_id")
-            mt = MACHINE_TYPE_MAP.get(machine_type, MACHINE_TYPE_MAP["n1-standard-2"])
-            result = client.upgrade_vm(sid, mt["package_id"])
-            print(f"Machine type changed for [{name}] -> {machine_type}")
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        mt = MACHINE_TYPE_MAP.get(machine_type)
+        if not mt:
+            available = ", ".join(sorted(MACHINE_TYPE_MAP))
+            print(f"Unknown machine type '{machine_type}'. Available: {available}", file=sys.stderr)
+            sys.exit(1)
+        client.upgrade_vm(sid, mt["package_id"])
+        print(f"Machine type changed for [{name}] -> {machine_type} ({mt['name']})")
 
     elif sub == "add-metadata":
         name = args[1] if len(args) > 1 else ""
@@ -364,6 +407,62 @@ def cmd_instances(args):
             md[name] = metadata
         _save_metadata(md)
         print(f"Updated metadata for [{name}]")
+
+    elif sub == "restart":
+        name = args[1] if len(args) > 1 else ""
+        vm = _find_vm_by_name(client, name)
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        client.restart_vm(sid)
+        print(f"Restarted [{name}]")
+
+    elif sub == "suspend":
+        name = args[1] if len(args) > 1 else ""
+        vm = _find_vm_by_name(client, name)
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        client.stop_vm(sid)
+        print(f"Suspended [{name}]")
+
+    elif sub == "resume":
+        name = args[1] if len(args) > 1 else ""
+        vm = _find_vm_by_name(client, name)
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        client.start_vm(sid)
+        print(f"Resumed [{name}]")
+
+    elif sub == "shutdown":
+        name = args[1] if len(args) > 1 else ""
+        vm = _find_vm_by_name(client, name)
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        client.shutdown_vm(sid)
+        print(f"Shutting down [{name}]")
+
+    elif sub == "reinstall":
+        name = args[1] if len(args) > 1 else ""
+        template = "debian13-cloud"
+        for a in args[2:]:
+            if a.startswith("--template="):
+                template = a.split("=", 1)[1]
+            elif a.startswith("--image="):
+                template = a.split("=", 1)[1]
+        vm = _find_vm_by_name(client, name)
+        if not vm:
+            print(f"Instance {name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        client.reinstall_vm(sid, template=template)
+        print(f"Reinstalling [{name}] with template {template}")
 
     else:
         print(f"Unknown instances subcommand: {sub}", file=sys.stderr)
@@ -448,6 +547,38 @@ def cmd_snapshots(args):
         if not deleted and not quiet:
             print(f"Snapshot {snapshot_name} not found", file=sys.stderr)
 
+    elif sub == "describe":
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        md = _load_metadata()
+        found = None
+        for hostname, meta in md.items():
+            sid = meta.get("service_id")
+            if sid:
+                try:
+                    snaps = client.list_snapshots(int(sid))
+                    for s in snaps:
+                        sname = s.get("name", s.get("id", ""))
+                        if sname == snapshot_name or str(s.get("id", "")) == snapshot_name:
+                            found = {
+                                "name": sname,
+                                "id": str(s.get("id", "")),
+                                "status": "READY",
+                                "sourceDisk": hostname,
+                                "sourceDiskId": str(sid),
+                                "creationTimestamp": s.get("created_at", ""),
+                                "diskSizeGb": str(s.get("size", s.get("disk_size", ""))),
+                                "storageBytes": str(s.get("storage_bytes", "")),
+                                "description": s.get("description", ""),
+                            }
+                            break
+                except Exception:
+                    pass
+            if found:
+                break
+        if not found:
+            found = {"error": f"Snapshot {snapshot_name} not found"}
+        _output(found, fmt)
+
     else:
         print(f"Unknown snapshots subcommand: {sub}", file=sys.stderr)
         sys.exit(1)
@@ -490,7 +621,7 @@ def cmd_firewall_rules(args):
         if a.startswith("--format="):
             fmt = a.split("=", 1)[1]
 
-    if sub == "describe" or sub == "list":
+    if sub == "list":
         md = _load_metadata()
         all_rules = []
         for hostname, meta in md.items():
@@ -498,19 +629,30 @@ def cmd_firewall_rules(args):
             if sid:
                 try:
                     fw = client.get_firewall(int(sid))
-                    for rule in fw.get("rules", []):
-                        all_rules.append({
-                            "name": rule.get("comment", f"rule-{rule.get('pos', '?')}"),
-                            "network": "default",
-                            "direction": rule.get("type", "INGRESS"),
-                            "action": rule.get("action", "ACCEPT").upper() if rule.get("action") == "pass" else "DENY",
-                            "sourceRanges": [rule.get("source", "0.0.0.0/0")] if rule.get("source") else ["0.0.0.0/0"],
-                            "allowed": [{"IPProtocol": rule.get("proto", "tcp"), "ports": [rule.get("dport", "")].filter(None)}],
-                            "instance": hostname,
-                        })
+                    all_rules.extend(_firewall_rules_to_gcloud(fw, hostname))
                 except Exception:
                     pass
         _output(all_rules, fmt)
+
+    elif sub == "describe":
+        vm_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        rule_pos = ""
+        for a in args[2:]:
+            if not a.startswith("-"):
+                rule_pos = a
+        vm = _find_vm_by_name(client, vm_name)
+        if not vm:
+            print(f"Instance {vm_name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        fw = client.get_firewall(int(sid))
+        rules = _firewall_rules_to_gcloud(fw, vm_name)
+        if rule_pos:
+            pos_int = int(rule_pos) if rule_pos.lstrip("-").isdigit() else -1
+            matched = [r for r in rules if str(r.get("position")) == rule_pos or r.get("position") == pos_int]
+            _output(matched[0] if matched else {"error": f"Rule {rule_pos} not found on {vm_name}"}, fmt)
+        else:
+            _output(rules[0] if rules else {"error": "No rules found"}, fmt)
 
     elif sub == "create":
         rule_name = ""
@@ -561,6 +703,44 @@ def cmd_firewall_rules(args):
         else:
             print(f"Instance {vm_name} not found", file=sys.stderr)
 
+    elif sub == "update":
+        vm_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        rule_pos = ""
+        updates = {}
+        i = 2
+        while i < len(args):
+            a = args[i]
+            if a.startswith("--position="):
+                rule_pos = a.split("=", 1)[1]
+            elif a.startswith("--action="):
+                updates["action"] = "pass" if "allow" in a or "pass" in a else "drop"
+            elif a.startswith("--source-ranges="):
+                updates["source"] = a.split("=", 1)[1]
+            elif a.startswith("--source="):
+                updates["source"] = a.split("=", 1)[1]
+            elif a.startswith("--rules="):
+                parts = a.split("=", 1)[1].split(":")
+                if len(parts) >= 2:
+                    updates["protocol"] = parts[0]
+                    updates["dport"] = parts[1]
+            elif a.startswith("--protocol="):
+                updates["protocol"] = a.split("=", 1)[1]
+            elif a.startswith("--dport="):
+                updates["dport"] = a.split("=", 1)[1]
+            elif a.startswith("--comment="):
+                updates["comment"] = a.split("=", 1)[1]
+            elif not a.startswith("-") and not rule_pos:
+                rule_pos = a
+            i += 1
+        vm = _find_vm_by_name(client, vm_name)
+        if not vm:
+            print(f"Instance {vm_name} not found", file=sys.stderr)
+            sys.exit(1)
+        sid = vm.get("id") or vm.get("service_id")
+        pos = int(rule_pos) if rule_pos.lstrip("-").isdigit() else 0
+        result = client.edit_firewall_rule(int(sid), pos, **updates)
+        print(f"Updated firewall rule {rule_pos} for [{vm_name}]")
+
 
 def cmd_images(args):
     client = _get_client()
@@ -581,8 +761,32 @@ def cmd_images(args):
                     "arch": "x86_64",
                 })
             _output(images, fmt)
-        except Exception as e:
+        except Exception:
             _output([], fmt)
+
+    elif sub == "describe":
+        image_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        found = None
+        try:
+            templates = client.list_templates()
+            for t in templates:
+                tname = t.get("name", t.get("id", ""))
+                if tname == image_name:
+                    found = {
+                        "name": tname,
+                        "id": str(t.get("id", "")),
+                        "family": t.get("family", ""),
+                        "status": "READY",
+                        "arch": "x86_64",
+                        "creationTimestamp": t.get("created_at", ""),
+                        "description": t.get("description", ""),
+                    }
+                    break
+        except Exception:
+            pass
+        if not found:
+            found = {"error": f"Image {image_name} not found"}
+        _output(found, fmt)
 
 
 def cmd_config(args):
@@ -591,6 +795,215 @@ def cmd_config(args):
     if sub == "get-value":
         if key == "project":
             print("shc-tollgate")
+
+
+SHC_ZONES = [
+    {"name": "us-central1-a", "region": "us-central1", "status": "UP", "description": "Katy, Texas"},
+    {"name": "us-central1-b", "region": "us-central1", "status": "UP", "description": "Cherryvale, Kansas"},
+]
+
+SHC_REGIONS = [
+    {"name": "us-central1", "status": "UP"},
+]
+
+
+def _cmd_machine_types(args):
+    client = _get_client()
+    sub = args[0] if args else "list"
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+
+    if sub == "describe":
+        mt_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        if "/" in mt_name:
+            mt_name = mt_name.rstrip("/").split("/")[-1]
+        mt = MACHINE_TYPE_MAP.get(mt_name)
+        if not mt:
+            _output({"error": f"Machine type {mt_name} not found"}, fmt)
+            return
+        _output(_machine_type_to_gcloud(mt_name, mt), fmt)
+        return
+
+    machine_types = []
+    for name, mt in sorted(MACHINE_TYPE_MAP.items()):
+        machine_types.append(_machine_type_to_gcloud(name, mt))
+    try:
+        catalog = client.get_catalog()
+        for item in catalog:
+            pkg_id = item.get("id") or item.get("package_id")
+            if pkg_id and not any(m["id"] == str(pkg_id) for m in machine_types):
+                machine_types.append({
+                    "name": item.get("name", f"pkg-{pkg_id}"),
+                    "id": str(pkg_id),
+                    "zone": "us-central1-a",
+                    "guestCpus": item.get("cpu", ""),
+                    "memoryMb": item.get("ram", ""),
+                    "description": item.get("description", ""),
+                    "selfLink": f"projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
+                })
+    except Exception:
+        pass
+    _output(machine_types, fmt)
+
+
+def _machine_type_to_gcloud(name: str, mt: dict) -> dict:
+    return {
+        "name": name,
+        "id": str(mt.get("package_id", "")),
+        "description": mt.get("name", ""),
+        "zone": "us-central1-a",
+        "guestCpus": name.split("-")[-1] if name.startswith("n1-standard-") else "",
+        "memoryMb": "",
+        "selfLink": f"projects/shc/zones/us-central1-a/machineTypes/{name}",
+    }
+
+
+def _cmd_zones(args):
+    sub = args[0] if args else "list"
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+    if sub == "list":
+        _output([dict(z) for z in SHC_ZONES], fmt)
+    elif sub == "describe":
+        zone_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        matched = [z for z in SHC_ZONES if z["name"] == zone_name]
+        _output(matched[0] if matched else {"error": f"Zone {zone_name} not found"}, fmt)
+
+
+def _cmd_regions(args):
+    sub = args[0] if args else "list"
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+    if sub == "list":
+        _output([dict(r) for r in SHC_REGIONS], fmt)
+    elif sub == "describe":
+        region_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        matched = [r for r in SHC_REGIONS if r["name"] == region_name]
+        _output(matched[0] if matched else {"error": f"Region {region_name} not found"}, fmt)
+
+
+def _cmd_operations(args):
+    client = _get_client()
+    sub = args[0] if args else "list"
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+
+    if sub == "list":
+        vm_name = next((a for a in args[1:] if not a.startswith("-")), "")
+        all_ops = []
+        if vm_name:
+            vm = _find_vm_by_name(client, vm_name)
+            if not vm:
+                print(f"Instance {vm_name} not found", file=sys.stderr)
+                sys.exit(1)
+            sid = vm.get("id") or vm.get("service_id")
+            try:
+                for job in client.list_jobs(int(sid)):
+                    all_ops.append(_job_to_gcloud(job, vm_name, sid))
+            except Exception:
+                pass
+        else:
+            md = _load_metadata()
+            for hostname, meta in md.items():
+                sid = meta.get("service_id")
+                if sid:
+                    try:
+                        for job in client.list_jobs(int(sid)):
+                            all_ops.append(_job_to_gcloud(job, hostname, sid))
+                    except Exception:
+                        pass
+        _output(all_ops, fmt)
+
+    elif sub == "describe":
+        op_id = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        vm_name = next((a for a in args[2:] if not a.startswith("-")), "")
+        md = _load_metadata()
+        found = None
+        targets = []
+        if vm_name:
+            vm = _find_vm_by_name(client, vm_name)
+            if vm:
+                sid = vm.get("id") or vm.get("service_id")
+                targets = [(vm_name, sid)]
+        else:
+            for hostname, meta in md.items():
+                sid = meta.get("service_id")
+                if sid:
+                    targets.append((hostname, sid))
+        for hostname, sid in targets:
+            try:
+                job = client.get_job(int(sid), op_id)
+                found = _job_to_gcloud(job, hostname, sid)
+                break
+            except Exception:
+                pass
+        if not found:
+            found = {"error": f"Operation {op_id} not found"}
+        _output(found, fmt)
+
+    else:
+        print(f"Unknown operations subcommand: {sub}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _job_to_gcloud(job: dict, hostname: str, sid) -> dict:
+    status_raw = str(job.get("status", job.get("state", ""))).lower()
+    if status_raw in ("done", "complete", "completed", "success"):
+        op_status = "DONE"
+    elif status_raw in ("running", "active", "pending", "queued"):
+        op_status = "RUNNING"
+    else:
+        op_status = status_raw.upper() or "DONE"
+    return {
+        "name": f"operation-{job.get('id', job.get('job_id', ''))}",
+        "id": str(job.get("id", job.get("job_id", ""))),
+        "operationType": job.get("type", job.get("action", "")),
+        "status": op_status,
+        "targetId": str(sid),
+        "targetLink": f"projects/shc/zones/us-central1-a/instances/{hostname}",
+        "creationTimestamp": job.get("created_at", job.get("started_at", "")),
+        "startTime": job.get("started_at", ""),
+        "endTime": job.get("finished_at", job.get("completed_at", "")),
+        "progress": job.get("progress", 100 if op_status == "DONE" else 0),
+        "description": job.get("message", job.get("detail", "")),
+    }
+
+
+def _cmd_project_info(args):
+    client = _get_client()
+    sub = args[0] if args else "describe"
+    fmt = None
+    for a in args:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+
+    info = {}
+    try:
+        account = client.get_account()
+        info = {
+            "projectNumber": str(account.get("id", account.get("client_id", ""))),
+            "projectId": "shc-tollgate",
+            "name": account.get("name", account.get("company", "")),
+            "lifecycleState": "ACTIVE",
+            "createTime": account.get("date_created", account.get("created_at", "")),
+            "email": account.get("email", ""),
+            "x_Platform": "Sovereign Hybrid Compute",
+        }
+    except Exception:
+        info = {"projectId": "shc-tollgate", "lifecycleState": "ACTIVE"}
+
+    if sub == "list":
+        _output([info], fmt)
+    else:
+        _output(info, fmt)
 
 
 def main():
@@ -619,6 +1032,16 @@ def main():
             cmd_firewall_rules(rest)
         elif resource == "images":
             cmd_images(rest)
+        elif resource == "machine-types":
+            _cmd_machine_types(rest)
+        elif resource == "zones":
+            _cmd_zones(rest)
+        elif resource == "regions":
+            _cmd_regions(rest)
+        elif resource == "operations":
+            _cmd_operations(rest)
+        elif resource == "project-info":
+            _cmd_project_info(rest)
         else:
             print(f"Unknown resource: {resource}", file=sys.stderr)
             sys.exit(1)
