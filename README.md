@@ -220,11 +220,12 @@ MIT
 - CI: Randomly selects REST or MCP per run for equal coverage
 - Ticket #220 resolved by SHC (SQL drift + timestamp bug + missing firewall rule)
 
-### NoDNS (Blocked — Infrastructure Issue)
+### NoDNS (Working — Fixed 2026-06-30)
 - Code is complete and correct (keypair generation, event publishing, DNS verification)
-- `nodns.shop` has a wildcard DNS record — all subdomains resolve to 46.224.104.12 regardless of published Nostr events
-- `dns4sats.xyz` does not resolve published records — the nodns bot may be offline after recent refactoring
-- Next step: verify nodns bot is running and connected to the right relays
+- **VERIFIED**: Published A record resolves correctly within 10 seconds
+- Bot was down (SOA stale since June 9) — restarted, added relay.damus.io + nos.lol, disabled PoW requirement
+- `shc nodns --ip <ip> --zone nodns.shop` publishes, `shc order --nodns` auto-publishes after VM creation
+- Wildcard `*.nodns.shop → 46.224.104.12` is overridden by per-npub records when published
 
 ### ContextVM (Untested — VM Provisioning Timeout)
 - Bootstrap code complete (`shc_toolkit/contextvm.py`)
