@@ -46,6 +46,7 @@ class CostReport:
     expected_refund: float
     actual_charge: float | None = None
     actual_refund: float | None = None
+    ledger_refund: float | None = None
     mismatch: bool = False
     notes: list[str] = field(default_factory=list)
 
@@ -61,6 +62,7 @@ class CostReport:
             "expected_refund": self.expected_refund,
             "actual_charge": self.actual_charge,
             "actual_refund": self.actual_refund,
+            "ledger_refund": self.ledger_refund,
             "net_cost": self._net_cost(),
             "mismatch": self.mismatch,
             "notes": self.notes,
@@ -170,16 +172,36 @@ class CostTracker:
         if actual_refund is not None:
             diff = abs(actual_refund - expected_refund)
             if diff > PRICE_TOLERANCE_USD:
-                report.mismatch = True
-                report.notes.append(
-                    f"refund_diff_${actual_refund - expected_refund:+.4f}"
-                )
-                log.warning(
-                    "Cost audit: cancel svc %s — REFUND MISMATCH: "
-                    "refunded $%.4f, expected $%.4f (diff $%+.4f)",
-                    service_id, actual_refund, expected_refund,
-                    actual_refund - expected_refund,
-                )
+                ledger_refund = self._ledger_refund(service_id)
+                if ledger_refund is not None and abs(ledger_refund - expected_refund) <= PRICE_TOLERANCE_USD:
+                    report.mismatch = False
+                    report.notes.append("balance_diff_noisy_concurrent_activity")
+                    report.ledger_refund = ledger_refund
+                    log.info(
+                        "Cost audit: cancel svc %s — balance diff $%.4f ≠ expected $%.4f, "
+                        "but per-VM ledger confirms $%.4f — concurrent activity, OK",
+                        service_id, actual_refund, expected_refund, ledger_refund,
+                    )
+                elif ledger_refund is not None:
+                    report.mismatch = True
+                    report.notes.append("ledger_confirms_mismatch")
+                    report.ledger_refund = ledger_refund
+                    log.warning(
+                        "Cost audit: cancel svc %s — REFUND MISMATCH confirmed by ledger: "
+                        "balance diff $%.4f, ledger $%.4f, expected $%.4f",
+                        service_id, actual_refund, ledger_refund, expected_refund,
+                    )
+                else:
+                    report.mismatch = True
+                    report.notes.append(
+                        f"refund_diff_${actual_refund - expected_refund:+.4f}"
+                    )
+                    log.warning(
+                        "Cost audit: cancel svc %s — REFUND MISMATCH: "
+                        "refunded $%.4f, expected $%.4f (diff $%+.4f)",
+                        service_id, actual_refund, expected_refund,
+                        actual_refund - expected_refund,
+                    )
             else:
                 log.info(
                     "Cost audit: cancel svc %s — refunded $%.4f, expected $%.4f — OK",
@@ -201,6 +223,33 @@ class CostTracker:
         )
 
         return report
+
+    def _ledger_refund(self, service_id: int) -> float | None:
+        """Look up per-VM ledger to isolate this VM's refund from concurrent activity.
+
+        Returns the sum of negative (credit/refund) entries, or None if the
+        ledger can't be fetched.
+        """
+        try:
+            payments = self._client.get_vm_payments(service_id)
+        except Exception as exc:
+            log.debug("Cost audit: ledger fetch failed for svc %s: %s", service_id, exc)
+            return None
+
+        refunds = []
+        for p in payments:
+            for field_name in ("total", "paid", "amount"):
+                raw = p.get(field_name)
+                if raw is None:
+                    continue
+                try:
+                    val = float(raw)
+                except (TypeError, ValueError):
+                    continue
+                if val < 0:
+                    refunds.append(abs(val))
+                    break
+        return round(sum(refunds), 4) if refunds else 0.0
 
     def current_burn(self, service_id: int) -> float:
         """Current expected cost for a running VM (does not call the API)."""

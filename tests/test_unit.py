@@ -715,9 +715,48 @@ class TestCostAudit:
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(return_value=[{"total": "0.49"}])
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is True
         assert report.actual_refund == 0.01
+
+    def test_audit_cancel_disambiguates_concurrent_activity(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        expected_refund = round(0.49 - 6 * 0.49 / 24, 4)
+        c.get_vm_payments = MagicMock(return_value=[
+            {"total": "0.49"},
+            {"total": str(-expected_refund)},
+        ])
+        report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
+        assert report.mismatch is False
+        assert report.ledger_refund == expected_refund
+        assert "balance_diff_noisy_concurrent_activity" in report.notes
+
+    def test_audit_cancel_ledger_confirms_real_mismatch(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(return_value=[
+            {"total": "0.49"},
+            {"total": "-0.01"},
+        ])
+        report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
+        assert report.mismatch is True
+        assert "ledger_confirms_mismatch" in report.notes
+
+    def test_audit_cancel_ledger_unavailable_keeps_warning(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(side_effect=Exception("API down"))
+        report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
+        assert report.mismatch is True
+        assert any("refund_diff" in n for n in report.notes)
 
     def test_audit_cancel_returns_none_for_untracked(self):
         c = self._client_with_catalog()
