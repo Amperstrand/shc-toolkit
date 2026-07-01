@@ -218,8 +218,8 @@ Add data sources so users don't hardcode IDs.
 | Feature | Dev VPS (80-84) | NVMe/SSD/HDD (23+) | Terraform | Pulumi | gcloud |
 |---------|:---:|:---:|:---:|:---:|:---:|
 | VM lifecycle | Works | Works | create/delete | create/delete | create/delete/start/stop/reset |
-| Snapshots | **FAIL** | Works | create/delete | create/delete | create/list/delete |
-| Backups | **FAIL** | Works | create/delete | — | — |
+| Snapshots | Works | Works | create/delete | create/delete | create/list/delete |
+| Backups | Works | Works | create/delete | — | — |
 | Firewall | Works | Works | — | — | list/create/delete |
 | rDNS | Works | Works | — | — | — |
 | ISO | Works | Works | — | — | — |

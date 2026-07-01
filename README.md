@@ -198,7 +198,7 @@ GUI requires >=16GB disk AND >=4GB RAM.
 - **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.
-- **Snapshots & backups not available on Dev VPS**: Dev VPS plans (pkg 80–84, Cherryvale, KS) do NOT have storage infrastructure for snapshots or backups. The API returns `upstream_failure: "Unable to load storage inventory"`. NVMe/SSD/HDD VPS plans (pkg 23+, Katy, TX) support snapshots, backups, and all other storage features. All other API features (firewall, rDNS, ISO, console, jobs, metrics, upgrades) work on both plan types.
+- **Snapshot/backup limit**: All VPS plans (including Dev VPS) support 1 snapshot and 1 backup concurrently (`snapshot_limit: 1`, `backup_limit: 1` per package). Verified working on Dev VPS via front-door E2E (2026-07-01).
 
 ## Cashu Tollgate — SSH for ecash
 
