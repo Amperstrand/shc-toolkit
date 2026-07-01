@@ -128,3 +128,52 @@ jobs:
               exit(1)
           print('No drift detected ✅')
           "
+
+  mcp-drift:
+    name: MCP tool drift detection
+    runs-on: ubuntu-latest
+    env:
+      SHC_API_KEY: ${{ secrets.SHC_API_KEY_READ_ONLY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e . -q
+      - name: Compare client tool names against live MCP server
+        run: |
+          python3 -c "
+          import re, sys
+          from shc_toolkit.mcp_client import SHCMCPClient, TOOL_MAP
+
+          c = SHCMCPClient()
+          tools = c.list_tools()
+          if isinstance(tools, dict):
+              tools = tools.get('tools', tools.get('items', []))
+          server_names = {t['name'] for t in tools}
+
+          with open('shc_toolkit/mcp_client.py') as f:
+              src = f.read()
+          client_names = set(re.findall(r'call_tool\(\"(\w+)\"', src)) | set(TOOL_MAP.values())
+
+          broken = client_names - server_names
+          unwrapped = server_names - client_names
+
+          print(f'Server tools: {len(server_names)}')
+          print(f'Client tools: {len(client_names)}')
+          print(f'Unwrapped server tools: {len(unwrapped)}')
+
+          if broken:
+              print(f'::error::Client calls {len(broken)} tool(s) not on server:')
+              for name in sorted(broken):
+                  print(f'  ❌ {name}')
+              print('Fix: update the tool name in mcp_client.py to match the server.')
+              sys.exit(1)
+
+          if unwrapped:
+              print(f'::warning::{len(unwrapped)} server tool(s) not wrapped by client (coverage gap):')
+              for name in sorted(unwrapped):
+                  print(f'  ⚠ {name}')
+
+          print('No broken tool names ✅')
+          "
