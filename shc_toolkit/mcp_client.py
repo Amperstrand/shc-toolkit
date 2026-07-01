@@ -46,7 +46,7 @@ TOOL_MAP: dict[str, str] = {
     "get_account": "getAccount",
     "get_account_balance": "getBillingBalance",
     # API Keys
-    "list_api_keys": "listApiKeys",
+    "list_api_keys": "getAccount",
     # VM lifecycle
     "list_vms": "listVirtualMachines",
     "get_vm": "getVirtualMachine",
@@ -491,7 +491,7 @@ class SHCMCPClient:
         self, service_id: int, backup_id: str, *, confirm: bool = True
     ) -> dict:
         return self.call_tool("deleteVirtualMachineBackup", {
-            "serviceId": service_id, "backupId": backup_id,
+            "serviceId": service_id, "body": {"backup_id": backup_id},
         })
 
     # Snapshots
@@ -565,7 +565,7 @@ class SHCMCPClient:
         return self._call("get_invoice", invoice_id=invoice_id)
 
     def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict:
-        return self.call_tool("payInvoice", {
+        return self.call_tool("submitPaymentCheckout", {
             "invoiceId": invoice_id, "idempotencyKey": idempotency_key,
         })
 
@@ -579,10 +579,27 @@ class SHCMCPClient:
     def get_vm_bandwidth(self, service_id: int) -> dict:
         return self.call_tool("getVirtualMachineBandwidth", {"serviceId": service_id})
 
+    def get_vm_credentials(self, service_id: int) -> dict:
+        return self.call_tool("getVirtualMachineCredentials", {"serviceId": service_id})
+
+    def get_vm_network(self, service_id: int) -> dict:
+        return self.call_tool("getVirtualMachineNetwork", {"serviceId": service_id})
+
+    def get_vm_activity(self, service_id: int) -> list[dict]:
+        result = self.call_tool("listVirtualMachineActivity", {"serviceId": service_id})
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
+    def get_vm_payments(self, service_id: int) -> list[dict]:
+        result = self.call_tool("listVirtualMachinePayments", {"serviceId": service_id})
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
     # SSH Keys
     def list_ssh_keys(self, service_id: int | None = None) -> list[dict]:
-        args = {"serviceId": service_id} if service_id else {}
-        result = self.call_tool("listVirtualMachineSshKeys", args)
+        result = self.call_tool("listServiceSshKeys", {})
         if isinstance(result, dict):
             return result.get("items", [])
         return result if isinstance(result, list) else []
@@ -590,12 +607,16 @@ class SHCMCPClient:
     def add_ssh_key(
         self, service_id: int, public_key: str, label: str = ""
     ) -> dict:
-        return self.call_tool("addVirtualMachineSshKey", {
-            "serviceId": service_id, "publicKey": public_key, "label": label,
+        return self.call_tool("setServiceSshKey", {
+            "body": {
+                "service_id": service_id,
+                "public_key": public_key,
+                "label": label,
+            },
         })
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
-        return self.call_tool("applyVirtualMachineSshKeyLive", {
+        return self.call_tool("applyLiveServiceSshKey", {
             "serviceId": service_id, "publicKey": public_key,
         })
 
@@ -604,13 +625,14 @@ class SHCMCPClient:
         return self.call_tool("getVirtualMachineFirewall", {"serviceId": service_id})
 
     def set_firewall_policy(self, service_id: int, policy: str) -> dict:
-        return self.call_tool("setVirtualMachineFirewallPolicy", {
-            "serviceId": service_id, "policy": policy,
+        return self.call_tool("updateVirtualMachineFirewallPolicy", {
+            "serviceId": service_id, "body": {"policy": policy},
         })
 
     def create_firewall_rule(self, service_id: int, **kwargs) -> dict:
-        args = {"serviceId": service_id, **self._convert_args(kwargs)}
-        return self.call_tool("createVirtualMachineFirewallRule", args)
+        return self.call_tool("addVirtualMachineFirewallRule", {
+            "serviceId": service_id, "body": self._convert_args(kwargs),
+        })
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
         return self.call_tool("deleteVirtualMachineFirewallRule", {
@@ -619,7 +641,7 @@ class SHCMCPClient:
 
     # ISO
     def list_isos(self, service_id: int) -> list[dict]:
-        result = self.call_tool("listVirtualMachineIsos", {"serviceId": service_id})
+        result = self.call_tool("listImages", {"serviceId": service_id})
         if isinstance(result, dict):
             return result.get("items", [])
         return result if isinstance(result, list) else []
@@ -634,7 +656,7 @@ class SHCMCPClient:
 
     # Reverse DNS
     def list_rdns(self, service_id: int) -> list[dict]:
-        result = self.call_tool("listVirtualMachineReverseDns", {"serviceId": service_id})
+        result = self.call_tool("getVirtualMachineReverseDns", {"serviceId": service_id})
         if isinstance(result, dict):
             return result.get("items", [])
         return result if isinstance(result, list) else []
@@ -645,23 +667,23 @@ class SHCMCPClient:
         })
 
     def clear_rdns(self, service_id: int, ip: str) -> dict:
-        return self.call_tool("clearVirtualMachineReverseDns", {
+        return self.call_tool("deleteVirtualMachineReverseDns", {
             "serviceId": service_id, "ip": ip,
         })
 
     # Console
     def get_console_availability(self, service_id: int) -> dict:
-        return self.call_tool("getVirtualMachineConsole", {"serviceId": service_id})
+        return self.call_tool("getVmConsoleAvailability", {"serviceId": service_id})
 
     def create_console_session(self, service_id: int) -> dict:
-        return self.call_tool("createVirtualMachineConsoleSession", {"serviceId": service_id})
+        return self.call_tool("mintVmConsoleSession", {"serviceId": service_id})
 
     # Templates
     def list_templates(self) -> list[dict]:
         cached = self._cache_get("templates")
         if cached is not None:
             return cached if isinstance(cached, list) else cached.get("items", [])
-        result = self.call_tool("listVirtualMachineTemplates", {})
+        result = self.call_tool("listTemplates", {})
         if isinstance(result, dict):
             data = result.get("items", [])
         else:
