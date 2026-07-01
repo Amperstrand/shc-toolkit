@@ -283,6 +283,9 @@ def test_order_idempotency(client):
 
 def test_cost_audit_lifecycle(client):
     """Verify cost tracking fires on order and cancel, with expected vs actual."""
+    if not hasattr(client, "cost_tracker"):
+        pytest.skip("cost_tracker only available on REST transport")
+
     result = client.submit_order(
         package_id=81,
         pricing_id=245,
