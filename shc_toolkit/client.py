@@ -165,6 +165,14 @@ class SHCClient:
                 return self._cache_set(cache_key, price)
         return 0.0
 
+    def _safe_credit(self) -> float | None:
+        """Get available credit, returning None on failure (never raises)."""
+        try:
+            self.invalidate_cache("credit")
+            return self.get_available_credit()
+        except Exception:
+            return None
+
     # ── Internal ─────────────────────────────────────────────
 
     def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
@@ -638,18 +646,24 @@ class SHCClient:
         if config_options:
             order_kwargs["config_options"] = config_options
 
+        credit_before = self._safe_credit()
         result = self.submit_order(
             check_credit=check_credit,
             include_dev_vps_options=not config_options,
             **order_kwargs,
         )
-
         if pay and result.get("invoice_id"):
             self.pay_invoice(result["invoice_id"])
 
         if result.get("service_id"):
+            credit_after = self._safe_credit()
+            actual_charge = (
+                round(credit_before - credit_after, 4)
+                if credit_before is not None and credit_after is not None
+                else None
+            )
             self.cost_tracker.track_order(
-                result["service_id"], package_id, result.get("invoice_id"),
+                result["service_id"], package_id, actual_charge,
             )
 
         return result
@@ -721,13 +735,20 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/reset")
 
     def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
+        credit_before = self._safe_credit() if immediate else None
         result = self._confirmed_request(
             "POST", f"/vm/{service_id}/cancel", confirm=confirm,
             json={"immediate": True} if immediate else {},
         )
         self.invalidate_cache("credit")
         if immediate:
-            self.cost_tracker.audit_cancel(service_id)
+            credit_after = self._safe_credit()
+            actual_refund = (
+                round(credit_after - credit_before, 4)
+                if credit_before is not None and credit_after is not None
+                else None
+            )
+            self.cost_tracker.audit_cancel(service_id, actual_refund)
         return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
