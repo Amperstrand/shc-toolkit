@@ -4,6 +4,11 @@ Python client, CLI, and provisioning toolkit for [Sovereign Hybrid Compute](http
 
 > **Disclosure**: The SHC link above is an affiliate link. If you sign up through it, we may receive credit toward our SHC account at no extra cost to you. We use SHC as the CI backend for our open-source projects and genuinely recommend the service.
 
+## Related Projects
+
+- [terraform-provider-shc](https://github.com/Amperstrand/terraform-provider-shc) — Terraform provider for SHC
+- [shc-pulumi](https://github.com/Amperstrand/shc-pulumi) — Pulumi provider for SHC
+
 ## What you get
 
 - **`shc` CLI** — order, manage, and snapshot VMs from the command line
@@ -195,7 +200,7 @@ GUI requires >=16GB disk AND >=4GB RAM.
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo`.
-- **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
+- **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04.
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.
 - **Snapshot/backup limit**: All VPS plans (including Dev VPS) support 1 snapshot and 1 backup concurrently (`snapshot_limit: 1`, `backup_limit: 1` per package). Verified working on Dev VPS via front-door E2E (2026-07-01).

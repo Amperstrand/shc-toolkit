@@ -147,7 +147,7 @@ shc-compute compute instances list --filter="name:web-*"
 
 5. **Metadata storage**: Metadata is stored locally in `~/.shc-compute/metadata.json` rather than on the VM.
 
-6. **Daily billing minimum**: You pay for a full day even if you use the VM for minutes.
+6. **Hourly proration**: You're charged the full daily rate upfront but refunded for unused hours on cancel (minimum 1 hour). A 2-hour CI run costs pennies, not a full day.
 
 7. **No VPC networking**: Each VM has a single public IP with firewall rules managed at the VM level.
 
