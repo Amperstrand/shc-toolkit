@@ -46,7 +46,8 @@ TOOL_MAP: dict[str, str] = {
     "get_account": "getAccount",
     "get_account_balance": "getBillingBalance",
     # API Keys
-    "list_api_keys": "getAccount",
+    # API Keys — no MCP tool for listing; method raises if called via _call
+    # "list_api_keys": REMOVED — server has no listApiKeys tool
     # VM lifecycle
     "list_vms": "listVirtualMachines",
     "get_vm": "getVirtualMachine",
