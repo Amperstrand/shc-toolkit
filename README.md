@@ -227,8 +227,10 @@ MIT
 - `shc nodns --ip <ip> --zone nodns.shop` publishes, `shc order --nodns` auto-publishes after VM creation
 - Wildcard `*.nodns.shop → 46.224.104.12` is overridden by per-npub records when published
 
-### ContextVM (Untested — VM Provisioning Timeout)
-- Bootstrap code complete (`shc_toolkit/contextvm.py`)
-- Installs Bun + @contextvm/sdk, deploys gateway server, sets up systemd
-- Not yet validated on a real VM (Dev VPS provisioning timed out during test)
-- Next step: retry with NVMe VPS or longer timeout
+### ContextVM (Verified 2026-07-01)
+- Bootstrap code complete and tested on NVMe VPS (Debian 13, Katy TX)
+- Installs unzip + Bun + @contextvm/sdk, deploys gateway server, sets up systemd
+- VM becomes discoverable MCP server on Nostr via `wss://relay.contextvm.org`
+- Verified: service active (0 restarts), pubkey generated, relay connected, announcements broadcast
+- Fixed 4 bugs found during live test: missing `unzip` prereq, `nostr-tools` API drift (`hexToBytes` removed), systemd PATH missing bun, `relayUrls` → `relayHandler` rename in SDK
+- Test cost: $0.01 (ordered VM 761, verified, canceled in 12 min, $0.25 refunded)

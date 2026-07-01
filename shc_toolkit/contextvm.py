@@ -32,6 +32,7 @@ def generate_server_script(
     name: str = "shc-vm",
     relay: str = DEFAULT_RELAY,
     about: str = "",
+    user: str = "debian",
 ) -> str:
     """Generate a ContextVM MCP gateway server script (TypeScript/Bun).
 
@@ -46,48 +47,49 @@ def generate_server_script(
     Returns:
         TypeScript source code for the server script.
     """
+    bun_bin = f"/home/{user}/.bun/bin/bun" if user else "/root/.bun/bin/bun"
     return f'''import {{
   NostrMCPGateway,
 }} from "@contextvm/sdk";
 import {{ PrivateKeySigner }} from "@contextvm/sdk/signer";
-import {{ generateSecretKey, getPublicKey, bytesToHex, hexToBytes }} from "nostr-tools";
+import {{ generateSecretKey, getPublicKey }} from "nostr-tools";
 import {{ StdioClientTransport }} from "@modelcontextprotocol/sdk/client/stdio.js";
 import {{ Client }} from "@modelcontextprotocol/sdk/client/index.js";
-import {{ writeFileSync }} from "fs";
+import {{ writeFileSync, readFileSync }} from "fs";
 
-// Generate or load Nostr identity
-let sk: string;
+// Generate or load Nostr identity (stored as hex)
+let skHex: string;
 try {{
-  sk = readFileSync("{REMOTE_DIR}/secret.key", "utf8").trim();
+  skHex = readFileSync("{REMOTE_DIR}/secret.key", "utf8").trim();
+  console.log("Loaded existing Nostr identity");
 }} catch {{
-  sk = bytesToHex(generateSecretKey());
-  writeFileSync("{REMOTE_DIR}/secret.key", sk);
+  skHex = Buffer.from(generateSecretKey()).toString("hex");
+  writeFileSync("{REMOTE_DIR}/secret.key", skHex);
   console.log("Generated new Nostr identity");
 }}
 
-const pk = getPublicKey(hexToBytes(sk));
+const pk = getPublicKey(Buffer.from(skHex, "hex"));
 console.log("Server pubkey:", pk);
-console.log("npub:", pk); // TODO: convert to npub
 
-// Connect to a mock MCP server (echo) via stdio
-// Replace this with your actual MCP server
+// Connect to a mock MCP server (echo) via stdio.
+// Replace this with your actual MCP server.
 const mcpClient = new Client(
   {{ name: "{name}", version: "1.0.0" }},
   {{ capabilities: {{}} }},
 );
 
 const transport = new StdioClientTransport({{
-  command: "bun",
+  command: "{bun_bin}",
   args: ["{REMOTE_DIR}/echo-server.ts"],
 }});
 
-const signer = new PrivateKeySigner(sk);
+const signer = new PrivateKeySigner(skHex);
 
 const gateway = new NostrMCPGateway({{
   mcpClientTransport: transport,
   nostrTransportOptions: {{
     signer,
-    relayUrls: ["{relay}"],
+    relayHandler: ["{relay}"],
     isPublicServer: true,
     publishRelayList: true,
     serverInfo: {{
@@ -124,13 +126,14 @@ def generate_echo_server() -> str:
     """
     return '''import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const server = new Server(
   { name: "echo", version: "1.0.0" },
   { capabilities: { tools: {} } },
 );
 
-server.setRequestHandler({ method: "tools/list" }, async () => ({
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
     name: "echo",
     description: "Echo a message back",
@@ -142,7 +145,7 @@ server.setRequestHandler({ method: "tools/list" }, async () => ({
   }],
 }));
 
-server.setRequestHandler({ method: "tools/call" }, async (req) => {
+server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (req.params.name === "echo") {
     return {
       content: [{ type: "text", text: `Echo: ${{req.params.arguments?.message}}` }],
@@ -170,6 +173,7 @@ ExecStart=/home/{user}/.bun/bin/bun run {REMOTE_DIR}/gateway.ts
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
+Environment=PATH=/home/{user}/.bun/bin:/usr/local/bin:/usr/bin:/bin
 
 [Install]
 WantedBy=multi-user.target
@@ -205,11 +209,22 @@ def install_contextvm(
     # 1. Create working directory
     ssh_cmd(host, f"mkdir -p {REMOTE_DIR}", user=user, timeout=15)
 
-    # 2. Install Bun
+    # 2. Install unzip (required by Bun installer, not on fresh Debian cloud images)
+    log.info("Installing unzip (wait for cloud-init dpkg lock to release)...")
+    ssh_cmd(
+        host,
+        f"sudo bash -c 'for i in $(seq 1 30); do "
+        f"apt-get update -qq && apt-get install -y -qq unzip && break "
+        f"|| sleep 5; done'",
+        user=user,
+        timeout=300,
+    )
+
+    # 3. Install Bun
     log.info("Installing Bun runtime...")
     ssh_cmd(host, "curl -fsSL https://bun.sh/install | bash", user=user, timeout=60)
 
-    # 3. Initialize project + install SDK
+    # 4. Initialize project + install SDK
     log.info("Installing @contextvm/sdk...")
     ssh_cmd(
         host,
@@ -221,9 +236,9 @@ def install_contextvm(
         timeout=120,
     )
 
-    # 4. Deploy server scripts
+    # 5. Deploy server scripts
     log.info("Deploying server scripts...")
-    gateway_script = generate_server_script(name=server_name, relay=relay)
+    gateway_script = generate_server_script(name=server_name, relay=relay, user=user)
     echo_script = generate_echo_server()
     systemd_unit = generate_systemd_service(user=user)
 
@@ -238,7 +253,7 @@ def install_contextvm(
             input=content, text=True, timeout=30,
         )
 
-    # 5. Install systemd service
+    # 6. Install systemd service
     log.info("Setting up systemd service...")
     subprocess.run(
         ["ssh", "-o", "StrictHostKeyChecking=no",
@@ -249,7 +264,7 @@ def install_contextvm(
              "sudo systemctl enable contextvm && "
              "sudo systemctl start contextvm", user=user, timeout=30)
 
-    # 6. Wait and check status
+    # 7. Wait and check status
     import time
     time.sleep(3)
     try:
@@ -258,7 +273,7 @@ def install_contextvm(
     except Exception:
         result["service_active"] = False
 
-    # 7. Try to get the pubkey from logs
+    # 8. Try to get the pubkey from logs
     try:
         logs = ssh_cmd(host, "sudo journalctl -u contextvm --no-pager -n 10",
                        user=user, timeout=10)
