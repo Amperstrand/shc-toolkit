@@ -279,3 +279,38 @@ def test_order_idempotency(client):
             client.cancel_vm(sids1[0], immediate=True)
         except Exception:
             pass
+
+
+def test_cost_audit_lifecycle(client):
+    """Verify cost tracking fires on order and cancel, with expected vs actual."""
+    result = client.submit_order(
+        package_id=81,
+        pricing_id=245,
+        hostname="pytest-cost-audit",
+    )
+    sids = result.get("service_ids") or (
+        [result["service_id"]] if result.get("service_id") else []
+    )
+    assert sids, f"No service_id in order result: {result}"
+    sid = sids[0]
+
+    assert sid in client.cost_tracker._sessions, (
+        f"submit_order did not trigger cost tracking for svc {sid}"
+    )
+    session = client.cost_tracker._sessions[sid]
+    assert session.daily_price > 0, f"daily_price not set: {session}"
+
+    report = client.cost_tracker.session_report(sid)
+    assert report is not None
+    assert report["service_id"] == sid
+
+    try:
+        client.cancel_vm(sid, immediate=True)
+    except Exception:
+        pass
+
+    cancel_report = client.cost_tracker.audit_cancel(sid)
+    if cancel_report:
+        assert not cancel_report.mismatch, (
+            f"Cost mismatch for svc {sid}: {cancel_report.notes}"
+        )

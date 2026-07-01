@@ -25,6 +25,21 @@ HOURLY_PRECISION = 4
 PRICE_TOLERANCE_USD = 0.01
 
 
+class CostMismatchError(Exception):
+    """Raised when actual charge or refund differs from expected."""
+
+    def __init__(self, service_id: int, expected: float, actual: float, kind: str = "charge"):
+        self.service_id = service_id
+        self.expected = expected
+        self.actual = actual
+        self.kind = kind
+        super().__init__(
+            f"Cost mismatch for service {service_id}: "
+            f"expected {kind} ${expected:.4f}, actual ${actual:.4f} "
+            f"(diff ${actual - expected:+.4f})"
+        )
+
+
 def _truncate(amount: float, decimals: int) -> float:
     """Truncate toward zero to the given number of decimal places."""
     factor = 10 ** decimals
@@ -138,6 +153,31 @@ class CostTracker:
             )
 
         return session
+
+    def update_charge(self, service_id: int, actual_charge: float | None) -> None:
+        """Update the recorded charge for a session (e.g. after pay_invoice).
+
+        Called by order_vm() after submit_order + pay_invoice to capture the
+        full balance diff including the payment.
+        """
+        session = self._sessions.get(service_id)
+        if not session or actual_charge is None:
+            return
+        session.actual_charge = actual_charge
+        diff = abs(actual_charge - session.daily_price)
+        session.charge_verified = diff <= PRICE_TOLERANCE_USD
+        if session.charge_verified:
+            log.info(
+                "Cost audit: order svc %s — charged $%.2f, expected $%.2f — OK",
+                service_id, actual_charge, session.daily_price,
+            )
+        else:
+            log.warning(
+                "Cost audit: order svc %s — CHARGE MISMATCH: "
+                "charged $%.2f, expected $%.2f (diff $%+.2f)",
+                service_id, actual_charge, session.daily_price,
+                actual_charge - session.daily_price,
+            )
 
     def audit_cancel(
         self,

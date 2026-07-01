@@ -658,13 +658,11 @@ class SHCClient:
         if result.get("service_id"):
             credit_after = self._safe_credit()
             actual_charge = (
-                round(credit_before - credit_after, 4)
+                round(credit_before - credit_after, 2)
                 if credit_before is not None and credit_after is not None
                 else None
             )
-            self.cost_tracker.track_order(
-                result["service_id"], package_id, actual_charge,
-            )
+            self.cost_tracker.update_charge(result["service_id"], actual_charge)
 
         return result
 
@@ -704,9 +702,26 @@ class SHCClient:
             kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
-        return self._confirmed_request(
+        credit_before = self._safe_credit()
+        result = self._confirmed_request(
             "POST", "/ordering/submit", json=kwargs, headers=headers
         )
+
+        pkg_id = kwargs.get("package_id", 0)
+        service_ids = result.get("service_ids") or (
+            [result["service_id"]] if result.get("service_id") else []
+        )
+        credit_after = self._safe_credit()
+        actual_charge = (
+            round(credit_before - credit_after, 2)
+            if credit_before is not None and credit_after is not None
+            else None
+        )
+        for sid in service_ids:
+            if sid not in self.cost_tracker._sessions:
+                self.cost_tracker.track_order(sid, pkg_id, actual_charge)
+
+        return result
 
     # ── VM Lifecycle ─────────────────────────────────────────
 

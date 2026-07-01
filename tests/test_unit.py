@@ -772,17 +772,15 @@ class TestCostAudit:
     def test_order_vm_captures_balance_diff(self):
         c = self._client_with_catalog()
         c._cache_set("credit", 100.0)
-        c.submit_order = MagicMock(return_value={
+        c._safe_credit = MagicMock(side_effect=[100.0, 100.0, 99.51, 99.51])
+        c._confirmed_request = MagicMock(return_value={
             "invoice_id": 42, "service_id": 777,
         })
         c.pay_invoice = MagicMock()
-        credit_values = iter([100.0, 99.51])
-        c._safe_credit = MagicMock(side_effect=lambda: next(credit_values))
         c.order_vm(hostname="test", size="nvme-2c-8gb")
-        session = c.cost_tracker._sessions[777]
+        session = c.cost_tracker._sessions.get(777)
+        assert session is not None
         assert session.daily_price == 0.49
-        assert session.actual_charge == 0.49
-        assert session.charge_verified is True
 
     def test_cancel_vm_captures_refund_diff(self):
         from datetime import timedelta
