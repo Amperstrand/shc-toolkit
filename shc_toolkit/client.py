@@ -476,6 +476,176 @@ class SHCClient:
         data = self._get("/ordering/catalog", params=params).get("items", [])
         return self._cache_set(cache_key, data)
 
+    def get_config_options(self, package_id: int) -> dict[str, dict]:
+        """Return config options for a package from the live catalog.
+
+        Each option (ram, cpu, disk, ipv4s, template, gui_choice) has an
+        option_id and a list of selectable values. Option IDs differ per
+        package, so always read them from the catalog rather than hardcoding.
+
+        Returns:
+            Dict keyed by option name with option_id, label, and values.
+        """
+        for pkg in self.get_catalog():
+            if pkg.get("package_id") != package_id:
+                continue
+            opts: dict[str, dict] = {}
+            for block in pkg.get("available_config_options", []):
+                for opt in block.get("options", []):
+                    if opt["name"] in opts:
+                        continue
+                    opts[opt["name"]] = {
+                        "option_id": opt["option_id"],
+                        "label": opt.get("label", opt["name"]),
+                        "values": [
+                            v["value"] for v in opt.get("values", [])
+                        ],
+                    }
+            return opts
+        return {}
+
+    def resolve_addons(
+        self,
+        package_id: int,
+        *,
+        ram_mb: int | None = None,
+        cpu: int | None = None,
+        disk_gb: int | None = None,
+        template: str | None = None,
+    ) -> dict[str, str]:
+        """Translate friendly resource specs into SHC's config_options map.
+
+        Args:
+            package_id: Target package.
+            ram_mb: Desired total RAM in MB (must be an available value).
+            cpu: Desired total vCPU cores (must be an available value).
+            disk_gb: Desired total disk in GB (must be an available value).
+            template: OS template slug (e.g. "debian12-cloud").
+
+        Returns:
+            Dict of {option_id_str: value_str} for use in order/upgrade calls.
+
+        Raises:
+            ValueError: If a requested value is not available for the package.
+        """
+        opts = self.get_config_options(package_id)
+        out: dict[str, str] = {}
+
+        spec_map = [
+            (ram_mb, "ram", ram_mb),
+            (cpu, "cpu", cpu),
+            (disk_gb, "disk", disk_gb),
+        ]
+        for requested, opt_name, raw_val in spec_map:
+            if requested is None:
+                continue
+            opt = opts.get(opt_name)
+            if not opt:
+                raise ValueError(
+                    f"Package {package_id} does not expose a '{opt_name}' option"
+                )
+            val_str = str(raw_val)
+            if val_str not in opt["values"]:
+                raise ValueError(
+                    f"Package {package_id} {opt_name}={val_str} not available. "
+                    f"Valid: {', '.join(opt['values'])}"
+                )
+            out[str(opt["option_id"])] = val_str
+
+        if template is not None:
+            opt = opts.get("template")
+            if not opt:
+                raise ValueError(
+                    f"Package {package_id} does not expose a 'template' option"
+                )
+            if template not in opt["values"]:
+                raise ValueError(
+                    f"Template '{template}' not available for package {package_id}. "
+                    f"Valid: {', '.join(opt['values'][:10])}..."
+                )
+            out[str(opt["option_id"])] = template
+
+        return out
+
+    def order_vm(
+        self,
+        *,
+        hostname: str,
+        size: str | None = None,
+        package_id: int | None = None,
+        pricing_id: int | None = None,
+        ssh_key: str | None = None,
+        ram_mb: int | None = None,
+        cpu: int | None = None,
+        disk_gb: int | None = None,
+        template: str | None = None,
+        config_options: dict[str, str] | None = None,
+        check_credit: bool = True,
+        pay: bool = True,
+        **kwargs,
+    ) -> dict:
+        """Order a VM with friendly parameters.
+
+        Either ``size`` or ``package_id``+``pricing_id`` selects the base plan.
+        Resource add-ons (ram_mb, cpu, disk_gb, template) are translated to the
+        package's config_options via resolve_addons(). Pass raw config_options
+        directly to bypass translation.
+
+        Args:
+            hostname: VM hostname.
+            size: Spec-encoding name like ``nvme-2c-8gb``. See sizes.SIZE_MAP.
+            package_id: Raw package ID (alternative to size).
+            pricing_id: Raw pricing ID (defaults to daily term for package).
+            ssh_key: Path to SSH public key file.
+            ram_mb, cpu, disk_gb, template: Add-ons resolved to config_options.
+            config_options: Raw {option_id: value} map (overrides add-on kwargs).
+            check_credit: Pre-check balance before submitting (default True).
+            pay: Auto-pay after order (default True).
+        """
+        from .sizes import resolve_size
+
+        if size and not package_id:
+            package_id, pricing_id = resolve_size(size)
+        if not package_id:
+            raise ValueError("Either size= or package_id= is required")
+
+        if config_options is None:
+            addon_kwargs = {
+                k: v for k, v in [
+                    ("ram_mb", ram_mb), ("cpu", cpu),
+                    ("disk_gb", disk_gb), ("template", template),
+                ] if v is not None
+            }
+            if addon_kwargs:
+                config_options = self.resolve_addons(package_id, **addon_kwargs)
+
+        if ssh_key:
+            from pathlib import Path
+            p = Path(ssh_key).expanduser()
+            if p.exists():
+                kwargs.setdefault("ssh_key", p.read_text().strip())
+
+        order_kwargs: dict = {
+            "package_id": package_id,
+            "hostname": hostname,
+            **kwargs,
+        }
+        if pricing_id:
+            order_kwargs["pricing_id"] = pricing_id
+        if config_options:
+            order_kwargs["config_options"] = config_options
+
+        result = self.submit_order(
+            check_credit=check_credit,
+            include_dev_vps_options=not config_options,
+            **order_kwargs,
+        )
+
+        if pay and result.get("invoice_id"):
+            self.pay_invoice(result["invoice_id"])
+
+        return result
+
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 

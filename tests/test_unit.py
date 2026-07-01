@@ -423,3 +423,205 @@ class TestCreditCheck:
             c = SHCClient()
             c._cache_set("credit", 5.00)
             c.check_credit(0.50)
+
+
+# ── Sizes (spec-encoding names) ─────────────────────────────
+
+
+class TestSizes:
+    def test_size_map_has_20_entries(self):
+        from shc_toolkit.sizes import SIZE_MAP
+        assert len(SIZE_MAP) == 20
+
+    def test_size_map_covers_all_four_lines(self):
+        from shc_toolkit.sizes import SIZE_MAP
+        lines = {e["line"] for e in SIZE_MAP.values()}
+        assert lines == {"nvme", "ssd", "hdd", "dev"}
+
+    def test_resolve_size_nvme(self):
+        from shc_toolkit.sizes import resolve_size
+        assert resolve_size("nvme-2c-8gb") == (26, 56)
+
+    def test_resolve_size_hdd(self):
+        from shc_toolkit.sizes import resolve_size
+        assert resolve_size("hdd-1c-4gb") == (36, 67)
+
+    def test_resolve_size_dev(self):
+        from shc_toolkit.sizes import resolve_size
+        assert resolve_size("dev-4c-16gb") == (82, 249)
+
+    def test_resolve_size_case_insensitive(self):
+        from shc_toolkit.sizes import resolve_size
+        assert resolve_size("NVME-2C-8GB") == (26, 56)
+
+    def test_resolve_size_rejects_legacy_alias(self):
+        from shc_toolkit.sizes import resolve_size
+        with pytest.raises(ValueError, match="Unknown size"):
+            resolve_size("standard")
+
+    def test_resolve_size_rejects_unknown(self):
+        from shc_toolkit.sizes import resolve_size
+        with pytest.raises(ValueError, match="Unknown size"):
+            resolve_size("nvme-99c-999gb")
+
+    def test_resolve_specs_finds_cheapest_across_all_lines(self):
+        from shc_toolkit.sizes import resolve_specs
+        pkg, _ = resolve_specs(cpu=4, ram_mb=16384)
+        assert pkg == 58  # SSD Pro is cheapest across all lines at 4c/16gb
+
+    def test_resolve_specs_line_filter_nvme(self):
+        from shc_toolkit.sizes import resolve_specs
+        pkg, _ = resolve_specs(cpu=4, ram_mb=16384, line="nvme")
+        assert pkg == 29  # NVMe Pro
+
+    def test_resolve_specs_line_filter(self):
+        from shc_toolkit.sizes import resolve_specs
+        pkg, _ = resolve_specs(cpu=2, line="ssd")
+        assert pkg == 57  # SSD Standard
+
+    def test_resolve_specs_no_match(self):
+        from shc_toolkit.sizes import resolve_specs
+        with pytest.raises(ValueError, match="No plan matches"):
+            resolve_specs(cpu=999)
+
+    def test_spec_name(self):
+        from shc_toolkit.sizes import spec_name
+        assert spec_name("nvme", 2, 8192) == "nvme-2c-8gb"
+        assert spec_name("hdd", 16, 65536) == "hdd-16c-64gb"
+
+    def test_list_sizes_all(self):
+        from shc_toolkit.sizes import list_sizes
+        all_sizes = list_sizes()
+        assert len(all_sizes) == 20
+
+    def test_list_sizes_filter_line(self):
+        from shc_toolkit.sizes import list_sizes
+        hdd = list_sizes("hdd")
+        assert len(hdd) == 5
+        assert all(s["line"] == "hdd" for s in hdd)
+
+
+# ── Config Options (resolve_addons + order_vm) ──────────────
+
+
+class TestConfigOptions:
+    def _mock_catalog(self):
+        return [{
+            "package_id": 26,
+            "name": "NVMe VPS - Standard",
+            "cpu": 2, "memory_mb": 8192, "disk_gb": 16,
+            "pricing": [{"pricing_id": 56, "period": "day", "price": "0.26"}],
+            "available_config_options": [{
+                "pricing_id": 56, "term": 1, "period": "day", "currency": "USD",
+                "options": [
+                    {"option_id": 110, "name": "ram", "label": "Total RAM",
+                     "values": [
+                        {"value": "8192", "name": "8 GB (Base)", "default": True},
+                        {"value": "16384", "name": "16 GB", "default": False},
+                     ]},
+                    {"option_id": 111, "name": "cpu", "label": "vCPU Cores",
+                     "values": [
+                        {"value": "2", "name": "2 Cores (Base)", "default": True},
+                        {"value": "4", "name": "4 Cores", "default": False},
+                     ]},
+                    {"option_id": 112, "name": "disk", "label": "Disk Space",
+                     "values": [
+                        {"value": "16", "name": "16 GB (Base)", "default": True},
+                        {"value": "50", "name": "50 GB", "default": False},
+                     ]},
+                ],
+            }],
+        }]
+
+    def test_get_config_options_returns_option_ids(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            opts = c.get_config_options(26)
+            assert opts["ram"]["option_id"] == 110
+            assert opts["cpu"]["option_id"] == 111
+            assert opts["disk"]["option_id"] == 112
+            assert "16384" in opts["ram"]["values"]
+
+    def test_get_config_options_empty_for_unknown_package(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            assert c.get_config_options(999) == {}
+
+    def test_resolve_addons_translates_specs(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            result = c.resolve_addons(26, ram_mb=16384, cpu=4, disk_gb=50)
+            assert result == {"110": "16384", "111": "4", "112": "50"}
+
+    def test_resolve_addons_rejects_invalid_value(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            with pytest.raises(ValueError, match="not available"):
+                c.resolve_addons(26, ram_mb=999999)
+
+    def test_resolve_addons_partial(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            result = c.resolve_addons(26, disk_gb=50)
+            assert result == {"112": "50"}
+
+    def test_resolve_addons_template(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            catalog = self._mock_catalog()
+            catalog[0]["available_config_options"][0]["options"].append({
+                "option_id": 126, "name": "template",
+                "values": [{"value": "debian12-cloud", "name": "Debian 12"}],
+            })
+            c._cache_set("catalog:full", catalog)
+            result = c.resolve_addons(26, template="debian12-cloud")
+            assert result == {"126": "debian12-cloud"}
+
+    def test_order_vm_requires_size_or_package_id(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            with pytest.raises(ValueError, match="size.*package_id"):
+                c.order_vm(hostname="test")
+
+    def test_order_vm_translates_size_to_ids(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("credit", 100.0)
+            c._cache_set("catalog:full", self._mock_catalog())
+            c.submit_order = MagicMock(return_value={"invoice_id": 42})
+            c.pay_invoice = MagicMock()
+            c.order_vm(hostname="my-vm", size="nvme-2c-8gb", disk_gb=50)
+            args, kwargs = c.submit_order.call_args
+            assert kwargs["package_id"] == 26
+            assert kwargs["pricing_id"] == 56
+            assert kwargs["config_options"] == {"112": "50"}
+            assert kwargs["hostname"] == "my-vm"
+
+    def test_order_vm_passes_raw_config_options(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("credit", 100.0)
+            c._cache_set("catalog:full", self._mock_catalog())
+            c.submit_order = MagicMock(return_value={"invoice_id": 42})
+            c.pay_invoice = MagicMock()
+            c.order_vm(
+                hostname="raw",
+                package_id=26, pricing_id=56,
+                config_options={"999": "custom"},
+            )
+            _, kwargs = c.submit_order.call_args
+            assert kwargs["config_options"] == {"999": "custom"}
