@@ -634,7 +634,8 @@ class TestConfigOptions:
 class TestCostAudit:
     def _client_with_catalog(self):
         from shc_toolkit.client import SHCClient
-        c = SHCClient()
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
         c._cache_set("catalog:full", [{
             "package_id": 26,
             "name": "NVMe VPS - Standard",
