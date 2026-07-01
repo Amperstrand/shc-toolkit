@@ -676,8 +676,7 @@ class TestCostAudit:
         session = c.cost_tracker.track_order(123, 26)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=3)
         burn = c.cost_tracker.current_burn(123)
-        expected = 3 * (0.49 / 24)
-        assert abs(burn - round(expected, 4)) < 0.01
+        assert burn == 0.06
 
     def test_current_burn_enforces_min_charge(self):
         from datetime import timedelta
@@ -685,8 +684,7 @@ class TestCostAudit:
         session = c.cost_tracker.track_order(123, 26)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(minutes=5)
         burn = c.cost_tracker.current_burn(123)
-        expected = 1 * (0.49 / 24)
-        assert abs(burn - round(expected, 4)) < 0.01
+        assert burn == 0.02
 
     def test_audit_cancel_computes_expected_refund(self):
         from datetime import timedelta
@@ -696,9 +694,8 @@ class TestCostAudit:
         report = c.cost_tracker.audit_cancel(123, actual_refund=None)
         assert report is not None
         assert report.duration_hours == 6.0
-        expected_cost = round(6 * 0.49 / 24, 4)
-        assert report.expected_cost == expected_cost
-        assert report.expected_refund == round(0.49 - expected_cost, 4)
+        assert report.expected_cost == 0.12
+        assert report.expected_refund == 0.37
         assert report.actual_charge == 0.49
 
     def test_audit_cancel_matches_actual_refund(self):
@@ -706,9 +703,8 @@ class TestCostAudit:
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
-        expected_refund = round(0.49 - 6 * 0.49 / 24, 4)
-        report = c.cost_tracker.audit_cancel(123, actual_refund=expected_refund)
-        assert report.actual_refund == expected_refund
+        report = c.cost_tracker.audit_cancel(123, actual_refund=0.37)
+        assert report.actual_refund == 0.37
         assert report.mismatch is False
 
     def test_audit_cancel_flags_refund_mismatch(self):
@@ -726,14 +722,13 @@ class TestCostAudit:
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
-        expected_refund = round(0.49 - 6 * 0.49 / 24, 4)
         c.get_vm_payments = MagicMock(return_value=[
             {"total": "0.49"},
-            {"total": str(-expected_refund)},
+            {"total": "-0.37"},
         ])
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is False
-        assert report.ledger_refund == expected_refund
+        assert report.ledger_refund == 0.37
         assert "balance_diff_noisy_concurrent_activity" in report.notes
 
     def test_audit_cancel_ledger_confirms_real_mismatch(self):

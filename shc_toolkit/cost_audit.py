@@ -21,7 +21,14 @@ if TYPE_CHECKING:
 log = logging.getLogger("shc.cost")
 
 MIN_CHARGE_HOURS = 1.0
-PRICE_TOLERANCE_USD = 0.02
+HOURLY_PRECISION = 4
+PRICE_TOLERANCE_USD = 0.01
+
+
+def _truncate(amount: float, decimals: int) -> float:
+    """Truncate toward zero to the given number of decimal places."""
+    factor = 10 ** decimals
+    return float(int(amount * factor)) / factor
 
 
 @dataclass
@@ -152,9 +159,11 @@ class CostTracker:
         now = datetime.now(timezone.utc)
         hours = (now - session.ordered_at).total_seconds() / 3600
 
-        hourly_rate = session.daily_price / 24
-        expected_cost = round(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 4)
-        expected_refund = round(max(session.daily_price - expected_cost, 0.0), 4)
+        hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
+        charged_hours = max(hours, MIN_CHARGE_HOURS)
+        raw_charge = charged_hours * hourly_rate
+        expected_cost = _truncate(raw_charge, 2)
+        expected_refund = round(session.daily_price - expected_cost, 2)
 
         report = CostReport(
             service_id=service_id,
@@ -258,7 +267,8 @@ class CostTracker:
             return 0.0
         elapsed = datetime.now(timezone.utc) - session.ordered_at
         hours = elapsed.total_seconds() / 3600
-        return round(max(hours, MIN_CHARGE_HOURS) * session.daily_price / 24, 4)
+        hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
+        return _truncate(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 2)
 
     def session_report(self, service_id: int) -> dict | None:
         """Full cost report for a tracked session (VM may still be running)."""
@@ -268,8 +278,8 @@ class CostTracker:
 
         now = datetime.now(timezone.utc)
         hours = (now - session.ordered_at).total_seconds() / 3600
-        hourly_rate = session.daily_price / 24
-        expected_cost = round(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 4)
+        hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
+        expected_cost = _truncate(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 2)
 
         return {
             "service_id": session.service_id,
