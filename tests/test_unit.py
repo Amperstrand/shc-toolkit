@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -625,3 +626,146 @@ class TestConfigOptions:
             )
             _, kwargs = c.submit_order.call_args
             assert kwargs["config_options"] == {"999": "custom"}
+
+
+# ── Cost Audit ──────────────────────────────────────────────
+
+
+class TestCostAudit:
+    def _client_with_catalog(self):
+        from shc_toolkit.client import SHCClient
+        c = SHCClient()
+        c._cache_set("catalog:full", [{
+            "package_id": 26,
+            "name": "NVMe VPS - Standard",
+            "cpu": 2, "memory_mb": 8192, "disk_gb": 16,
+            "pricing": [{"pricing_id": 56, "period": "day", "price": "0.49"}],
+        }])
+        return c
+
+    def test_track_order_records_session(self):
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26, invoice_id=99)
+        assert session.service_id == 123
+        assert session.package_id == 26
+        assert session.daily_price == 0.49
+        assert session.invoice_id == 99
+        assert 123 in c.cost_tracker._sessions
+
+    def test_track_order_verifies_matching_invoice(self):
+        c = self._client_with_catalog()
+        c.get_invoice = MagicMock(return_value={"total": "0.49"})
+        session = c.cost_tracker.track_order(123, 26, invoice_id=99)
+        assert session.invoice_verified is True
+        assert session.invoice_amount == 0.49
+
+    def test_track_order_warns_on_invoice_mismatch(self):
+        c = self._client_with_catalog()
+        c.get_invoice = MagicMock(return_value={"total": "0.99"})
+        session = c.cost_tracker.track_order(123, 26, invoice_id=99)
+        assert session.invoice_verified is False
+        assert session.invoice_amount == 0.99
+
+    def test_track_order_handles_invoice_fetch_failure(self):
+        c = self._client_with_catalog()
+        c.get_invoice = MagicMock(side_effect=Exception("API down"))
+        session = c.cost_tracker.track_order(123, 26, invoice_id=99)
+        assert session.invoice_verified is False
+        assert session.invoice_amount is None
+
+    def test_current_burn_computes_prorated_cost(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=3)
+        burn = c.cost_tracker.current_burn(123)
+        expected = 3 * (0.49 / 24)
+        assert abs(burn - round(expected, 4)) < 0.01
+
+    def test_current_burn_enforces_min_charge(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+        burn = c.cost_tracker.current_burn(123)
+        expected = 1 * (0.49 / 24)
+        assert abs(burn - round(expected, 4)) < 0.01
+
+    def test_audit_cancel_computes_expected_refund(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(return_value=[])
+        report = c.cost_tracker.audit_cancel(123)
+        assert report is not None
+        assert report.duration_hours == 6.0
+        expected_cost = round(6 * 0.49 / 24, 4)
+        assert report.expected_cost == expected_cost
+        assert report.expected_refund == round(0.49 - expected_cost, 4)
+
+    def test_audit_cancel_matches_actual_refund(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        expected_refund = round(0.49 - 6 * 0.49 / 24, 4)
+        c.get_vm_payments = MagicMock(return_value=[
+            {"amount": "0.49"},
+            {"amount": str(-expected_refund)},
+        ])
+        report = c.cost_tracker.audit_cancel(123)
+        assert report.actual_refund == expected_refund
+        assert report.mismatch is False
+
+    def test_audit_cancel_flags_refund_mismatch(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(return_value=[
+            {"amount": "0.49"},
+            {"amount": "-0.01"},
+        ])
+        report = c.cost_tracker.audit_cancel(123)
+        assert report.mismatch is True
+        assert report.actual_refund == 0.01
+
+    def test_audit_cancel_returns_none_for_untracked(self):
+        c = self._client_with_catalog()
+        assert c.cost_tracker.audit_cancel(999) is None
+
+    def test_session_report_for_running_vm(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(123, 26, invoice_id=42)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        report = c.cost_tracker.session_report(123)
+        assert report["service_id"] == 123
+        assert report["daily_price"] == 0.49
+        assert report["elapsed_hours"] == 2.0
+        assert report["invoice_id"] == 42
+
+    def test_order_vm_triggers_cost_tracking(self):
+        c = self._client_with_catalog()
+        c._cache_set("credit", 100.0)
+        c.submit_order = MagicMock(return_value={
+            "invoice_id": 42, "service_id": 777,
+        })
+        c.pay_invoice = MagicMock()
+        c.get_invoice = MagicMock(return_value={"total": "0.49"})
+        c.order_vm(hostname="test", size="nvme-2c-8gb")
+        assert 777 in c.cost_tracker._sessions
+        assert c.cost_tracker._sessions[777].daily_price == 0.49
+
+    def test_cancel_vm_triggers_cost_audit(self):
+        from datetime import timedelta
+        c = self._client_with_catalog()
+        session = c.cost_tracker.track_order(777, 26)
+        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        c._confirmed_request = MagicMock(return_value={})
+        c.get_vm_payments = MagicMock(return_value=[])
+        c.cancel_vm(777, immediate=True, confirm=False)
+        # session report should still be accessible
+        report = c.cost_tracker.session_report(777)
+        assert report is not None

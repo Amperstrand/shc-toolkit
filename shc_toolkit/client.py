@@ -102,6 +102,9 @@ class SHCClient:
         self._cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, Any]] = {}
 
+        from .cost_audit import CostTracker
+        self.cost_tracker = CostTracker(self)
+
     # ── Cache ───────────────────────────────────────────────
 
     def _cache_get(self, key: str) -> Any | None:
@@ -644,6 +647,11 @@ class SHCClient:
         if pay and result.get("invoice_id"):
             self.pay_invoice(result["invoice_id"])
 
+        if result.get("service_id"):
+            self.cost_tracker.track_order(
+                result["service_id"], package_id, result.get("invoice_id"),
+            )
+
         return result
 
     def preview_order(self, **kwargs) -> dict:
@@ -718,6 +726,8 @@ class SHCClient:
             json={"immediate": True} if immediate else {},
         )
         self.invalidate_cache("credit")
+        if immediate:
+            self.cost_tracker.audit_cancel(service_id)
         return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
