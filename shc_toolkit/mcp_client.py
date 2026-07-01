@@ -109,6 +109,33 @@ class SHCMCPClient:
         })
         self._request_id = 0
         self._initialized = False
+        self._cache_ttl = 300
+        self._cache: dict[str, tuple[float, Any]] = {}
+
+    def _cache_get(self, key):
+        if self._cache_ttl <= 0:
+            return None
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        import time
+        ts, data = entry
+        if time.time() - ts > self._cache_ttl:
+            del self._cache[key]
+            return None
+        return data
+
+    def _cache_set(self, key, data):
+        if self._cache_ttl > 0:
+            import time
+            self._cache[key] = (time.time(), data)
+        return data
+
+    def invalidate_cache(self, prefix=None):
+        if prefix is None:
+            self._cache.clear()
+        else:
+            self._cache = {k: v for k, v in self._cache.items() if not k.startswith(prefix)}
 
     # ── MCP Protocol ─────────────────────────────────────────
 
@@ -345,7 +372,32 @@ class SHCMCPClient:
         return self._call("get_account")
 
     def get_account_balance(self) -> dict:
-        return self._call("get_account_balance")
+        cached = self._cache_get("balance")
+        if cached is not None:
+            return cached
+        result = self._call("get_account_balance")
+        return self._cache_set("balance", result)
+
+    def get_available_credit(self):
+        cached = self._cache_get("credit")
+        if cached is not None:
+            return cached
+        result = self.get_account_balance()
+        if isinstance(result, dict):
+            for b in result.get("balances", result.get("credit", [])):
+                if b.get("currency") == "USD":
+                    try:
+                        amt = float(b.get("available_credit", b.get("amount", 0)))
+                        return self._cache_set("credit", amt)
+                    except (ValueError, TypeError):
+                        pass
+        return 0.0
+
+    def check_credit(self, required):
+        available = self.get_available_credit()
+        if available < required:
+            from .client import InsufficientCreditError
+            raise InsufficientCreditError(required, available)
 
     def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict:
         return self._call("get_account_balance", limit=limit, offset=offset)
@@ -392,9 +444,11 @@ class SHCMCPClient:
         self, service_id: int, *, immediate: bool = True, confirm: bool = True
     ) -> dict:
         body: dict[str, Any] = {"immediate": True} if immediate else {}
-        return self.call_tool("cancelVirtualMachine", {
+        result = self.call_tool("cancelVirtualMachine", {
             "serviceId": service_id, "body": body,
         })
+        self.invalidate_cache("credit")
+        return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
         return self.call_tool("reinstallVirtualMachine", {
@@ -471,10 +525,15 @@ class SHCMCPClient:
 
     # Ordering
     def get_catalog(self, **kwargs) -> list[dict]:
+        cached = self._cache_get("catalog:full")
+        if cached is not None:
+            return cached if isinstance(cached, list) else cached.get("items", [])
         result = self._call("get_catalog")
         if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+            data = result.get("items", [])
+        else:
+            data = result if isinstance(result, list) else []
+        return self._cache_set("catalog:full", data)
 
     def preview_order(self, **kwargs) -> dict:
         return self.call_tool("previewVirtualMachineOrder", {"body": kwargs})
@@ -599,10 +658,15 @@ class SHCMCPClient:
 
     # Templates
     def list_templates(self) -> list[dict]:
+        cached = self._cache_get("templates")
+        if cached is not None:
+            return cached if isinstance(cached, list) else cached.get("items", [])
         result = self.call_tool("listVirtualMachineTemplates", {})
         if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+            data = result.get("items", [])
+        else:
+            data = result if isinstance(result, list) else []
+        return self._cache_set("templates", data)
 
     # Support
     def list_support_tickets(self, limit: int = 20, offset: int = 0) -> dict:
