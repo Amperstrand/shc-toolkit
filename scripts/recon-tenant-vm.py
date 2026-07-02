@@ -85,15 +85,17 @@ PROBES = [
 def main():
     if not Path(THROWKEY + ".pub").exists():
         print("ERROR: run ssh-keygen first"); return 2
+    size = sys.argv[1] if len(sys.argv) > 1 else "nvme-1c-4gb"
+    tier_label = size.replace("_", "-")
     c = SHCClient()
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
-    outdir = NOTES / f"recon-nvme-{ts}"
+    outdir = NOTES / f"recon-{tier_label}-{ts}"
     outdir.mkdir(parents=True, exist_ok=True)
     hostname = f"tg-recon-{uuid.uuid4().hex[:5]}"
     sid = None
     try:
-        pkg, pr = resolve_size("nvme-1c-4gb")
-        print(f"ordering NVMe recon VM ({hostname})...")
+        pkg, pr = resolve_size(size)
+        print(f"ordering {size} recon VM ({hostname})...")
         r = c.submit_order(package_id=pkg, pricing_id=pr, hostname=hostname,
                            ssh_key=Path(THROWKEY + ".pub").read_text().strip(),
                            include_dev_vps_options=False, check_credit=True)
@@ -111,7 +113,7 @@ def main():
         print(f"SSH up; running {len(PROBES)} probes; saving to {outdir}")
         (outdir / "META.json").write_text(json.dumps({
             "service_id": sid, "hostname": hostname, "ip": host,
-            "tier": "nvme-1c-4gb", "timestamp": ts,
+            "tier": size, "timestamp": ts,
             "probe_count": len(PROBES),
         }, indent=2))
         for fname, cmd, timeout in PROBES:
