@@ -3,247 +3,95 @@
 Goal: Make SHC the easiest bitcoin-native VPS to manage with infrastructure-as-code.
 Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
-## Current State (2026-06-29)
+## Current State (2026-07-02)
 
-| Repo | Tests | CI | Resources | Data Sources |
-|------|-------|----|-----------|-------------|
-| shc-toolkit | 37 unit + integration | Push + daily drift | CLI (55+ commands), gcloud shim (15 commands) | — |
-| shc-pulumi | 22 unit | Push (pending secret) | VM, Snapshot | — |
-| terraform-provider-shc | 11 unit | Push (pending secret) | VM, Snapshot, Backup | VM, Catalog |
+| Repo | Tests | CI | Key Features |
+|------|-------|----|-------------|
+| shc-toolkit | 87 unit | Push + daily (REST+MCP) + OpenAPI drift + MCP drift | Spec-encoding sizes, config options, cost audit, MCP transport (117 tools), v2.4.0, catalog generator |
+| shc-pulumi | 95 unit | Push + size-map drift | Spec-encoding sizes, config options, snapshots, backups, firewall, rDNS, NoDNS |
+| terraform-provider-shc | 68 unit | Push + size-map drift + integration | Spec-encoding sizes, config options, cost audit, snapshots, backups, firewall, rDNS |
 
-## Session Plan
+### API version: v2.4.0 (108 paths)
 
-Each session is independently executable. Dependencies noted where they exist.
+## Completed Work
 
-### Session 1: CI Proof *(no dependencies, do first)*
+### Spec-encoding size names (all 3 repos)
+- 20 entries across 4 lines (nvme/ssd/hdd/dev)
+- Format: `{line}-{cpu}c-{ram}gb` (e.g., `nvme-2c-8gb`)
+- Legacy tier names (starter/standard/...) removed
+- Generated from live catalog via `scripts/generate_sizes.py --format go|pulumi|python`
 
-Prove the integration CI actually works end-to-end in GitHub Actions.
+### Config options (all 3 repos)
+- `disk_gb`, `ram_mb`, `cpu`, `template` params on VM resources
+- Translated to SHC per-package option IDs via catalog lookup
+- Python: `client.resolve_addons()`, Go: `client.ResolveAddons()`
 
-- [ ] Add `SHC_API_KEY` secret to `Amperstrand/shc-toolkit`
-- [ ] Add `SHC_API_KEY` secret to `Amperstrand/shc-pulumi`
-- [ ] Add `SHC_API_KEY` secret to `Amperstrand/terraform-provider-shc`
-- [ ] Push empty commit to each repo to trigger CI
-- [ ] Fix any CI failures (path issues, dependency install, Python version)
-- [ ] Verify green checkmarks on all repos
-- [ ] Verify VMs created and cleaned up (check `shc list` after CI runs)
+### Cost audit (shc-toolkit + TF provider)
+- Balance-diff tracking (never logs absolute balance)
+- Proration matching SHC backend: `truncate(hours * round(daily/24, 4), 2)`
+- Per-VM ledger disambiguation for concurrent activity
+- Hooks into order/cancel lifecycle
+- Pulumi inherits via shc-toolkit dependency
 
-### Session 2: Firewall Resource *(no dependencies)*
+### MCP transport fixes
+- All 117 server tool names verified via drift detection CI
+- 12 tool name corrections (e.g., `createVirtualMachineFirewallRule` → `addVirtualMachineFirewallRule`)
+- 4 missing methods added (get_vm_credentials, get_vm_network, get_vm_activity, get_vm_payments)
+- Body wrapper pattern for destructive operations
+- `structuredContent.result` unwrap for v2.4.0
 
-Add firewall rule management to both IaC providers and expand gcloud.
+### v2.4.0 adoption
+- `error_code` + `retry_after_seconds` on SHCError
+- Removed plaintext prefix strip workaround
+- Consolidated summary+detail fetch (summary now includes runtime)
+- Cancel response includes `cancel_credit.amount`
+- Console session TTL support
+- listApiKeys added to MCP TOOL_MAP
 
-**API endpoints:**
-- `GET /vm/{id}/firewall` — list rules + policy
-- `POST /vm/{id}/firewall/rules` — create rule
-- `PATCH /vm/{id}/firewall/rules/{pos}` — edit rule
-- `DELETE /vm/{id}/firewall/rules/{pos}` — delete rule
-- `PATCH /vm/{id}/firewall/policy` — set default policy
+### CI infrastructure
+- OpenAPI spec drift detection (shc-toolkit)
+- MCP tool drift detection (shc-toolkit)
+- Size-map drift detection (all 3 repos)
+- Orphan VM cleanup (all 3 repos)
+- Cross-repo parity audit script (`scripts/audit_cross_repo.py`)
+- Catalog generator with multi-format output
 
-**Terraform:**
-- New file: `provider/firewall_resource.go`
-- Resource: `shc_firewall_rule` (service_id, action, protocol, port, source, direction)
-- Register in `provider.go`
-- Add test: `provider/firewall_resource_test.go`
-- Add doc: `docs/resources/firewall_rule.md`
+### Other
+- Affiliate disclosure updated to 5% recurring (grandfathered rate)
+- Dev VPS snapshot/backup claim corrected (verified working)
+- Billing claim corrected (hourly proration, not daily minimum)
+- Cross-links between all 3 repos
+- Dimi8146 (SHC provider) invited as admin collaborator
 
-**Pulumi:**
-- New file: `src/shc_pulumi/firewall.py`
-- Resource: `SHCFirewallRuleResource`
-- Add test: `tests/test_firewall.py`
-- Update `__init__.py` exports
+## Open Issues
 
-**gcloud (shc-toolkit):**
-- Expand `compute firewall-rules` to support `update`, `list --format=json` with full rule details
-- Add `compute firewall-rules describe <name>`
+| # | Title | Priority |
+|---|-------|----------|
+| [#2](https://github.com/Amperstrand/shc-toolkit/issues/2) | Wrap remaining 60 MCP server tools | Low (niche features) |
+| [#4](https://github.com/Amperstrand/shc-toolkit/issues/4) | API v2.4.0 cleanup (remaining minor items) | Low |
 
-**GitHub issues:** [#1 terraform](https://github.com/Amperstrand/terraform-provider-shc/issues/1), [#1 pulumi](https://github.com/Amperstrand/shc-pulumi/issues/1)
+## Feature Matrix
 
-### Session 3: VM Power Management *(no dependencies)*
+| Feature | shc-toolkit | TF | Pulumi |
+|---------|:---:|:---:|:---:|
+| VM lifecycle | create/read/update/delete | create/read/update/delete | create/read/update/delete |
+| Size abstraction | resolve_size + SIZE_MAP | resolveSize + sizeMap | resolve_size + SIZE_MAP |
+| Config options | resolve_addons + order_vm | ResolveAddons | resolve_addons |
+| Cost audit | CostTracker | CostTracker | indirect (via toolkit) |
+| Snapshots | create/list/restore/delete | create/delete | create/delete |
+| Backups | create/list/restore/delete | create/delete | create/delete |
+| Firewall | list/create/delete/edit | create/delete | create/delete |
+| rDNS | get/set/clear | create/delete | create/delete |
+| NoDNS | publish_dns_records | nodns=true | nodns=True |
+| Credit pre-check | check_credit | CheckCredit | estimate_daily_cost |
+| Catalog generator | --format go\|pulumi\|python | regenerate_sizes.sh | regenerate_sizes.sh |
+| Drift detection CI | OpenAPI + MCP + size-map | size-map | size-map |
+| MCP transport | 57/117 tools wrapped | N/A | N/A |
 
-Add start/stop/restart/shutdown/reset/reinstall to both providers.
+## Future Work (not started)
 
-**API endpoints:**
-- `PATCH /vm/{id}/start`
-- `PATCH /vm/{id}/stop` (hard stop)
-- `PATCH /vm/{id}/shutdown` (graceful)
-- `PATCH /vm/{id}/restart` (graceful reboot)
-- `PATCH /vm/{id}/reset` (hard reset)
-- `PATCH /vm/{id}/reinstall` (OS reinstall)
-
-**Terraform:**
-- Option A: Add `power_state` argument to `shc_vm` (computed, default "running")
-- Option B: Separate `shc_vm_power` resource
-- Recommended: Option A (simpler for users)
-
-**Pulumi:**
-- Add `power_state` input to `SHCVMResource`
-- Implement `update()` method to handle power state changes without replacement
-
-**gcloud:**
-- Add `compute instances reboot/restart` (maps to restart_vm)
-- Add `compute instances suspend/resume` (maps to stop_vm/start_vm)
-
-**GitHub issues:** [#3 terraform](https://github.com/Amperstrand/terraform-provider-shc/issues/3), [#2 pulumi](https://github.com/Amperstrand/shc-pulumi/issues/2)
-
-### Session 4: rDNS Resource *(no dependencies)*
-
-Add reverse DNS management.
-
-**API endpoints:**
-- `GET /vm/{id}/rdns` — list rDNS-eligible IPs
-- `POST /vm/{id}/rdns` — set PTR (async, returns job_id)
-- `DELETE /vm/{id}/rdns` — clear PTR (confirmation required)
-
-**Constraint:** FCrDNS required — hostname must A/AAAA-resolve back to the IP.
-
-**Terraform:**
-- New file: `provider/rdns_resource.go`
-- Resource: `shc_rdns` (service_id, ip, hostname)
-- Import support: `service_id:ip`
-- Register in `provider.go`
-
-**Pulumi:**
-- New file: `src/shc_pulumi/rdns.py`
-- Resource: `SHCrDNSResource`
-
-**gcloud:**
-- Not applicable (gcloud doesn't have rDNS commands)
-
-**GitHub issues:** [#2 terraform](https://github.com/Amperstrand/terraform-provider-shc/issues/2)
-
-### Session 5: gcloud Full Parity *(depends on sessions 2-4)*
-
-Expand `shc-compute` from ~15 to ~40+ commands.
-
-**Missing commands to add:**
-
-| gcloud command | SHC API | Priority |
-|---------------|---------|----------|
-| `compute instances restart` | `PATCH /vm/{id}/restart` | High |
-| `compute instances suspend` | `PATCH /vm/{id}/stop` | High |
-| `compute instances resume` | `PATCH /vm/{id}/start` | High |
-| `compute instances reset` | `PATCH /vm/{id}/reset` | Medium |
-| `compute instances reinstall` | `PATCH /vm/{id}/reinstall` | Medium |
-| `compute instances set-machine-type` | `PATCH /vm/{id}/upgrade` | High |
-| `compute machine-types list` | `GET /ordering/catalog` | High |
-| `compute zones list` | Static (Katy TX, Cherryvale KS) | Medium |
-| `compute regions list` | Static | Low |
-| `compute project-info describe` | `GET /account` | Medium |
-| `compute project-info list` | `GET /account` | Low |
-| `compute operations list` | `GET /vm/{id}/jobs` | Medium |
-| `compute operations describe` | `GET /vm/{id}/jobs/{jobId}` | Medium |
-| `compute images describe` | `GET /vm/templates` | Low |
-| `compute disks list` | `GET /vm/{id}/detail` (disk info) | Low |
-| `compute addresses list` | `GET /vm/{id}/network` | Low |
-| `compute networks list` | `GET /vm/{id}/network` | Low |
-| `compute firewall-rules update` | `PATCH /vm/{id}/firewall/rules/{pos}` | Medium |
-| `compute firewall-rules describe` | `GET /vm/{id}/firewall` | Medium |
-| `compute snapshots describe` | `GET /vm/{id}/snapshots` (filtered) | Low |
-| `compute snapshots label` | Not supported (no labels API) | N/A |
-
-**Testing:** Each new command needs a test in `tests/test_unit.py` (mocked) and
-verification via `shc-compute compute <command> --help`.
-
-### Session 6: Data Sources / Discovery *(depends on session 5)*
-
-Add data sources so users don't hardcode IDs.
-
-**Terraform:**
-- `data "shc_templates"` — list available OS templates
-- `data "shc_machine_types"` — list available plans with specs/pricing
-- `data "shc_zones"` — list available zones/regions
-
-**Pulumi:**
-- `get_templates()` helper
-- `get_machine_types()` helper
-- Expand `get_plan()` to return full spec (CPU, RAM, disk, pricing)
-
-**gcloud:**
-- `compute machine-types list --format=json` (already planned in session 5)
-- `compute images list --format=json` (expand existing)
-
-**GitHub issues:** [#4 terraform](https://github.com/Amperstrand/terraform-provider-shc/issues/4), [#3 pulumi](https://github.com/Amperstrand/shc-pulumi/issues/3)
-
-### Session 7: Snapshot/Backup Restore + Scheduling *(no dependencies)*
-
-**API endpoints:**
-- `POST /vm/{id}/snapshots/restore` — restore from snapshot (confirmation required)
-- `POST /vm/{id}/backups/restore` — restore from backup (confirmation required)
-- `GET /vm/{id}/data-preferences` — view backup schedule
-- `PATCH /vm/{id}/data-preferences` — set backup schedule
-
-**Terraform:**
-- Add `restore` support to snapshot/backup resources or new `shc_snapshot_restore` resource
-- Add `backup_schedule` argument to `shc_vm`
-
-**Pulumi:**
-- Add restore method to snapshot/backup providers
-- Add backup schedule support to VM provider
-
-### Session 8: Migration Docs + Real-World Examples *(depends on sessions 2-6)*
-
-**Documents to create:**
-
-- `docs/migrating-from-digitalocean.md` — map DO droplet configs to SHC plans, Terraform translation
-- `docs/migrating-from-hetzner.md` — map Hetzner Cloud to SHC, Terraform translation
-- `docs/migrating-from-gcloud.md` — map gcloud commands to shc-compute commands
-
-**Example stacks:**
-
-- `examples/web-server/` — Caddy + HTTPS on SHC VM (uses shc-toolkit provisioning)
-- `examples/ci-runner/` — self-hosted runner on SHC VM (uses Terraform)
-- `examples/bitcoin-node/` — Bitcoin Core + Lightning (uses Pulumi)
-- `examples/cdn-origin/` — origin server with firewall rules (uses Terraform)
-- `examples/multi-vm/` — multiple VMs with shared firewall (uses Pulumi)
-
-### Session 9: Provider Maturity *(ongoing)*
-
-- Add `Validate()` functions for package_id, pricing_id, port ranges, IP format
-- Add custom plan modifiers (e.g., prevent disk-reducing upgrades)
-- Add `UseStateForUnknown` for computed fields
-- Add state migration/versioning
-- Add `description` fields to all schema attributes
-- Add `conflicts_with` validators
-- Handle VM lock during backup job (retry cancel with backoff)
-
-### Session 10: Publishing *(after sessions 2-6)*
-
-- Publish `shc-toolkit` to PyPI (`pip install shc-toolkit`)
-- Publish `shc-pulumi` to PyPI (`pip install shc-pulumi`)
-- Publish `terraform-provider-shc` to Terraform Registry (`registry.terraform.io`)
-- Add release workflow (tag-triggered, auto-publish)
-- Add `CHANGELOG.md` to each repo
-
-## Quick Reference: API Feature Matrix
-
-| Feature | Dev VPS (80-84) | NVMe/SSD/HDD (23+) | Terraform | Pulumi | gcloud |
-|---------|:---:|:---:|:---:|:---:|:---:|
-| VM lifecycle | Works | Works | create/delete | create/delete | create/delete/start/stop/reset |
-| Snapshots | Works | Works | create/delete | create/delete | create/list/delete |
-| Backups | Works | Works | create/delete | — | — |
-| Firewall | Works | Works | — | — | list/create/delete |
-| rDNS | Works | Works | — | — | — |
-| ISO | Works | Works | — | — | — |
-| Console | Works | Works | — | — | — |
-| Jobs | Works | Works | — | — | — |
-| Metrics | Works | Works | — | — | — |
-| Upgrades | Works | Works | — | — | set-machine-type |
-| Catalog/Templates | Works | Works | data source | get_plan() | images list |
-| Power ops | Works | Works | — | — | start/stop/reset |
-| Reinstall | Works | Works | — | — | — |
-
-## Session Dependencies
-
-```
-Session 1 (CI Proof) ─── no dependencies
-Session 2 (Firewall) ─── no dependencies
-Session 3 (Power Mgmt) ─ no dependencies
-Session 4 (rDNS) ──────── no dependencies
-Session 5 (gcloud) ────── depends on 2, 3, 4 (uses their API wrappers)
-Session 6 (Data Sources) ─ depends on 5
-Session 7 (Restore) ───── no dependencies
-Session 8 (Docs/Examples) ─ depends on 2, 3, 4, 5, 6
-Session 9 (Maturity) ──── ongoing, any time
-Session 10 (Publishing) ── depends on 2, 3, 4, 5, 6
-```
-
-Sessions 1-4 and 7 can be done in any order. Sessions 5-6 and 8-10 have dependencies.
+- Publish to PyPI and Terraform Registry
+- Add release workflow (tag-triggered)
+- CHANGELOG.md per repo
+- Scheduled cross-repo audit CI job
+- Balance monitoring alert (warn when balance < $1)
