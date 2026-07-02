@@ -9,15 +9,17 @@
 
 The seed disk does **not** expose hypervisor credentials, Proxmox API tokens, or a viable VM-breakout path. The findings are information-leakage and **inconsistent-hardening** issues, the most significant being that the Dev VPS tier ships without its own security baseline due to a cloud-init disable marker.
 
-| # | Finding | Severity | Tier |
-|---|---|---|---|
-| 1 | Dev VPS cloud-init disabled → vendor-data hardening never runs | **MEDIUM** | Dev VPS |
-| 2 | `ssh_deletekeys: false` — potential SSH host-key duplication across VMs | LOW-MEDIUM | Both |
-| 3 | Internal site/cluster naming leaked in `network-config` search domain | LOW | Both |
-| 4 | Internal documentation references in `vendor-data` comments | LOW | Both |
-| 5 | Password hash exposed in world-readable seed `user-data` | LOW (standard cloud-init) | Both |
+| # | Finding | Severity | Tier | Status |
+|---|---|---|---|---|
+| 1 | Dev VPS cloud-init disabled → vendor-data hardening never runs | **MEDIUM** | Dev VPS | Acknowledged by SHC, being fixed |
+| 2 | `ssh_deletekeys: false` — potential SSH host-key duplication across VMs | ~~LOW-MEDIUM~~ → **RESOLVED** | Both | Not a vulnerability (keys unique via systemd) |
+| 3 | Internal site/cluster naming leaked in `network-config` search domain | LOW | Both | Acknowledged, being scrubbed |
+| 4 | Internal documentation references in `vendor-data` comments | LOW | Both | Acknowledged, being scrubbed |
+| 5 | Password hash exposed in world-readable seed `user-data` | LOW (standard cloud-init) | Both | — |
 
-## Finding 1 — Dev VPS ships without its own security hardening (MEDIUM)
+**SHC response (ticket #221, 2026-07-02):** "Genuinely useful work — thanks for making us better." Findings 1, 3, 4 acknowledged and being addressed. Finding 2 confirmed not a vulnerability.
+
+## Finding 1 — Dev VPS ships without its own security hardening (MEDIUM — acknowledged by SHC, being fixed)
 
 **Observation:** The Dev VPS template includes `/etc/cloud/cloud-init.disabled` (an empty marker file). Cloud-init reports `status: disabled`, `boot_status_code: disabled-by-marker-file`. The NVMe tier has no marker and cloud-init runs normally (`enabled-by-generator`).
 
@@ -33,17 +35,17 @@ The seed disk does **not** expose hypervisor credentials, Proxmox API tokens, or
 
 **Recommendation:** If the goal is to skip `package_upgrade` on Dev VPS, set `package_upgrade: false` in the Dev VPS vendor-data (which is already the case) and **remove the marker file** so the rest of the hardening (auditd, guest-agent, SSH) still applies. Alternatively, move the hardening out of cloud-init into the image-bake process so it's present regardless of the cloud-init enable state.
 
-## Finding 2 — `ssh_deletekeys: false` (LOW-MEDIUM)
+## Finding 2 — `ssh_deletekeys: false` (RESOLVED — not a vulnerability)
 
 **Observation:** Both tiers' `vendor-data` sets `ssh_deletekeys: false` (cloud-init's default is `true`). This tells cloud-init NOT to regenerate SSH host keys on first boot.
 
-**Impact:** If the base image was not properly prepared (i.e., host keys were not regenerated at image-bake time), multiple VMs from the same template could share identical SSH host keys. Shared host keys defeat SSH host-key verification, enabling man-in-the-middle attacks between VMs or against clients that pin host keys.
+**Original concern:** If the base image was not properly prepared, multiple VMs from the same template could share identical SSH host keys, defeating SSH host-key verification and enabling MITM attacks.
 
-**Caveat:** If SHC's image-bake process regenerates host keys per-image (via `ssh-keygen` or `virt-sysprep --ssh-inject`), this finding is mitigated. The cloud-init output log on the test VMs *did* show host-key generation, but it was unclear whether that was the initial image creation or a per-boot regeneration. SHC should confirm host keys are unique per deployed VM.
+**SHC response (2026-07-02, ticket #221):** "We tested it directly (two fresh Dev VPS) and confirmed host keys ARE unique per instance — they are regenerated at first boot by systemd, independent of cloud-init. Your premise (cloud-init disabled on Dev VPS) is correct; the keys just come from a different path, so there is no shared-key / MITM exposure."
 
-**Recommendation:** Either (a) restore `ssh_deletekeys: true` (let cloud-init guarantee uniqueness), or (b) confirm the image-bake pipeline regenerates host keys and document that decision.
+**Conclusion:** Not a vulnerability. Host keys are unique per VM via systemd regeneration, not cloud-init. The `ssh_deletekeys: false` setting is intentional and safe given SHC's image-bake pipeline.
 
-## Finding 3 — Internal naming leaked in network-config (LOW)
+## Finding 3 — Internal naming leaked in network-config (LOW — acknowledged by SHC, being scrubbed)
 
 **Observation:** The `network-config` sets a DNS search domain of `cv1.ks.sovereignhybridcompute.com`. This reveals:
 - `cv1` — likely an internal cluster/site code ("compute virtualization 1")
@@ -52,7 +54,7 @@ The seed disk does **not** expose hypervisor credentials, Proxmox API tokens, or
 
 **Impact:** Low. This reveals SHC's internal naming convention and confirms a flat /24 network topology with static IP allocation (no DHCP). An attacker who provisions a VM learns the subnet structure and can infer the addressing scheme of other VMs. This is common across VPS providers and not exploitable on its own, but reducing the information in the search domain (e.g., using a generic `sovereignhybridcompute.com`) would reduce reconnaissance value.
 
-## Finding 4 — Internal documentation references in vendor-data comments (LOW)
+## Finding 4 — Internal documentation references in vendor-data comments (LOW — acknowledged by SHC, being scrubbed)
 
 **Observation:** The NVMe `vendor-data` contains detailed troubleshooting comments that reference internal infrastructure knowledge:
 - `"proven on Ubuntu 26.04 — coordination.md"` — references an internal document

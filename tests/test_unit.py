@@ -808,3 +808,120 @@ class TestCostAudit:
         logger.removeHandler(handler)
         assert "0.49" in output
         assert "100.0" not in output or "99.51" not in output
+
+
+# ── MCP Argument Format Tests ──────────────────────────────
+
+
+class TestMcpArgumentFormat:
+    """Verify MCP client sends correct argument structure for destructive ops."""
+
+    def _mock_mcp_client(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCMCPClient()
+        c._ensure_initialized = MagicMock()
+        c._send_jsonrpc = MagicMock(return_value={"result": {}})
+        return c
+
+    def test_delete_snapshot_uses_body_wrapper(self):
+        c = self._mock_mcp_client()
+        c.delete_snapshot(123, "snap-456")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "deleteVirtualMachineSnapshot"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["snapshot_id"] == "snap-456"
+
+    def test_restore_snapshot_uses_body_wrapper(self):
+        c = self._mock_mcp_client()
+        c.restore_snapshot(123, "snap-456")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "restoreVirtualMachineSnapshot"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["snapshot_id"] == "snap-456"
+
+    def test_delete_backup_uses_body_wrapper(self):
+        c = self._mock_mcp_client()
+        c.delete_backup(123, "bak-456")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "deleteVirtualMachineBackup"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["backup_id"] == "bak-456"
+
+    def test_create_firewall_rule_uses_snake_case_body(self):
+        c = self._mock_mcp_client()
+        c.create_firewall_rule(123, action="ACCEPT", dest_port="443", protocol="tcp")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "addVirtualMachineFirewallRule"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["dest_port"] == "443"
+        assert "destPort" not in args["body"]
+
+    def test_delete_firewall_rule_uses_body_wrapper(self):
+        c = self._mock_mcp_client()
+        c.delete_firewall_rule(123, 5)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "deleteVirtualMachineFirewallRule"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["position"] == 5
+
+    def test_list_ssh_keys_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {"items": []}}}}
+        c.list_ssh_keys(123)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "listServiceSshKeys"
+
+    def test_add_ssh_key_uses_correct_tool_and_body(self):
+        c = self._mock_mcp_client()
+        c.add_ssh_key(123, "ssh-rsa AAA...", label="test")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "setServiceSshKey"
+        args = params["arguments"]
+        assert "body" in args
+
+    def test_get_vm_credentials_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {}}}}
+        c.get_vm_credentials(123)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "getVirtualMachineCredentials"
+
+    def test_get_vm_payments_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {"items": []}}}}
+        c.get_vm_payments(123)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "listVirtualMachinePayments"
+
+    def test_unwrap_prefers_structuredContent_result(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        resp = {"result": {"structuredContent": {"result": {"key": "value"}}}}
+        unwrapped = SHCMCPClient._unwrap_tool_result(resp)
+        assert unwrapped == {"key": "value"}
+
+    def test_unwrap_falls_back_to_data(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        resp = {"result": {"structuredContent": {"data": {"key": "value"}}}}
+        unwrapped = SHCMCPClient._unwrap_tool_result(resp)
+        assert unwrapped == {"key": "value"}
+
+    def test_unwrap_double_nested_data(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        resp = {"result": {"structuredContent": {"data": {"data": {"key": "value"}}}}}
+        unwrapped = SHCMCPClient._unwrap_tool_result(resp)
+        assert unwrapped == {"key": "value"}
