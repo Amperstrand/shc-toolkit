@@ -52,53 +52,72 @@ jobs:
             exit 0
           fi
           python3 << 'PYEOF'
-          import json, sys
-          with open("shc_toolkit/openapi.json") as f:
-              old = json.load(f)
-          with open("/tmp/openapi-new.json") as f:
-              new = json.load(f)
-
-          old_paths = set(old.get("paths", {}).keys())
-          new_paths = set(new.get("paths", {}).keys())
-          added = new_paths - old_paths
-          removed = old_paths - new_paths
-
-          old_version = old.get("info", {}).get("version", "?")
-          new_version = new.get("info", {}).get("version", "?")
-
-          changed = bool(added or removed or old_version != new_version)
-          print(f"changed={'true' if changed else 'false'}")
-
-          if changed:
-              with open("/tmp/openapi-diff.txt", "w") as f:
-                  f.write(f"API version: {old_version} -> {new_version}\n")
-                  if added:
-                      f.write(f"\nNew endpoints ({len(added)}):\n")
-                      for p in sorted(added):
-                          f.write(f"  + {p}\n")
-                  if removed:
-                      f.write(f"\nRemoved endpoints ({len(removed)}):\n")
-                      for p in sorted(removed):
-                          f.write(f"  - {p}\n")
-          PYEOF
-          # Capture output
-          python3 << 'PYEOF' > /tmp/openapi-result.txt
           import json
           with open("shc_toolkit/openapi.json") as f:
               old = json.load(f)
           with open("/tmp/openapi-new.json") as f:
               new = json.load(f)
+
           old_paths = set(old.get("paths", {}).keys())
           new_paths = set(new.get("paths", {}).keys())
-          added = new_paths - old_paths
-          removed = old_paths - new_paths
+          added_paths = new_paths - old_paths
+          removed_paths = old_paths - new_paths
+
           old_version = old.get("info", {}).get("version", "?")
           new_version = new.get("info", {}).get("version", "?")
-          changed = bool(added or removed or old_version != new_version)
-          print(f"{'true' if changed else 'false'}")
+
+          # Field-level schema diff: catch new properties in EXISTING schemas
+          # (e.g. a new user_data field on VmOrderRequest) that path-diffing
+          # alone would miss. Also tracks whole-schema add/remove.
+          old_schemas = old.get("components", {}).get("schemas", {})
+          new_schemas = new.get("components", {}).get("schemas", {})
+          added_schemas = sorted(set(new_schemas) - set(old_schemas))
+          removed_schemas = sorted(set(old_schemas) - set(new_schemas))
+          prop_changes = []  # (schema_name, gained_props, lost_props)
+          for name in sorted(set(old_schemas) & set(new_schemas)):
+              op = set((old_schemas[name].get("properties") or {}).keys())
+              np = set((new_schemas[name].get("properties") or {}).keys())
+              gained, lost = sorted(np - op), sorted(op - np)
+              if gained or lost:
+                  prop_changes.append((name, gained, lost))
+
+          changed = bool(added_paths or removed_paths or old_version != new_version
+                         or added_schemas or removed_schemas or prop_changes)
+
+          if changed:
+              lines = [f"API version: {old_version} -> {new_version}"]
+              if added_paths:
+                  lines.append(f"\nNew endpoints ({len(added_paths)}):")
+                  for p in sorted(added_paths):
+                      lines.append(f"  + {p}")
+              if removed_paths:
+                  lines.append(f"\nRemoved endpoints ({len(removed_paths)}):")
+                  for p in sorted(removed_paths):
+                      lines.append(f"  - {p}")
+              if added_schemas:
+                  lines.append(f"\nNew schemas ({len(added_schemas)}):")
+                  for s in added_schemas:
+                      lines.append(f"  + {s}")
+              if removed_schemas:
+                  lines.append(f"\nRemoved schemas ({len(removed_schemas)}):")
+                  for s in removed_schemas:
+                      lines.append(f"  - {s}")
+              if prop_changes:
+                  lines.append(f"\nSchema property changes ({len(prop_changes)} schemas):")
+                  for name, gained, lost in prop_changes:
+                      if gained:
+                          lines.append(f"  {name}: + {gained}")
+                      if lost:
+                          lines.append(f"  {name}: - {lost}")
+              with open("/tmp/openapi-diff.txt", "w") as f:
+                  f.write("\n".join(lines) + "\n")
+
+          with open("/tmp/openapi-result.txt", "w") as f:
+              f.write("true" if changed else "false")
+          print(f"changed={'true' if changed else 'false'}")
           PYEOF
-          RESULT=$(cat /tmp/openapi-result.txt | tr -d '[:space:]')
-          echo "result=$RESULT" >> $GITHUB_OUTPUT
+           RESULT=$(cat /tmp/openapi-result.txt | tr -d '[:space:]')
+           echo "result=$RESULT" >> $GITHUB_OUTPUT
 
       - name: Create issue on drift
         if: steps.llms-diff.outputs.changed == 'true' || steps.openapi-diff.outputs.result == 'true'

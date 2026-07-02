@@ -331,6 +331,46 @@ class SHCClient:
     def revoke_api_key(self, key_id: str) -> dict:
         return self._delete(f"/account/api-keys/{key_id}")
 
+    @staticmethod
+    def claim_agent_key(code: str, *, base_url: str | None = None) -> dict:
+        """Claim a single-use agent API key by claim code.
+
+        This endpoint is PUBLIC (``security: []``) — it does not require an
+        authenticated ``SHCClient`` because the typical caller is an agent that
+        does not yet hold any API key. The operator (who does have credentials)
+        mints a key and hands the agent only the single-use claim code; the
+        agent exchanges it here exactly once and receives the plaintext key,
+        which is never recoverable again.
+
+        Args:
+            code: Single-use claim code (base64url, 22-128 chars). Burned on success.
+            base_url: Override the default SHC API base URL.
+
+        Returns:
+            The claimed key material (``{"api_key": "shc_live_..."}`` shape).
+
+        Raises:
+            SHCError: 404 (unknown/expired/already-claimed — indistinguishable
+                by design), 422 (malformed code), or 429 (rate limited).
+        """
+        url = f"{base_url or BASE_URL}/agent-keys/claim"
+        resp = requests.post(url, json={"code": code}, timeout=30,
+                             headers={"Content-Type": "application/json"})
+        text = resp.text
+        json_start = text.find("{")
+        if json_start > 0:
+            text = text[json_start:]
+        body = _json.loads(text) if text.strip() else {}
+        if not resp.ok:
+            err = body.get("error", {})
+            raise SHCError(
+                err.get("code", "unknown"),
+                err.get("message", resp.text),
+                err.get("request_id"),
+                err.get("details"),
+            )
+        return body.get("data", body)
+
     # ── Contacts ─────────────────────────────────────────────
 
     def list_contacts(self) -> list[dict]:
@@ -769,6 +809,34 @@ class SHCClient:
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
         return self._confirmed_request(
             "PATCH", f"/vm/{service_id}/reinstall", confirm=confirm, json=kwargs
+        )
+
+    def rekey_zk_backup(
+        self,
+        service_id: int,
+        zk_backup: dict[str, Any],
+        *,
+        confirm: bool = True,
+    ) -> dict:
+        """Rekey (rotate) a VM's zero-knowledge backup registration.
+
+        DESTRUCTIVE: installs a NEW ZK backup key generation; prior-generation
+        encrypted backups become UNRECOVERABLE by design. Requires a two-step
+        confirmation (handled automatically when ``confirm=True``): the first
+        call returns a 409 with a ``confirmation_id``, the second resubmits
+        with the ``X-User-Api-Confirm`` header.
+
+        Args:
+            service_id: SHC service ID of the VM.
+            zk_backup: ``ZkBackupRegistration`` payload — client-derived X25519
+                pubkeys + immutable KDF config (see openapi.json schema).
+            confirm: Auto-handle the confirmation_required 409 flow (default True).
+        """
+        return self._confirmed_request(
+            "POST",
+            f"/vm/{service_id}/zk-backup/rekey",
+            confirm=confirm,
+            json={"destroy_ack": "DESTROY-MY-BACKUPS", "zk_backup": zk_backup},
         )
 
     def get_vm_detail(self, service_id: int) -> dict:
