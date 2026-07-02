@@ -89,7 +89,7 @@ curl https://compute.cashu.email/api/status/<order_id>
 
 6. **VM password NOT in API**: Password is only available on the portal web page at `/client/services/manage/{id}/` in `<input placeholder="Server password">`. No API endpoint returns it. Use `console.py` (Playwright scraper) to retrieve it.
 
-7. **No boot_script/user_data**: `POST /ordering/submit` does not support cloud-init, boot scripts, or root password injection. SSH keys passed via `ssh_key` field are silently ignored for Dev VPS packages.
+7. **No boot_script/user_data**: `POST /ordering/submit` does not accept a custom cloud-init user-data field — the backend auto-generates a fixed cloud-config from order fields only (hostname/user/password/ssh_key). The `user_data` kwarg is accepted by the API gateway (`additionalProperties: true`) but silently dropped by the provisioning backend. Empirically verified on both Dev VPS and NVMe tiers (2026-07-02); see [`docs/cloud-init.md`](cloud-init.md) for the full picture. Note: cloud-init itself **does** run on NVMe/SSD/HDD (the order `ssh_key` gets installed automatically); on Dev VPS cloud-init is **disabled by a marker file**, so the `ssh_key` reaches the seed but is never consumed — use `apply_ssh_key_live` as the workaround.
 
 8. **SSH keys inject for `debian` user**: `apply_ssh_key_live` injects the key for the `debian` user, NOT `root`. Use `sudo -i` for root access.
 
