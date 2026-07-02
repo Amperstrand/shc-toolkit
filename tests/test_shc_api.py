@@ -114,7 +114,7 @@ def test_snapshot_lifecycle(client, vm):
     try:
         client.create_snapshot(sid, name="test-snap")
     except SHCError as e:
-        if any(w in str(e).lower() for w in ("storage", "inventory", "upstream_failure")):
+        if e.error_code == "upstream_failure" or any(w in str(e).lower() for w in ("storage", "inventory")):
             pytest.skip(f"Snapshot storage unavailable: {e}")
         raise
 
@@ -151,7 +151,7 @@ def test_backup_lifecycle(client, vm):
     try:
         client.create_backup(sid, name="test-backup")
     except SHCError as e:
-        if "storage" in str(e).lower() or "inventory" in str(e).lower():
+        if e.error_code == "upstream_failure" or any(w in str(e).lower() for w in ("storage", "inventory")):
             pytest.skip(f"Backup storage unavailable: {e}")
         raise
 

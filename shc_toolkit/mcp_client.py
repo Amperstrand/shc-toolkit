@@ -305,14 +305,19 @@ class SHCMCPClient:
                 err.get("message", "MCP tool returned an error"),
                 sc.get("request_id"),
                 sc,
+                err.get("error_code"),
+                err.get("retry_after_seconds"),
             )
 
         sc = result.get("structuredContent")
-        if isinstance(sc, dict) and "data" in sc:
-            data = sc["data"]
-            if isinstance(data, dict) and "data" in data:
-                data = data["data"]
-            return data
+        if isinstance(sc, dict):
+            if "result" in sc:
+                return sc["result"]
+            if "data" in sc:
+                data = sc["data"]
+                if isinstance(data, dict) and "data" in data:
+                    data = data["data"]
+                return data
 
         content = result.get("content", [])
         if not content:

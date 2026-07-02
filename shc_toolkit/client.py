@@ -809,10 +809,20 @@ class SHCClient:
         if immediate:
             credit_after = self._safe_credit()
             actual_refund = (
-                round(credit_after - credit_before, 4)
+                round(credit_after - credit_before, 2)
                 if credit_before is not None and credit_after is not None
                 else None
             )
+            cancel_credit = result.get("cancel_credit") or {}
+            server_refund = cancel_credit.get("amount")
+            if server_refund is not None and actual_refund is not None:
+                if abs(actual_refund - server_refund) > 0.01:
+                    log.warning(
+                        "Cost audit: cancel refund mismatch — balance diff $%.2f, server reports $%.2f",
+                        actual_refund, server_refund,
+                    )
+            elif server_refund is not None:
+                actual_refund = server_refund
             self.cost_tracker.audit_cancel(service_id, actual_refund)
         return result
 
@@ -1021,8 +1031,11 @@ class SHCClient:
     def get_console_availability(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/console")
 
-    def create_console_session(self, service_id: int) -> dict:
-        return self._post(f"/vm/{service_id}/console/session")
+    def create_console_session(self, service_id: int, *, ttl: int | None = None) -> dict:
+        body: dict[str, Any] = {}
+        if ttl is not None:
+            body["ttl"] = ttl
+        return self._post(f"/vm/{service_id}/console/session", body)
 
     # ── Templates ────────────────────────────────────────────
 
@@ -1096,15 +1109,11 @@ class SHCClient:
     def check_vm_health(self, service_id: int) -> dict:
         """Return a structured health report diagnosing common failure patterns.
 
-        Gathers data from /vm, /vm/detail, /vm/summary, /firewall,
-        /activity, and /bandwidth, probes TCP port 22, and classifies
-        the VM's state into a diagnosis_code.
+        Gathers data from /vm, /vm/summary (includes runtime since v2.4.0),
+        /firewall, /activity, and /bandwidth, probes TCP port 22, and
+        classifies the VM's state into a diagnosis_code.
         """
         vm = self.get_vm(service_id)
-        # Prefer /detail over /summary for runtime status: /summary omits
-        # the runtime object entirely (returns null runtime_status even
-        # when the VM is actually running — confirmed API bug).
-        detail = self.get_vm_detail(service_id)
         summary = self.get_vm_summary(service_id)
         firewall = self.get_firewall(service_id)
         activity = self.get_vm_activity(service_id)
@@ -1115,12 +1124,8 @@ class SHCClient:
         provisioning_state = vm.get("provisioning_state", "unknown")
         bootstrap_completed_at = vm.get("bootstrap_completed_at")
 
-        runtime_status_summary = summary.get("runtime_status")
-        rt = detail.get("runtime") or {}
-        runtime_status_detail = rt.get("raw_status") or rt.get("state")
-        runtime_field_consistent = (
-            runtime_status_summary == runtime_status_detail
-        )
+        rt = summary.get("runtime") or {}
+        runtime_status = rt.get("raw_status") or rt.get("state") or summary.get("runtime_status")
 
         ips = vm.get("ips", [])
         ip_assigned = ips[0]["ip"] if ips else None
@@ -1143,10 +1148,9 @@ class SHCClient:
             provisioning_state=provisioning_state,
             bootstrap_completed_at=bootstrap_completed_at,
             age_seconds=age_seconds,
-            runtime_field_consistent=runtime_field_consistent,
             ip_assigned=ip_assigned,
             port_22_reachable=port_22_reachable,
-            runtime_status_detail=runtime_status_detail,
+            runtime_status=runtime_status,
             activity_count=activity_count,
         )
 
@@ -1157,9 +1161,7 @@ class SHCClient:
             "service_status": service_status,
             "provisioning_state": provisioning_state,
             "bootstrap_completed_at": bootstrap_completed_at,
-            "runtime_status_summary": runtime_status_summary,
-            "runtime_status_detail": runtime_status_detail,
-            "runtime_field_consistent": runtime_field_consistent,
+            "runtime_status": runtime_status,
             "ip_assigned": ip_assigned,
             "port_22_reachable": port_22_reachable,
             "firewall_policy": firewall.get("policy", {}),
@@ -1201,10 +1203,9 @@ class SHCClient:
         provisioning_state: str,
         bootstrap_completed_at: str | None,
         age_seconds: int,
-        runtime_field_consistent: bool,
         ip_assigned: str | None,
         port_22_reachable: bool,
-        runtime_status_detail: str | None,
+        runtime_status: str | None,
         activity_count: int,
     ) -> tuple[str, str]:
         """Classify VM state into a (diagnosis_code, diagnosis) tuple."""
@@ -1218,16 +1219,10 @@ class SHCClient:
                 "VM stuck in provisioning; cloud-init likely disabled or "
                 "failed. Bootstrap signal never fired.",
             )
-        if not runtime_field_consistent:
-            return (
-                "RUNTIME_FIELD_DIVERGENCE",
-                "API field inconsistency: /summary and /detail disagree on "
-                "runtime_status. Use /detail.",
-            )
         if (
             ip_assigned
             and not port_22_reachable
-            and runtime_status_detail == "running"
+            and runtime_status == "running"
         ):
             return (
                 "NETWORK_UNREACHABLE",
