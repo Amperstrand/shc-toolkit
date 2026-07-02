@@ -519,14 +519,14 @@ class SHCMCPClient:
         self, service_id: int, snapshot_id: str, *, confirm: bool = True
     ) -> dict:
         return self.call_tool("restoreVirtualMachineSnapshot", {
-            "serviceId": service_id, "snapshotId": snapshot_id,
+            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
         })
 
     def delete_snapshot(
         self, service_id: int, snapshot_id: str, *, confirm: bool = True
     ) -> dict:
         return self.call_tool("deleteVirtualMachineSnapshot", {
-            "serviceId": service_id, "snapshotId": snapshot_id,
+            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
         })
 
     # Ordering
@@ -637,12 +637,12 @@ class SHCMCPClient:
 
     def create_firewall_rule(self, service_id: int, **kwargs) -> dict:
         return self.call_tool("addVirtualMachineFirewallRule", {
-            "serviceId": service_id, "body": self._convert_args(kwargs),
+            "serviceId": service_id, "body": kwargs,
         })
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
         return self.call_tool("deleteVirtualMachineFirewallRule", {
-            "serviceId": service_id, "position": position,
+            "serviceId": service_id, "body": {"position": position},
         })
 
     # ISO
