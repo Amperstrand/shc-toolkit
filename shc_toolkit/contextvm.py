@@ -248,7 +248,8 @@ def install_contextvm(
         ("echo-server.ts", echo_script),
     ]:
         subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=no",
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+             "-o", "LogLevel=ERROR",
              f"{user}@{host}", f"cat > {REMOTE_DIR}/{filename}"],
             input=content, text=True, timeout=30,
         )
@@ -256,7 +257,8 @@ def install_contextvm(
     # 6. Install systemd service
     log.info("Setting up systemd service...")
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no",
+        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+         "-o", "LogLevel=ERROR",
          f"{user}@{host}", f"sudo tee /etc/systemd/system/contextvm.service"],
         input=systemd_unit, text=True, timeout=30,
     )

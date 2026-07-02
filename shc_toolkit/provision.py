@@ -27,7 +27,8 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port:
     """Run a command on the VM via SSH."""
     result = subprocess.run(
         ["ssh", "-p", str(port),
-         "-o", "StrictHostKeyChecking=no", "-o", f"ConnectTimeout={min(timeout, 15)}",
+         "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+         "-o", "LogLevel=ERROR", "-o", f"ConnectTimeout={min(timeout, 15)}",
          f"{user}@{host}", cmd],
         capture_output=True,
         text=True,
@@ -44,7 +45,8 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port:
 def scp_to_vm(host: str, local: str, remote: str, user: str = "debian", port: int = 22) -> str:
     """Copy file to VM via scp."""
     result = subprocess.run(
-        ["scp", "-P", str(port), "-o", "StrictHostKeyChecking=no", "-O",
+        ["scp", "-P", str(port), "-o", "StrictHostKeyChecking=no",
+         "-o", "UserKnownHostsFile=/dev/null", "-O",
          local, f"{user}@{host}:{remote}"],
         capture_output=True,
         text=True,
@@ -96,7 +98,8 @@ def setup_caddy(host: str, fqdn: str, user: str = "debian") -> str:
     ssh_cmd(host, f"sudo mkdir -p /etc/caddy")
     # Write Caddyfile via stdin to avoid quoting issues
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", f"{user}@{host}",
+        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+         "-o", "LogLevel=ERROR", f"{user}@{host}",
          "sudo tee /etc/caddy/Caddyfile > /dev/null"],
         input=caddyfile,
         text=True,
@@ -160,7 +163,8 @@ def get_cert_dns01(
     hook_remote = "/tmp/certbot-auth-hook.sh"
 
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", f"{user}@{host}",
+        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+         "-o", "LogLevel=ERROR", f"{user}@{host}",
          f"sudo tee {hook_remote} > /dev/null"],
         input=hook_script,
         text=True,
