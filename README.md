@@ -2,7 +2,7 @@
 
 Python client, CLI, and provisioning toolkit for [Sovereign Hybrid Compute](https://blesta.sovereignhybridcompute.com/order/forms/a/lecture-mushroom-lunar) (SHC) — the quickest way to spin up a VM, give it a [NoDNS](https://nodns.shop/) domain via Nostr, and get HTTPS with Let's Encrypt DNS-01. No domain registrar needed.
 
-> **Disclosure**: The SHC link above is an affiliate link. If you sign up through it, we may receive credit toward our SHC account at no extra cost to you. We use SHC as the CI backend for our open-source projects and genuinely recommend the service.
+> **Disclosure**: The SHC link above is an affiliate link. If you sign up through it, we receive a **5% recurring commission** (grandfathered rate) on your spending, at no extra cost to you. We use SHC as the CI backend for our open-source projects and genuinely recommend the service.
 
 ## Related Projects
 

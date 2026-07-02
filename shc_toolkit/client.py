@@ -27,7 +27,13 @@ _CACHE_TTL = 300
 
 
 class SHCError(Exception):
-    """API error with code, message, and request_id for support."""
+    """API error with code, message, request_id, and v2.4.0 stable error_code.
+
+    error_code is a machine-stable identifier (not_found, invalid_token,
+    vm_locked, insufficient_credit, upstream_failure, rate_limited, ...)
+    that does not change with message wording. Use it for programmatic
+    error handling instead of string-matching messages.
+    """
 
     def __init__(
         self,
@@ -35,15 +41,20 @@ class SHCError(Exception):
         message: str,
         request_id: str | None = None,
         details: Any = None,
+        error_code: str | None = None,
+        retry_after_seconds: int | None = None,
     ):
         self.code = code
         self.message = message
         self.request_id = request_id
         self.details = details
+        self.error_code = error_code
+        self.retry_after_seconds = retry_after_seconds
         self.confirmation_id: str | None = None
         super().__init__(
-            f"[{code}] {message}"
+            f"[{error_code or code}] {message}"
             + (f" (req={request_id})" if request_id else "")
+            + (f" retry_after={retry_after_seconds}s" if retry_after_seconds else "")
         )
 
 
@@ -195,9 +206,6 @@ class SHCClient:
                 continue
             break
         text = resp.text
-        json_start = text.find("{")
-        if json_start > 0:
-            text = text[json_start:]
         body = _json.loads(text) if text.strip() else {}
         if not resp.ok:
             err = body.get("error", {})
@@ -206,6 +214,8 @@ class SHCClient:
                 err.get("message", resp.text),
                 err.get("request_id"),
                 err.get("details"),
+                err.get("error_code"),
+                err.get("retry_after_seconds"),
             )
             # Capture confirmation_id from 409 body so _confirmed_request
             # can auto-resubmit without a second round-trip.
