@@ -500,6 +500,19 @@ class SHCMCPClient:
             "serviceId": service_id, "body": {"backup_id": backup_id},
         })
 
+    def verify_backup(self, service_id: int, backup_id: str) -> dict:
+        return self.call_tool("verifyVirtualMachineBackup", {
+            "serviceId": service_id, "body": {"backup_id": backup_id},
+        })
+
+    def set_backup_protection(self, service_id: int, backup_id: str, protected: bool) -> dict:
+        return self.call_tool("setVirtualMachineBackupProtection", {
+            "serviceId": service_id, "body": {"backup_id": backup_id, "protected": protected},
+        })
+
+    def get_backup_restore_hints(self, service_id: int) -> dict:
+        return self.call_tool("getVirtualMachineBackupRestoreHints", {"serviceId": service_id})
+
     # Snapshots
     def list_snapshots(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVirtualMachineSnapshots", {"serviceId": service_id})
@@ -528,6 +541,19 @@ class SHCMCPClient:
         return self.call_tool("deleteVirtualMachineSnapshot", {
             "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
         })
+
+    def verify_snapshot(self, service_id: int, snapshot_id: str) -> dict:
+        return self.call_tool("verifyVirtualMachineSnapshot", {
+            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
+        })
+
+    def set_snapshot_protection(self, service_id: int, snapshot_id: str, protected: bool) -> dict:
+        return self.call_tool("setVirtualMachineSnapshotProtection", {
+            "serviceId": service_id, "body": {"snapshot_id": snapshot_id, "protected": protected},
+        })
+
+    def get_snapshot_restore_hints(self, service_id: int) -> dict:
+        return self.call_tool("getVirtualMachineSnapshotRestoreHints", {"serviceId": service_id})
 
     # Ordering
     def get_catalog(self, **kwargs) -> list[dict]:

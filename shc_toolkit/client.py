@@ -917,6 +917,15 @@ class SHCClient:
             confirm=confirm, json={"snapshot_id": snapshot_id},
         )
 
+    def verify_snapshot(self, service_id: int, snapshot_id: str) -> dict:
+        return self._post(f"/vm/{service_id}/snapshots/verify", {"snapshot_id": snapshot_id})
+
+    def set_snapshot_protection(self, service_id: int, snapshot_id: str, protected: bool) -> dict:
+        return self._patch(f"/vm/{service_id}/snapshots/protection", {"snapshot_id": snapshot_id, "protected": protected})
+
+    def get_snapshot_restore_hints(self, service_id: int) -> dict:
+        return self._get(f"/vm/{service_id}/snapshots/restore-hints")
+
     # ── Backups ──────────────────────────────────────────────
 
     def list_backups(self, service_id: int) -> list[dict]:
@@ -942,6 +951,9 @@ class SHCClient:
 
     def set_backup_protection(self, service_id: int, backup_id: str, protected: bool) -> dict:
         return self._patch(f"/vm/{service_id}/backups/protection", {"backup_id": backup_id, "protected": protected})
+
+    def verify_backup(self, service_id: int, backup_id: str) -> dict:
+        return self._post(f"/vm/{service_id}/backups/verify", {"backup_id": backup_id})
 
     def get_backup_restore_hints(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/backups/restore-hints")
