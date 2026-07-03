@@ -555,6 +555,30 @@ class SHCMCPClient:
     def get_snapshot_restore_hints(self, service_id: int) -> dict:
         return self.call_tool("getVirtualMachineSnapshotRestoreHints", {"serviceId": service_id})
 
+    # File Restore
+    def list_file_restore_sources(self, service_id: int) -> list[dict]:
+        result = self.call_tool("listVmFileRestoreSources", {"serviceId": service_id})
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
+    def browse_file_restore(self, service_id: int, source: str, path: str = "/") -> list[dict]:
+        result = self.call_tool("listVmFileRestoreEntries", {
+            "serviceId": service_id, "body": {"source": source, "path": path},
+        })
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
+    # Data Preferences
+    def get_data_preferences(self, service_id: int) -> dict:
+        return self.call_tool("getVmDataPreferences", {"serviceId": service_id})
+
+    def set_data_preferences(self, service_id: int, **kwargs) -> dict:
+        return self.call_tool("updateVmDataPreferences", {
+            "serviceId": service_id, "body": kwargs,
+        })
+
     # Ordering
     def get_catalog(self, **kwargs) -> list[dict]:
         cached = self._cache_get("catalog:full")
