@@ -86,7 +86,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 | Credit pre-check | check_credit | CheckCredit | estimate_daily_cost |
 | Catalog generator | --format go\|pulumi\|python | regenerate_sizes.sh | regenerate_sizes.sh |
 | Drift detection CI | OpenAPI + MCP + size-map | size-map | size-map |
-| MCP transport | 57/117 tools wrapped | N/A | N/A |
+| MCP transport | 73/118 tools wrapped (61%) | N/A | N/A |
 
 ## Future Work (not started)
 
