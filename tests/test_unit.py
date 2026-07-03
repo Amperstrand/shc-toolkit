@@ -875,6 +875,18 @@ class TestMcpArgumentFormat:
         assert "body" in args
         assert args["body"]["position"] == 5
 
+    def test_edit_firewall_rule_uses_correct_tool_and_body(self):
+        c = self._mock_mcp_client()
+        c.edit_firewall_rule(123, 3, action="DROP", dest_port="22")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "updateVirtualMachineFirewallRule"
+        args = params["arguments"]
+        assert "body" in args
+        assert args["body"]["position"] == 3
+        assert args["body"]["action"] == "DROP"
+        assert args["body"]["dest_port"] == "22"
+
     def test_list_ssh_keys_calls_correct_tool(self):
         c = self._mock_mcp_client()
         c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {"items": []}}}}

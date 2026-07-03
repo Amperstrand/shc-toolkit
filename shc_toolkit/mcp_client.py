@@ -640,6 +640,11 @@ class SHCMCPClient:
             "serviceId": service_id, "body": kwargs,
         })
 
+    def edit_firewall_rule(self, service_id: int, position: int, **kwargs) -> dict:
+        return self.call_tool("updateVirtualMachineFirewallRule", {
+            "serviceId": service_id, "body": {"position": position, **kwargs},
+        })
+
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
         return self.call_tool("deleteVirtualMachineFirewallRule", {
             "serviceId": service_id, "body": {"position": position},
