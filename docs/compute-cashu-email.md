@@ -65,7 +65,7 @@ curl https://compute.cashu.email/api/health
 # Order (creates real Lightning invoice)
 curl -X POST https://compute.cashu.email/api/order \
   -H "Content-Type: application/json" \
-  -d '{"tier":"standard"}'
+  -d '{"tier":"nvme-2c-8gb"}'
 # → {"order_id":"...","bolt11":"lnbc...","checkout_url":"..."}
 
 # Poll status
