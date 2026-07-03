@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sovereign Hybrid Compute User API",
-    "version": "2.4.0",
-    "description": "Customer-facing VM API for authenticated SHC Blesta customers. Use it to read account data, compare storefront-backed VM plans, preview and submit a new VM order, inspect owned VM inventory, manage power, reinstall, backup, snapshot, and restore workflows, review invoices, and manage stored SSH keys. `GET /ordering/catalog` is the primary authenticated buy catalog, `POST /ordering/preview` validates a request, and `POST /ordering/submit` or `POST /vm/buy` creates the order through Blesta's canonical order engine. Backup, snapshot, and restore routes queue background jobs, and `GET /vm/{serviceId}/jobs` or `GET /vm/{serviceId}/jobs/{jobId}` exposes job progress. `GET /vm/templates` remains a descriptive plan and image endpoint for the customer's eligible VM scope and owned-service workflows. The `/user-api/v2` REST is a deprecated legacy transport, kept for backward compatibility; the flagship MCP (see the MCP note below) is the supported, go-forward agent surface. The wrapper handles authentication, rate limiting, routing, and response formatting, while an internal Blesta plugin model backs the business logic. Direct native `/api/UserApi.UserApiApi/...` access is intentionally disabled for customer-scoped methods. HTTP Basic uses your Blesta login username and password. For many accounts the username is the email address, but that is not guaranteed for every account type. If the account has 2FA enabled, send the current code in the `X-User-Api-OTP` header. Missing credentials return `401 Authentication required`. Missing OTP returns `401 Two-factor code required` and sets `X-User-Api-OTP-Required: 1`. Invalid password and invalid OTP also return `401` with endpoint-specific error messages. JSON request bodies are capped at 16 KiB. VM IDs in this API are Blesta service IDs, not Proxmox VMIDs. MCP note: this API exposes account, catalog, order, invoice, service, storage, and job state. It does not provide ambient screen or browser context by itself. The eligible authenticated, non-identity operations (118 MCP tools; identity, credential-management, and registration operations are excluded) are exposed as MCP tools at the flagship server https://mcp.sovereignhybridcompute.com/ (Model Context Protocol over Streamable HTTP), the preferred agent transport, with single-use confirm-token gating on every spend and destructive operation; authenticate with your shc_live_ operate key as a Bearer token. v1.8.0 documents the previously-undocumented Tier-2 write endpoints: VM shutdown/reset, ISO mount/unmount, firewall rule/policy management, live SSH key inject/remove, backup/snapshot verify acknowledgement, data-preferences update, support ticket create/reply/close, account preferences and credit-handling updates, contact deletion, and manager / managed-account management. Reinstall now returns 202 with a pollable job_id. v1.10.0 adds the Tier-2 service upgrade / package-change endpoints: GET /vm/{serviceId}/upgrade-options (read-only catalog of same-group plans + settable config options), POST /vm/{serviceId}/upgrade/preview (read-only prorated quote), and PATCH /vm/{serviceId}/upgrade (the money-moving change). The PATCH is QUEUED-ONLY: it always creates a prorated invoice and a queued change and returns 202; the VM is resized by Blesta's standard cron after the invoice is paid. pricing_ref is the raw package_pricing id. A disk-reducing change is always rejected (422) because the module would destroy and recreate the VM. The PATCH requires a body idempotency_key. v1.12.0 documents two shipped features: native AREA-scoped customer API keys and the enriched account activity report. Customer API keys (`Authorization: Bearer shc_live_...`, created/listed/revoked at /account/api-keys with Basic+OTP) now carry TWO ANDed authorization axes - a METHOD scope (read / operate / full) and an OPTIONAL area subset of Blesta's native contact-permission areas; each operation declares its governing area via `x-required-area`, a key created with no `areas` is materialized to the account's full permitted-area set (never stored unrestricted), and a key created with an `areas` array may only reach operations whose area is in the set (see the customerApiKey security scheme). GET /account/activity now merges sign-ins, failed sign-ins, account contact-detail changes, account-setting changes, and payment/transaction activity into one most-recent-first paginated feed (ActivityItem); it never exposes internal placement, staff identity, or the old/new values of changed fields. v1.14.0 expands the orderable OS/desktop catalog: Linux templates devuan5-cloud (Devuan 5) and openbsd79-cloud (OpenBSD 7.9), desktop environments kde (KDE Plasma) and mate (MATE) for AlmaLinux 9, and windows2022-byol (Windows Server 2022, Bring Your Own License). windows2022-byol is a dedicated Windows product with a 50 GB disk / 2 vCPU / 4 GB RAM minimum (the order form clamps to these), a BYOL acknowledgment, and standard linear compute pricing; it ships as Microsoft's 180-day evaluation and the customer applies their own Windows Server 2022 license (slmgr /ipk then /ato). os_template and gui_choice remain free-form strings resolved against the customer's eligible plan. v1.15.0 brings the documented OS/desktop catalog fully in line with the live, DB-driven /ordering/catalog: the orderable `template` option is debian13-cloud (default), debian12-cloud, ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud, openbsd79-cloud, and windows2022-byol; the `gui_choice` desktop option (AlmaLinux 9) is none/gnome/kde/xfce/cinnamon/mate. The catalog is authoritative and auto-reflects, so always read GET /ordering/catalog for the exact live set rather than relying on this prose. Additional images (ubuntu2604-cloud, freebsd14-cloud, openwrt-cloud, the NixOS 26.05 refresh, and Windows Server Core / Windows 11 desktop variants) are staged and will appear in the catalog as they are released.\n\n## What's new in 2.4.0 (2026-07-02, non-breaking)\n\n**Fixed**\n- Missing-VM lookups on `GET /vm/{serviceId}/detail` and `POST /vm/{serviceId}/ssh-keys/apply-live` now return **404** with `error_code: not_found` (previously 500).\n- `GET /vm/{serviceId}/summary` includes the live `runtime` object (state, lock, cpu_percent, mem_percent) — no second call to `/detail` needed for power state. If the hypervisor read fails, `runtime` is `null` and the summary still returns.\n- All timestamps are now true UTC. Date fields such as `date_created` / `date_renews` were previously emitted 5 hours ahead; formats are unchanged (ISO-8601, `+00:00`).\n- `GET /vm/{serviceId}/activity` now shows a VM's own provisioning tasks (freshly created VMs no longer return an empty feed).\n- Orders that cannot resolve an OS template are rejected up front with **422** `template_required`, and the message lists the package's valid template values. `config_options` with option ids that belong to a different package are rejected with **422** and the valid option ids are listed.\n- API responses now begin with `{` — the stray plaintext banner line is gone. You can remove any strip-prefix workaround.\n\n**Added**\n- `error.error_code` on every error — a stable machine code (registry below) so clients no longer match on message text. Transient conditions also carry `error.retry_after_seconds`.\n- 409 confirmation challenges mirror the id flat at `confirmation.confirmation_id` (all nested copies kept).\n- Field aliases (dual-emitted, both accepted where written): `balances`/`credit` on the two balance endpoints, `items` alongside `upgradable` on upgrade-options, singular `service_id` on the order response, `id` (+ `snapshot_id` on snapshots) alongside `backup_id` on snapshot/backup items, `pricing_id` alongside `pricing_ref` on upgrades. Snapshot/backup write bodies accept `backup_id` | `snapshot_id` | `id` | `volid`.\n- Cancel responses include top-level `expected_refund` and `transaction_id` (see the refund formula below).\n- Firewall `action` is case-insensitive on input (always UPPERCASE in responses). `GET /ssh-key` accepts `?service_id=`. `POST /vm/{serviceId}/console/session` accepts an optional `ttl` (seconds, clamped 5-300; default 30).\n- `POST /agent-keys/claim` is documented: exchange a single-use claim code for an agent API key.\n- MCP: `structuredContent.result` on every tool result (the unwrapped payload — uniform for reads and writes; the nested `data` shape is kept), a `listApiKeys` tool (full-scope keys may list key METADATA; creating and revoking keys stays Basic-auth-only), legacy tool-name aliases, and a `serverInfo.catalog` stamp (`spec_version`, `tool_count`).\n\n### Machine error-code registry (`error.error_code`)\n\n| error_code | Meaning | Retry |\n|---|---|---|\n| `not_found` | The addressed resource does not exist or is not owned by this account (404). | no |\n| `invalid_token` | The API key was rejected (expired / revoked / unknown) — rotate or re-mint it. Missing credentials stay plain `unauthorized`. | after re-auth |\n| `vm_locked` | The VM is transiently locked by another operation (for example a running backup). | yes — honor `retry_after_seconds` (default 15) |\n| `insufficient_credit` | The requested amount exceeds the available balance (currently: payout requests; VM orders never hard-fail on credit — they invoice). | after top-up |\n| `upstream_failure` | The hypervisor / storage backend could not service the request. | yes — honor `retry_after_seconds` (default 30) |\n| `rate_limited` | Too many requests (429). | yes — honor `retry_after_seconds` |\n\nEvery other specific `error.code` value is mirrored into `error_code` verbatim. Sample error body:\n\n```json\n{\"error\": {\"code\": \"conflict\", \"message\": \"Cancellation failed: ... VM is locked (backup) ...\",\n  \"request_id\": \"1f0c...\", \"details\": [], \"error_code\": \"vm_locked\", \"retry_after_seconds\": 15}}\n```\n\n### Cancellation refund formula\n\n`expected_refund` / `cancel_credit.amount` come from ONE shared credit model (identical to the customer portal): for each paid invoice line covering the current term, credit = the line's cent-rounded amount x (unused seconds / covered seconds), summed in integer cents. A minimum charge of max(the term's 6-minute value, $0.01) is retained, already-issued this-term downgrade credits are subtracted, and the result is clamped to [0, amount paid]. End-of-term cancellations yield 0 (the term is fully used). The credit is issued as in-house account credit; `transaction_id` references it. Sample (1-day $0.24 term, canceled minutes after provisioning):\n\n```json\n{\"data\": {\"id\": 817, \"service_status\": \"canceled\", \"expected_refund\": 0.23, \"transaction_id\": 454,\n  \"cancel_credit\": {\"amount\": 0.23, \"currency\": \"USD\", \"transaction_id\": 454, \"issued\": true}}}\n```\n",
+    "version": "2.4.1",
+    "description": "Customer-facing VM API for authenticated SHC Blesta customers. Use it to read account data, compare storefront-backed VM plans, preview and submit a new VM order, inspect owned VM inventory, manage power, reinstall, backup, snapshot, and restore workflows, review invoices, and manage stored SSH keys. `GET /ordering/catalog` is the primary authenticated buy catalog, `POST /ordering/preview` validates a request, and `POST /ordering/submit` or `POST /vm/buy` creates the order through Blesta's canonical order engine. Backup, snapshot, and restore routes queue background jobs, and `GET /vm/{serviceId}/jobs` or `GET /vm/{serviceId}/jobs/{jobId}` exposes job progress. `GET /vm/templates` remains a descriptive plan and image endpoint for the customer's eligible VM scope and owned-service workflows. The `/user-api/v2` REST is a deprecated legacy transport, kept for backward compatibility; the flagship MCP (see the MCP note below) is the supported, go-forward agent surface. The wrapper handles authentication, rate limiting, routing, and response formatting, while an internal Blesta plugin model backs the business logic. Direct native `/api/UserApi.UserApiApi/...` access is intentionally disabled for customer-scoped methods. HTTP Basic uses your Blesta login username and password. For many accounts the username is the email address, but that is not guaranteed for every account type. If the account has 2FA enabled, send the current code in the `X-User-Api-OTP` header. Missing credentials return `401 Authentication required`. Missing OTP returns `401 Two-factor code required` and sets `X-User-Api-OTP-Required: 1`. Invalid password and invalid OTP also return `401` with endpoint-specific error messages. JSON request bodies are capped at 16 KiB. VM IDs in this API are Blesta service IDs, not Proxmox VMIDs. MCP note: this API exposes account, catalog, order, invoice, service, storage, and job state. It does not provide ambient screen or browser context by itself. The eligible authenticated, non-identity operations (118 MCP tools; identity, credential-management, and registration operations are excluded) are exposed as MCP tools at the flagship server https://mcp.sovereignhybridcompute.com/ (Model Context Protocol over Streamable HTTP), the preferred agent transport, with single-use confirm-token gating on every spend and destructive operation; authenticate with your shc_live_ operate key as a Bearer token. v1.8.0 documents the previously-undocumented Tier-2 write endpoints: VM shutdown/reset, ISO mount/unmount, firewall rule/policy management, live SSH key inject/remove, backup/snapshot verify acknowledgement, data-preferences update, support ticket create/reply/close, account preferences and credit-handling updates, contact deletion, and manager / managed-account management. Reinstall now returns 202 with a pollable job_id. v1.10.0 adds the Tier-2 service upgrade / package-change endpoints: GET /vm/{serviceId}/upgrade-options (read-only catalog of same-group plans + settable config options), POST /vm/{serviceId}/upgrade/preview (read-only prorated quote), and PATCH /vm/{serviceId}/upgrade (the money-moving change). The PATCH is QUEUED-ONLY: it always creates a prorated invoice and a queued change and returns 202; the VM is resized by Blesta's standard cron after the invoice is paid. pricing_ref is the raw package_pricing id. A disk-reducing change is always rejected (422) because the module would destroy and recreate the VM. The PATCH requires a body idempotency_key. v1.12.0 documents two shipped features: native AREA-scoped customer API keys and the enriched account activity report. Customer API keys (`Authorization: Bearer shc_live_...`, created/listed/revoked at /account/api-keys with Basic+OTP) now carry TWO ANDed authorization axes - a METHOD scope (read / operate / full) and an OPTIONAL area subset of Blesta's native contact-permission areas; each operation declares its governing area via `x-required-area`, a key created with no `areas` is materialized to the account's full permitted-area set (never stored unrestricted), and a key created with an `areas` array may only reach operations whose area is in the set (see the customerApiKey security scheme). GET /account/activity now merges sign-ins, failed sign-ins, account contact-detail changes, account-setting changes, and payment/transaction activity into one most-recent-first paginated feed (ActivityItem); it never exposes internal placement, staff identity, or the old/new values of changed fields. v1.14.0 expands the orderable OS/desktop catalog: Linux templates devuan5-cloud (Devuan 5) and openbsd79-cloud (OpenBSD 7.9), desktop environments kde (KDE Plasma) and mate (MATE) for AlmaLinux 9, and windows2022-byol (Windows Server 2022, Bring Your Own License). windows2022-byol is a dedicated Windows product with a 50 GB disk / 2 vCPU / 4 GB RAM minimum (the order form clamps to these), a BYOL acknowledgment, and standard linear compute pricing; it ships as Microsoft's 180-day evaluation and the customer applies their own Windows Server 2022 license (slmgr /ipk then /ato). os_template and gui_choice remain free-form strings resolved against the customer's eligible plan. v1.15.0 brings the documented OS/desktop catalog fully in line with the live, DB-driven /ordering/catalog: the orderable `template` option is debian13-cloud (default), debian12-cloud, ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud, openbsd79-cloud, and windows2022-byol; the `gui_choice` desktop option (AlmaLinux 9) is none/gnome/kde/xfce/cinnamon/mate. The catalog is authoritative and auto-reflects, so always read GET /ordering/catalog for the exact live set rather than relying on this prose. Additional images (ubuntu2604-cloud, freebsd14-cloud, openwrt-cloud, the NixOS 26.05 refresh, and Windows Server Core / Windows 11 desktop variants) are staged and will appear in the catalog as they are released.\n\n## What's new in 2.4.0 (2026-07-02, non-breaking)\n\n**Fixed**\n- Missing-VM lookups on `GET /vm/{serviceId}/detail` and `POST /vm/{serviceId}/ssh-keys/apply-live` now return **404** with `error_code: not_found` (previously 500).\n- `GET /vm/{serviceId}/summary` includes the live `runtime` object (state, lock, cpu_percent, mem_percent) — no second call to `/detail` needed for power state. If the hypervisor read fails, `runtime` is `null` and the summary still returns.\n- All timestamps are now true UTC. Date fields such as `date_created` / `date_renews` were previously emitted 5 hours ahead; formats are unchanged (ISO-8601, `+00:00`).\n- `GET /vm/{serviceId}/activity` now shows a VM's own provisioning tasks (freshly created VMs no longer return an empty feed).\n- Orders that cannot resolve an OS template are rejected up front with **422** `template_required`, and the message lists the package's valid template values. `config_options` with option ids that belong to a different package are rejected with **422** and the valid option ids are listed.\n- API responses now begin with `{` — the stray plaintext banner line is gone. You can remove any strip-prefix workaround.\n\n**Added**\n- `error.error_code` on every error — a stable machine code (registry below) so clients no longer match on message text. Transient conditions also carry `error.retry_after_seconds`.\n- 409 confirmation challenges mirror the id flat at `confirmation.confirmation_id` (all nested copies kept).\n- Field aliases (dual-emitted, both accepted where written): `balances`/`credit` on the two balance endpoints, `items` alongside `upgradable` on upgrade-options, singular `service_id` on the order response, `id` (+ `snapshot_id` on snapshots) alongside `backup_id` on snapshot/backup items, `pricing_id` alongside `pricing_ref` on upgrades. Snapshot/backup write bodies accept `backup_id` | `snapshot_id` | `id` | `volid`.\n- Cancel responses include top-level `expected_refund` and `transaction_id` (see the refund formula below).\n- Firewall `action` is case-insensitive on input (always UPPERCASE in responses). `GET /ssh-key` accepts `?service_id=`. `POST /vm/{serviceId}/console/session` accepts an optional `ttl` (seconds, clamped 5-300; default 30).\n- `POST /agent-keys/claim` is documented: exchange a single-use claim code for an agent API key.\n- MCP: `structuredContent.result` on every tool result (the unwrapped payload — uniform for reads and writes; the nested `data` shape is kept), a `listApiKeys` tool (full-scope keys may list key METADATA; creating and revoking keys stays Basic-auth-only), legacy tool-name aliases, and a `serverInfo.catalog` stamp (`spec_version`, `tool_count`).\n\n### Machine error-code registry (`error.error_code`)\n\n| error_code | Meaning | Retry |\n|---|---|---|\n| `not_found` | The addressed resource does not exist or is not owned by this account (404). | no |\n| `invalid_token` | The API key was rejected (expired / revoked / unknown) — rotate or re-mint it. Missing credentials stay plain `unauthorized`. | after re-auth |\n| `vm_locked` | The VM is transiently locked by another operation (for example a running backup). | yes — honor `retry_after_seconds` (default 15) |\n| `insufficient_credit` | The requested amount exceeds the available balance (currently: payout requests; VM orders never hard-fail on credit — they invoice). | after top-up |\n| `upstream_failure` | The hypervisor / storage backend could not service the request. | yes — honor `retry_after_seconds` (default 30) |\n| `rate_limited` | Too many requests (429). | yes — honor `retry_after_seconds` |\n\nEvery other specific `error.code` value is mirrored into `error_code` verbatim. Sample error body:\n\n```json\n{\"error\": {\"code\": \"conflict\", \"message\": \"Cancellation failed: ... VM is locked (backup) ...\",\n  \"request_id\": \"1f0c...\", \"details\": [], \"error_code\": \"vm_locked\", \"retry_after_seconds\": 15}}\n```\n\n### Cancellation refund formula\n\n`expected_refund` / `cancel_credit.amount` come from ONE shared credit model (identical to the customer portal): for each paid invoice line covering the current term, credit = the line's cent-rounded amount x (unused seconds / covered seconds), summed in integer cents. A minimum charge of max(the term's 6-minute value, $0.01) is retained, already-issued this-term downgrade credits are subtracted, and the result is clamped to [0, amount paid]. End-of-term cancellations yield 0 (the term is fully used). The credit is issued as in-house account credit; `transaction_id` references it. Sample (1-day $0.24 term, canceled minutes after provisioning):\n\n```json\n{\"data\": {\"id\": 817, \"service_status\": \"canceled\", \"expected_refund\": 0.23, \"transaction_id\": 454,\n  \"cancel_credit\": {\"amount\": 0.23, \"currency\": \"USD\", \"transaction_id\": 454, \"issued\": true}}}\n```\n\n\n## Request-body contracts & the MCP argument convention\nEvery operation that accepts a request body documents its exact fields (with a realistic example) in this spec's requestBody schema. How those fields map onto an MCP tool call (path/query params at the top level; the whole body under a single `body` object; the one `Idempotency-Key` header exception) is stated in the root `x-mcp-argument-convention` extension and in the docs page at `/user-api/docs/mcp-argument-convention.md`. Contracts are additive-only within a minor version; integrators may pin them. See `/user-api/CHANGELOG.md`.",
     "x-agent-native": {
       "mcp": {
         "endpoint": "https://mcp.sovereignhybridcompute.com/",
@@ -212,6 +212,10 @@
                     "format": "hostname",
                     "description": "FQDN that already A/AAAA-resolves back to ip (FCrDNS)."
                   }
+                },
+                "example": {
+                  "ip": "203.0.113.45",
+                  "hostname": "vm42.customer.example.com"
                 }
               }
             }
@@ -349,6 +353,9 @@
                     "type": "string",
                     "format": "ipv4"
                   }
+                },
+                "example": {
+                  "ip": "203.0.113.45"
                 }
               }
             }
@@ -2306,7 +2313,17 @@
             "source": "curl -sS -X POST https://blesta.sovereignhybridcompute.com/user-api/v2/vm/353/backups/restore \\\n  -H \"Authorization: Bearer $SHC_API_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"backup_id\": \"bk_6ERwSd_PLY66FW72VFM\"}'\n# 202 -> {data:{job_id, next:{poll:\"/user-api/v2/vm/353/jobs/<job_id>\"}}}\n"
           }
         ],
-        "x-shc-confirm-required": true
+        "x-shc-confirm-required": true,
+        "x-shc-id-placement": {
+          "resource": "backup",
+          "id": "backup_id",
+          "aliases": [
+            "snapshot_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Backup identifier is a BODY field."
+        }
       }
     },
     "/vm/{serviceId}/backups/delete": {
@@ -2400,7 +2417,17 @@
           }
         },
         "x-required-area": "client_services",
-        "x-shc-confirm-required": true
+        "x-shc-confirm-required": true,
+        "x-shc-id-placement": {
+          "resource": "backup",
+          "id": "backup_id",
+          "aliases": [
+            "snapshot_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Backup identifier is a BODY field (unlike firewall rules, which use a PATH id)."
+        }
       }
     },
     "/vm/{serviceId}/backups/protection": {
@@ -2484,7 +2511,17 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "x-required-area": "client_services"
+        "x-required-area": "client_services",
+        "x-shc-id-placement": {
+          "resource": "backup",
+          "id": "backup_id",
+          "aliases": [
+            "snapshot_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Backup identifier is a BODY field."
+        }
       }
     },
     "/vm/{serviceId}/snapshots": {
@@ -2738,7 +2775,17 @@
           }
         },
         "x-required-area": "client_services",
-        "x-shc-confirm-required": true
+        "x-shc-confirm-required": true,
+        "x-shc-id-placement": {
+          "resource": "snapshot",
+          "id": "snapshot_id",
+          "aliases": [
+            "backup_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Snapshot identifier is a BODY field."
+        }
       }
     },
     "/vm/{serviceId}/snapshots/delete": {
@@ -2832,7 +2879,17 @@
           }
         },
         "x-required-area": "client_services",
-        "x-shc-confirm-required": true
+        "x-shc-confirm-required": true,
+        "x-shc-id-placement": {
+          "resource": "snapshot",
+          "id": "snapshot_id",
+          "aliases": [
+            "backup_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Snapshot identifier is a BODY field (unlike firewall rules, which use a PATH id)."
+        }
       }
     },
     "/vm/{serviceId}/snapshots/protection": {
@@ -2916,7 +2973,17 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "x-required-area": "client_services"
+        "x-required-area": "client_services",
+        "x-shc-id-placement": {
+          "resource": "snapshot",
+          "id": "snapshot_id",
+          "aliases": [
+            "backup_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Snapshot identifier is a BODY field."
+        }
       }
     },
     "/vm/{serviceId}/jobs": {
@@ -10688,7 +10755,13 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "x-required-area": "client_services"
+        "x-required-area": "client_services",
+        "x-shc-id-placement": {
+          "resource": "firewall_rule",
+          "id": "pos",
+          "location": "path",
+          "note": "Rule identifier is the {pos} PATH parameter; the request body carries only the edited rule fields."
+        }
       },
       "delete": {
         "tags": [
@@ -10764,7 +10837,13 @@
           }
         },
         "x-required-area": "client_services",
-        "x-shc-confirm-required": true
+        "x-shc-confirm-required": true,
+        "x-shc-id-placement": {
+          "resource": "firewall_rule",
+          "id": "pos",
+          "location": "path",
+          "note": "Rule identifier is the {pos} PATH parameter; there is NO request body."
+        }
       }
     },
     "/vm/{serviceId}/firewall/policy": {
@@ -11125,7 +11204,17 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "x-required-area": "client_services"
+        "x-required-area": "client_services",
+        "x-shc-id-placement": {
+          "resource": "backup",
+          "id": "backup_id",
+          "aliases": [
+            "snapshot_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Backup identifier is a BODY field."
+        }
       }
     },
     "/vm/{serviceId}/snapshots/verify": {
@@ -11209,7 +11298,17 @@
             "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
-        "x-required-area": "client_services"
+        "x-required-area": "client_services",
+        "x-shc-id-placement": {
+          "resource": "snapshot",
+          "id": "snapshot_id",
+          "aliases": [
+            "backup_id",
+            "id"
+          ],
+          "location": "body",
+          "note": "Snapshot identifier is a BODY field."
+        }
       }
     },
     "/support/tickets/{ticketId}/replies": {
@@ -11808,6 +11907,11 @@
                     },
                     "description": "OPTIONAL. Native Blesta contact-permission area aliases this key may reach (ANDed with 'scope'). Omit to materialize the key to the account's FULL permitted-area set (the key is never stored area-unrestricted/null). Each value is validated against the account's native permission vocabulary; unknown areas are rejected 400, and a present-but-empty array is rejected 400 (omit the field instead). A key may only call operations whose x-required-area is in its set; identity/credential routes (x-required-area=__identity__) are never reachable by any key."
                   }
+                },
+                "example": {
+                  "name": "ci-integration",
+                  "scope": "operate",
+                  "expires_in_days": 90
                 }
               }
             }
@@ -13334,6 +13438,26 @@
                   },
                   "zk_backup": {
                     "$ref": "#/components/schemas/ZkBackupRegistration"
+                  }
+                },
+                "example": {
+                  "destroy_ack": "DESTROY-MY-BACKUPS",
+                  "zk_backup": {
+                    "config": {
+                      "v": 1,
+                      "alg": "argon2id13",
+                      "ctx": "shc-vps-backup-v1",
+                      "ops": 3,
+                      "mem": 268435456,
+                      "salt": "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+                    },
+                    "recipients": [
+                      {
+                        "kind": "password",
+                        "pubkey": "b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f",
+                        "label": "primary"
+                      }
+                    ]
                   }
                 }
               }
@@ -20768,6 +20892,11 @@
             "pattern": "^[A-Za-z0-9_-]{16,128}$",
             "example": "5f051e42-f6a0-4f4d-9b67-c444f4673dd7"
           }
+        },
+        "example": {
+          "amount": "25.00",
+          "currency": "USD",
+          "idempotency_key": "5f051e42-f6a0-4f4d-9b67-c444f4673dd7"
         }
       },
       "CreditTopupResponse": {
@@ -21231,6 +21360,9 @@
             "description": "Lightning Address, LNURL, or BOLT11 invoice; \"\" to clear.",
             "example": "satoshi@sovereignhybridcompute.com"
           }
+        },
+        "example": {
+          "payout_onchain": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
         }
       },
       "AffiliatePayoutRequest": {
@@ -21260,6 +21392,10 @@
             "description": "Optional payout method id; defaults to the single configured method.",
             "example": 1
           }
+        },
+        "example": {
+          "requested_amount": "0.001",
+          "requested_currency": "BTC"
         }
       },
       "AffiliatePayout": {
@@ -21581,6 +21717,12 @@
             "format": "password",
             "description": "Must equal new_password. Defaults to new_password if omitted. Only valid with enable_login."
           }
+        },
+        "example": {
+          "first_name": "Jane",
+          "last_name": "Roe",
+          "email": "jane.roe@example.com",
+          "contact_type": "billing"
         }
       },
       "ContactCreateResponse": {
@@ -21642,6 +21784,13 @@
               "client_services"
             ]
           }
+        },
+        "example": {
+          "email": "manager@example.com",
+          "permissions": [
+            "client_invoices",
+            "client_services"
+          ]
         }
       },
       "ManagerInviteResponse": {
@@ -21774,6 +21923,23 @@
               }
             }
           }
+        },
+        "example": {
+          "config": {
+            "v": 1,
+            "alg": "argon2id13",
+            "ctx": "shc-vps-backup-v1",
+            "ops": 3,
+            "mem": 268435456,
+            "salt": "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+          },
+          "recipients": [
+            {
+              "kind": "password",
+              "pubkey": "b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f",
+              "label": "primary"
+            }
+          ]
         }
       }
     },
@@ -21835,6 +22001,64 @@
           "pattern": "^[A-Za-z0-9_-]{16,128}$"
         },
         "example": "5f051e42-f6a0-4f4d-9b67-c444f4673dd7"
+      }
+    }
+  },
+  "x-mcp-argument-convention": {
+    "summary": "How an MCP tool's arguments map onto this REST API's request. Every MCP tool inputSchema is generated 1:1 from this OpenAPI document by McpCatalog::buildInputSchema; pin against this document and this convention.",
+    "top_level_arguments": "Each path and query parameter becomes a TOP-LEVEL tool argument, named VERBATIM as it appears in this spec. Path parameters are camelCase (serviceId, ticketId, pos) and are always required.",
+    "request_body": "The ENTIRE requestBody is passed as a single nested object argument named 'body'. Its fields are exactly the requestBody schema fields in this spec, in snake_case (ssh_key, policy_in, backup_id, department_id, ...). When requestBody.required is true, 'body' is a required argument.",
+    "header_exception": "HTTP headers are NOT tool arguments, with ONE exception: Idempotency-Key becomes a top-level argument literally named 'Idempotency-Key' (buyVirtualMachine / createVirtualMachineOrder).",
+    "strictness": "The tool inputSchema is additionalProperties:false and performs NO snake_case<->camelCase coercion. An unknown TOP-LEVEL key is rejected by the MCP binder ('Unexpected argument supplied'); an unknown BODY field is rejected by the REST handler (\"Unknown field '<x>'\"). Put path/query args at the top level and ALL request-body fields under 'body'.",
+    "id_placement": "Deleting or modifying a sub-resource by id is modeled two ways in this API and both are intentional (see the per-operation x-shc-id-placement extension): firewall RULES take the id as a PATH parameter (pos) with no body; backups/snapshots take the id as a BODY field (backup_id, with snapshot_id/id accepted as aliases).",
+    "idempotency_placement": "Idempotency is a HEADER (Idempotency-Key) on the order ops and a BODY field (idempotency_key) on submitPaymentCheckout and submitCreditTopup. See each operation.",
+    "read_vs_write_asymmetry": "reverse-DNS: the READ (GET /vm/{serviceId}/rdns) returns 'ptr'; the WRITE (POST) body field is 'hostname'. Use 'hostname' on write.",
+    "reference_doc": "https://blesta.sovereignhybridcompute.com/user-api/docs/mcp-argument-convention.md",
+    "changelog": "https://blesta.sovereignhybridcompute.com/user-api/CHANGELOG.md",
+    "examples": {
+      "path_param_op": {
+        "operationId": "getVirtualMachine",
+        "tool_arguments": {
+          "serviceId": 353
+        }
+      },
+      "body_op": {
+        "operationId": "setServiceSshKey",
+        "tool_arguments": {
+          "body": {
+            "service_id": 353,
+            "ssh_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host"
+          }
+        }
+      },
+      "path_id_delete": {
+        "operationId": "deleteVirtualMachineFirewallRule",
+        "tool_arguments": {
+          "serviceId": 353,
+          "pos": 5,
+          "confirm": true
+        }
+      },
+      "body_id_delete": {
+        "operationId": "deleteVirtualMachineSnapshot",
+        "tool_arguments": {
+          "serviceId": 353,
+          "body": {
+            "snapshot_id": "bk_6ERwSd_PLY66FW72VFM"
+          },
+          "confirm": true
+        }
+      },
+      "header_idempotency_op": {
+        "operationId": "createVirtualMachineOrder",
+        "tool_arguments": {
+          "Idempotency-Key": "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e",
+          "body": {
+            "package_id": 12,
+            "pricing_id": 34,
+            "hostname": "web-01"
+          }
+        }
       }
     }
   }
