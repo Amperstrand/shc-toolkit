@@ -3,7 +3,7 @@
 ## The DRY Layer Cake
 
 ```
-                    SHC OpenAPI Spec (v2.2.0, 106 endpoints)
+                    SHC OpenAPI Spec (v2.4.1, 108 endpoints)
                               ↓ single source of truth
                     ┌─────────────────────────────────┐
                     │   shc-toolkit/catalog_cache.json │  (in git, CI-validated)
