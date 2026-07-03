@@ -775,6 +775,23 @@ class SHCMCPClient:
         args.update(self._convert_args(kwargs))
         return self.call_tool("createSupportTicket", args)
 
+    def get_support_ticket(self, ticket_id: int) -> dict:
+        return self.call_tool("getSupportTicket", {"ticketId": ticket_id})
+
+    def reply_support_ticket(self, ticket_id: int, message: str) -> dict:
+        return self.call_tool("replySupportTicket", {
+            "ticketId": ticket_id, "body": {"message": message},
+        })
+
+    def close_support_ticket(self, ticket_id: int) -> dict:
+        return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
+
+    def list_support_departments(self) -> list[dict]:
+        result = self.call_tool("listSupportDepartments", {})
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
     # ── Wait / Poll ──────────────────────────────────────────
 
     def wait_for_provisioning(
