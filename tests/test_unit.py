@@ -937,3 +937,55 @@ class TestMcpArgumentFormat:
         resp = {"result": {"structuredContent": {"data": {"data": {"key": "value"}}}}}
         unwrapped = SHCMCPClient._unwrap_tool_result(resp)
         assert unwrapped == {"key": "value"}
+
+    def test_verify_backup_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c.verify_backup(123, "bak-456")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "verifyVirtualMachineBackup"
+        assert params["arguments"]["body"]["backup_id"] == "bak-456"
+
+    def test_verify_snapshot_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c.verify_snapshot(123, "snap-456")
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "verifyVirtualMachineSnapshot"
+        assert params["arguments"]["body"]["snapshot_id"] == "snap-456"
+
+    def test_set_backup_protection_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c.set_backup_protection(123, "bak-456", True)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "setVirtualMachineBackupProtection"
+        body = params["arguments"]["body"]
+        assert body["backup_id"] == "bak-456"
+        assert body["protected"] is True
+
+    def test_set_snapshot_protection_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c.set_snapshot_protection(123, "snap-456", False)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "setVirtualMachineSnapshotProtection"
+        body = params["arguments"]["body"]
+        assert body["snapshot_id"] == "snap-456"
+        assert body["protected"] is False
+
+    def test_get_backup_restore_hints_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {}}}}
+        c.get_backup_restore_hints(123)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "getVirtualMachineBackupRestoreHints"
+
+    def test_get_snapshot_restore_hints_calls_correct_tool(self):
+        c = self._mock_mcp_client()
+        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {}}}}
+        c.get_snapshot_restore_hints(123)
+        call_args = c._send_jsonrpc.call_args
+        params = call_args.kwargs.get("params") or call_args[0][1]
+        assert params["name"] == "getVirtualMachineSnapshotRestoreHints"
