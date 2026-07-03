@@ -112,8 +112,8 @@ def check_feature_matrix() -> list[str]:
     features = {
         "Cost audit": {
             "shc-toolkit": ["cost_tracker"],
-            "terraform-provider-shc": ["CostTracker", "cost_tracker"],
-            "shc-pulumi": ["cost_tracker"],
+            "terraform-provider-shc": ["CostTracker"],
+            "shc-pulumi": ["estimate_daily_cost"],
         },
         "Config options": {
             "shc-toolkit": ["resolve_addons"],
