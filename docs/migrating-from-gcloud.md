@@ -216,7 +216,7 @@ Before migrating from Google Cloud to SHC:
 4. Refactor scripts that use load balancers to use reverse proxies
 5. Update CI/CD pipelines to use `shc-compute` instead of `gcloud compute`
 6. Test SSH access and firewall rules after migration
-7. Update monitoring and alerting to account for daily billing minimum
+7. Update monitoring and alerting to account for hourly proration billing
 
 ## Next Steps
 
