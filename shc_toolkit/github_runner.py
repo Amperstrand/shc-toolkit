@@ -456,8 +456,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=runner
-WorkingDirectory={RUNNER_DIR}
-ExecStart={RUNNER_DIR}/run.sh
+WorkingDirectory=/home/runner/actions-runner
+ExecStart=/home/runner/actions-runner/run.sh
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGINT
@@ -492,6 +492,9 @@ def provision(req: ProvisionRequest, client: SHCClient | None = None) -> Provisi
         default_labels(runner_label) + parse_labels(req.labels)
     )
     runner_name = req.runner_name or f"shc-{uuid.uuid4().hex[:8]}"
+    # service_id is tracked outside the try/except so the error path can still
+    # report it for orphan cleanup when provisioning fails mid-flow.
+    service_id: int | None = None
 
     # ── Dry-run path: plan only, no VM, no GitHub API call ──
     if req.dry_run:
@@ -616,6 +619,7 @@ def provision(req: ProvisionRequest, client: SHCClient | None = None) -> Provisi
         _finalize_durations(timings)
         return ProvisionResult(
             ok=False,
+            service_id=service_id,
             runner_name=runner_name,
             runner_label=runner_label,
             labels=all_labels,
