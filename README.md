@@ -197,17 +197,18 @@ Windows is available bring-your-own-license on all VPS lines: Windows Server 202
 
 GUI requires >=16GB disk AND >=4GB RAM.
 
-## Ephemeral GitHub Actions runners (MVP)
+## Ephemeral GitHub Actions runners
 
 Disposable per-job CI runners on cheap SHC VPSs. The toolkit orders a VPS,
 bootstraps the GitHub Actions runner over SSH with `--ephemeral`, registers
 it with a unique per-run label, and the workflow destroys the VM in an
 `if: always()` teardown job when the benchmark finishes.
 
-Current backend is the full SHC VPS; the interface (`provision()` /
-`destroy()` and the JSON timing keys) is intentionally backend-agnostic so
-a future Firecracker microVM backend can swap in to reduce cold-start. The
-target metric is documented in [`docs/github-ephemeral-runners.md`](docs/github-ephemeral-runners.md).
+**Live-measured cold-start**: 135.8 s end-to-end on `dev-4c-16gb`
+(`$0.90/day`, **~$0.01 per run** prorated). Workload execution matches
+`ubuntu-latest` per-shard. Full perf comparison and the Firecracker
+cold-start reduction target live in
+[`docs/github-ephemeral-runners.md`](docs/github-ephemeral-runners.md).
 
 ```bash
 export SHC_API_KEY="shc_live_..."

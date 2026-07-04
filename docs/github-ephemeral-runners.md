@@ -172,3 +172,38 @@ backends:
 3. **Sweeper** — `shc github-runner sweep --older-than 1h` for orphaned
    VMs left over from hard cancels.
 4. **Pool mode** — keep N warm runners, hand them out, replenish async.
+
+## Known issues
+
+### GitHub Actions workflow indexer can stall on fork repos
+
+GitHub Actions registers new workflow files via an internal indexer that
+runs after every push to the default branch. On **forks**, this indexer
+occasionally stalls — the workflow file exists on disk and parses
+correctly, but never appears in `GET /actions/workflows` and dispatch
+returns `HTTP 404`.
+
+We hit this on `Amperstrand/tollgate-module-basic-go` (a fork of
+`OpenTollGate/tollgate-module-basic-go`) while dogfooding. None of the
+standard kicks worked for us:
+
+- ❌ Push to main + wait 5+ min
+- ❌ Rename the file
+- ❌ Empty commit to trigger re-scan
+- ❌ `PUT /actions/permissions` toggle `enabled=false` then `true`
+
+What did work as a long-shot was opening a PR from the dogfood branch —
+the `pull_request` event path uses a different indexer pipeline. If you
+hit the same issue, the cheap path is:
+
+1. Push the workflow file to a feature branch instead of main
+2. Open a PR against main
+3. Wait 1–5 min for the PR-path indexer to pick it up
+4. Dispatch with `gh api .../actions/workflows/<file>/dispatches -f ref=<feature-branch>`
+
+If even the PR path stalls, the last fallback is the web UI:
+**Actions → New workflow → Paste YAML → Start commit**. The web flow
+uses yet another indexer code path.
+
+No support ticket needed — the indexer will eventually catch up on its
+own (sometimes hours), and the workflow file is correct in any case.
