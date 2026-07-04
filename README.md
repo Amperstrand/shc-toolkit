@@ -210,6 +210,12 @@ it with a unique per-run label, and the workflow destroys the VM in an
 cold-start reduction target live in
 [`docs/github-ephemeral-runners.md`](docs/github-ephemeral-runners.md).
 
+**Firecracker PoC validated**: nested KVM works on SHC Dev VPS, μVMs boot
+in **~2 s** vs the 100 s VPS scheduling floor — **50× faster per job,
+150× throughput at parallelism 4**. Pool-mode architecture and live
+benchmark numbers in
+[`docs/firecracker-pool-mode.md`](docs/firecracker-pool-mode.md).
+
 ```bash
 export SHC_API_KEY="shc_live_..."
 export SHC_GITHUB_ADMIN_TOKEN="ghp_..."   # PAT with repo admin / runners:write
