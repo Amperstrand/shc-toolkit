@@ -427,24 +427,24 @@ fi
 # 5. Download runner tarball
 RUNNER_DIR=/home/runner/actions-runner
 sudo -u runner mkdir -p "$RUNNER_DIR"
-cd "$RUNNER_DIR"
 
-if [ ! -x "./run.sh" ]; then
+if [ ! -x "$RUNNER_DIR/run.sh" ]; then
   echo "[$(date -u +%FT%TZ)] downloading runner"
-  sudo -u runner curl -fsSL -o runner.tar.gz "{runner_url}"
-  sudo -u runner tar xzf runner.tar.gz
-  sudo -u runner rm -f runner.tar.gz
+  sudo -u runner bash -c "cd '$RUNNER_DIR' && \\
+    curl -fsSL -o runner.tar.gz '{runner_url}' && \\
+    tar xzf runner.tar.gz && \\
+    rm -f runner.tar.gz"
 fi
 
 # 6. Configure (idempotent via --replace)
 echo "[$(date -u +%FT%TZ)] configuring runner"
-sudo -u runner ./config.sh --unattended \\
-  --url "https://github.com/{repo}" \\
-  --token "{token}" \\
-  --name "{runner_name}" \\
-  --labels "{label_arg}" \\
+sudo -u runner bash -c "cd '$RUNNER_DIR' && ./config.sh --unattended \\
+  --url 'https://github.com/{repo}' \\
+  --token '{token}' \\
+  --name '{runner_name}' \\
+  --labels '{label_arg}' \\
   --ephemeral \\
-  --replace
+  --replace"
 
 # 7. Install as root-owned systemd service that runs as runner
 sudo tee /etc/systemd/system/github-actions-runner.service >/dev/null <<UNIT
