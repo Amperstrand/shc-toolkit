@@ -27,6 +27,45 @@ few cents per job), and tear the runner down when the job ends.
   eliminate the first row and shrink the third by skipping apt/Go install
   (baked into the microVM image).
 
+### Provisioning floor is SHC-side, not size- or template-dependent
+
+A sweep across three (size, template) combinations showed the
+`order → ready` segment is essentially constant at **~100 s ± 5 s**,
+independent of size or OS template. All three combos were placed on the
+same physical IP, indicating SHC reuses host slots for sequential
+cancel+reorder within minutes.
+
+| Size | Template | Order → ready |
+|---|---|---|
+| `dev-1c-4gb` | `ubuntu2404-cloud` | 104.0 s |
+| `dev-2c-8gb` | `ubuntu2404-cloud` | 100.3 s |
+| `dev-1c-4gb` | `alpine323-cloud` | 101.8 s |
+
+**Implication**: picking a smaller or leaner VPS does not reduce
+cold-start. The ~100 s floor is SHC backend scheduling, not anything the
+user controls. The only way past it is a long-lived host VM (pool
+architecture) — which is also exactly what Firecracker needs.
+
+### Firecracker preconditions verified on SHC
+
+Live verification on `dev-4c-16gb` (2026-07-04, VM 1141):
+
+| Check | Result |
+|---|---|
+| `/dev/kvm` exists with correct perms (`crw-rw---- root kvm`) | ✅ |
+| `vmx` extensions visible in `/proc/cpuinfo` | ✅ |
+| `kvm-ok` reports "KVM acceleration can be used" | ✅ |
+| `firecracker v1.9.1` binary runs and reports `--version` cleanly | ✅ |
+| Boot an actual microVM | ⏳ not measured this session |
+
+The μVM boot was blocked by GCC 12+ warnings-as-errors when building
+a Linux 5.10 kernel on Ubuntu 24.04 (specifically `-Wuse-after-free`
+on the kernel's old `realloc` patterns in `tools/objtool`). Resolved
+path: use Linux 6.1 LTS or install GCC 11. AWS publishes Firecracker
+μVM boot at **~125 ms** on dedicated hardware; on SHC's nested KVM
+(L2 virt) expect 200–500 ms — still 200–500× faster than the 100 s
+SHC scheduling floor.
+
 ## Performance vs GitHub-hosted `ubuntu-latest`
 
 Live measurement (2026-07-04): same go-test workload (8 modules from
