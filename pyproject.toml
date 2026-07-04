@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shc-toolkit"
-version = "0.4.0"
+version = "0.5.0"
 description = "Sovereign Hybrid Compute API client, CLI, and NoDNS + Let's Encrypt DNS-01 provisioning"
 requires-python = ">=3.11"
 license = "MIT"

@@ -15,6 +15,15 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 ## Completed Work
 
+### Ephemeral GitHub Actions runners (2026-07-04)
+- `shc github-runner provision|destroy` CLI + `shc_toolkit.github_runner` module
+- Orders SHC VPS → bootstraps actions/runner over SSH with `--ephemeral` + unique per-run labels
+- Idempotent destroy with already-canceled detection
+- Timing instrumentation (t0–t6) for cold-start comparison vs future Firecracker backend
+- Live-validated: 135.8 s cold-start on `dev-4c-16gb`, $0.01/run prorated cost
+- 31 unit tests (label parsing, dry-run, destroy idempotency, mocked GitHub API)
+- See `docs/github-ephemeral-runners.md` for full perf comparison vs `ubuntu-latest`
+
 ### Spec-encoding size names (all 3 repos)
 - 20 entries across 4 lines (nvme/ssd/hdd/dev)
 - Format: `{line}-{cpu}c-{ram}gb` (e.g., `nvme-2c-8gb`)

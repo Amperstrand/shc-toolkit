@@ -9,22 +9,54 @@ few cents per job), and tear the runner down when the job ends.
 
 - **Backend**: full SHC VPS per job. Order → wait → SSH bootstrap → runner
   online → cancel after job. Cold start is dominated by VM provisioning
-  (~3–5 min on SHC).
+  (~60 s measured live on `dev-4c-16gb`).
 - **Future backend**: Firecracker microVM. The interface
   (`provision()` / `destroy()` and the JSON timing keys they return) is
   intentionally backend-agnostic. The metric we care about is **cold-start
   reduction**:
 
-  | Stage | Full VPS | Firecracker (target) |
+  | Stage | Full VPS (measured) | Firecracker (target) |
   |---|---|---|
-  | Provisioning | 180–300 s | <5 s (clone) |
-  | SSH reachable | +15–60 s | +1–2 s |
-  | Runner online | +30–90 s | +30–90 s (same) |
+  | Order/clone → VM ready | **61.4 s** | <5 s (microVM clone) |
+  | VM ready → SSH reachable | **3.8 s** | <2 s |
+  | SSH reachable → runner online | **69.8 s** (apt + Go install + register) | ~30 s (skip apt/Go) |
+  | **Total cold-start** | **135.8 s** | **~35 s** (target) |
 
-  Firecracker eliminates the first two rows. The third is GitHub-side
-  registration overhead and is unaffected by backend.
+  Numbers in column 2 are from live measurement on VM 1102 (2026-07-04,
+  `dev-4c-16gb`, `ubuntu2404-cloud`, US-Katy-Texas). Firecracker would
+  eliminate the first row and shrink the third by skipping apt/Go install
+  (baked into the microVM image).
 
-## CLI
+## Performance vs GitHub-hosted `ubuntu-latest`
+
+Live measurement (2026-07-04): same go-test workload (8 modules from
+`tollgate-module-basic-go`) run on (a) GitHub-hosted `ubuntu-latest` via
+the existing `Test` workflow, and (b) a disposable SHC `dev-4c-16gb` VPS
+provisioned via `shc github-runner provision`.
+
+| Metric | `ubuntu-latest` | SHC VPS | Notes |
+|---|---|---|---|
+| Cold-start to runner online | ~5 s | **135.8 s** | SHC includes full VM order + bootstrap |
+| Workload (8 go-test modules) | 57 s wall (8-way parallel matrix) | 25 s wall (sequential) | Per-module times comparable; SHC was sequential so total is sum |
+| Cost per run | $0 (public repo) | **~$0.01** | SHC prorated from $0.90/day, 135 s used |
+| CPU | 4 vCPU (shared) | 4 vCPU (dedicated) | Comparable |
+| RAM | 16 GB | 16 GB | Same |
+| Disk | 14 GB ephemeral | 32 GB persistent | SHC has more headroom |
+| Nested KVM | No | **Yes** (Dev VPS line only) | SHC enables Firecracker-in-VM, custom kernels, etc. |
+
+**Where SHC wins**:
+- Private repos at scale (above ~10k build-minutes/month, GitHub pricing cliff)
+- Custom hardware needs (nested KVM, GPUs, custom kernel)
+- Long-running or stateful CI (SHC VM survives between jobs if you want)
+- Jurisdictional / data-sovereignty requirements
+
+**Where GitHub-hosted wins**:
+- Cold-start latency (5 s vs 136 s — until Firecracker)
+- Zero ops (no API key rotation, no orphan VMs to sweep)
+- Public OSS repos (free forever)
+
+The Firecracker backend target (~35 s cold-start) would close most of the
+gap for the second category while preserving SHC's wins in the first.
 
 ```bash
 export SHC_API_KEY="shc_live_..."
