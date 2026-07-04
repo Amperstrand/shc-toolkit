@@ -244,6 +244,9 @@ class SHCClient:
     def _get(self, path: str, params: dict | None = None) -> dict[str, Any]:
         return self._request("GET", path, params=params)
 
+    def _get_items(self, path: str, params: dict | None = None) -> list[dict]:
+        return self._request("GET", path, params=params).get("items", [])
+
     def _post(self, path: str, data: dict | None = None, **kwargs) -> dict[str, Any]:
         return self._request("POST", path, json=data or {}, **kwargs)
 
@@ -327,7 +330,7 @@ class SHCClient:
     # ── API Keys ─────────────────────────────────────────────
 
     def list_api_keys(self) -> list[dict]:
-        return self._get("/account/api-keys").get("items", [])
+        return self._get_items("/account/api-keys")
 
     def create_api_key(self, method_scope: str = "full", area_subset: list[str] | None = None,
                        expires_in_days: int | None = None, label: str = "") -> dict:
@@ -384,7 +387,7 @@ class SHCClient:
     # ── Contacts ─────────────────────────────────────────────
 
     def list_contacts(self) -> list[dict]:
-        return self._get("/contacts").get("items", [])
+        return self._get_items("/contacts")
 
     def create_contact(self, **kwargs) -> dict:
         return self._post("/contacts", kwargs)
@@ -396,12 +399,12 @@ class SHCClient:
         return self._delete(f"/contacts/{contact_id}")
 
     def list_contact_permissions(self) -> list[dict]:
-        return self._get("/contacts/permission-options").get("items", [])
+        return self._get_items("/contacts/permission-options")
 
     # ── Support Tickets ──────────────────────────────────────
 
     def list_support_departments(self) -> list[dict]:
-        return self._get("/support/departments").get("items", [])
+        return self._get_items("/support/departments")
 
     def list_support_tickets(self, limit: int = 20, offset: int = 0) -> dict:
         return self._get("/support/tickets", params={"limit": limit, "offset": offset})
@@ -428,10 +431,10 @@ class SHCClient:
     # ── Knowledge Base ───────────────────────────────────────
 
     def list_kb_articles(self) -> list[dict]:
-        return self._get("/kb").get("items", [])
+        return self._get_items("/kb")
 
     def search_kb(self, query: str) -> list[dict]:
-        return self._get("/kb/search", params={"q": query}).get("items", [])
+        return self._get_items("/kb/search", params={"q": query})
 
     def get_kb_article(self, article_id: int) -> dict:
         return self._get(f"/kb/{article_id}")
@@ -439,10 +442,10 @@ class SHCClient:
     # ── Account Managers ─────────────────────────────────────
 
     def list_managed_accounts(self) -> list[dict]:
-        return self._get("/managed-accounts").get("items", [])
+        return self._get_items("/managed-accounts")
 
     def list_managers(self) -> list[dict]:
-        return self._get("/managers").get("items", [])
+        return self._get_items("/managers")
 
     def invite_manager(self, email: str, permissions: list[str] | None = None) -> dict:
         data: dict[str, Any] = {"email": email}
@@ -451,7 +454,7 @@ class SHCClient:
         return self._post("/managers", data)
 
     def list_manager_permissions(self) -> list[dict]:
-        return self._get("/managers/permission-options").get("items", [])
+        return self._get_items("/managers/permission-options")
 
     def get_billing_balance(self) -> dict:
         return self._get("/billing/balance")
@@ -477,7 +480,7 @@ class SHCClient:
         return self._get(f"/payment/{invoice_id}")
 
     def list_payment_methods(self) -> list[dict]:
-        return self._get("/payment-methods").get("items", [])
+        return self._get_items("/payment-methods")
 
     def list_transactions(self, limit: int = 20, offset: int = 0) -> dict:
         return self._get("/transactions", params={"limit": limit, "offset": offset})
@@ -494,13 +497,13 @@ class SHCClient:
     # ── Quotations ───────────────────────────────────────────
 
     def list_quotations(self) -> list[dict]:
-        return self._get("/quotations").get("items", [])
+        return self._get_items("/quotations")
 
     def get_quotation(self, quotation_id: int) -> dict:
         return self._get(f"/quotations/{quotation_id}")
 
     def get_quotation_invoices(self, quotation_id: int) -> list[dict]:
-        return self._get(f"/quotations/{quotation_id}/invoices").get("items", [])
+        return self._get_items(f"/quotations/{quotation_id}/invoices")
 
     # ── Affiliate ────────────────────────────────────────────
 
@@ -517,13 +520,13 @@ class SHCClient:
         return self._put("/affiliate/payout-destination", kwargs)
 
     def list_affiliate_payouts(self) -> list[dict]:
-        return self._get("/affiliate/payouts").get("items", [])
+        return self._get_items("/affiliate/payouts")
 
     def request_affiliate_payout(self, amount: str, currency: str = "BTC") -> dict:
         return self._post("/affiliate/payouts", {"amount": amount, "currency": currency})
 
     def list_affiliate_referrals(self) -> list[dict]:
-        return self._get("/affiliate/referrals").get("items", [])
+        return self._get_items("/affiliate/referrals")
 
     # ── Ordering ─────────────────────────────────────────────
 
@@ -776,7 +779,7 @@ class SHCClient:
     # ── VM Lifecycle ─────────────────────────────────────────
 
     def list_vms(self) -> list[dict]:
-        return self._get("/vm").get("items", [])
+        return self._get_items("/vm")
 
     def get_vm(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}")
@@ -863,7 +866,7 @@ class SHCClient:
         return self._get(f"/vm/{service_id}/detail")
 
     def get_vm_activity(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/activity").get("items", [])
+        return self._get_items(f"/vm/{service_id}/activity")
 
     def get_vm_metrics(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/metrics")
@@ -889,7 +892,7 @@ class SHCClient:
         )
 
     def get_vm_payments(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/payments").get("items", [])
+        return self._get_items(f"/vm/{service_id}/payments")
 
     def get_vm_renewal_quote(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/renew")
@@ -897,7 +900,7 @@ class SHCClient:
     # ── Snapshots ────────────────────────────────────────────
 
     def list_snapshots(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/snapshots").get("items", [])
+        return self._get_items(f"/vm/{service_id}/snapshots")
 
     def create_snapshot(self, service_id: int, name: str | None = None) -> dict:
         data: dict[str, Any] = {}
@@ -929,7 +932,7 @@ class SHCClient:
     # ── Backups ──────────────────────────────────────────────
 
     def list_backups(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/backups").get("items", [])
+        return self._get_items(f"/vm/{service_id}/backups")
 
     def create_backup(self, service_id: int, name: str | None = None) -> dict:
         data: dict[str, Any] = {}
@@ -959,7 +962,7 @@ class SHCClient:
         return self._get(f"/vm/{service_id}/backups/restore-hints")
 
     def list_file_restore_sources(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/file-restore/sources").get("items", [])
+        return self._get_items(f"/vm/{service_id}/file-restore/sources")
 
     def browse_file_restore(self, service_id: int, source: str, path: str = "/") -> list[dict]:
         return self._get(f"/vm/{service_id}/file-restore/list", params={"source": source, "path": path}).get("items", [])
@@ -976,7 +979,7 @@ class SHCClient:
     # ── SSH Keys ─────────────────────────────────────────────
 
     def list_ssh_keys(self, service_id: int | None = None) -> list[dict]:
-        items = self._get("/ssh-key").get("items", [])
+        items = self._get_items("/ssh-key")
         if service_id:
             return [k for k in items if k.get("service_id") == service_id]
         return items
@@ -1022,7 +1025,7 @@ class SHCClient:
     # ── ISO ──────────────────────────────────────────────────
 
     def list_isos(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/iso").get("items", [])
+        return self._get_items(f"/vm/{service_id}/iso")
 
     def mount_iso(self, service_id: int, iso_id: str) -> dict:
         return self._post(f"/vm/{service_id}/iso/mount", {"iso_id": iso_id})
@@ -1033,7 +1036,7 @@ class SHCClient:
     # ── Reverse DNS ──────────────────────────────────────────
 
     def list_rdns(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/rdns").get("items", [])
+        return self._get_items(f"/vm/{service_id}/rdns")
 
     def set_rdns(self, service_id: int, ip: str, ptr: str) -> dict:
         return self._post(f"/vm/{service_id}/rdns", {"ip": ip, "ptr": ptr})
@@ -1061,12 +1064,12 @@ class SHCClient:
         return self._cache_set("templates", self._get("/vm/templates").get("items", []))
 
     def list_images(self) -> list[dict]:
-        return self._get("/image").get("items", [])
+        return self._get_items("/image")
 
     # ── Jobs ─────────────────────────────────────────────────
 
     def list_jobs(self, service_id: int) -> list[dict]:
-        return self._get(f"/vm/{service_id}/jobs").get("items", [])
+        return self._get_items(f"/vm/{service_id}/jobs")
 
     def get_job(self, service_id: int, job_id: str) -> dict:
         return self._get(f"/vm/{service_id}/jobs/{job_id}")

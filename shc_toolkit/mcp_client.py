@@ -337,6 +337,12 @@ class SHCMCPClient:
         except (json.JSONDecodeError, ValueError):
             return combined
 
+    @staticmethod
+    def _extract_items(result: Any) -> list[dict]:
+        if isinstance(result, dict):
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
+
     # ── Convenience: call tool by Python method name ─────────
 
     def _call(self, method_name: str, **kwargs) -> Any:
@@ -410,16 +416,12 @@ class SHCMCPClient:
 
     def list_api_keys(self) -> list[dict]:
         result = self._call("list_api_keys")
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     # VM Lifecycle
     def list_vms(self) -> list[dict]:
         result = self._call("list_vms")
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def get_vm(self, service_id: int) -> dict:
         return self._call("get_vm", service_id=service_id)
@@ -464,9 +466,7 @@ class SHCMCPClient:
     # Jobs
     def list_jobs(self, service_id: int) -> list[dict]:
         result = self._call("list_jobs", service_id=service_id)
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def get_job(self, service_id: int, job_id: str) -> dict:
         return self._call("get_job", service_id=service_id, job_id=job_id)
@@ -474,9 +474,7 @@ class SHCMCPClient:
     # Backups
     def list_backups(self, service_id: int) -> list[dict]:
         result = self._call("list_backups", service_id=service_id)
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def create_backup(self, service_id: int, name: str | None = None) -> dict:
         body: dict[str, Any] = {}
@@ -516,9 +514,7 @@ class SHCMCPClient:
     # Snapshots
     def list_snapshots(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVirtualMachineSnapshots", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def create_snapshot(self, service_id: int, name: str | None = None) -> dict:
         body: dict[str, Any] = {}
@@ -558,17 +554,13 @@ class SHCMCPClient:
     # File Restore
     def list_file_restore_sources(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVmFileRestoreSources", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def browse_file_restore(self, service_id: int, source: str, path: str = "/") -> list[dict]:
         result = self.call_tool("listVmFileRestoreEntries", {
             "serviceId": service_id, "body": {"source": source, "path": path},
         })
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     # Data Preferences
     def get_data_preferences(self, service_id: int) -> dict:
@@ -603,9 +595,7 @@ class SHCMCPClient:
     # Upgrades
     def list_upgrade_options(self, service_id: int) -> list[dict]:
         result = self._call("list_upgrade_options", service_id=service_id)
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def preview_upgrade(self, service_id: int, package_id: int) -> dict:
         return self._call("preview_upgrade", service_id=service_id, package_id=package_id)
@@ -643,22 +633,16 @@ class SHCMCPClient:
 
     def get_vm_activity(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVirtualMachineActivity", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def get_vm_payments(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVirtualMachinePayments", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     # SSH Keys
     def list_ssh_keys(self, service_id: int | None = None) -> list[dict]:
         result = self.call_tool("listServiceSshKeys", {})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def add_ssh_key(
         self, service_id: int, public_key: str, label: str = ""
@@ -703,9 +687,7 @@ class SHCMCPClient:
     # ISO
     def list_isos(self, service_id: int) -> list[dict]:
         result = self.call_tool("listImages", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def mount_iso(self, service_id: int, iso_id: str) -> dict:
         return self.call_tool("mountVirtualMachineIso", {
@@ -718,9 +700,7 @@ class SHCMCPClient:
     # Reverse DNS
     def list_rdns(self, service_id: int) -> list[dict]:
         result = self.call_tool("getVirtualMachineReverseDns", {"serviceId": service_id})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     def set_rdns(self, service_id: int, ip: str, ptr: str) -> dict:
         return self.call_tool("setVirtualMachineReverseDns", {
@@ -788,9 +768,7 @@ class SHCMCPClient:
 
     def list_support_departments(self) -> list[dict]:
         result = self.call_tool("listSupportDepartments", {})
-        if isinstance(result, dict):
-            return result.get("items", [])
-        return result if isinstance(result, list) else []
+        return self._extract_items(result)
 
     # ── Wait / Poll ──────────────────────────────────────────
 
