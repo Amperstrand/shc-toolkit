@@ -199,6 +199,21 @@ def _github_headers(github_token: str) -> dict[str, str]:
     }
 
 
+def _ssl_context() -> "ssl.SSLContext":
+    """Return a TLS context that trusts system + certifi CAs.
+
+    macOS Python from python.org does not always pick up the system trust
+    store automatically; prefer certifi if installed, fall back to the
+    default context (which still uses the OS trust on Linux/Windows).
+    """
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def fetch_registration_token(repo: str, github_token: str) -> dict[str, str]:
     """Create a repo-level self-hosted runner registration token.
 
@@ -218,7 +233,7 @@ def fetch_registration_token(repo: str, github_token: str) -> dict[str, str]:
         headers=_github_headers(github_token),
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as resp:
             body = resp.read().decode()
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")
@@ -250,7 +265,7 @@ def fetch_runner_binary_url() -> str:
             "User-Agent": "shc-toolkit",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
         data = json.loads(resp.read().decode())
     for asset in data.get("assets", []):
         name = asset.get("name", "")
@@ -270,7 +285,7 @@ def fetch_runners(repo: str, github_token: str) -> list[dict[str, Any]]:
     req = urllib.request.Request(
         url, headers=_github_headers(github_token)
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
         return json.loads(resp.read().decode()).get("runners", [])
 
 

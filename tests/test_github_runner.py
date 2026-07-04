@@ -219,7 +219,7 @@ class TestGitHubAPIHelpers:
         )
 
         class FakeUrlopen:
-            def __init__(self, req, timeout):
+            def __init__(self, req, **kw):
                 self.req = req
                 self.buf = fake_resp
 
@@ -248,7 +248,7 @@ class TestGitHubAPIHelpers:
                     403, "Forbidden", {}, BytesIO(b'{"message":"no"}'),
                 )
 
-        def fake_urlopen(req, timeout):
+        def fake_urlopen(req, **kw):
             raise FakeHTTPError()
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
