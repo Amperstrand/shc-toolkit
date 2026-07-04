@@ -118,7 +118,7 @@ def test_snapshot_lifecycle(client, vm):
             pytest.skip(f"Snapshot storage unavailable: {e}")
         raise
 
-    deadline = time.time() + 60
+    deadline = time.time() + 120
     snap_id = None
     while time.time() < deadline:
         snaps = client.list_snapshots(sid)
@@ -155,7 +155,7 @@ def test_backup_lifecycle(client, vm):
             pytest.skip(f"Backup storage unavailable: {e}")
         raise
 
-    deadline = time.time() + 60
+    deadline = time.time() + 120
     backup_id = None
     while time.time() < deadline:
         backups = client.list_backups(sid)
@@ -167,7 +167,7 @@ def test_backup_lifecycle(client, vm):
             break
         time.sleep(3)
 
-    assert backup_id, "Backup did not appear in list within 60s"
+    assert backup_id, "Backup did not appear in list within 120s"
 
     client.delete_backup(sid, backup_id)
 

@@ -76,14 +76,25 @@ jobs:
         if: always()
         run: |
           python -c "
-          import os
+          import os, time
           from shc_toolkit.client import SHCClient
           c = SHCClient()
           vms = c.list_vms()
           for vm in vms:
-              if 'pytest' in vm.get('hostname', '').lower() or 'test' in vm.get('hostname', '').lower():
-                  print(f'CLEANUP: Cancelling orphaned VM #{vm[\"id\"]} ({vm[\"hostname\"]})')
-                  c.cancel_vm(vm['id'], immediate=True)
+              hostname = vm.get('hostname', '').lower()
+              if 'pytest' in hostname or 'test' in hostname:
+                  sid = vm['id']
+                  print(f'CLEANUP: Cancelling orphaned VM #{sid} ({vm[\"hostname\"]})')
+                  for attempt in range(3):
+                      try:
+                          c.cancel_vm(sid, immediate=True)
+                          break
+                      except Exception as e:
+                          if 'locked' in str(e).lower() and attempt < 2:
+                              print(f'  VM locked, retrying in 15s... ({e})')
+                              time.sleep(15)
+                          else:
+                              print(f'  cancel error (ignored): {e}')
           remaining = c.list_vms()
           print(f'After cleanup: {len(remaining)} VMs')
           assert len([v for v in remaining if 'test' in v.get('hostname','').lower()]) == 0, 'Orphaned test VMs remain!'
