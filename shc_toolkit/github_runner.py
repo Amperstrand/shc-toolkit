@@ -410,7 +410,7 @@ sudo apt-get install -y curl tar jq git ca-certificates sudo
 fi
 '''}
 # 3. Go (optional, off by default)
-{"" if not install_go else '''if ! command -v go >/dev/null 2>&1; then
+{"" if not install_go else f'''if ! command -v go >/dev/null 2>&1; then
   echo "[$(date -u +%FT%TZ)] installing go"
   GO_VERSION=1.24.2
   curl -fsSL "https://go.dev/dl/go${{GO_VERSION}}.linux-amd64.tar.gz" \\
