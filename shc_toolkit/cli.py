@@ -587,6 +587,50 @@ def cmd_sizes(args):
         print(f"  {s['size']:20s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB  ${s.get('name',''):30s}  pkg={s['package_id']}")
 
 
+# ── GitHub ephemeral runner ───────────────────────────────
+
+def cmd_github_runner_provision(args):
+    from .github_runner import (
+        ProvisionRequest, provision as do_provision,
+    )
+    import os as _os
+
+    github_token = args.github_token or _os.environ.get("SHC_GITHUB_ADMIN_TOKEN", "")
+    if not args.dry_run and not github_token:
+        print("Error: --github-token or SHC_GITHUB_ADMIN_TOKEN is required",
+              file=sys.stderr)
+        sys.exit(2)
+
+    req = ProvisionRequest(
+        repo=args.repo,
+        github_token=github_token,
+        size=args.size,
+        template=args.template,
+        labels=[s for s in (args.labels or "").split(",") if s.strip()],
+        runner_name=args.runner_name,
+        ssh_public_key=args.ssh_public_key,
+        ssh_private_key=args.ssh_private_key,
+        ssh_user=args.ssh_user,
+        max_wait_seconds=args.max_wait_seconds,
+        install_docker=not args.no_docker,
+        install_go=args.install_go,
+        dry_run=args.dry_run,
+    )
+    result = do_provision(req)
+    print(json.dumps(result.to_dict(), indent=2, default=str))
+    if not result.ok:
+        sys.exit(1)
+
+
+def cmd_github_runner_destroy(args):
+    from .github_runner import destroy as do_destroy
+    sid = int(args.service_id) if args.service_id else None
+    result = do_destroy(sid)
+    print(json.dumps(result, indent=2, default=str))
+    if not result.get("ok"):
+        sys.exit(1)
+
+
 # ── Main ──────────────────────────────────────────────────
 
 def main():
@@ -865,9 +909,58 @@ def main():
         )
     ))
 
+    # ── github-runner: ephemeral self-hosted runners on SHC VPSs ──
+    p_gr = sub.add_parser(
+        "github-runner",
+        help="Provision/destroy ephemeral GitHub Actions runners on SHC VPSs",
+    )
+    gr_sub = p_gr.add_subparsers(dest="gr_command")
+
+    p_prov = gr_sub.add_parser("provision", help="Provision one ephemeral SHC runner")
+    p_prov.add_argument("--repo", required=True,
+                        help="owner/repo, e.g. Amperstrand/tollgate-module-basic-go")
+    p_prov.add_argument("--github-token",
+                        help="PAT with repo admin / runners:write "
+                             "(or set SHC_GITHUB_ADMIN_TOKEN)")
+    p_prov.add_argument("--size", default="dev-4c-16gb",
+                        help="SHC size name (default dev-4c-16gb)")
+    p_prov.add_argument("--template", default="ubuntu2404-cloud",
+                        help="SHC OS template slug (default ubuntu2404-cloud)")
+    p_prov.add_argument("--labels",
+                        help="Comma-separated labels; first becomes the unique "
+                             "per-run label. If omitted, 'self-hosted,linux,x64,"
+                             "shc,<auto>' is used.")
+    p_prov.add_argument("--runner-name", help="Runner name (default auto)")
+    p_prov.add_argument("--ssh-public-key",
+                        help="Path to public key (or raw). If omitted, an "
+                             "ephemeral keypair is generated per run.")
+    p_prov.add_argument("--ssh-private-key",
+                        help="Path to matching private key (only needed with "
+                             "--ssh-public-key for bootstrap)")
+    p_prov.add_argument("--ssh-user", help="SSH user (auto-detected if omitted)")
+    p_prov.add_argument("--max-wait-seconds", type=int, default=600,
+                        help="Max seconds to wait for VM provisioning")
+    p_prov.add_argument("--no-docker", action="store_true",
+                        help="Skip Docker install (installed by default)")
+    p_prov.add_argument("--install-go", action="store_true",
+                        help="Install Go 1.24.2 (off by default)")
+    p_prov.add_argument("--dry-run", action="store_true",
+                        help="Print planned labels/repo/size/template without "
+                             "creating a VM or calling GitHub")
+    p_prov.add_argument("--output-json", action="store_true",
+                        help="Always-on for this subcommand (JSON is the contract)")
+    p_prov.set_defaults(func=cmd_github_runner_provision)
+
+    p_dest = gr_sub.add_parser("destroy", help="Cancel/destroy an SHC VM by id")
+    p_dest.add_argument("--service-id", help="SHC service_id to cancel")
+    p_dest.set_defaults(func=cmd_github_runner_destroy)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
+        sys.exit(1)
+    if args.command == "github-runner" and not getattr(args, "gr_command", None):
+        p_gr.print_help()
         sys.exit(1)
 
     try:

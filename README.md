@@ -197,6 +197,31 @@ Windows is available bring-your-own-license on all VPS lines: Windows Server 202
 
 GUI requires >=16GB disk AND >=4GB RAM.
 
+## Ephemeral GitHub Actions runners (MVP)
+
+Disposable per-job CI runners on cheap SHC VPSs. The toolkit orders a VPS,
+bootstraps the GitHub Actions runner over SSH with `--ephemeral`, registers
+it with a unique per-run label, and the workflow destroys the VM in an
+`if: always()` teardown job when the benchmark finishes.
+
+Current backend is the full SHC VPS; the interface (`provision()` /
+`destroy()` and the JSON timing keys) is intentionally backend-agnostic so
+a future Firecracker microVM backend can swap in to reduce cold-start. The
+target metric is documented in [`docs/github-ephemeral-runners.md`](docs/github-ephemeral-runners.md).
+
+```bash
+export SHC_API_KEY="shc_live_..."
+export SHC_GITHUB_ADMIN_TOKEN="ghp_..."   # PAT with repo admin / runners:write
+
+shc github-runner provision \
+  --repo Amperstrand/tollgate-module-basic-go \
+  --labels shc-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+shc github-runner destroy --service-id "$SERVICE_ID"
+```
+
+Intended audience: OSS maintainers with expensive / slow / custom CI who
+want pay-per-minute runners on machines they control.
+
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo`.
