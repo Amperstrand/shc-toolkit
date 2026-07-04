@@ -267,6 +267,7 @@ def list_vms() -> list[MicroVM]:
 
 def bench(
     count: int, repo: str, token: str, labels_prefix: str,
+    *, vcpu: int = 1, mem_mib: int = 512, github_token: str | None = None,
 ) -> list[MicroVM]:
     """Spawn N μVMs concurrently, return all results. Uses static IPs
     10.0.0.10 + index to avoid DHCP contention."""
@@ -279,7 +280,10 @@ def bench(
             labels = f"{labels_prefix},{name}"
             static_ip = f"10.0.0.{10 + i}"
             futs[pool.submit(spawn_one, name, repo, token, labels,
-                             timeout_s=120, static_ip=static_ip)] = i
+                             timeout_s=120, static_ip=static_ip,
+                             vcpu=vcpu, mem_mib=mem_mib,
+                             poll_github=bool(github_token),
+                             github_token=github_token)] = i
         for fut in as_completed(futs):
             results.append(fut.result())
             r = results[-1]
@@ -290,10 +294,9 @@ def bench(
     boots = [r.boot_to_init_s for r in results if r.boot_to_init_s]
     print(f"\n=== {count} μVMs in {wall:.2f}s ===")
     if boots:
-        print(f"  boot→init: min={min(boots):.3f}  avg={sum(boots)/len(boots):.3f}  max={max(boots):.3f}")
+        print(f"  spawn-to-online: min={min(boots):.3f}  avg={sum(boots)/len(boots):.3f}  max={max(boots):.3f}")
     print(f"  throughput: {count/wall:.2f} μVMs/sec")
 
-    # Cleanup
     for r in results:
         kill_one(r.name)
 
@@ -327,6 +330,9 @@ def main() -> int:
     p_bench.add_argument("--repo", required=True)
     p_bench.add_argument("--token", required=True)
     p_bench.add_argument("--labels-prefix", default="shc,fc")
+    p_bench.add_argument("--vcpu", type=int, default=1)
+    p_bench.add_argument("--mem-mib", type=int, default=512)
+    p_bench.add_argument("--github-token", help="if set, polls GitHub for runner online")
 
     args = ap.parse_args()
 
@@ -355,7 +361,9 @@ def main() -> int:
         return 0
 
     if args.cmd == "bench":
-        results = bench(args.count, args.repo, args.token, args.labels_prefix)
+        results = bench(args.count, args.repo, args.token, args.labels_prefix,
+                        vcpu=args.vcpu, mem_mib=args.mem_mib,
+                        github_token=args.github_token)
         ok = sum(1 for r in results if r.error is None)
         print(f"\n{ok}/{args.count} succeeded")
         return 0 if ok == args.count else 1
