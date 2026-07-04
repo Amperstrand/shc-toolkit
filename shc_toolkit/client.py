@@ -1014,7 +1014,10 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/firewall/rules/{position}", kwargs)
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
-        return self._confirmed_request("DELETE", f"/vm/{service_id}/firewall/rules/{position}")
+        return self._confirmed_request(
+            "DELETE", f"/vm/{service_id}/firewall/rules/{position}",
+            json={"pos": position},
+        )
 
     # ── ISO ──────────────────────────────────────────────────
 
