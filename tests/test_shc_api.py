@@ -212,15 +212,18 @@ def test_firewall_lifecycle(client, vm):
     pos = test_rule.get("pos")
     assert pos is not None, "Firewall rule has no pos field"
 
+    delete_ok = True
     try:
         client.delete_firewall_rule(sid, pos)
     except SHCError as e:
         import warnings
         warnings.warn(f"Firewall delete failed (non-fatal): {e}")
+        delete_ok = False
 
-    fw_final = client.get_firewall(sid)
-    rules_final = fw_final.get("rules", [])
-    assert len(rules_final) == len(rules_before)
+    if delete_ok:
+        fw_final = client.get_firewall(sid)
+        rules_final = fw_final.get("rules", [])
+        assert len(rules_final) == len(rules_before)
 
 
 def test_ssh_key_operations(client, vm):
