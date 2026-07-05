@@ -67,9 +67,21 @@ class MicroVM:
         (STATE_DIR / f"{self.name}.json").unlink(missing_ok=True)
 
 
+import itertools
+_TAP_COUNTER = itertools.count(100)
+
+
 def tap_up(name: str) -> str:
-    # Truncate to keep TAP name under 15 chars (Linux IFNAMSIZ limit)
-    tap = f"fctap-{name[:8]}"
+    """Create a TAP device with a counter-based name to avoid collisions.
+
+    Earlier versions truncated the runner name to 8 chars under the
+    Linux IFNAMSIZ limit, but that caused collisions when multiple
+    runners shared a name prefix (e.g., all 'auto-fc-*' truncated to
+    'fctap-auto-fc-'). Counter-based naming eliminates the collision
+    entirely; the runner name is preserved separately via the workdir.
+    """
+    # Format: fctapNNN — fits in 15-char IFNAMSIZ, monotonic counter
+    tap = f"fctap{next(_TAP_COUNTER):04d}"
     # Idempotent: delete any stale TAP from a previous failed spawn first
     subprocess.run(["ip", "link", "delete", tap],
                    check=False, capture_output=True)
