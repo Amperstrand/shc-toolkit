@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import uuid
+from pathlib import Path
 
 from typing import Any
 
@@ -21,15 +22,80 @@ except ImportError:
     verify_dns = None
 
 
+# ── Context / Auth Profiles ───────────────────────────────
+
+CONTEXTS_DIR = Path.home() / ".config" / "shc" / "contexts.json"
+
+
+def _load_contexts() -> dict[str, str]:
+    """Load saved API key contexts. Returns {name: api_key}."""
+    try:
+        return json.loads(CONTEXTS_DIR.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_contexts(contexts: dict[str, str]) -> None:
+    CONTEXTS_DIR.parent.mkdir(parents=True, exist_ok=True)
+    CONTEXTS_DIR.write_text(json.dumps(contexts, indent=2))
+    CONTEXTS_DIR.chmod(0o600)
+
+
+def _resolve_api_key(args) -> str:
+    """Resolve API key: --api-key flag > --context profile > SHC_API_KEY env."""
+    if getattr(args, "api_key", None):
+        return args.api_key
+    if getattr(args, "context", None):
+        contexts = _load_contexts()
+        if args.context in contexts:
+            return contexts[args.context]
+        print(f"Error: context '{args.context}' not found. Run 'shc context list' to see available.", file=sys.stderr)
+        sys.exit(1)
+    return os.environ.get("SHC_API_KEY", "")
+
+
 def _client(args) -> SHCClient:
     from shc_toolkit import create_client
-    return create_client(
-        api_key=args.api_key or os.environ.get("SHC_API_KEY", "") or None,
-    )
+    key = _resolve_api_key(args)
+    return create_client(api_key=key or None)
 
 
-def _print(data):
-    print(json.dumps(data, indent=2, default=str))
+# ── Output Formatting ─────────────────────────────────────
+
+def _print(data, fmt: str = "json"):
+    if fmt == "json":
+        print(json.dumps(data, indent=2, default=str))
+    elif fmt == "yaml":
+        try:
+            import yaml
+            print(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        except ImportError:
+            print(json.dumps(data, indent=2, default=str))
+    elif fmt == "table":
+        _print_table(data)
+    else:
+        print(json.dumps(data, indent=2, default=str))
+
+
+def _print_table(data):
+    if isinstance(data, list) and data:
+        cols = list(data[0].keys()) if isinstance(data[0], dict) else ["value"]
+        print("  ".join(f"{c:>15s}" for c in cols))
+        print("  ".join("-" * 15 for _ in cols))
+        for row in data:
+            if isinstance(row, dict):
+                print("  ".join(f"{str(row.get(c, '')):>15s}" for c in cols))
+            else:
+                print(f"{str(row):>15s}")
+    elif isinstance(data, dict):
+        for k, v in data.items():
+            print(f"  {k:30s}  {v}")
+    else:
+        print(data)
+
+
+def _get_fmt(args) -> str:
+    return getattr(args, "format", None) or getattr(args, "output", None) or "json"
 
 
 # ── VM Lifecycle ──────────────────────────────────────────
@@ -37,6 +103,10 @@ def _print(data):
 def cmd_list(args):
     c = _client(args)
     vms = c.list_vms()
+    fmt = _get_fmt(args)
+    if fmt in ("json", "yaml"):
+        _print(vms, fmt)
+        return
     if not vms:
         print("No VMs found.")
         return
@@ -47,47 +117,47 @@ def cmd_list(args):
 
 def cmd_info(args):
     c = _client(args)
-    _print(c.get_vm_summary(args.service_id))
+    _print(c.get_vm_summary(args.service_id), _get_fmt(args))
 
 
 def cmd_metrics(args):
     c = _client(args)
-    _print(c.get_vm_metrics(args.service_id))
+    _print(c.get_vm_metrics(args.service_id), _get_fmt(args))
 
 
 def cmd_bandwidth(args):
     c = _client(args)
-    _print(c.get_vm_bandwidth(args.service_id))
+    _print(c.get_vm_bandwidth(args.service_id), _get_fmt(args))
 
 
 def cmd_detail(args):
     c = _client(args)
-    _print(c.get_vm_detail(args.service_id))
+    _print(c.get_vm_detail(args.service_id), _get_fmt(args))
 
 
 def cmd_start(args):
     c = _client(args)
-    _print(c.start_vm(args.service_id))
+    _print(c.start_vm(args.service_id), _get_fmt(args))
 
 
 def cmd_stop(args):
     c = _client(args)
-    _print(c.stop_vm(args.service_id))
+    _print(c.stop_vm(args.service_id), _get_fmt(args))
 
 
 def cmd_shutdown(args):
     c = _client(args)
-    _print(c.shutdown_vm(args.service_id))
+    _print(c.shutdown_vm(args.service_id), _get_fmt(args))
 
 
 def cmd_reset(args):
     c = _client(args)
-    _print(c.reset_vm(args.service_id))
+    _print(c.reset_vm(args.service_id), _get_fmt(args))
 
 
 def cmd_restart(args):
     c = _client(args)
-    _print(c.restart_vm(args.service_id))
+    _print(c.restart_vm(args.service_id), _get_fmt(args))
 
 
 def cmd_health(args):
@@ -99,12 +169,12 @@ def cmd_health(args):
 
 def cmd_reinstall(args):
     c = _client(args)
-    _print(c.reinstall_vm(args.service_id, args.template))
+    _print(c.reinstall_vm(args.service_id, args.template), _get_fmt(args))
 
 
 def cmd_cancel(args):
     c = _client(args)
-    _print(c.cancel_vm(args.service_id))
+    _print(c.cancel_vm(args.service_id), _get_fmt(args))
 
 
 # ── Ordering ──────────────────────────────────────────────
@@ -143,7 +213,7 @@ def cmd_order(args):
         kwargs["ssh_key"] = ssh_key
 
     if args.dry_run:
-        _print(c.preview_order(**kwargs))
+        _print(c.preview_order(**kwargs), _get_fmt(args))
         return
 
     idem = args.idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
@@ -157,7 +227,7 @@ def cmd_order(args):
 
         if not invoice_id:
             print("Could not find invoice ID in order result:")
-            _print(result)
+            _print(result, _get_fmt(args))
             return
 
         # Trigger BTCPay checkout
@@ -181,7 +251,7 @@ def cmd_order(args):
         elif checkout_url:
             print(f"Pay at: {checkout_url}")
         else:
-            _print(pay_result)
+            _print(result, _get_fmt(args))
             return
 
         if service_id:
@@ -212,10 +282,10 @@ def cmd_order(args):
                         print(f"  NoDNS error: {dns_err}")
             except Exception as e:
                 print(f"Provisioning check: {e}")
-                _print(c.get_vm(service_id))
+                _print(c.get_vm(service_id), _get_fmt(args))
         return
 
-    _print(result)
+    _print(result, _get_fmt(args))
 
 
 def cmd_catalog(args):
@@ -253,7 +323,7 @@ def cmd_tickets(args):
         for t in items:
             print(f"  #{t.get('id','?'):>5}  [{t.get('status','?'):10s}]  {t.get('subject','?')[:60]}")
     elif args.subcommand == "get":
-        _print(c.get_support_ticket(args.ticket_id))
+        _print(c.get_support_ticket(args.ticket_id), _get_fmt(args))
     elif args.subcommand == "create":
         msg_text = args.body
         if args.body_file:
@@ -267,11 +337,11 @@ def cmd_tickets(args):
         )
         ticket_id = result.get("id") or result.get("ticket_id", "?")
         print(f"Created ticket #{ticket_id}: {args.subject}")
-        _print(result)
+        _print(result, _get_fmt(args))
     elif args.subcommand == "reply":
-        _print(c.reply_support_ticket(args.ticket_id, args.body))
+        _print(c.reply_support_ticket(args.ticket_id, args.body), _get_fmt(args))
     elif args.subcommand == "close":
-        _print(c.close_support_ticket(args.ticket_id))
+        _print(c.close_support_ticket(args.ticket_id), _get_fmt(args))
     elif args.subcommand == "departments":
         for d in c.list_support_departments():
             print(f"  id={d.get('id','?')}  {d.get('name','?')}")
@@ -290,7 +360,7 @@ def cmd_balance(args):
 def cmd_invoices(args):
     c = _client(args)
     if args.invoice_id:
-        _print(c.get_invoice(args.invoice_id))
+        _print(c.get_invoice(args.invoice_id), _get_fmt(args))
     else:
         result = c.list_invoices()
         items = result.get("items", result) if isinstance(result, dict) else result
@@ -315,7 +385,7 @@ def cmd_transactions(args):
 def cmd_activity(args):
     c = _client(args)
     if getattr(args, "service_id", None):
-        _print(c.get_vm_activity(args.service_id))
+        _print(c.get_vm_activity(args.service_id), _get_fmt(args))
         return
     result = c.get_account_activity(limit=args.limit or 20)
     items = result.get("items", result) if isinstance(result, dict) else result
@@ -346,17 +416,17 @@ def cmd_snapshots(args):
 
 def cmd_create_snapshot(args):
     c = _client(args)
-    _print(c.create_snapshot(args.service_id, args.name))
+    _print(c.create_snapshot(args.service_id, args.name), _get_fmt(args))
 
 
 def cmd_restore_snapshot(args):
     c = _client(args)
-    _print(c.restore_snapshot(args.service_id, args.snapshot_id))
+    _print(c.restore_snapshot(args.service_id, args.snapshot_id), _get_fmt(args))
 
 
 def cmd_delete_snapshot(args):
     c = _client(args)
-    _print(c.delete_snapshot(args.service_id, args.snapshot_id))
+    _print(c.delete_snapshot(args.service_id, args.snapshot_id), _get_fmt(args))
 
 
 # ── Backups ───────────────────────────────────────────────
@@ -378,23 +448,23 @@ def cmd_backup_list(args):
 def cmd_backup_create(args):
     c = _client(args)
     result = c.create_backup(args.service_id, name=args.name)
-    _print(result)
+    _print(result, _get_fmt(args))
 
 
 def cmd_backup_restore(args):
     c = _client(args)
-    _print(c.restore_backup(args.service_id, args.backup_id))
+    _print(c.restore_backup(args.service_id, args.backup_id), _get_fmt(args))
 
 
 def cmd_backup_delete(args):
     c = _client(args)
-    _print(c.delete_backup(args.service_id, args.backup_id))
+    _print(c.delete_backup(args.service_id, args.backup_id), _get_fmt(args))
 
 
 def cmd_backup_protect(args):
     c = _client(args)
     protected = not args.off
-    _print(c.set_backup_protection(args.service_id, args.backup_id, protected))
+    _print(c.set_backup_protection(args.service_id, args.backup_id, protected), _get_fmt(args))
 
 
 # ── Bench ─────────────────────────────────────────────────
@@ -421,7 +491,7 @@ def cmd_nodns(args):
         ip=args.ip, subdomain=args.subdomain, wait_seconds=args.wait,
         keypair=keypair, zone=args.zone,
     )
-    _print(result)
+    _print(result, _get_fmt(args))
     if result["success"]:
         print(f"\nFQDN: {result['fqdn']}")
         print(f"nsec: {result['keypair']['nsec']}")
@@ -436,18 +506,18 @@ def cmd_dns_verify(args):
 def cmd_firewall(args):
     c = _client(args)
     if args.subcommand == "show":
-        _print(c.get_firewall(args.service_id))
+        _print(c.get_firewall(args.service_id), _get_fmt(args))
     elif args.subcommand == "policy":
-        _print(c.set_firewall_policy(args.service_id, args.policy))
+        _print(c.set_firewall_policy(args.service_id, args.policy), _get_fmt(args))
     elif args.subcommand == "add-rule":
         kwargs = {}
         if args.action: kwargs["action"] = args.action
         if args.protocol: kwargs["protocol"] = args.protocol
         if args.port: kwargs["port"] = args.port
         if args.src: kwargs["source"] = args.src
-        _print(c.create_firewall_rule(args.service_id, **kwargs))
+        _print(c.create_firewall_rule(args.service_id, **kwargs), _get_fmt(args))
     elif args.subcommand == "del-rule":
-        _print(c.delete_firewall_rule(args.service_id, args.position))
+        _print(c.delete_firewall_rule(args.service_id, args.position), _get_fmt(args))
     else:
         print("Usage: shc firewall <service_id> {show|policy|add-rule|del-rule}")
         sys.exit(1)
@@ -464,34 +534,34 @@ def cmd_account(args):
 
 def cmd_vm_activity(args):
     c = _client(args)
-    _print(c.get_vm_activity(args.service_id))
+    _print(c.get_vm_activity(args.service_id), _get_fmt(args))
 
 
 def cmd_network(args):
     c = _client(args)
-    _print(c.get_vm_network(args.service_id))
+    _print(c.get_vm_network(args.service_id), _get_fmt(args))
 
 
 def cmd_payments(args):
     c = _client(args)
-    _print(c.get_vm_payments(args.service_id))
+    _print(c.get_vm_payments(args.service_id), _get_fmt(args))
 
 
 # ── Upgrades ──────────────────────────────────────────────
 
 def cmd_upgrade_options(args):
     c = _client(args)
-    _print(c.list_upgrade_options(args.service_id))
+    _print(c.list_upgrade_options(args.service_id), _get_fmt(args))
 
 
 def cmd_upgrade_preview(args):
     c = _client(args)
-    _print(c.preview_upgrade(args.service_id, args.package_id))
+    _print(c.preview_upgrade(args.service_id, args.package_id), _get_fmt(args))
 
 
 def cmd_upgrade(args):
     c = _client(args)
-    _print(c.upgrade_vm(args.service_id, args.package_id))
+    _print(c.upgrade_vm(args.service_id, args.package_id), _get_fmt(args))
 
 
 # ── Jobs ──────────────────────────────────────────────────
@@ -504,14 +574,14 @@ def cmd_jobs(args):
 
 def cmd_job(args):
     c = _client(args)
-    _print(c.get_job(args.service_id, args.job_id))
+    _print(c.get_job(args.service_id, args.job_id), _get_fmt(args))
 
 
 # ── SSH Keys ──────────────────────────────────────────────
 
 def cmd_ssh_keys(args):
     c = _client(args)
-    _print(c.list_ssh_keys(args.service_id))
+    _print(c.list_ssh_keys(args.service_id), _get_fmt(args))
 
 
 def cmd_ssh_key_add(args):
@@ -520,58 +590,58 @@ def cmd_ssh_key_add(args):
         key = open(os.path.expanduser(args.key)).read().strip()
     else:
         key = args.key
-    _print(c.add_ssh_key(args.service_id, key, args.label or ""))
+    _print(c.add_ssh_key(args.service_id, key, args.label or ""), _get_fmt(args))
 
 
 def cmd_ssh_key_live(args):
     c = _client(args)
-    _print(c.apply_ssh_key_live(args.service_id, args.key))
+    _print(c.apply_ssh_key_live(args.service_id, args.key), _get_fmt(args))
 
 
 # ── ISO ───────────────────────────────────────────────────
 
 def cmd_iso(args):
     c = _client(args)
-    _print(c.list_isos(args.service_id))
+    _print(c.list_isos(args.service_id), _get_fmt(args))
 
 
 def cmd_iso_mount(args):
     c = _client(args)
-    _print(c.mount_iso(args.service_id, args.iso_id))
+    _print(c.mount_iso(args.service_id, args.iso_id), _get_fmt(args))
 
 
 def cmd_iso_unmount(args):
     c = _client(args)
-    _print(c.unmount_iso(args.service_id))
+    _print(c.unmount_iso(args.service_id), _get_fmt(args))
 
 
 # ── Reverse DNS ───────────────────────────────────────────
 
 def cmd_rdns(args):
     c = _client(args)
-    _print(c.list_rdns(args.service_id))
+    _print(c.list_rdns(args.service_id), _get_fmt(args))
 
 
 def cmd_rdns_set(args):
     c = _client(args)
-    _print(c.set_rdns(args.service_id, args.ip, args.ptr))
+    _print(c.set_rdns(args.service_id, args.ip, args.ptr), _get_fmt(args))
 
 
 def cmd_rdns_clear(args):
     c = _client(args)
-    _print(c.clear_rdns(args.service_id, args.ip))
+    _print(c.clear_rdns(args.service_id, args.ip), _get_fmt(args))
 
 
 # ── Console ───────────────────────────────────────────────
 
 def cmd_console(args):
     c = _client(args)
-    _print(c.get_console_availability(args.service_id))
+    _print(c.get_console_availability(args.service_id), _get_fmt(args))
 
 
 def cmd_console_session(args):
     c = _client(args)
-    _print(c.create_console_session(args.service_id))
+    _print(c.create_console_session(args.service_id), _get_fmt(args))
 
 
 # ── Templates ─────────────────────────────────────────────
@@ -633,9 +703,79 @@ def cmd_github_runner_destroy(args):
 
 # ── Main ──────────────────────────────────────────────────
 
+def cmd_context(args):
+    contexts = _load_contexts()
+    if args.ctx_command == "list":
+        if not contexts:
+            print("No contexts. Use 'shc context add <name>' to create one.")
+            return
+        for name, key in contexts.items():
+            masked = key[:8] + "..." + key[-4:] if len(key) > 12 else "***"
+            print(f"  {name:20s}  {masked}")
+    elif args.ctx_command == "add":
+        import getpass
+        key = os.environ.get("SHC_API_KEY") or getpass.getpass("API key: ")
+        if not key:
+            print("No key provided.", file=sys.stderr)
+            sys.exit(1)
+        contexts[args.name] = key
+        _save_contexts(contexts)
+        print(f"Added context '{args.name}'")
+    elif args.ctx_command == "remove":
+        if args.name in contexts:
+            del contexts[args.name]
+            _save_contexts(contexts)
+            print(f"Removed context '{args.name}'")
+        else:
+            print(f"Context '{args.name}' not found.", file=sys.stderr)
+            sys.exit(1)
+    elif args.ctx_command == "use":
+        if args.name not in contexts:
+            print(f"Context '{args.name}' not found.", file=sys.stderr)
+            sys.exit(1)
+        os.environ["SHC_API_KEY"] = contexts[args.name]
+        print(f"Switched to context '{args.name}' (set SHC_API_KEY for this process)")
+
+
+_BASH_COMPLETION = r'''#!/bin/bash
+_shc_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    opts="list info detail metrics bandwidth catalog pricing bench order pay start stop shutdown reset restart reinstall cancel snapshot backup firewall support billing activity ssh-key"
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    fi
+}
+complete -F _shc_completion shc
+'''
+
+_ZSH_COMPLETION = r'''#compdef shc
+_shc() {
+    local -a commands
+    commands=('list:List VMs' 'info:VM summary' 'detail:VM detail' 'metrics:VM metrics' 'order:Order VM' 'cancel:Cancel VM' 'snapshot:Manage snapshots' 'backup:Manage backups' 'support:Support tickets' 'billing:Billing info' 'context:Manage API key contexts' 'completion:Shell completion')
+    _describe 'command' commands
+}
+compdef _shc shc
+'''
+
+
+def cmd_completion(args):
+    if args.shell == "bash":
+        print(_BASH_COMPLETION)
+    elif args.shell == "zsh":
+        print(_ZSH_COMPLETION)
+    else:
+        print(f"# {args.shell} completion not yet supported. Use bash or zsh.", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="shc", description="Sovereign Hybrid Compute CLI")
     parser.add_argument("--api-key", help="SHC API key (or set SHC_API_KEY)")
+    parser.add_argument("--context", "-C", help="Auth context name (see 'shc context list')")
+    parser.add_argument("--format", "-o", choices=["json", "yaml", "table"],
+                        default="json", help="Output format (default: json)")
     sub = parser.add_subparsers(dest="command")
 
     p = sub.add_parser("list", help="List VMs")
@@ -954,6 +1094,23 @@ def main():
     p_dest = gr_sub.add_parser("destroy", help="Cancel/destroy an SHC VM by id")
     p_dest.add_argument("--service-id", help="SHC service_id to cancel")
     p_dest.set_defaults(func=cmd_github_runner_destroy)
+
+    # ── Shell completion ──
+    p = sub.add_parser("completion", help="Output shell completion script")
+    p.add_argument("shell", choices=["bash", "zsh"], help="Target shell")
+    p.set_defaults(func=cmd_completion)
+
+    # ── Context management ──
+    p_ctx = sub.add_parser("context", help="Manage API key contexts")
+    p_ctx_sub = p_ctx.add_subparsers(dest="ctx_command", required=True)
+    p_ctx_sub.add_parser("list", help="List saved contexts")
+    p_ctx_add = p_ctx_sub.add_parser("add", help="Add a new context")
+    p_ctx_add.add_argument("name", help="Context name (e.g. 'prod', 'staging')")
+    p_ctx_rm = p_ctx_sub.add_parser("remove", help="Remove a context")
+    p_ctx_rm.add_argument("name", help="Context name to remove")
+    p_ctx_use = p_ctx_sub.add_parser("use", help="Switch to a context")
+    p_ctx_use.add_argument("name", help="Context name to use")
+    p_ctx.set_defaults(func=cmd_context)
 
     args = parser.parse_args()
     if not args.command:

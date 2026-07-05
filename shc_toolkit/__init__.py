@@ -30,10 +30,15 @@ __all__ = [
     "resolve_size",
     "resolve_specs",
     "list_sizes",
+    "VM",
+    "Balance",
+    "CatalogPackage",
+    "SupportTicket",
 ]
 
 # Re-export Protocol for type checking
 from .transport import SHCTransport
+from .models import VM, Balance, CatalogPackage, SupportTicket
 
 
 def create_client(

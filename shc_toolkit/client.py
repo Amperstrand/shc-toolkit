@@ -103,7 +103,9 @@ class SHCClient:
         5-minute TTL. Use cache_ttl=0 to disable or call invalidate_cache().
     """
 
-    def __init__(self, api_key: str | None = None, base_url: str = BASE_URL, cache_ttl: int = _CACHE_TTL):
+    def __init__(self, api_key: str | None = None, base_url: str = BASE_URL,
+                 cache_ttl: int = _CACHE_TTL, max_retries: int = 3,
+                 backoff_base: float = 1.0, backoff_cap: float = 60.0):
         self.api_key = api_key or os.environ.get("SHC_API_KEY", "")
         if not self.api_key:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
@@ -112,6 +114,9 @@ class SHCClient:
         self.session.headers["Authorization"] = f"Bearer {self.api_key}"
         self._cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, Any]] = {}
+        self._max_retries = max_retries
+        self._backoff_base = backoff_base
+        self._backoff_cap = backoff_cap
 
         from .cost_audit import CostTracker
         self.cost_tracker = CostTracker(self)
@@ -193,18 +198,25 @@ class SHCClient:
         elif "Content-Type" in self.session.headers:
             del self.session.headers["Content-Type"]
 
-        for attempt in range(3):
+        for attempt in range(self._max_retries):
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
             except requests.exceptions.RequestException:
-                if attempt == 2:
+                if attempt == self._max_retries - 1:
                     raise
-                time.sleep(2 ** attempt)
+                time.sleep(self._backoff_delay(attempt))
                 continue
-            if resp.status_code >= 500 and attempt < 2:
-                time.sleep(2 ** attempt)
+
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp, attempt)
+                time.sleep(retry_after)
+                continue
+
+            if resp.status_code >= 500 and attempt < self._max_retries - 1:
+                time.sleep(self._backoff_delay(attempt))
                 continue
             break
+
         text = resp.text
         body = _json.loads(text) if text.strip() else {}
         if not resp.ok:
@@ -217,8 +229,6 @@ class SHCClient:
                 err.get("error_code"),
                 err.get("retry_after_seconds"),
             )
-            # Capture confirmation_id from 409 body so _confirmed_request
-            # can auto-resubmit without a second round-trip.
             conf = body.get("confirmation", {})
             if conf:
                 exc.confirmation_id = (
@@ -226,6 +236,36 @@ class SHCClient:
                 )
             raise exc
         return body.get("data", body)
+
+    def _backoff_delay(self, attempt: int) -> float:
+        """Exponential backoff with jitter (Hetzner hcloud pattern).
+
+        base * multiplier^attempt, capped, with ±20% random jitter to prevent
+        thundering herd when multiple clients retry simultaneously.
+        """
+        import random
+        delay = min(self._backoff_cap, self._backoff_base * (2 ** attempt))
+        jitter = delay * 0.2 * random.uniform(-1, 1)
+        return max(0, delay + jitter)
+
+    def _parse_retry_after(self, resp, attempt: int) -> float:
+        """Extract retry delay from 429 response, falling back to backoff."""
+        retry_after = resp.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return float(retry_after)
+            except ValueError:
+                pass
+        text = resp.text
+        try:
+            body = _json.loads(text[text.find("{"):]) if "{" in text else {}
+            err = body.get("error", {})
+            seconds = err.get("retry_after_seconds")
+            if seconds:
+                return float(seconds)
+        except Exception:
+            pass
+        return self._backoff_delay(attempt)
 
     def call(self, method: str, path: str, **kwargs) -> Any:
         """Call any SHC API endpoint directly.
