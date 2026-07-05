@@ -1,0 +1,25 @@
+---
+# SHC Ansible integration — defaults for all hosts
+# Copy to group_vars/all.yml and customize.
+
+# SHC API
+shc_api_key: "{{ lookup('env', 'SHC_API_KEY') }}"
+
+# VM specification
+shc_vm_hostname: "ansible-demo-{{ 99999 | random | to_uuid }}"
+shc_vm_size: "dev-2c-8gb"  # Options: dev-1c-4gb, dev-2c-8gb, nvme-1c-4gb, etc.
+shc_vm_wait_timeout: 600
+
+# SSH
+ansible_user: debian
+shc_vm_ssh_key_source: "~/.ssh/id_ed25519.pub"
+
+# NoDNS
+nodns_zone: "nodns.shop"
+
+# Certbot
+certbot_email: "you@example.com"  # CHANGE THIS
+certbot_staging: false
+
+# Caddy
+caddy_upstream: "127.0.0.1:8080"  # Your app's listen address

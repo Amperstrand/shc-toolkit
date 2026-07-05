@@ -1,0 +1,11 @@
+---
+# NoDNS defaults
+
+# The domain to register (auto-generates a .nodns.shop name if not set)
+nodns_zone: "nodns.shop"
+
+# Where to store the generated nsec
+nodns_nsec_path: "/root/.nodns/nsec"
+
+# Whether to generate a new keypair or use an existing one
+nodns_generate_keypair: true

@@ -1,0 +1,19 @@
+{{ caddy_domain }} {
+    tls {{ caddy_cert_path }} {{ caddy_key_path }}
+
+    reverse_proxy {{ caddy_upstream }}
+
+    encode gzip zstd
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+    }
+
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}

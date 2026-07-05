@@ -1,0 +1,22 @@
+---
+- name: Install Caddy
+  ansible.builtin.apt:
+    name: caddy
+    state: present
+    update_cache: true
+  become: true
+
+- name: Configure Caddy with HTTPS
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    mode: "0644"
+  become: true
+  notify: Restart caddy
+
+- name: Ensure Caddy is enabled and running
+  ansible.builtin.systemd:
+    name: caddy
+    state: started
+    enabled: true
+  become: true

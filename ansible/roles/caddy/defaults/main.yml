@@ -1,0 +1,7 @@
+---
+# Caddy defaults
+
+caddy_domain: "{{ certbot_domain | default('localhost') }}"
+caddy_upstream: "127.0.0.1:8080"
+caddy_cert_path: "/etc/letsencrypt/live/{{ caddy_domain }}/fullchain.pem"
+caddy_key_path: "/etc/letsencrypt/live/{{ caddy_domain }}/privkey.pem"

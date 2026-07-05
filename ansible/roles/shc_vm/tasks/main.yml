@@ -1,0 +1,105 @@
+---
+# Order a VM via the SHC API, wait for it to be ready, and add it to inventory.
+# This task uses the Python SHCClient directly via the shc_toolkit module.
+
+- name: Check if SHC_API_KEY is set
+  ansible.builtin.fail:
+    msg: "SHC_API_KEY environment variable is required"
+  when: lookup('env', 'SHC_API_KEY') | length == 0
+
+- name: Order VM via SHC API
+  ansible.builtin.shell: |
+    python3 -c "
+    import json, sys, os
+    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    from shc_toolkit import SHCClient
+    from shc_pulumi.sizes import resolve_size
+    c = SHCClient()
+    pkg, pr = resolve_size('{{ shc_vm_size }}')
+    r = c.submit_order(package_id=pkg, pricing_id=pr, hostname='{{ shc_vm_hostname }}')
+    sids = r.get('service_ids', []) or ([r['service_id']] if r.get('service_id') else [])
+    if not sids:
+        print(json.dumps({'error': str(r)}))
+        sys.exit(1)
+    sid = int(sids[0])
+    print(json.dumps({'service_id': sid}))
+    "
+  args:
+    executable: /bin/bash
+  environment:
+    SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
+    PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
+  register: shc_order_result
+  changed_when: true
+
+- name: Parse order result
+  ansible.builtin.set_fact:
+    shc_service_id: "{{ (shc_order_result.stdout | from_json).service_id }}"
+
+- name: Wait for VM to be ready
+  ansible.builtin.shell: |
+    python3 -c "
+    import json, sys, os, time
+    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    from shc_toolkit import SHCClient
+    c = SHCClient()
+    deadline = time.time() + {{ shc_vm_wait_timeout }}
+    while time.time() < deadline:
+        vm = c.get_vm({{ shc_service_id }})
+        state = vm.get('provisioning_state', 'unknown')
+        ips = vm.get('ips', [])
+        ip = ips[0]['ip'] if ips else ''
+        if state == 'ready' and ip:
+            print(json.dumps({'ip': ip, 'state': state, 'hostname': vm.get('hostname', '')}))
+            sys.exit(0)
+        if state in ('failed', 'error', 'cancelled'):
+            print(json.dumps({'error': f'provisioning {state}'}))
+            sys.exit(1)
+        time.sleep(10)
+    print(json.dumps({'error': 'timeout'}))
+    sys.exit(1)
+    "
+  args:
+    executable: /bin/bash
+  environment:
+    SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
+    PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
+  register: shc_vm_ready
+  changed_when: false
+
+- name: Parse VM info
+  ansible.builtin.set_fact:
+    shc_vm_ip: "{{ (shc_vm_ready.stdout | from_json).ip }}"
+    shc_vm_resolved_hostname: "{{ (shc_vm_ready.stdout | from_json).hostname }}"
+
+- name: Inject SSH key
+  ansible.builtin.shell: |
+    python3 -c "
+    import sys, os
+    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    from shc_toolkit import SHCClient
+    c = SHCClient()
+    c.apply_ssh_key_live({{ shc_service_id }}, open(os.path.expanduser('{{ shc_vm_ssh_key_source | default('~/.ssh/id_ed25519.pub') }}')).read().strip())
+    "
+  args:
+    executable: /bin/bash
+  environment:
+    SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
+    PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
+  when: shc_vm_ssh_key | length > 0
+
+- name: Add VM to inventory
+  ansible.builtin.add_host:
+    name: "{{ shc_vm_resolved_hostname }}"
+    groups: shc, shc_ready
+    ansible_host: "{{ shc_vm_ip }}"
+    ansible_user: debian
+    shc_service_id: "{{ shc_service_id }}"
+    shc_vm_ip: "{{ shc_vm_ip }}"
+
+- name: Wait for SSH
+  ansible.builtin.wait_for:
+    host: "{{ shc_vm_ip }}"
+    port: 22
+    timeout: 300
+  delegate_to: localhost

@@ -1,0 +1,67 @@
+---
+- name: Install Python pip and nostr dependencies
+  ansible.builtin.apt:
+    name:
+      - python3-pip
+      - python3-venv
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create venv for NoDNS
+  ansible.builtin.command: python3 -m venv /opt/nodns-venv
+  args:
+    creates: /opt/nodns-venv/bin/pip
+
+- name: Install nostr-sdk in venv
+  ansible.builtin.pip:
+    name: nostr-sdk
+    virtualenv: /opt/nodns-venv
+    state: present
+
+- name: Create .nodns directory
+  ansible.builtin.file:
+    path: "{{ nodns_nsec_path | dirname }}"
+    state: directory
+    mode: "0700"
+  become: true
+
+- name: Generate NoDNS keypair
+  ansible.builtin.shell: |
+    source /opt/nodns-venv/bin/activate
+    python3 -c "
+    from nostr_sdk import Keys
+    import json
+    keys = Keys.generate()
+    print(json.dumps({
+        'nsec': keys.secret_key().to_bech32(),
+        'npub': keys.public_key().to_bech32(),
+    }))
+    "
+  args:
+    executable: /bin/bash
+  register: nodns_keypair
+  changed_when: true
+  when: nodns_generate_keypair | bool
+
+- name: Save nsec
+  ansible.builtin.copy:
+    content: "{{ (nodns_keypair.stdout | from_json).nsec | replace('nsec1', '') }}"
+    dest: "{{ nodns_nsec_path }}"
+    mode: "0600"
+  become: true
+  when: nodns_generate_keypair | bool
+
+- name: Set NoDNS facts
+  ansible.builtin.set_fact:
+    nodns_npub: "{{ (nodns_keypair.stdout | from_json).npub }}"
+    nodns_nsec: "{{ (nodns_keypair.stdout | from_json).nsec }}"
+  when: nodns_generate_keypair | bool
+
+- name: Display NoDNS domain
+  ansible.builtin.debug:
+    msg: |
+      NoDNS domain registered: {{ nodns_npub }}.{{ nodns_zone }}
+      Save this nsec securely: {{ nodns_nsec }}
+      The A record will propagate within 1-5 minutes via Nostr kind 11111 events.
+  when: nodns_generate_keypair | bool

@@ -1,0 +1,7 @@
+---
+# Certbot defaults
+
+certbot_email: "admin@{{ nodns_npub | default('example') }}.{{ nodns_zone | default('nodns.shop') }}"
+certbot_domain: "{{ nodns_npub | default('') }}.{{ nodns_zone | default('nodns.shop') }}"
+certbot_nsec_path: "{{ nodns_nsec_path | default('/root/.nodns/nsec') }}"
+certbot_staging: false

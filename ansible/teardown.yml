@@ -1,0 +1,31 @@
+---
+# Tear down: cancel the SHC VM and clean up.
+# Usage: ansible-playbook -i inventory/shc-hosts.ini teardown.yml
+#
+# Reads the service_id from the host facts (set by the provisioning playbook)
+# or from a variable.
+
+- name: Cancel SHC VM
+  hosts: "{{ target_host | default('shc_ready[0]') }}"
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Cancel VM via SHC API
+      ansible.builtin.shell: |
+        python3 -c "
+        import sys, os
+        sys.path.insert(0, '{{ playbook_dir }}/..')
+        from shc_toolkit import SHCClient
+        c = SHCClient()
+        c.cancel_vm({{ shc_service_id | default(0) }}, immediate=True)
+        print('cancelled')
+        "
+      args:
+        executable: /bin/bash
+      environment:
+        SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
+      register: cancel_result
+
+    - name: Report
+      ansible.builtin.debug:
+        msg: "SHC VM #{{ shc_service_id | default('?') }} cancelled: {{ cancel_result.stdout }}"

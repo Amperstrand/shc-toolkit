@@ -1,0 +1,47 @@
+---
+- name: Install certbot
+  ansible.builtin.apt:
+    name:
+      - certbot
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create NoDNS auth hook script
+  ansible.builtin.template:
+    src: nodns-auth-hook.sh.j2
+    dest: /usr/local/bin/certbot-nodns-hook.sh
+    mode: "0755"
+  become: true
+
+- name: Create cleanup hook script
+  ansible.builtin.template:
+    src: nodns-cleanup-hook.sh.j2
+    dest: /usr/local/bin/certbot-nodns-cleanup.sh
+    mode: "0755"
+  become: true
+
+- name: Request certificate via DNS-01 with NoDNS
+  ansible.builtin.shell: |
+    certbot certonly \
+      --manual \
+      --preferred-challenges dns \
+      --manual-auth-hook /usr/local/bin/certbot-nodns-hook.sh \
+      --manual-cleanup-hook /usr/local/bin/certbot-nodns-cleanup.sh \
+      {{ '--staging' if certbot_staging | bool else '' }} \
+      --non-interactive \
+      --agree-tos \
+      --email {{ certbot_email }} \
+      -d {{ certbot_domain }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem"
+  become: true
+  register: certbot_result
+  changed_when: "'Congratulations' in certbot_result.stdout or 'Certificate obtained' in certbot_result.stdout"
+
+- name: Set up renewal timer
+  ansible.builtin.cron:
+    name: "certbot renewal"
+    job: "certbot renew --quiet --deploy-hook 'systemctl reload caddy || true'"
+    special_time: daily
+  become: true

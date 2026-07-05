@@ -1,0 +1,69 @@
+---
+# Full SHC provisioning pipeline:
+# 1. Order VM via SHC API → wait for ready → inject SSH key
+# 2. Generate NoDNS keypair → publish A record
+# 3. Request Let's Encrypt cert via DNS-01 with NoDNS auth hook
+# 4. Configure Caddy reverse proxy with HTTPS
+# 5. Verify the HTTPS endpoint
+#
+# Usage:
+#   export SHC_API_KEY="shc_live_..."
+#   cd ansible/
+#   ansible-playbook -i localhost, playbook.yml
+#
+# Then to tear down:
+#   ansible-playbook -i inventory/shc-hosts.ini teardown.yml
+
+- name: Provision SHC VM and configure HTTPS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Order VM and wait for SSH
+      ansible.builtin.import_role:
+        name: shc_vm
+
+- name: Configure NoDNS + HTTPS on the new VM
+  hosts: "{{ hostvars['localhost']['shc_vm_resolved_hostname'] | default('shc-new-vm') }}"
+  gather_facts: true
+  become: true
+  roles:
+    - nodns
+    - certbot
+    - caddy
+  post_tasks:
+    - name: Verify HTTPS endpoint
+      ansible.builtin.uri:
+        url: "https://{{ nodns_npub }}.{{ nodns_zone }}"
+        method: GET
+        status_code: [200, 301, 302, 404, 502]
+        validate_certs: "{{ not (certbot_staging | bool) }}"
+      delegate_to: localhost
+      register: https_check
+      ignore_errors: true
+
+    - name: Report HTTPS status
+      ansible.builtin.debug:
+        msg: >-
+          HTTPS endpoint https://{{ nodns_npub }}.{{ nodns_zone }}
+          returned {{ https_check.status | default('FAILED') }}.
+          Certificate from Let's Encrypt ({{ 'staging' if certbot_staging | bool else 'production' }}).
+          {% if https_check.failed %}Check that Caddy and your app on port {{ caddy_upstream }} are running.{% endif %}
+
+- name: Summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Print deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "=== SHC VM Provisioned ==="
+          - "Service ID: {{ hostvars[groups['shc_ready'][0]].shc_service_id | default('unknown') }}"
+          - "IP: {{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') }}"
+          - "Domain: {{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') }}.{{ nodns_zone }}"
+          - "HTTPS: https://{{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') }}.{{ nodns_zone }}"
+          - ""
+          - "SSH: ssh debian@{{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') }}"
+          - ""
+          - "To cancel: python3 -c \"from shc_toolkit import SHCClient; SHCClient().cancel_vm({{ hostvars[groups['shc_ready'][0]].shc_service_id | default(0) }}, immediate=True)\""
