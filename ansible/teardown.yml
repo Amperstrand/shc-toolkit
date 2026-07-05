@@ -6,10 +6,15 @@
 # or from a variable.
 
 - name: Cancel SHC VM
-  hosts: "{{ target_host | default('shc_ready[0]') }}"
+  hosts: "{{ target_host | default('localhost') }}"
   connection: local
   gather_facts: false
   tasks:
+    - name: Check service_id is provided
+      ansible.builtin.fail:
+        msg: "shc_service_id is required. Pass with -e shc_service_id=123"
+      when: shc_service_id is not defined or shc_service_id | int == 0
+
     - name: Cancel VM via SHC API
       ansible.builtin.shell: |
         python3 -c "

@@ -59,11 +59,12 @@
       ansible.builtin.debug:
         msg:
           - "=== SHC VM Provisioned ==="
-          - "Service ID: {{ hostvars[groups['shc_ready'][0]].shc_service_id | default('unknown') }}"
-          - "IP: {{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') }}"
-          - "Domain: {{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') }}.{{ nodns_zone }}"
-          - "HTTPS: https://{{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') }}.{{ nodns_zone }}"
+          - "Service ID: {{ hostvars[groups['shc_ready'][0]].shc_service_id | default('unknown') if groups.get('shc_ready') else 'unknown' }}"
+          - "IP: {{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') if groups.get('shc_ready') else 'unknown' }}"
+          - "Domain: {{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') if groups.get('shc_ready') else 'pending' }}.{{ nodns_zone }}"
+          - "HTTPS: https://{{ hostvars[groups['shc_ready'][0]].nodns_npub | default('pending') if groups.get('shc_ready') else 'pending' }}.{{ nodns_zone }}"
           - ""
-          - "SSH: ssh debian@{{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') }}"
+          - "SSH: ssh debian@{{ hostvars[groups['shc_ready'][0]].shc_vm_ip | default('unknown') if groups.get('shc_ready') else 'unknown' }}"
           - ""
-          - "To cancel: python3 -c \"from shc_toolkit import SHCClient; SHCClient().cancel_vm({{ hostvars[groups['shc_ready'][0]].shc_service_id | default(0) }}, immediate=True)\""
+          - "To cancel: python3 -c \"from shc_toolkit import SHCClient; SHCClient().cancel_vm({{ hostvars[groups['shc_ready'][0]].shc_service_id | default(0) if groups.get('shc_ready') else 0 }}, immediate=True)\""
+      when: groups.get('shc_ready')

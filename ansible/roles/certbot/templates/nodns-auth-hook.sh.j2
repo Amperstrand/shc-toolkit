@@ -2,45 +2,51 @@
 # NoDNS certbot auth hook — publishes _acme-challenge TXT via Nostr kind 11111
 set -e
 
-DOMAIN="{{ certbot_domain }}"
-NSEC_FILE="{{ certbot_nsec_path }}"
-ZONE="{{ nodns_zone }}"
-
-# certbot passes CERTBOT_DOMAIN and CERTBOT_VALIDATION
-CHALLENGE="${CERTBOT_VALIDATION}"
-
 source /opt/nodns-venv/bin/activate
 
 python3 -c "
-import sys, time
-from nostr_sdk import Client, Keys, EventBuilder, Tag, Timestamp
+import sys, time, json
+from nostr_sdk import Keys, Client, EventBuilder, Tag, Timestamp
 
-# Load nsec
-with open('${NSEC_FILE}') as f:
+NSEC_FILE = '{{ certbot_nsec_path }}'
+ZONE = '{{ nodns_zone }}'
+DOMAIN = '${CERTBOT_DOMAIN}'
+VALIDATION = '${CERTBOT_VALIDATION}'
+
+with open(NSEC_FILE) as f:
     nsec_hex = f.read().strip()
-keys = Keys.from_hex(nsec_hex) if len(nsec_hex) == 64 else Keys.from_bech32('nsec1' + nsec_hex)
 
-# Publish _acme-challenge TXT via kind 11111 (NoDNS)
+if nsec_hex.startswith('nsec1'):
+    keys = Keys.from_bech32(nsec_hex)
+else:
+    keys = Keys.from_hex(nsec_hex)
+
 client = Client()
-client.add_relay('wss://relay.damus.io')
+client.add_relay('wss://nos.lol')
 client.add_relay('wss://relay.nodns.shop')
 client.connect()
 
-record_name = '_acme-challenge.${DOMAIN}'.rstrip('.')
-event = EventBuilder.text_note(
-    '${CHALLENGE}',
-    [
-        Tag.identifier(record_name),
-        Tag.custom('t', 'dns-txt'),
-        Tag.custom('zone', '${ZONE}'),
-    ]
+record = json.dumps([{
+    'type': 'TXT',
+    'name': '_acme-challenge',
+    'value': VALIDATION,
+    'ttl': 120,
+}])
+
+event = EventBuilder(
+    kind=11111,
+    content=record,
+    tags=[
+        Tag.identifier(DOMAIN),
+        Tag.custom('t', 'dns'),
+        Tag.custom('zone', ZONE),
+    ],
 ).sign_with_keys(keys)
 
 client.send_event(event)
-print(f'Published _acme-challenge TXT for {record_name}', file=sys.stderr)
+print(f'Published _acme-challenge TXT for {DOMAIN}', file=sys.stderr)
 
-# Wait for propagation
-time.sleep(10)
+time.sleep(15)
 "
 
 echo "NoDNS auth hook complete" >&2

@@ -69,14 +69,13 @@ def main():
         if state == "ready":
             inventory["shc_ready"]["hosts"].append(host_name)
 
-        vm_detail = vm.get("image", {}) or {}
-        template = vm_detail.get("name", "unknown")
+        package_name = vm.get("package", "").lower()
         tier = "dev"
-        if "nvme" in template.lower():
+        if "nvme" in package_name:
             tier = "nvme"
-        elif "ssd" in template.lower():
+        elif "ssd" in package_name:
             tier = "ssd"
-        elif "hdd" in template.lower():
+        elif "hdd" in package_name:
             tier = "hdd"
 
         tier_group = f"shc_{tier}"

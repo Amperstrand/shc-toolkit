@@ -63,5 +63,24 @@
     msg: |
       NoDNS domain registered: {{ nodns_npub }}.{{ nodns_zone }}
       Save this nsec securely: {{ nodns_nsec }}
-      The A record will propagate within 1-5 minutes via Nostr kind 11111 events.
+  when: nodns_generate_keypair | bool
+
+- name: Publish A record via shc_toolkit
+  ansible.builtin.shell: |
+    python3 -c "
+    import sys, os
+    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    from shc_toolkit.nodns import NoDNSKeyPair, publish_dns_records
+    kp = NoDNSKeyPair.from_nsec('{{ nodns_nsec }}')
+    result = publish_dns_records(kp, [
+        {'type': 'A', 'name': '@', 'value': '{{ shc_vm_ip }}', 'ttl': 300},
+    ])
+    print('Published A record: ' + str(result.get('sent', [])))
+    "
+  args:
+    executable: /bin/bash
+  environment:
+    SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
+    PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
+  delegate_to: localhost
   when: nodns_generate_keypair | bool
