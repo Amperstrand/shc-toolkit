@@ -989,3 +989,66 @@ class TestMcpArgumentFormat:
         call_args = c._send_jsonrpc.call_args
         params = call_args.kwargs.get("params") or call_args[0][1]
         assert params["name"] == "getVirtualMachineSnapshotRestoreHints"
+
+
+# ── Backoff / Retry Logic ───────────────────────────────────
+
+
+class TestBackoffRetry:
+    def _client(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            return SHCClient()
+
+    def test_backoff_scales_exponentially(self):
+        c = self._client()
+        d0 = c._backoff_delay(0)
+        d1 = c._backoff_delay(1)
+        d2 = c._backoff_delay(2)
+        assert 0.5 <= d0 <= 1.5
+        assert d1 > d0
+        assert d2 > d1
+
+    def test_backoff_respects_cap(self):
+        c = self._client()
+        for i in range(30):
+            d = c._backoff_delay(i)
+            assert d <= 60.0, f"attempt {i}: {d} > 60 cap"
+
+    def test_backoff_never_negative(self):
+        c = self._client()
+        for i in range(30):
+            d = c._backoff_delay(i)
+            assert d >= 0
+
+    def test_custom_backoff_config(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient(max_retries=5, backoff_base=0.5, backoff_cap=10.0)
+        for i in range(10):
+            d = c._backoff_delay(i)
+            assert d <= 10.0, f"attempt {i}: {d} > 10 custom cap"
+
+    def test_parse_retry_after_header(self):
+        c = self._client()
+        mock_resp = MagicMock()
+        mock_resp.headers = {"Retry-After": "15"}
+        mock_resp.text = "{}"
+        result = c._parse_retry_after(mock_resp, 0)
+        assert result == 15.0
+
+    def test_parse_retry_after_json_field(self):
+        c = self._client()
+        mock_resp = MagicMock()
+        mock_resp.headers = {}
+        mock_resp.text = '{"error":{"retry_after_seconds":30}}'
+        result = c._parse_retry_after(mock_resp, 0)
+        assert result == 30.0
+
+    def test_parse_retry_after_falls_back_to_backoff(self):
+        c = self._client()
+        mock_resp = MagicMock()
+        mock_resp.headers = {}
+        mock_resp.text = '{}'
+        result = c._parse_retry_after(mock_resp, 0)
+        assert 0 < result <= 60.0

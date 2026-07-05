@@ -238,15 +238,10 @@ class SHCClient:
         return body.get("data", body)
 
     def _backoff_delay(self, attempt: int) -> float:
-        """Exponential backoff with jitter (Hetzner hcloud pattern).
-
-        base * multiplier^attempt, capped, with ±20% random jitter to prevent
-        thundering herd when multiple clients retry simultaneously.
-        """
         import random
         delay = min(self._backoff_cap, self._backoff_base * (2 ** attempt))
         jitter = delay * 0.2 * random.uniform(-1, 1)
-        return max(0, delay + jitter)
+        return min(self._backoff_cap, max(0, delay + jitter))
 
     def _parse_retry_after(self, resp, attempt: int) -> float:
         """Extract retry delay from 429 response, falling back to backoff."""
