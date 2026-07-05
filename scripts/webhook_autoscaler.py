@@ -116,6 +116,7 @@ def spawn_for_label(runner_label: str, runner_name: str) -> None:
             static_ip=static_ip,
             poll_github=True,
             github_token=GH_TOKEN,
+            leave_running=True,
         )
         log(f"spawn_for_label done: name={runner_name} boot={vm.boot_to_init_s}s err={vm.error}")
     except Exception as e:  # noqa: BLE001

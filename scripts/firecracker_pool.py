@@ -107,15 +107,18 @@ def spawn_one(
     static_ip: str | None = None,
     poll_github: bool = False,
     github_token: str | None = None,
+    leave_running: bool = False,
 ) -> MicroVM:
-    """Spawn one μVM with runner. Returns when runner online OR timeout.
+    """Spawn one μVM with runner.
 
-    static_ip: if set, uses Linux kernel `ip=` cmdline to configure eth0
-               statically, bypassing DHCP. Format: "10.0.0.5".
+    static_ip: kernel `ip=` param for eth0. Format: "10.0.0.5".
 
-    poll_github: if True, polls GitHub Actions API every 3s for the runner
-                 showing up "online", and kills the μVM as soon as it does.
-                 Requires github_token with runners:read on repo.
+    poll_github: poll GitHub Actions API every 3s for runner "online".
+
+    leave_running: if True, do NOT kill the μVM when the function returns.
+        Used by the webhook autoscaler — the μVM must stay alive to
+        receive the job. The μVM will self-terminate (poweroff) after
+        the ephemeral runner processes one job.
     """
     t0 = time.monotonic()
     workdir = Path(tempfile.mkdtemp(prefix=f"fc-{name}-"))
@@ -227,9 +230,15 @@ def spawn_one(
                     vm.boot_to_init_s = round(runner_online_at - t0, 3)
                     vm.started_at = t0
             else:
-                # No GitHub polling — just wait fixed time
                 remaining = max(0, deadline - time.monotonic())
                 time.sleep(min(remaining, 60))
+
+        if leave_running:
+            # Webhook autoscaler mode: μVM stays alive, will self-terminate
+            # via poweroff after the ephemeral runner processes one job.
+            # Don't kill the Firecracker process or clean up the TAP.
+            vm.save()
+            return vm
 
         if proc.poll() is None:
             proc.send_signal(signal.SIGKILL)
