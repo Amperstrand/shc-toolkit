@@ -31,8 +31,6 @@ log = logging.getLogger(__name__)
 RELAYS = [
     "wss://relay.cashu.email",
     "wss://nos.lol",
-    "wss://relay.nodns.shop",
-    "wss://relay.damus.io",
 ]
 
 DEFAULT_ZONE = "nodns.shop"
