@@ -29,11 +29,10 @@ from nostr_sdk import (
 log = logging.getLogger(__name__)
 
 RELAYS = [
-    "wss://relay.damus.io",
+    "wss://relay.cashu.email",
     "wss://nos.lol",
-    "wss://nostr.wine",
-    "wss://relay.ngit.dev",
-    "wss://relay.tollgate.me",
+    "wss://relay.nodns.shop",
+    "wss://relay.damus.io",
 ]
 
 DEFAULT_ZONE = "nodns.shop"
