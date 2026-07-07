@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Reap orphaned SHC VMs that are older than a threshold.
+"""Reap orphaned SHC VMs.
 
-Cancels any VM whose hostname matches CI/test patterns AND has been
-running longer than --max-age hours. Preserves VMs on a keep-list.
+Two-layer detection:
+1. PRIMARY: CI/test VMs without end-of-term cancellation scheduled
+   (date_canceled is null). These leaked because the CI cleanup step
+   didn't run. Safe to cancel immediately.
+
+2. FALLBACK: CI/test VMs older than --max-age hours, regardless of
+   cancellation status. Catches VMs where cancellation was scheduled
+   but the VM is still burning credit until renewal.
+
+Permanent VMs (europa-vpn-vps, tollgate-main-*, etc.) are never matched.
 
 Usage:
-    python scripts/reap_orphan_vms.py                  # dry run
-    python scripts/reap_orphan_vms.py --execute        # actually cancel
-    python scripts/reap_orphan_vms.py --execute --max-age 2
-
-Designed to run as a scheduled CI job every 6 hours.
+    python scripts/reap_orphan_vms.py                       # dry run
+    python scripts/reap_orphan_vms.py --execute              # cancel
+    python scripts/reap_orphan_vms.py --execute --max-age 2  # >2h old
 """
 from __future__ import annotations
 
@@ -19,6 +25,8 @@ import time
 from datetime import datetime, timezone
 
 KEEP_HOSTNAMES = {"europa-vpn-vps"}
+KEEP_PATTERNS = ["tollgate-main-", "europa-vpn"]
+
 CI_HOSTNAME_PATTERNS = [
     "pytest", "test", "ci-", "shc-runner-", "debug-",
     "e2e-host-", "europa-test-", "pool-host-",
@@ -34,7 +42,10 @@ def is_ci_vm(hostname: str) -> bool:
 
 
 def should_keep(hostname: str) -> bool:
-    return hostname.lower() in KEEP_HOSTNAMES
+    h = hostname.lower()
+    if h in KEEP_HOSTNAMES:
+        return True
+    return any(p in h for p in KEEP_PATTERNS)
 
 
 def vm_age_hours(vm: dict) -> float:
@@ -48,10 +59,14 @@ def vm_age_hours(vm: dict) -> float:
         return 0
 
 
+def has_cancel_scheduled(vm_detail: dict) -> bool:
+    return vm_detail.get("date_canceled") is not None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--execute", action="store_true", help="Actually cancel VMs (default: dry run)")
-    parser.add_argument("--max-age", type=float, default=DEFAULT_MAX_AGE_HOURS, help="Max age in hours (default: 6)")
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--max-age", type=float, default=DEFAULT_MAX_AGE_HOURS)
     args = parser.parse_args()
 
     sys.path.insert(0, ".")
@@ -67,26 +82,36 @@ def main() -> int:
             continue
         if not is_ci_vm(hostname):
             continue
-        age = vm_age_hours(vm)
-        if age < args.max_age:
+
+        detail = c.get_vm(vm["id"])
+        age = vm_age_hours(detail)
+        cancel_scheduled = has_cancel_scheduled(detail)
+        status = detail.get("service_status", "?")
+
+        if not cancel_scheduled:
+            reason = "NO CANCEL SCHEDULED (leaked)"
+        elif age > args.max_age:
+            reason = f"age={age:.1f}h > {args.max_age}h"
+        else:
             continue
-        candidates.append((vm["id"], hostname, age, vm.get("service_status", "?")))
+
+        candidates.append((vm["id"], hostname, age, status, reason))
 
     if not candidates:
-        print(f"No orphaned VMs found (checked {len(vms)} VMs, max_age={args.max_age}h)")
+        print(f"No orphaned VMs (checked {len(vms)}, keep={len(KEEP_HOSTNAMES)} permanent)")
         return 0
 
-    print(f"Found {len(candidates)} orphaned VM(s) older than {args.max_age}h:")
-    for sid, hostname, age, status in candidates:
+    print(f"Found {len(candidates)} orphaned VM(s):")
+    for sid, hostname, age, status, reason in candidates:
         action = "CANCEL" if args.execute else "DRY-RUN"
-        print(f"  [{action}] svc {sid} | {hostname} | {age:.1f}h old | {status}")
+        print(f"  [{action}] svc {sid} | {hostname} | {age:.1f}h | {status} | {reason}")
 
     if not args.execute:
         print("\n(dry run — use --execute to cancel)")
         return 0
 
     canceled = 0
-    for sid, hostname, age, _ in candidates:
+    for sid, hostname, age, _, _ in candidates:
         for attempt in range(3):
             try:
                 c.cancel_vm(sid, immediate=True)
@@ -101,7 +126,7 @@ def main() -> int:
                     print(f"  ❌ svc {sid}: {e}")
                     break
 
-    print(f"\nCanceled {canceled}/{len(candidates)} orphaned VMs")
+    print(f"\nCanceled {canceled}/{len(candidates)}")
     return 0 if canceled == len(candidates) else 1
 
 

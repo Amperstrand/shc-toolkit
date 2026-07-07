@@ -44,6 +44,11 @@ def vm(client):
     sid = int(sid)
     _created_service_ids.append(sid)
 
+    try:
+        client._confirmed_request("POST", f"/vm/{sid}/cancel", json={})
+    except Exception:
+        pass
+
     deadline = time.time() + 300
     vm_data = None
     while time.time() < deadline:
