@@ -121,7 +121,7 @@ jobs:
 
       - name: Create issue on drift
         if: steps.llms-diff.outputs.changed == 'true' || steps.openapi-diff.outputs.result == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             let body = "The SHC API has changed. Review and update shc-toolkit.\n\n";
