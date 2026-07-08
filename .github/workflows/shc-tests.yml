@@ -15,7 +15,7 @@ jobs:
     name: Unit tests (no API key needed)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -28,7 +28,7 @@ jobs:
     env:
       SHC_API_KEY: ${{ secrets.SHC_API_KEY_READ_ONLY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -44,7 +44,7 @@ jobs:
     env:
       SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -81,7 +81,7 @@ jobs:
     name: OpenAPI spec drift detection
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fetch live OpenAPI spec
         run: |
           curl -s https://blesta.sovereignhybridcompute.com/user-api/openapi.json > /tmp/live-spec.json
@@ -123,7 +123,7 @@ jobs:
     env:
       SHC_API_KEY: ${{ secrets.SHC_API_KEY_READ_ONLY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -173,7 +173,7 @@ jobs:
     env:
       SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
