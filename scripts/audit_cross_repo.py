@@ -180,6 +180,99 @@ def check_dev_vps_claims() -> list[str]:
     return issues
 
 
+# ---------------------------------------------------------------------------
+# resolve_addons / ResolveAddons contract parity
+# ---------------------------------------------------------------------------
+#
+# All three repos translate friendly specs (disk_gb, ram_mb, cpu, template)
+# into SHC's option_id -> value map. The Python implementation lives in
+# shc-toolkit (shc-pulumi calls it via dependency); the Go implementation
+# lives in terraform-provider-shc. The two must stay in lock-step on:
+#   1. accepted parameter names (after language convention)
+#   2. return shape (dict[str, str] / map[string]string)
+#   3. error semantics for the same edge cases
+# This check inspects the source text so it works without executing Go from
+# Python (or vice versa). When the audit was added (2026-07-09) the two
+# implementations matched; any future drift is a real bug.
+
+PY_PARAMS_EXPECTED = {"package_id", "ram_mb", "cpu", "disk_gb", "template"}
+GO_PARAMS_EXPECTED = {"packageID", "diskGB", "ramMB", "cpu", "template"}
+EDGE_CASE_MARKERS = [
+    "not found in catalog",       # package_id missing
+    "does not expose",            # option not present on package
+    "not available",              # value not in option's value list
+]
+
+
+def check_resolve_addons_parity() -> list[str]:
+    issues: list[str] = []
+
+    py_src_path = ROOT / "shc_toolkit" / "client.py"
+    go_src_path = TF_ROOT / "provider" / "client.go"
+    go_test_path = TF_ROOT / "provider" / "config_options_test.go"
+
+    if not py_src_path.exists():
+        issues.append("[ADDONS] shc_toolkit/client.py missing — cannot check Python resolver")
+        return issues
+    if not go_src_path.exists():
+        issues.append("[ADDONS] terraform-provider-shc/provider/client.go missing — cannot check Go resolver")
+        return issues
+
+    py_src = py_src_path.read_text()
+    go_src = go_src_path.read_text()
+
+    # 1. Python signature: must accept all 5 conceptual parameters.
+    py_sig_match = re.search(r"def resolve_addons\(([^)]*)\)", py_src, re.DOTALL)
+    if not py_sig_match:
+        issues.append("[ADDONS] Python: resolve_addons definition not found")
+    else:
+        py_params = {p.strip().split(":")[0].split("=")[0] for p in py_sig_match.group(1).split(",")}
+        py_params.discard("self")
+        py_params.discard("")
+        missing = PY_PARAMS_EXPECTED - py_params
+        if missing:
+            issues.append(f"[ADDONS] Python resolve_addons missing params: {sorted(missing)}")
+
+    # 2. Go signature: must accept all 5 conceptual parameters (Go naming convention).
+    go_sig_match = re.search(r"func \(.*\) ResolveAddons\(([^)]*)\)", go_src, re.DOTALL)
+    if not go_sig_match:
+        issues.append("[ADDONS] Go: ResolveAddons definition not found")
+    else:
+        go_params = {p.strip().split()[0] for p in go_sig_match.group(1).split(",") if p.strip()}
+        missing = GO_PARAMS_EXPECTED - go_params
+        if missing:
+            issues.append(f"[ADDONS] Go ResolveAddons missing params: {sorted(missing)}")
+
+    # 3. Return type: both must be string-keyed, string-valued maps.
+    if "map[string]string" not in go_src:
+        issues.append("[ADDONS] Go ResolveAddons does not return map[string]string")
+
+    py_return_match = re.search(r"def resolve_addons.*?\) -> ([^:]*):", py_src, re.DOTALL)
+    if not py_return_match or "dict[str, str]" not in py_return_match.group(1):
+        # Some style: "-> dict[str, str]"; allow that match too.
+        if "-> dict[str, str]" not in py_src:
+            issues.append("[ADDONS] Python resolve_addons does not declare -> dict[str, str]")
+
+    # 4. Edge-case error markers must appear in BOTH implementations.
+    for marker in EDGE_CASE_MARKERS:
+        if marker.lower() not in py_src.lower():
+            issues.append(f"[ADDONS] Python resolve_addons missing error marker: '{marker}'")
+        if marker.lower() not in go_src.lower():
+            issues.append(f"[ADDONS] Go ResolveAddons missing error marker: '{marker}'")
+
+    # 5. Go must have tests covering the edge cases (parity of test coverage).
+    if go_test_path.exists():
+        go_tests = go_test_path.read_text()
+        required_test_names = ["Success", "MultipleSpecs", "InvalidValue", "PackageNotFound", "NoSpecs"]
+        for required in required_test_names:
+            if f"TestResolveAddons_{required}" not in go_tests:
+                issues.append(f"[ADDONS] Go: missing TestResolveAddons_{required}")
+    else:
+        issues.append("[ADDONS] terraform-provider-shc: config_options_test.go missing")
+
+    return issues
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Exit 1 on any issue")
@@ -202,6 +295,7 @@ def main() -> int:
         ("Feature Matrix", check_feature_matrix),
         ("Billing Claims", check_billing_claims),
         ("Dev VPS Claims", check_dev_vps_claims),
+        ("resolve_addons Contract", check_resolve_addons_parity),
     ]:
         issues = check_fn()
         status = "✅ PASS" if not issues else f"❌ {len(issues)} issue(s)"

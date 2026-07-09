@@ -568,6 +568,14 @@ class TestConfigOptions:
             with pytest.raises(ValueError, match="not available"):
                 c.resolve_addons(26, ram_mb=999999)
 
+    def test_resolve_addons_rejects_unknown_package(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            c._cache_set("catalog:full", self._mock_catalog())
+            with pytest.raises(ValueError, match="not found in catalog"):
+                c.resolve_addons(99999, ram_mb=16384)
+
     def test_resolve_addons_partial(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):

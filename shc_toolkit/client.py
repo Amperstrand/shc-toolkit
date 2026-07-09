@@ -628,6 +628,10 @@ class SHCClient:
             ValueError: If a requested value is not available for the package.
         """
         opts = self.get_config_options(package_id)
+        if not opts:
+            raise ValueError(
+                f"package_id {package_id} not found in catalog"
+            )
         out: dict[str, str] = {}
 
         spec_map = [
