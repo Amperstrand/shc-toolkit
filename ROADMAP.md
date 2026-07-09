@@ -77,7 +77,13 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 | # | Title | Priority |
 |---|-------|----------|
 | [#2](https://github.com/Amperstrand/shc-toolkit/issues/2) | Wrap remaining 60 MCP server tools | Low (niche features) |
-| [#4](https://github.com/Amperstrand/shc-toolkit/issues/4) | API v2.4.0 cleanup (remaining minor items) | Low |
+| [#8](https://github.com/Amperstrand/shc-toolkit/issues/8) | cleanup: remove deprecated DVM code paths (work in `physical-router-test-automation`) | Medium |
+
+## Closed Issues
+
+| # | Title | Closed |
+|---|-------|---------|
+| [#4](https://github.com/Amperstrand/shc-toolkit/issues/4) | API v2.4.0 cleanup (remove workaround code now unnecessary) | 2026-07 (before 2026-07-08) |
 
 ## Feature Matrix
 
