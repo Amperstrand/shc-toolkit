@@ -11,7 +11,11 @@ Groups:
     - shc: all SHC VMs
     - shc_ready: VMs with provisioning_state == "ready"
     - shc_<tier>: e.g. shc_nvme, shc_dev, shc_ssd, shc_hdd
-    - shc_<os>: e.g. shc_debian13, shc_ubuntu2404
+
+    OS-based grouping is intentionally NOT implemented: VmSummary (returned
+    by GET /vm) does not include a template/OS field, and per-VM detail
+    lookups would add one API call per host per inventory run. Add a
+    `get_vm_detail()` call here only if you accept that cost.
 
 Requires: shc-toolkit installed (pip install -e .) and SHC_API_KEY set.
 """
@@ -22,24 +26,13 @@ import os
 import sys
 
 
-def main():
-    list_mode = len(sys.argv) == 1 or sys.argv[1] == "--list"
+def build_inventory(vms: list[dict]) -> dict:
+    """Pure function: turn a list of VmSummary dicts into an Ansible
+    inventory payload. No I/O — testable without SHC access.
 
-    if not list_mode:
-        if sys.argv[1] == "--host":
-            print(json.dumps({}))
-            return
-
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from shc_toolkit import SHCClient
-        client = SHCClient()
-        vms = client.list_vms()
-    except Exception as exc:
-        print(json.dumps({"_meta": {"hostvars": {}}, "all": {"hosts": []}, "shc": {"hosts": [], "children": []}}))
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return
-
+    Skips VMs with no IPv4. Tier group falls back to "dev" when the package
+    name does not contain one of nvme/ssd/hdd.
+    """
     inventory: dict[str, dict] = {
         "shc": {"hosts": [], "vars": {"ansible_user": "debian"}},
         "shc_ready": {"hosts": []},
@@ -81,7 +74,37 @@ def main():
         tier_group = f"shc_{tier}"
         inventory.setdefault(tier_group, {"hosts": []})["hosts"].append(host_name)
 
-    print(json.dumps(inventory, indent=2))
+    return inventory
+
+
+def main() -> None:
+    list_mode = len(sys.argv) == 1 or sys.argv[1] == "--list"
+
+    if not list_mode:
+        if sys.argv[1] == "--host":
+            print(json.dumps({}))
+            return
+
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from shc_toolkit import SHCClient
+
+        client = SHCClient()
+        vms = client.list_vms()
+    except Exception as exc:
+        print(
+            json.dumps(
+                {
+                    "_meta": {"hostvars": {}},
+                    "all": {"hosts": []},
+                    "shc": {"hosts": [], "children": []},
+                }
+            )
+        )
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return
+
+    print(json.dumps(build_inventory(vms), indent=2))
 
 
 if __name__ == "__main__":
