@@ -12,7 +12,7 @@
 #   ansible-playbook -i localhost, playbook.yml
 #
 # Then to tear down:
-#   ansible-playbook -i inventory/shc-hosts.ini teardown.yml
+#   ansible-playbook -i localhost, teardown.yml -e shc_service_id=<ID>
 
 - name: Provision SHC VM and configure HTTPS
   hosts: localhost

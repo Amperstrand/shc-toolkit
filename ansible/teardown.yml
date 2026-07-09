@@ -1,6 +1,6 @@
 ---
 # Tear down: cancel the SHC VM and clean up.
-# Usage: ansible-playbook -i inventory/shc-hosts.ini teardown.yml
+# Usage: ansible-playbook -i localhost, teardown.yml -e shc_service_id=123
 #
 # Reads the service_id from the host facts (set by the provisioning playbook)
 # or from a variable.

@@ -46,7 +46,7 @@
 
 - name: Save nsec
   ansible.builtin.copy:
-    content: "{{ (nodns_keypair.stdout | from_json).nsec | replace('nsec1', '') }}"
+    content: "{{ (nodns_keypair.stdout | from_json).nsec }}"
     dest: "{{ nodns_nsec_path }}"
     mode: "0600"
   become: true
