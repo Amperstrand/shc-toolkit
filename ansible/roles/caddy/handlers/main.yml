@@ -3,3 +3,4 @@
   ansible.builtin.systemd:
     name: caddy
     state: restarted
+  when: caddy_manage_service | default(true) | bool
