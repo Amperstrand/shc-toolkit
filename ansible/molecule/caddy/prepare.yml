@@ -1,14 +1,29 @@
 ---
-# Prepare: generate self-signed TLS certs at the paths the Caddyfile
-# template references. The caddy apt post-install hook starts the
-# service immediately, and without these files the service fails to
-# load the Caddyfile. Runs BEFORE converge.
+# Prepare: pre-mask the caddy service and generate self-signed TLS
+# certs at the paths the Caddyfile template references.
+#
+# Pre-masking is required because the caddy apt package's post-install
+# hook starts the service immediately. Even with valid certs, the
+# Caddyfile points at a domain that doesn't resolve in the container,
+# so Caddy fails to start and the converge aborts. Masking the unit
+# before apt install suppresses the post-install start. The role's own
+# systemd task is also skipped via caddy_manage_service: false.
+#
+# The self-signed certs are belt-and-suspenders: if caddy somehow does
+# get started (e.g. by a future task), at least the cert paths exist.
 
-- name: Prepare self-signed certs for molecule
+- name: Prepare — mask caddy service + generate dummy certs
   hosts: all
   become: true
   gather_facts: false
   tasks:
+    - name: Mask caddy service (pre-apt) so post-install hook can't start it
+      ansible.builtin.file:
+        src: /dev/null
+        dest: /etc/systemd/system/caddy.service
+        state: link
+        force: true
+
     - name: Create cert directory
       ansible.builtin.file:
         path: "{{ caddy_cert_path | dirname }}"
@@ -22,4 +37,5 @@
         -subj /CN=molecule-test
       args:
         creates: "{{ caddy_cert_path }}"
+
 
