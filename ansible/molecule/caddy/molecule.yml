@@ -10,19 +10,23 @@
 #     pip install molecule molecule-plugins[docker]
 #     molecule test --scenario-name caddy
 #
+# Image: geerlingguy/docker-debian12-ansible is the standard molecule
+# image with systemd + python + an ansible user pre-baked. Plain
+# debian:12 does NOT boot systemd cleanly in GitHub Actions Docker
+# (failed in CI run 29118701989: "OCI runtime create failed").
 dependency:
   name: galaxy
 driver:
   name: docker
 platforms:
   - name: caddy-instance
-    image: docker.io/library/debian:12
+    image: docker.io/geerlingguy/docker-debian12-ansible:latest
     pre_build_image: true
     command: /lib/systemd/systemd
     privileged: true
+    cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
 provisioner:
   name: ansible
   env:
