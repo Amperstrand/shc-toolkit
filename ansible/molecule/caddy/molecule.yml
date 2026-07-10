@@ -35,6 +35,7 @@ provisioner:
     host_vars:
       caddy-instance:
         caddy_upstream: "127.0.0.1:8080"
+        caddy_manage_service: false
         nodns_npub: "npub1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest"
         nodns_zone: "nodns.shop"
 verifier:

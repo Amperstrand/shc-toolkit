@@ -20,3 +20,4 @@
     state: started
     enabled: true
   become: true
+  when: caddy_manage_service | default(true) | bool
