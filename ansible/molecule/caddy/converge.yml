@@ -2,11 +2,12 @@
 # Converge playbook for the caddy molecule scenario.
 # Invokes the caddy role with the same vars the main playbook would set
 # by the time it reaches the caddy role (i.e. after nodns has populated
-# nodns_npub).
+# nodns_npub). Role is referenced by name (not path) — ANSIBLE_ROLES_PATH
+# is set in molecule.yml to point at ansible/roles/.
 
 - name: Converge — install and configure Caddy
   hosts: all
   become: true
   gather_facts: true
   roles:
-    - role: ../../roles/caddy
+    - caddy

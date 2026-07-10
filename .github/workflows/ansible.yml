@@ -23,18 +23,23 @@ jobs:
   ansible-lint:
     name: ansible-lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install ansible-lint
-      - run: ansible-lint --offline --config-file ansible/.ansible-lint.yml ansible/
-        working-directory: ${{ github.workspace }}
+      - run: ansible-lint --offline .
 
   molecule-caddy:
     name: molecule / caddy scenario
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -42,6 +47,5 @@ jobs:
           python-version: '3.11'
       - run: pip install molecule molecule-plugins[docker]
       - run: molecule test --scenario-name caddy
-        working-directory: ${{ github.workspace }}/ansible
         env:
           ANSIBLE_FORCE_COLOR: "1"
