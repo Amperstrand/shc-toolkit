@@ -1,28 +1,38 @@
 ---
-# Prepare: pre-mask the caddy service and generate self-signed TLS
-# certs at the paths the Caddyfile template references.
+# Prepare: install a policy-rc.d that denies service starts during
+# package install, and generate self-signed TLS certs at the paths
+# the Caddyfile template references.
 #
-# Pre-masking is required because the caddy apt package's post-install
-# hook starts the service immediately. Even with valid certs, the
-# Caddyfile points at a domain that doesn't resolve in the container,
-# so Caddy fails to start and the converge aborts. Masking the unit
-# before apt install suppresses the post-install start. The role's own
-# systemd task is also skipped via caddy_manage_service: false.
+# policy-rc.d is the canonical Debian mechanism: apt's post-install
+# hook calls invoke-rc.d, which calls policy-rc.d (if present) to ask
+# "should I start this service?". Returning 101 means "action denied
+# by policy". This is the standard molecule pattern for testing apt
+# packages with post-install service starts that can't work in a
+# container (where the service config points at non-resolvable
+# domains, missing certs, etc).
 #
-# The self-signed certs are belt-and-suspenders: if caddy somehow does
-# get started (e.g. by a future task), at least the cert paths exist.
+# Pre-masking the systemd unit (symlink to /dev/null) doesn't work
+# because apt treats the masking failure as a fatal install error
+# (CI run 29124963105: "Failed to start caddy.service: Unit
+# caddy.service is masked").
+#
+# The self-signed certs are belt-and-suspenders: if caddy somehow
+# does get started (e.g. by a future task), at least the cert paths
+# exist.
 
-- name: Prepare — mask caddy service + generate dummy certs
+- name: Prepare — deny service starts during apt + generate dummy certs
   hosts: all
   become: true
   gather_facts: false
   tasks:
-    - name: Mask caddy service (pre-apt) so post-install hook can't start it
-      ansible.builtin.file:
-        src: /dev/null
-        dest: /etc/systemd/system/caddy.service
-        state: link
-        force: true
+    - name: Install policy-rc.d that denies all service starts
+      ansible.builtin.copy:
+        dest: /usr/sbin/policy-rc.d
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          # molecule: deny all service start/stop/restart actions during apt install
+          exit 101
 
     - name: Create cert directory
       ansible.builtin.file:
@@ -37,5 +47,6 @@
         -subj /CN=molecule-test
       args:
         creates: "{{ caddy_cert_path }}"
+
 
 
