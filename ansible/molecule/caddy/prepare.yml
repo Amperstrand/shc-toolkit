@@ -4,18 +4,22 @@
 # service immediately, and without these files the service fails to
 # load the Caddyfile. Runs BEFORE converge.
 
-- name: Create cert directory
-  ansible.builtin.file:
-    path: "{{ caddy_cert_path | dirname }}"
-    state: directory
-    mode: "0755"
+- name: Prepare self-signed certs for molecule
+  hosts: all
   become: true
+  gather_facts: false
+  tasks:
+    - name: Create cert directory
+      ansible.builtin.file:
+        path: "{{ caddy_cert_path | dirname }}"
+        state: directory
+        mode: "0755"
 
-- name: Generate self-signed cert for molecule
-  ansible.builtin.command: >
-    openssl req -x509 -newkey rsa:2048 -keyout {{ caddy_key_path }}
-    -out {{ caddy_cert_path }} -days 1 -nodes
-    -subj /CN={{ caddy_domain }}
-  args:
-    creates: "{{ caddy_cert_path }}"
-  become: true
+    - name: Generate self-signed cert for molecule
+      ansible.builtin.command: >
+        openssl req -x509 -newkey rsa:2048 -keyout {{ caddy_key_path }}
+        -out {{ caddy_cert_path }} -days 1 -nodes
+        -subj /CN={{ caddy_domain }}
+      args:
+        creates: "{{ caddy_cert_path }}"
+

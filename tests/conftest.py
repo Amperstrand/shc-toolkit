@@ -35,12 +35,15 @@ _created_service_ids = []
 @pytest.fixture(autouse=True)
 def block_network_by_default(request):
     if request.node.get_closest_marker("allow_network"):
+        yield
         return
     if os.environ.get("SHC_TEST_LIVE") == "1":
+        yield
         return
     # The session-scoped `client` and `vm` fixtures are the integration-test
     # entry points — if a test pulls them in, it has opted into real network.
     if "client" in request.fixturenames or "vm" in request.fixturenames:
+        yield
         return
 
     original = requests.Session.request
