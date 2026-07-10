@@ -1,0 +1,54 @@
+---
+# Molecule scenario for the caddy role.
+#
+# Verifies the role installs Caddy and renders the Caddyfile template
+# with the configured upstream. Runs in CI via
+# .github/workflows/ansible.yml — needs Docker, which is not present in
+# the local dev environment. Run locally with:
+#
+#     cd ansible/
+#     pip install molecule molecule-plugins[docker]
+#     molecule test --scenario-name caddy
+#
+# Image: geerlingguy/docker-debian12-ansible is the standard molecule
+# image with systemd + python + an ansible user pre-baked. Plain
+# debian:12 does NOT boot systemd cleanly in GitHub Actions Docker
+# (failed in CI run 29118701989: "OCI runtime create failed").
+#
+# prepare.yml generates self-signed TLS certs at caddy_cert_path /
+# caddy_key_path BEFORE the caddy apt post-install hook tries to start
+# the service. Without this, the post-install hook fails on the
+# missing cert paths and the converge aborts (CI run 29118903748).
+# caddy_manage_service: false additionally skips the role's own
+# systemd task since the Caddyfile points at a domain that doesn't
+# resolve in the container.
+
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: caddy-instance
+    image: docker.io/geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ../../roles
+  inventory:
+    host_vars:
+      caddy-instance:
+        caddy_upstream: "127.0.0.1:8080"
+        caddy_manage_service: false
+        caddy_domain: "npub1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest.nodns.shop"
+        caddy_cert_path: "/etc/ssl/caddy/cert.pem"
+        caddy_key_path: "/etc/ssl/caddy/key.pem"
+        nodns_npub: "npub1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest"
+        nodns_zone: "nodns.shop"
+verifier:
+  name: ansible

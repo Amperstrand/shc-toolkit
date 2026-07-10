@@ -1,15 +1,15 @@
 ---
-# Workflow: ansible-lint for the ansible/ subtree.
+# Workflow: ansible-lint + molecule for the ansible/ subtree.
 #
-# Runs ansible-lint on every push/PR that touches ansible/ (fast, no
-# Docker needed). Pre-existing violations are baselined in
-# ansible/.ansible-lint-ignore; only NEW violations fail the build.
+# ansible-lint runs on every push/PR (fast, no Docker needed). Pre-
+# existing violations are baselined in ansible/.ansible-lint-ignore;
+# only NEW violations fail the build.
 #
-# Molecule scenarios were explored but deferred — see GitHub issue
-# "molecule testing for ansible roles" for the technical blockers
-# (caddy apt post-install auto-starts the service in a container where
-# the Caddyfile points at non-existent cert paths; systemd-in-Docker
-# needs a non-default image; etc).
+# molecule caddy scenario runs on every push/PR (slower, Docker needed
+# — provided by GitHub Actions runners). It uses prepare.yml to
+# generate self-signed TLS certs so the caddy apt post-install hook
+# succeeds despite the Caddyfile pointing at a domain that doesn't
+# resolve in the container.
 
 name: ansible
 
@@ -37,3 +37,19 @@ jobs:
           python-version: '3.11'
       - run: pip install ansible-lint
       - run: ansible-lint --offline .
+
+  molecule-caddy:
+    name: molecule / caddy scenario
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install molecule molecule-plugins[docker]
+      - run: molecule test --scenario-name caddy
+        env:
+          ANSIBLE_FORCE_COLOR: "1"

@@ -1,0 +1,67 @@
+---
+# Workflow: weekly live E2E for the ansible/ subtree.
+#
+# Runs the full playbook.yml + teardown.yml against a real SHC Dev VPS
+# every Sunday at 03:00 UTC. Catches regressions that molecule can't:
+# the SHC API integration, NoDNS publishing, certbot DNS-01 against
+# real Let's Encrypt, and end-to-end HTTPS verification.
+#
+# Cost: ~$0.04 per run on dev-1c-4gb (cancel-at-order + 12-min proration
+# refund). ~$2/month at weekly cadence.
+#
+# Can be triggered manually via workflow_dispatch.
+
+name: ansible-e2e
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Sunday 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  live-e2e:
+    name: Full playbook against real SHC VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install shc-toolkit + ansible
+        run: |
+          pip install -e .
+          pip install ansible-core
+
+      - name: Run provisioning playbook
+        working-directory: ansible
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+          SHC_GITHUB_ADMIN_TOKEN: dummy  # playbook doesn't use this; suppress warning
+        run: |
+          ansible-playbook -i localhost, playbook.yml -e certbot_staging=true
+        continue-on-error: true
+        id: provision
+
+      - name: Capture provision output
+        if: always()
+        working-directory: ansible
+        run: |
+          echo "=== Provision exit: ${{ steps.provision.outcome }} ==="
+
+      - name: Tear down any VMs created
+        if: always()
+        working-directory: ansible
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        run: |
+          # Best-effort cleanup: reap orphan VMs older than 1 hour.
+          # reap_orphan_vms.py is dry-run by default; --execute cancels.
+          python3 ../scripts/reap_orphan_vms.py --max-age 1 --execute || true
+
+      - name: Fail job if provision failed
+        if: steps.provision.outcome != 'success'
+        run: |
+          echo "::error::Provisioning playbook failed — see logs above"
+          exit 1

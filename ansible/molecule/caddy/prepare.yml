@@ -1,0 +1,21 @@
+---
+# Prepare: generate self-signed TLS certs at the paths the Caddyfile
+# template references. The caddy apt post-install hook starts the
+# service immediately, and without these files the service fails to
+# load the Caddyfile. Runs BEFORE converge.
+
+- name: Create cert directory
+  ansible.builtin.file:
+    path: "{{ caddy_cert_path | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Generate self-signed cert for molecule
+  ansible.builtin.command: >
+    openssl req -x509 -newkey rsa:2048 -keyout {{ caddy_key_path }}
+    -out {{ caddy_cert_path }} -days 1 -nodes
+    -subj /CN={{ caddy_domain }}
+  args:
+    creates: "{{ caddy_cert_path }}"
+  become: true

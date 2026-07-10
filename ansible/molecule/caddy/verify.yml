@@ -1,0 +1,44 @@
+---
+# Verifier for the caddy molecule scenario.
+# Asserts the role's observable side-effects: caddy package installed
+# and Caddyfile rendered with the configured upstream + domain. Does
+# NOT assert the service is running (caddy_manage_service: false in
+# host_vars).
+
+- name: Verify caddy role side-effects
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Assert caddy binary is present
+      ansible.builtin.stat:
+        path: /usr/bin/caddy
+      register: caddy_bin
+
+    - name: Fail if caddy binary missing
+      ansible.builtin.assert:
+        that:
+          - caddy_bin.stat.exists
+        fail_msg: "caddy binary not installed at /usr/bin/caddy"
+
+    - name: Slurp rendered Caddyfile
+      ansible.builtin.slurp:
+        src: /etc/caddy/Caddyfile
+      register: caddyfile_raw
+
+    - name: Assert Caddyfile contains the configured upstream
+      ansible.builtin.assert:
+        that:
+          - "(caddyfile_raw.content | b64decode) is search('127.0.0.1:8080')"
+        fail_msg: "Caddyfile did not contain the configured caddy_upstream value"
+
+    - name: Assert Caddyfile references the nodns.shop domain
+      ansible.builtin.assert:
+        that:
+          - "(caddyfile_raw.content | b64decode) is search('.nodns.shop')"
+        fail_msg: "Caddyfile did not reference the nodns.shop domain"
+
+    - name: Assert Caddyfile references the TLS cert paths
+      ansible.builtin.assert:
+        that:
+          - "(caddyfile_raw.content | b64decode) is search('tls /etc/ssl/caddy/cert.pem /etc/ssl/caddy/key.pem')"
+        fail_msg: "Caddyfile did not reference the expected tls cert paths"
