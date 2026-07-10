@@ -47,6 +47,3 @@
         -subj /CN=molecule-test
       args:
         creates: "{{ caddy_cert_path }}"
-
-
-
