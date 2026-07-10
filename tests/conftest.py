@@ -2,11 +2,69 @@ import os
 import time
 
 import pytest
+import requests
 
 from shc_toolkit.client import SHCClient
 from shc_toolkit import create_client
 
 _created_service_ids = []
+
+
+# ---------------------------------------------------------------------------
+# Network isolation for unit tests
+# ---------------------------------------------------------------------------
+#
+# Unit tests must not make real HTTP calls. Without this fixture, tests that
+# forget to mock a network method (e.g. resolve_addons → get_config_options,
+# cancel_vm → cost_tracker._ledger_refund → get_vm_payments, or anything
+# routed through _safe_credit which invalidates the credit cache before
+# refetching) silently leak to the live SHC API. The API returns 401 for the
+# fake key, the client retries with exponential backoff, and after enough
+# 401s SHC's rate-limiter upgrades to 429 — at which point time.sleep trips
+# pytest-timeout and the whole suite flakes (see commit e1ba4b2).
+#
+# The fixture monkeypatches requests.Session.request to raise. Tests that
+# legitimately need real network bypass this via:
+#   - @pytest.mark.allow_network marker
+#   - using the session-scoped `client` or `vm` fixtures (integration tests)
+#   - SHC_TEST_LIVE=1 env var (escape hatch for local debugging)
+#
+# If a unit test hits this guard, it means the test forgot to mock
+# something. Fix the test, don't disable the guard.
+
+@pytest.fixture(autouse=True)
+def block_network_by_default(request):
+    if request.node.get_closest_marker("allow_network"):
+        return
+    if os.environ.get("SHC_TEST_LIVE") == "1":
+        return
+    # The session-scoped `client` and `vm` fixtures are the integration-test
+    # entry points — if a test pulls them in, it has opted into real network.
+    if "client" in request.fixturenames or "vm" in request.fixturenames:
+        return
+
+    original = requests.Session.request
+
+    def blocked_request(*args, **kwargs):
+        raise RuntimeError(
+            "Network call blocked by block_network_by_default fixture. "
+            "Mock the SHCClient method explicitly, or mark the test with "
+            "@pytest.mark.allow_network if real network is intended."
+        )
+
+    requests.Session.request = blocked_request
+    try:
+        yield
+    finally:
+        requests.Session.request = original
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "allow_network: opt-out marker for block_network_by_default — "
+        "test is allowed to make real HTTP calls",
+    )
 
 
 @pytest.fixture(scope="session")

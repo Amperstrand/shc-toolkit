@@ -83,4 +83,5 @@
     SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
     PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
   delegate_to: localhost
+  changed_when: true
   when: nodns_generate_keypair | bool

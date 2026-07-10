@@ -30,6 +30,7 @@
       environment:
         SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
       register: cancel_result
+      changed_when: true
 
     - name: Report
       ansible.builtin.debug:

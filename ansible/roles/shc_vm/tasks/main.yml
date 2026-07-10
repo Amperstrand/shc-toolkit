@@ -29,12 +29,12 @@
   environment:
     SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
     PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
-  register: shc_order_result
+  register: shc_vm_order_result
   changed_when: true
 
 - name: Parse order result
   ansible.builtin.set_fact:
-    shc_service_id: "{{ (shc_order_result.stdout | from_json).service_id }}"
+    shc_service_id: "{{ (shc_vm_order_result.stdout | from_json).service_id }}"  # noqa var-naming[no-role-prefix]
 
 - name: Wait for VM to be ready
   ansible.builtin.shell: |
@@ -87,6 +87,7 @@
   environment:
     SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
     PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
+  changed_when: true
   when: shc_vm_ssh_key_source is defined
 
 - name: Add VM to inventory
