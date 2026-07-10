@@ -5,6 +5,13 @@
     state: present
     update_cache: true
   become: true
+  # The caddy apt post-install hook starts the service immediately. In
+  # molecule (where caddy_manage_service=false) the Caddyfile points at
+  # cert paths that don't exist, so the service won't start — but the
+  # package still installs and the Caddyfile still renders, which is
+  # what the molecule verifier checks. Tolerate the post-install start
+  # failure in that case.
+  ignore_errors: "{{ not (caddy_manage_service | default(true) | bool) }}"
 
 - name: Configure Caddy with HTTPS
   ansible.builtin.template:
