@@ -608,10 +608,15 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("credit", 100.0)
             c._cache_set("catalog:full", self._mock_catalog())
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
             c.pay_invoice = MagicMock()
+            # _safe_credit() invalidates the credit cache before refetching
+            # (intentional for fresh balance reads in production). Without an
+            # explicit mock, order_vm() → _safe_credit() → get_available_credit()
+            # makes a real HTTP call to /billing/balance; under SHC's
+            # rate-limiter this retries with backoff and flakes the suite.
+            c._safe_credit = MagicMock(return_value=100.0)
             c.order_vm(hostname="my-vm", size="nvme-2c-8gb", disk_gb=50)
             args, kwargs = c.submit_order.call_args
             assert kwargs["package_id"] == 26
@@ -623,10 +628,10 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("credit", 100.0)
             c._cache_set("catalog:full", self._mock_catalog())
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
             c.pay_invoice = MagicMock()
+            c._safe_credit = MagicMock(return_value=100.0)
             c.order_vm(
                 hostname="raw",
                 package_id=26, pricing_id=56,
@@ -796,6 +801,12 @@ class TestCostAudit:
         session = c.cost_tracker.track_order(777, 26, actual_charge=0.49)
         session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=1)
         c._confirmed_request = MagicMock(return_value={})
+        # cost_tracker._ledger_refund() calls get_vm_payments() to disambiguate
+        # this VM's refund from concurrent activity. Without this mock the test
+        # makes a real HTTP call to /vm/777/payments, gets 401, retries, and
+        # eventually triggers SHC's rate-limiter (429) — flaking the whole
+        # suite once enough 401s accumulate.
+        c.get_vm_payments = MagicMock(return_value=[])
         credit_values = iter([99.51, 99.90])
         c._safe_credit = MagicMock(side_effect=lambda: next(credit_values))
         c.cancel_vm(777, immediate=True, confirm=False)
