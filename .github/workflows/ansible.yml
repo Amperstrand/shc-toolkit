@@ -1,0 +1,47 @@
+---
+# Workflow: ansible-lint + molecule for the ansible/ subtree.
+#
+# Runs ansible-lint on every push/PR (fast, no Docker needed).
+# Runs molecule caddy scenario on every push/PR (slower, needs Docker —
+# GitHub Actions runners provide it). Molecule scenarios for the SHC-API
+# roles (shc_vm, nodns publish step, certbot) require live infra and are
+# intentionally not included here.
+
+name: ansible
+
+on:
+  push:
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible.yml'
+  pull_request:
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible.yml'
+
+jobs:
+  ansible-lint:
+    name: ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install ansible-lint
+      - run: ansible-lint --offline --config-file ansible/.ansible-lint.yml ansible/
+        working-directory: ${{ github.workspace }}
+
+  molecule-caddy:
+    name: molecule / caddy scenario
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install molecule molecule-plugins[docker]
+      - run: molecule test --scenario-name caddy
+        working-directory: ${{ github.workspace }}/ansible
+        env:
+          ANSIBLE_FORCE_COLOR: "1"

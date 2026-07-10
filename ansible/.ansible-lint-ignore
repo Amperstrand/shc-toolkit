@@ -1,0 +1,8 @@
+# This file contains ignores rule violations for ansible-lint
+playbook.yml yaml[line-length]
+roles/nodns/tasks/main.yml jinja[invalid]
+roles/nodns/tasks/main.yml no-changed-when
+roles/shc_vm/tasks/main.yml jinja[invalid]
+roles/shc_vm/tasks/main.yml no-changed-when
+roles/shc_vm/tasks/main.yml var-naming[no-role-prefix]
+teardown.yml no-changed-when

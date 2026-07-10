@@ -1,0 +1,8 @@
+---
+# ansible-lint configuration for the ansible/ subtree of shc-toolkit.
+# Runs in CI via .github/workflows/ansible.yml. Pre-existing violations
+# (heredoc backslashes in shell tasks, missing role-prefix on register
+# vars, etc) are baselined in .ansible-lint-ignore; only NEW violations
+# fail the build.
+profile: production
+offline: true

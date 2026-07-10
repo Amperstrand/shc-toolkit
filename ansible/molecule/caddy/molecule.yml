@@ -1,0 +1,35 @@
+---
+# Molecule scenario for the caddy role.
+#
+# Verifies the role installs Caddy and renders the Caddyfile template
+# with the default upstream from group_vars/all.yml. Runs in CI via
+# .github/workflows/ansible.yml — needs Docker, which is not present in
+# the local dev environment. Run locally with:
+#
+#     cd ansible/
+#     pip install molecule molecule-plugins[docker]
+#     molecule test --scenario-name caddy
+#
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: caddy-instance
+    image: docker.io/library/debian:12
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      caddy-instance:
+        caddy_upstream: "127.0.0.1:8080"
+        nodns_npub: "npub1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest"
+        nodns_zone: "nodns.shop"
+verifier:
+  name: ansible
