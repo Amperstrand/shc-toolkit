@@ -13,7 +13,6 @@ on:
 permissions:
   contents: read
   issues: write
-  workflow_dispatch:
 
 jobs:
   unit-tests:
