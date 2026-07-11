@@ -118,9 +118,39 @@ class SHCClient:
         self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._backoff_cap = backoff_cap
+        self._raw_client: Any = None
 
         from .cost_audit import CostTracker
         self.cost_tracker = CostTracker(self)
+
+    @property
+    def raw(self) -> Any:
+        """Access the auto-generated type-safe client (WorkOS pattern).
+
+        Returns a ``shc_toolkit.generated.Client`` (httpx-based) that
+        provides 149 endpoint methods with full Pydantic type safety.
+
+        Requires: ``pip install shc-toolkit[generated]``
+
+        Usage::
+
+            from shc_toolkit.generated.api.ordering import get_ordering_catalog
+            c = SHCClient()
+            catalog = get_ordering_catalog.sync(client=c.raw)
+        """
+        if self._raw_client is None:
+            try:
+                from .generated import Client
+            except ImportError as e:
+                raise ImportError(
+                    "Generated client requires httpx + attrs. "
+                    "Install with: pip install shc-toolkit[generated]"
+                ) from e
+            self._raw_client = Client(
+                base_url=self.base_url,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+        return self._raw_client
 
     # ── Cache ───────────────────────────────────────────────
 
