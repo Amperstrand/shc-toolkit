@@ -390,6 +390,24 @@ def _bootstrap_script(
     enough that re-running is safe (config.sh --replace handles re-register).
     """
     label_arg = ",".join(labels)
+    docker_block = ""
+    if install_docker:
+        docker_block = '''if ! command -v docker >/dev/null 2>&1; then
+  echo "[$(date -u +%FT%TZ)] installing docker"
+  curl -fsSL https://get.docker.com | sudo sh || echo "warn: docker install failed (non-fatal)"
+  sudo usermod -aG docker runner 2>/dev/null || true
+fi
+'''
+    go_block = ""
+    if install_go:
+        go_block = '''if ! command -v go >/dev/null 2>&1; then
+  echo "[$(date -u +%FT%TZ)] installing go"
+  GO_VERSION=1.24.2
+  curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \\
+    | sudo tar -C /usr/local -xz
+  sudo ln -sf /usr/local/go/bin/go /usr/local/bin/go
+fi
+'''
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
@@ -403,21 +421,9 @@ sudo apt-get update -y
 sudo apt-get install -y curl tar jq git ca-certificates sudo
 
 # 2. Docker (best-effort; many CI workflows need it)
-{"" if not install_docker else '''if ! command -v docker >/dev/null 2>&1; then
-  echo "[$(date -u +%FT%TZ)] installing docker"
-  curl -fsSL https://get.docker.com | sudo sh || echo "warn: docker install failed (non-fatal)"
-  sudo usermod -aG docker runner 2>/dev/null || true
-fi
-'''}
+{docker_block}
 # 3. Go (optional, off by default)
-{"" if not install_go else f'''if ! command -v go >/dev/null 2>&1; then
-  echo "[$(date -u +%FT%TZ)] installing go"
-  GO_VERSION=1.24.2
-  curl -fsSL "https://go.dev/dl/go${{GO_VERSION}}.linux-amd64.tar.gz" \\
-    | sudo tar -C /usr/local -xz
-  sudo ln -sf /usr/local/go/bin/go /usr/local/bin/go
-fi
-'''}
+{go_block}
 # 4. runner user
 if ! id runner >/dev/null 2>&1; then
   sudo useradd -m -s /bin/bash runner || true
