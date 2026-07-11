@@ -136,7 +136,10 @@ Both transports are **fully functional** for all operations including reads,
 writes, spend/destructive actions with confirmation flow, and upgrades.
 
 The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
-116 tools over Streamable HTTP. Every spend and destructive op is confirm-gated.
+142 tools over Streamable HTTP. The toolkit wraps **141/142 (99%)** — the only
+unwrapped tool is `buyVirtualMachine` (a deprecated alias for
+`createVirtualMachineOrder`). Every spend and destructive op is confirm-gated
+with automatic `Idempotency-Key` generation and `X-User-Api-Confirm` handling.
 
 CI tests randomly select REST or MCP per run, ensuring both transports receive
 equal coverage over time without doubling test cost.
@@ -249,25 +252,74 @@ A pay-per-minute SSH server that accepts [Cashu](https://cashu.space) ecash toke
 
 MIT
 
+## Auto-Generated Client
+
+The toolkit includes an auto-generated Python client (`shc_toolkit.generated`)
+with **100% API endpoint coverage** (149 endpoint methods, 543 Pydantic models)
+generated from the OpenAPI spec via `openapi-python-client`.
+
+```bash
+pip install shc-toolkit[generated]  # installs httpx + attrs
+```
+
+```python
+from shc_toolkit.generated import Client
+from shc_toolkit.generated.api.ordering import get_ordering_catalog
+
+client = Client(base_url="https://blesta.sovereignhybridcompute.com/user-api/v2",
+                headers={"Authorization": "Bearer shc_live_..."})
+catalog = get_ordering_catalog.sync(client=client)
+```
+
+The generated client provides type-safe raw API calls. For convenience features
+(retry with jitter, cost tracking, confirmation flow, cache, MCP transport), use
+`SHCClient` instead — it wraps the generated layer and adds production niceties.
+
+Regenerate from the latest spec: `bash scripts/generate_client.sh`
+
+## Pulumi Support
+
+The recommended way to use SHC from Pulumi is via the **Terraform Bridge** —
+no separate Python provider needed:
+
+```bash
+# Build the TF provider
+go build -o terraform-provider-shc .
+
+# Generate a Pulumi SDK from the TF provider
+pulumi package add terraform-provider ./terraform-provider-shc --language python
+```
+
+The generated Pulumi SDK includes all resources (Vm, Snapshot, Backup,
+FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
+
+→ **[Migration guide from shc-pulumi](https://github.com/Amperstrand/shc-pulumi/blob/main/MIGRATION-TO-BRIDGE.md)**
+
+## Changelog
+
+→ **[CHANGELOG.md](CHANGELOG.md)** — full version history in Keep a Changelog format.
+
 ## Testing Status
+
+### v2.4.3.1 Release (2026-07-11)
+- **170 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
+- **mypy type checking**: 0 errors
+- **MCP coverage**: 141/142 tools wrapped (99%)
+- **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
+- **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
+- **CI**: 6 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity) + auto-issue-creation on drift
+- **Ansible**: 13 unit tests + ansible-lint CI + molecule caddy scenario + weekly live E2E
 
 ### MCP Transport (Verified 2026-06-30)
 - READS: All working (getAccount, getBillingBalance, listVirtualMachines, getOrderingCatalog)
 - WRITES: All working (createVirtualMachineOrder with confirmation flow, cancelVirtualMachine)
 - CI: Randomly selects REST or MCP per run for equal coverage
-- Ticket #220 resolved by SHC (SQL drift + timestamp bug + missing firewall rule)
 
 ### NoDNS (Working — Fixed 2026-06-30)
 - Code is complete and correct (keypair generation, event publishing, DNS verification)
 - **VERIFIED**: Published A record resolves correctly within 10 seconds
-- Bot was down (SOA stale since June 9) — restarted, added relay.damus.io + nos.lol, disabled PoW requirement
 - `shc nodns --ip <ip> --zone nodns.shop` publishes, `shc order --nodns` auto-publishes after VM creation
-- Wildcard `*.nodns.shop → 46.224.104.12` is overridden by per-npub records when published
 
 ### ContextVM (Verified 2026-07-01)
 - Bootstrap code complete and tested on NVMe VPS (Debian 13, Katy TX)
-- Installs unzip + Bun + @contextvm/sdk, deploys gateway server, sets up systemd
 - VM becomes discoverable MCP server on Nostr via `wss://relay.contextvm.org`
-- Verified: service active (0 restarts), pubkey generated, relay connected, announcements broadcast
-- Fixed 4 bugs found during live test: missing `unzip` prereq, `nostr-tools` API drift (`hexToBytes` removed), systemd PATH missing bun, `relayUrls` → `relayHandler` rename in SDK
-- Test cost: $0.01 (ordered VM 761, verified, canceled in 12 min, $0.25 refunded)
