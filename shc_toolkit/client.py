@@ -199,11 +199,6 @@ class SHCClient:
         elif "Content-Type" in self.session.headers:
             del self.session.headers["Content-Type"]
 
-        if method in ("POST", "PATCH", "PUT", "DELETE"):
-            self.session.headers["Idempotency-Key"] = f"shc-{uuid.uuid4().hex[:24]}"
-        elif "Idempotency-Key" in self.session.headers:
-            del self.session.headers["Idempotency-Key"]
-
         for attempt in range(self._max_retries):
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
@@ -308,7 +303,14 @@ class SHCClient:
         On confirmation_required, extracts the single-use confirmation_id
         and resubmits with X-User-Api-Confirm header.  Pass confirm=False
         to probe (will raise SHCError on 409 instead of auto-confirming).
+
+        Generates an Idempotency-Key once per call so the original
+        request and the confirmation re-send share the same key.
         """
+        idem_key = f"shc-{uuid.uuid4().hex[:24]}"
+        headers = dict(kwargs.pop("headers", None) or {})
+        headers["Idempotency-Key"] = idem_key
+        kwargs["headers"] = headers
         try:
             return self._request(method, path, **kwargs)
         except SHCError as e:
@@ -317,9 +319,8 @@ class SHCClient:
             cid = getattr(e, "confirmation_id", None)
             if not cid:
                 raise
-            headers = dict(kwargs.pop("headers", None) or {})
             headers["X-User-Api-Confirm"] = cid
-            return self._request(method, path, headers=headers, **kwargs)
+            return self._request(method, path, **kwargs)
 
     # ── Account ──────────────────────────────────────────────
 

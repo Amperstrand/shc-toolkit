@@ -1126,40 +1126,67 @@ class TestBackoffRetry:
         assert c.session.request.call_count == 2
 
     def test_idempotency_key_on_writes(self):
-        """All write operations must send an Idempotency-Key header."""
+        """Confirmed requests must send an Idempotency-Key header that
+        persists across the original + confirmation re-send."""
         c = self._client()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.headers = {}
         mock_resp.text = '{"data": {"ok": true}}'
         mock_resp.ok = True
-        c.session.request = MagicMock(return_value=mock_resp)
-        c._post("/test", {"key": "value"})
-        headers = c.session.headers
-        assert "Idempotency-Key" in headers
-        assert headers["Idempotency-Key"].startswith("shc-")
+        captured_headers = []
+        def capture_request(*args, **kwargs):
+            captured_headers.append(dict(kwargs.get("headers", {})))
+            return mock_resp
+        c.session.request = MagicMock(side_effect=capture_request)
+        c._confirmed_request("POST", "/test", json={"key": "value"})
+        assert len(captured_headers) == 1
+        assert "Idempotency-Key" in captured_headers[0]
+        assert captured_headers[0]["Idempotency-Key"].startswith("shc-")
+
+    def test_idempotency_key_persists_across_confirmation(self):
+        """When _confirmed_request retries with X-User-Api-Confirm,
+        the Idempotency-Key must be the SAME as the original request."""
+        c = self._client()
+        mock_409 = MagicMock()
+        mock_409.status_code = 409
+        mock_409.headers = {}
+        mock_409.text = '{"error":{"code":"confirmation_required"}, "confirmation":{"structuredContent":{"confirmation_id":"test-cid-123"}}}'
+        mock_409.ok = False
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.headers = {}
+        mock_200.text = '{"data": {"ok": true}}'
+        mock_200.ok = True
+        captured_headers = []
+        def capture_request(*args, **kwargs):
+            captured_headers.append(dict(kwargs.get("headers", {})))
+            if len(captured_headers) == 1:
+                return mock_409
+            return mock_200
+        c.session.request = MagicMock(side_effect=capture_request)
+        c._confirmed_request("POST", "/test", json={"key": "value"})
+        assert len(captured_headers) == 2
+        key1 = captured_headers[0].get("Idempotency-Key")
+        key2 = captured_headers[1].get("Idempotency-Key")
+        assert key1 is not None, "First request missing Idempotency-Key"
+        assert key2 is not None, "Confirmation request missing Idempotency-Key"
+        assert key1 == key2, f"Keys differ: {key1} vs {key2}"
+        assert captured_headers[1].get("X-User-Api-Confirm") == "test-cid-123"
 
     def test_no_idempotency_key_on_reads(self):
         """GET requests must not carry an Idempotency-Key header."""
         c = self._client()
-        # Clear any stale header from a previous write
-        c.session.headers.pop("Idempotency-Key", None)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.headers = {}
         mock_resp.text = '{"data": {"ok": true}}'
         mock_resp.ok = True
-        c.session.request = MagicMock(return_value=mock_resp)
+        captured_headers = []
+        def capture_request(*args, **kwargs):
+            captured_headers.append(dict(kwargs.get("headers", {})))
+            return mock_resp
+        c.session.request = MagicMock(side_effect=capture_request)
         c._get("/test")
-        # _request sets the header for writes but not for GET.
-        # After a GET, the header should not be newly set.
-        # (It may persist from a prior write, but we cleared it above.)
-        # The key test: the request was made without setting Idempotency-Key
-        # for this particular call.
-        call_kwargs = c.session.request.call_args
-        # The header is set on the session before the request, so check
-        # it was NOT set during this GET call.
-        # Since we cleared it and _request only sets it for POST/PATCH/PUT/DELETE,
-        # it should not be present after a GET.
-        assert "Idempotency-Key" not in c.session.headers or \
-               c.session.headers["Idempotency-Key"] is None
+        assert len(captured_headers) == 1
+        assert "Idempotency-Key" not in captured_headers[0]
