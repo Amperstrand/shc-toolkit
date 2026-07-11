@@ -173,6 +173,14 @@ TOOL_MAP: dict[str, str] = {
     "list_isos": "getVirtualMachineIso",
     "get_account_activity": "listAccountActivity",
     "rekey_zk_backup": "rekeyVirtualMachineZkBackup",
+    "submit_vm_renewal": "submitVirtualMachineRenewal",
+    # Remaining niche tools
+    "delete_manager": "deleteManager",
+    "list_kb_categories": "listKbCategories",
+    "relinquish_managed_account": "relinquishManagedAccount",
+    "respond_to_managed_account_invitation": "respondToManagedAccountInvitation",
+    "update_account_manager": "updateAccountManager",
+    "get_invoice_pdf": "getInvoicePdf",
 }
 
 # Reverse map for debugging
@@ -941,6 +949,28 @@ class SHCMCPClient:
 
     def rekey_zk_backup(self, service_id: int, **body) -> dict:
         return self.call_tool("rekeyVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
+
+    def submit_vm_renewal(self, service_id: int, **body) -> dict:
+        return self.call_tool("submitVirtualMachineRenewal", {"serviceId": service_id, "body": body})
+
+    # Remaining niche tools
+    def delete_manager(self, **body) -> dict:
+        return self.call_tool("deleteManager", {"body": body})
+
+    def list_kb_categories(self) -> list[dict]:
+        return self._extract_items(self._call("list_kb_categories"))
+
+    def relinquish_managed_account(self, **body) -> dict:
+        return self.call_tool("relinquishManagedAccount", {"body": body})
+
+    def respond_to_managed_account_invitation(self, **body) -> dict:
+        return self.call_tool("respondToManagedAccountInvitation", {"body": body})
+
+    def update_account_manager(self, **body) -> dict:
+        return self.call_tool("updateAccountManager", {"body": body})
+
+    def get_invoice_pdf(self, invoice_id: int) -> dict:
+        return self._call("get_invoice_pdf", invoice_id=invoice_id)
 
     # VM Data
     def get_vm_metrics(self, service_id: int) -> dict:
