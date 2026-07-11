@@ -105,6 +105,69 @@ TOOL_MAP: dict[str, str] = {
     # Billing
     "list_invoices": "listInvoices",
     "get_invoice": "getInvoice",
+    "get_payment": "getPayment",
+    "list_payment_methods": "listPaymentMethods",
+    "get_transaction": "getTransaction",
+    "add_credit": "submitCreditTopup",
+    # Account
+    "get_account_balance": "getAccountBalance",
+    "get_preferences": "getAccountPreferences",
+    "update_preferences": "updateAccountPreferences",
+    "get_autodebit": "getAutoDebit",
+    "get_credit_handling": "getCreditHandling",
+    "set_credit_handling": "updateCreditHandling",
+    # Contacts
+    "list_contacts": "listContacts",
+    "get_contact": "getContact",
+    "create_contact": "createContact",
+    "update_contact": "updateContact",
+    "delete_contact": "deleteContact",
+    "list_contact_permissions": "getContactPermissionOptions",
+    # SSH Keys
+    "set_stored_ssh_key": "setServiceSshKey",
+    "delete_stored_ssh_key": "deleteServiceSshKey",
+    "remove_ssh_key_live": "deleteLiveServiceSshKey",
+    # Support
+    "list_support_tickets": "listSupportTickets",
+    "get_support_ticket": "getSupportTicket",
+    "create_support_ticket": "createSupportTicket",
+    "reply_support_ticket": "replySupportTicket",
+    "close_support_ticket": "closeSupportTicket",
+    # Affiliate
+    "get_affiliate_overview": "getAffiliateAccount",
+    "list_affiliate_payouts": "listAffiliatePayouts",
+    "list_affiliate_referrals": "listAffiliateReferrals",
+    "get_affiliate_payout_destination": "getAffiliatePayoutDestination",
+    "set_affiliate_payout_destination": "updateAffiliatePayoutDestination",
+    "request_affiliate_payout": "requestAffiliatePayout",
+    "enroll_affiliate": "enrollAffiliate",
+    # Managers
+    "list_managers": "listAccountManagers",
+    "invite_manager": "inviteAccountManager",
+    "list_manager_permissions": "getManagerPermissionOptions",
+    # KB
+    "search_kb": "searchKb",
+    "get_kb_article": "getKbArticle",
+    # Snapshots (extended)
+    "list_snapshots": "listVirtualMachineSnapshots",
+    "create_snapshot": "createVirtualMachineSnapshot",
+    "delete_snapshot": "deleteVirtualMachineSnapshot",
+    "restore_snapshot": "restoreVirtualMachineSnapshot",
+    "verify_snapshot": "verifyVirtualMachineSnapshot",
+    "set_snapshot_protection": "setVirtualMachineSnapshotProtection",
+    # Backups (extended)
+    "list_backups": "listVirtualMachineBackups",
+    "delete_backup": "deleteVirtualMachineBackup",
+    "restore_backup": "restoreVirtualMachineBackup",
+    "verify_backup": "verifyVirtualMachineBackup",
+    "set_backup_protection": "setVirtualMachineBackupProtection",
+    # Firewall (extended)
+    "edit_firewall_rule": "updateVirtualMachineFirewallRule",
+    # Emails
+    "list_emails": "listEmails",
+    "get_email": "getEmail",
+    # Managed accounts
+    "list_managed_accounts": "listManagedAccounts",
 }
 
 # Reverse map for debugging
@@ -730,6 +793,133 @@ class SHCMCPClient:
 
     def list_transactions(self, limit: int = 20, offset: int = 0) -> dict:
         return self.call_tool("listTransactions", {"limit": limit, "offset": offset})
+
+    def get_payment(self, invoice_id: int) -> dict:
+        return self._call("get_payment", invoice_id=invoice_id)
+
+    def list_payment_methods(self) -> list[dict]:
+        return self._extract_items(self._call("list_payment_methods"))
+
+    def get_transaction(self, transaction_id: int) -> dict:
+        return self._call("get_transaction", transaction_id=transaction_id)
+
+    def add_credit(self, amount: str, idempotency_key: str, **kwargs) -> dict:
+        body: dict[str, Any] = {"amount": amount, "idempotency_key": idempotency_key, **kwargs}
+        return self.call_tool("submitCreditTopup", {"body": body})
+
+    # Account
+    def get_account_balance(self) -> dict:
+        return self._call("get_account_balance")
+
+    def get_preferences(self) -> dict:
+        return self._call("get_preferences")
+
+    def update_preferences(self, **body) -> dict:
+        return self.call_tool("updateAccountPreferences", {"body": body})
+
+    def get_autodebit(self) -> dict:
+        return self._call("get_autodebit")
+
+    def get_credit_handling(self) -> dict:
+        return self._call("get_credit_handling")
+
+    def set_credit_handling(self, **body) -> dict:
+        return self.call_tool("updateCreditHandling", {"body": body})
+
+    # Contacts
+    def list_contacts(self) -> list[dict]:
+        return self._extract_items(self._call("list_contacts"))
+
+    def get_contact(self, contact_id: int) -> dict:
+        return self._call("get_contact", contact_id=contact_id)
+
+    def create_contact(self, **body) -> dict:
+        return self.call_tool("createContact", {"body": body})
+
+    def update_contact(self, contact_id: int, **body) -> dict:
+        return self.call_tool("updateContact", {"contactId": contact_id, "body": body})
+
+    def delete_contact(self, contact_id: int) -> dict:
+        return self.call_tool("deleteContact", {"contactId": contact_id})
+
+    def list_contact_permissions(self) -> dict:
+        return self._call("list_contact_permissions")
+
+    # SSH Keys (extended)
+    def set_stored_ssh_key(self, service_id: int, ssh_key: str) -> dict:
+        return self.call_tool("setServiceSshKey", {"body": {"service_id": service_id, "ssh_key": ssh_key}})
+
+    def delete_stored_ssh_key(self, service_id: int) -> dict:
+        return self.call_tool("deleteServiceSshKey", {"serviceId": service_id})
+
+    def remove_ssh_key_live(self, service_id: int) -> dict:
+        return self.call_tool("deleteLiveServiceSshKey", {"serviceId": service_id})
+
+    # Support (extended)
+    def list_support_tickets(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_support_tickets", **params))
+
+    def get_support_ticket(self, ticket_id: int) -> dict:
+        return self._call("get_support_ticket", ticket_id=ticket_id)
+
+    def create_support_ticket(self, **body) -> dict:
+        return self.call_tool("createSupportTicket", {"body": body})
+
+    def reply_support_ticket(self, ticket_id: int, **body) -> dict:
+        return self.call_tool("replySupportTicket", {"ticketId": ticket_id, "body": body})
+
+    def close_support_ticket(self, ticket_id: int) -> dict:
+        return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
+
+    # Affiliate
+    def get_affiliate_overview(self) -> dict:
+        return self._call("get_affiliate_overview")
+
+    def list_affiliate_payouts(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_affiliate_payouts", **params))
+
+    def list_affiliate_referrals(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_affiliate_referrals", **params))
+
+    def get_affiliate_payout_destination(self) -> dict:
+        return self._call("get_affiliate_payout_destination")
+
+    def set_affiliate_payout_destination(self, **body) -> dict:
+        return self.call_tool("updateAffiliatePayoutDestination", {"body": body})
+
+    def request_affiliate_payout(self, **body) -> dict:
+        return self.call_tool("requestAffiliatePayout", {"body": body})
+
+    def enroll_affiliate(self) -> dict:
+        return self._call("enroll_affiliate")
+
+    # Managers
+    def list_managers(self) -> list[dict]:
+        return self._extract_items(self._call("list_managers"))
+
+    def invite_manager(self, **body) -> dict:
+        return self.call_tool("inviteAccountManager", {"body": body})
+
+    def list_manager_permissions(self) -> dict:
+        return self._call("list_manager_permissions")
+
+    # KB
+    def search_kb(self, q: str, **params) -> list[dict]:
+        return self._extract_items(self._call("search_kb", q=q, **params))
+
+    def get_kb_article(self, article_id: int) -> dict:
+        return self._call("get_kb_article", article_id=article_id)
+
+    # Emails
+    def list_emails(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_emails", **params))
+
+    def get_email(self, email_id: int) -> dict:
+        return self._call("get_email", email_id=email_id)
+
+    # Managed accounts
+    def list_managed_accounts(self) -> list[dict]:
+        return self._extract_items(self._call("list_managed_accounts"))
 
     # VM Data
     def get_vm_metrics(self, service_id: int) -> dict:
