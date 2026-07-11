@@ -19,6 +19,12 @@ tollgate/cashu-tollgate
 # OpenCode agent state
 .omo/
 
+# Local notes and audit artifacts
+notes/
+
+# Debug screenshots
+*.png
+
 # Playwright MCP session artifacts (logs, snapshots)
 .playwright-mcp/
 
