@@ -309,7 +309,8 @@ class SHCClient:
         """
         idem_key = f"shc-{uuid.uuid4().hex[:24]}"
         headers = dict(kwargs.pop("headers", None) or {})
-        headers["Idempotency-Key"] = idem_key
+        if "Idempotency-Key" not in headers:
+            headers["Idempotency-Key"] = idem_key
         kwargs["headers"] = headers
         try:
             return self._request(method, path, **kwargs)
