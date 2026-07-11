@@ -820,9 +820,6 @@ class SHCMCPClient:
         return self.call_tool("submitCreditTopup", {"body": body})
 
     # Account
-    def get_account_balance(self) -> dict:
-        return self._call("get_account_balance")
-
     def get_billing_balance(self) -> dict:
         return self._call("get_billing_balance")
 
@@ -943,9 +940,6 @@ class SHCMCPClient:
     def list_isos(self, service_id: int) -> list[dict]:
         return self._extract_items(self._call("list_isos", service_id=service_id))
 
-    def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict:
-        return self._call("get_account_activity", limit=limit, offset=offset)
-
     def rekey_zk_backup(self, service_id: int, **body) -> dict:
         return self.call_tool("rekeyVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
 
@@ -1038,10 +1032,6 @@ class SHCMCPClient:
         })
 
     # ISO
-    def list_isos(self, service_id: int) -> list[dict]:
-        result = self.call_tool("listImages", {"serviceId": service_id})
-        return self._extract_items(result)
-
     def mount_iso(self, service_id: int, iso_id: str) -> dict:
         return self.call_tool("mountVirtualMachineIso", {
             "serviceId": service_id, "isoId": iso_id,
@@ -1085,40 +1075,6 @@ class SHCMCPClient:
         return self._cache_set("templates", data)
 
     # Support
-    def list_support_tickets(self, limit: int = 20, offset: int = 0) -> dict:
-        return self.call_tool("listSupportTickets", {"limit": limit, "offset": offset})
-
-    def create_support_ticket(
-        self,
-        subject: str,
-        message: str,
-        department_id: int,
-        priority: str = "medium",
-        service_id: int | None = None,
-        **kwargs,
-    ) -> dict:
-        args = {
-            "subject": subject,
-            "message": message,
-            "departmentId": department_id,
-            "priority": priority,
-        }
-        if service_id:
-            args["serviceId"] = service_id
-        args.update(self._convert_args(kwargs))
-        return self.call_tool("createSupportTicket", args)
-
-    def get_support_ticket(self, ticket_id: int) -> dict:
-        return self.call_tool("getSupportTicket", {"ticketId": ticket_id})
-
-    def reply_support_ticket(self, ticket_id: int, message: str) -> dict:
-        return self.call_tool("replySupportTicket", {
-            "ticketId": ticket_id, "body": {"message": message},
-        })
-
-    def close_support_ticket(self, ticket_id: int) -> dict:
-        return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
-
     def list_support_departments(self) -> list[dict]:
         result = self.call_tool("listSupportDepartments", {})
         return self._extract_items(result)

@@ -17,9 +17,9 @@ from .benchmark import run_full_suite, print_results as print_bench_results
 try:
     from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns
 except ImportError:
-    NoDNSKeyPair = None
-    provision_dns_for_vm = None
-    verify_dns = None
+    NoDNSKeyPair = None  # type: ignore
+    provision_dns_for_vm = None  # type: ignore
+    verify_dns = None  # type: ignore
 
 
 # ── Context / Auth Profiles ───────────────────────────────

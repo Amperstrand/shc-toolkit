@@ -80,7 +80,7 @@ class CatalogPackage:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> CatalogPackage:
-        daily = next(
+        daily: dict = next(
             (p for p in d.get("pricing", []) if p.get("period") == "day"),
             {},
         )

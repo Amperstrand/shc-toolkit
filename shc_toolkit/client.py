@@ -177,7 +177,7 @@ class SHCClient:
             return cached
         for pkg in self.get_catalog():
             if pkg.get("package_id") == package_id:
-                daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
+                daily: dict = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
                 price = float(daily.get("price", 0))
                 return self._cache_set(cache_key, price)
         return 0.0
@@ -511,7 +511,9 @@ class SHCClient:
     def get_invoice_pdf_url(self, invoice_id: int) -> str:
         return f"{self.base_url}/invoices/{invoice_id}/pdf"
 
-    def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict:
+    def pay_invoice(self, invoice_id: int, idempotency_key: str | None = None) -> dict:
+        if idempotency_key is None:
+            idempotency_key = f"shc-{uuid.uuid4().hex[:24]}"
         return self._post(
             f"/payment/{invoice_id}/checkout",
             {"gateway": "btcpay_server", "idempotency_key": idempotency_key},
@@ -726,7 +728,7 @@ class SHCClient:
                 ] if v is not None
             }
             if addon_kwargs:
-                config_options = self.resolve_addons(package_id, **addon_kwargs)
+                config_options = self.resolve_addons(package_id, **addon_kwargs)  # type: ignore[arg-type]
 
         if ssh_key:
             from pathlib import Path

@@ -22,6 +22,7 @@ and ``shc_toolkit/bootstrap.py``.
 from __future__ import annotations
 
 import json
+import ssl
 import os
 import shutil
 import subprocess
@@ -206,7 +207,6 @@ def _ssl_context() -> "ssl.SSLContext":
     store automatically; prefer certifi if installed, fall back to the
     default context (which still uses the OS trust on Linux/Windows).
     """
-    import ssl
     try:
         import certifi
         return ssl.create_default_context(cafile=certifi.where())

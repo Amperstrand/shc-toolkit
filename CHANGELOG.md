@@ -5,7 +5,10 @@ All notable changes to shc-toolkit are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.4.3.1] — 2026-07-11
+
+First release aligned with the SHC API version. Format: `<SHC_API_VERSION>.<toolkit_patch>`.
+This release supports SHC API v2.4.3 (129 paths, 156 schemas).
 
 ### Added
 - Auto-generated Python client from OpenAPI spec (`shc_toolkit.generated`) — 149 endpoint methods, 543 Pydantic models, 100% API coverage. Install with `pip install shc-toolkit[generated]`.
