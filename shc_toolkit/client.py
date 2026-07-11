@@ -149,7 +149,7 @@ class SHCClient:
             self._raw_client = Client(
                 base_url=self.base_url,
                 headers={"Authorization": f"Bearer {self.api_key}"},
-            )
+            )  # type: ignore[call-arg]
         return self._raw_client
 
     # ── Cache ───────────────────────────────────────────────
