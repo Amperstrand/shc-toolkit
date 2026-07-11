@@ -156,7 +156,6 @@ TOOL_MAP: dict[str, str] = {
     "verify_snapshot": "verifyVirtualMachineSnapshot",
     "set_snapshot_protection": "setVirtualMachineSnapshotProtection",
     # Backups (extended)
-    "list_backups": "listVirtualMachineBackups",
     "delete_backup": "deleteVirtualMachineBackup",
     "restore_backup": "restoreVirtualMachineBackup",
     "verify_backup": "verifyVirtualMachineBackup",
