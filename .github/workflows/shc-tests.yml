@@ -3,11 +3,12 @@ name: SHC API Tests
 on:
   push:
     branches: [main]
-    paths: ['shc_toolkit/**', 'tests/**']
+    paths: ['shc_toolkit/**', 'tests/**', '.github/workflows/shc-tests.yml']
   pull_request:
     branches: [main]
   schedule:
     - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
