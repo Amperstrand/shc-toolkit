@@ -18,6 +18,7 @@ classifiers = [
 nodns = ["nostr-sdk>=0.44"]
 console = ["playwright>=1.40"]
 mcp = ["mcp>=1.0"]
+generated = ["httpx>=0.24", "attrs>=21.0", "python-dateutil>=2.8"]
 
 [project.urls]
 Homepage = "https://github.com/Amperstrand/shc-toolkit"
