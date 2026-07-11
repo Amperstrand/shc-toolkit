@@ -1,0 +1,48 @@
+---
+# Workflow: cross-repo parity audit for the 3 SHC repos.
+#
+# Runs scripts/audit_cross_repo.py against shc-toolkit,
+# terraform-provider-shc, and shc-pulumi. Verifies:
+#   - SIZE_MAP entries match across all 3 repos
+#   - resolve_addons / ResolveAddons signatures + error contracts align
+#   - Feature matrix (cost audit, config options, drift CI, etc) parity
+#   - Billing/Dev VPS claims are consistent across READMEs
+#
+# Runs on every push/PR that could affect parity (toolkit source,
+# scripts, or this workflow) plus a weekly schedule to catch drift
+# introduced by either of the sibling repos.
+
+name: cross-repo-parity
+
+on:
+  push:
+    paths:
+      - 'shc_toolkit/**'
+      - 'scripts/audit_cross_repo.py'
+      - '.github/workflows/cross-repo-parity.yml'
+  pull_request:
+    paths:
+      - 'shc_toolkit/**'
+      - 'scripts/audit_cross_repo.py'
+      - '.github/workflows/cross-repo-parity.yml'
+  schedule:
+    - cron: '0 4 * * 1'  # Monday 04:00 UTC
+
+jobs:
+  parity-audit:
+    name: Cross-repo parity audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Clone sibling repos at latest main
+        run: |
+          git clone --depth=1 https://github.com/Amperstrand/terraform-provider-shc.git ../terraform-provider-shc
+          git clone --depth=1 https://github.com/Amperstrand/shc-pulumi.git ../shc-pulumi
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Run cross-repo parity audit
+        run: python3 scripts/audit_cross_repo.py --check
