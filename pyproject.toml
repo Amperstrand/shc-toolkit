@@ -7,7 +7,7 @@ name = "shc-toolkit"
 version = "2.4.3.1"
 description = "Sovereign Hybrid Compute API client, CLI, and NoDNS + Let's Encrypt DNS-01 provisioning"
 requires-python = ">=3.11"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Amperstrand", email = "dev@amperstrand.com"},
 ]
