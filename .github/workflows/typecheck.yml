@@ -1,0 +1,32 @@
+---
+# Type checking with mypy on every push/PR.
+#
+# The codebase uses PEP 604 union types (str | None) and
+# from __future__ import annotations, so mypy with Python 3.11+
+# target is required.
+
+name: typecheck
+
+on:
+  push:
+    paths:
+      - 'shc_toolkit/**'
+      - 'tests/**'
+      - '.github/workflows/typecheck.yml'
+  pull_request:
+    paths:
+      - 'shc_toolkit/**'
+      - 'tests/**'
+      - '.github/workflows/typecheck.yml'
+
+jobs:
+  mypy:
+    name: mypy type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install mypy types-requests
+      - run: mypy shc_toolkit/ --ignore-missing-imports --no-strict-optional

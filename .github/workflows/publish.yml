@@ -1,0 +1,47 @@
+---
+# PyPI publishing workflow.
+#
+# Triggers on tag push (v*.*.*) and uses PyPI Trusted Publishing
+# (OIDC — no API token needed). Configure at:
+# https://pypi.org/manage/project/shc-toolkit/settings/publishing/
+#
+# To release:
+#   git tag v0.6.0
+#   git push origin v0.6.0
+
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

@@ -4,14 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shc-toolkit"
-version = "0.5.0"
+version = "0.6.0"
 description = "Sovereign Hybrid Compute API client, CLI, and NoDNS + Let's Encrypt DNS-01 provisioning"
 requires-python = ">=3.11"
 license = "MIT"
+authors = [
+    {name = "Amperstrand", email = "dev@amperstrand.com"},
+]
 dependencies = ["requests>=2.28"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Internet :: WWW/HTTP",
 ]
 
 [project.optional-dependencies]
@@ -22,8 +35,11 @@ generated = ["httpx>=0.24", "attrs>=21.0", "python-dateutil>=2.8"]
 
 [project.urls]
 Homepage = "https://github.com/Amperstrand/shc-toolkit"
+Documentation = "https://github.com/Amperstrand/shc-toolkit#readme"
 SHC_API = "https://blesta.sovereignhybridcompute.com/user-api/docs/"
 NoDNS = "https://nodns.shop/"
+Changelog = "https://github.com/Amperstrand/shc-toolkit/blob/main/CHANGELOG.md"
+Issues = "https://github.com/Amperstrand/shc-toolkit/issues"
 
 [project.scripts]
 shc = "shc_toolkit.cli:main"
