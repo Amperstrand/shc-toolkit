@@ -44,7 +44,7 @@ MCP_PROTOCOL_VERSION = "2025-06-18"
 TOOL_MAP: dict[str, str] = {
     # Account
     "get_account": "getAccount",
-    "get_account_balance": "getBillingBalance",
+    "get_billing_balance": "getBillingBalance",
     # API Keys
     # API Keys
     "list_api_keys": "listApiKeys",
@@ -168,6 +168,11 @@ TOOL_MAP: dict[str, str] = {
     "get_email": "getEmail",
     # Managed accounts
     "list_managed_accounts": "listManagedAccounts",
+    # Extended VM operations
+    "get_vm_renewal_quote": "getRenewalQuote",
+    "list_isos": "getVirtualMachineIso",
+    "get_account_activity": "listAccountActivity",
+    "rekey_zk_backup": "rekeyVirtualMachineZkBackup",
 }
 
 # Reverse map for debugging
@@ -811,6 +816,9 @@ class SHCMCPClient:
     def get_account_balance(self) -> dict:
         return self._call("get_account_balance")
 
+    def get_billing_balance(self) -> dict:
+        return self._call("get_billing_balance")
+
     def get_preferences(self) -> dict:
         return self._call("get_preferences")
 
@@ -920,6 +928,19 @@ class SHCMCPClient:
     # Managed accounts
     def list_managed_accounts(self) -> list[dict]:
         return self._extract_items(self._call("list_managed_accounts"))
+
+    # Extended VM operations
+    def get_vm_renewal_quote(self, service_id: int) -> dict:
+        return self._call("get_vm_renewal_quote", service_id=service_id)
+
+    def list_isos(self, service_id: int) -> list[dict]:
+        return self._extract_items(self._call("list_isos", service_id=service_id))
+
+    def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict:
+        return self._call("get_account_activity", limit=limit, offset=offset)
+
+    def rekey_zk_backup(self, service_id: int, **body) -> dict:
+        return self.call_tool("rekeyVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
 
     # VM Data
     def get_vm_metrics(self, service_id: int) -> dict:
