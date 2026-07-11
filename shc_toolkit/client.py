@@ -13,6 +13,7 @@ import json as _json
 import logging
 import os
 import socket
+import uuid
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any
@@ -198,6 +199,11 @@ class SHCClient:
         elif "Content-Type" in self.session.headers:
             del self.session.headers["Content-Type"]
 
+        if method in ("POST", "PATCH", "PUT", "DELETE"):
+            self.session.headers["Idempotency-Key"] = f"shc-{uuid.uuid4().hex[:24]}"
+        elif "Idempotency-Key" in self.session.headers:
+            del self.session.headers["Idempotency-Key"]
+
         for attempt in range(self._max_retries):
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
@@ -207,7 +213,7 @@ class SHCClient:
                 time.sleep(self._backoff_delay(attempt))
                 continue
 
-            if resp.status_code == 429:
+            if resp.status_code in (408, 429):
                 retry_after = self._parse_retry_after(resp, attempt)
                 time.sleep(retry_after)
                 continue
