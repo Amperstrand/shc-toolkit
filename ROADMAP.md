@@ -7,11 +7,11 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 | Repo | Tests | CI | Key Features |
 |------|-------|----|-------------|
-| shc-toolkit | 87 unit | Push + daily (REST+MCP) + OpenAPI drift + MCP drift | Spec-encoding sizes, config options, cost audit, MCP transport (117 tools), v2.4.0, catalog generator |
+| shc-toolkit | 163 unit | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity | Spec-encoding sizes, config options, cost audit, MCP transport (142 tools), v2.5.0, catalog generator |
 | shc-pulumi | 95 unit | Push + size-map drift | Spec-encoding sizes, config options, snapshots, backups, firewall, rDNS, NoDNS |
 | terraform-provider-shc | 68 unit | Push + size-map drift + integration | Spec-encoding sizes, config options, cost audit, snapshots, backups, firewall, rDNS |
 
-### API version: v2.4.0 (108 paths)
+### API version: v2.5.0 (129 paths)
 
 ## Completed Work
 
@@ -101,7 +101,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 | Credit pre-check | check_credit | CheckCredit | estimate_daily_cost |
 | Catalog generator | --format go\|pulumi\|python | regenerate_sizes.sh | regenerate_sizes.sh |
 | Drift detection CI | OpenAPI + MCP + size-map | size-map | size-map |
-| MCP transport | 73/118 tools wrapped (61%) | N/A | N/A |
+| MCP transport | 73/142 tools wrapped (51%) | N/A | N/A |
 
 ## Future Work (not started)
 

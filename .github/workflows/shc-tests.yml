@@ -8,6 +8,9 @@ on:
     branches: [main]
   schedule:
     - cron: '0 */6 * * *'
+
+permissions:
+  issues: write
   workflow_dispatch:
 
 jobs:
@@ -104,18 +107,56 @@ jobs:
           removed_paths = cached_paths - live_paths
 
           if new_paths:
-              print(f'::warning::New endpoints not in cache: {new_paths}')
+               print(f'::warning::New endpoints not in cache: {new_paths}')
           if removed_paths:
-              print(f'::warning::Endpoints removed from API: {removed_paths}')
+               print(f'::warning::Endpoints removed from API: {removed_paths}')
           if live_version != cached_version:
-              print(f'::warning::API version changed: {cached_version} → {live_version}')
-              print('Run: curl https://blesta.sovereignhybridcompute.com/user-api/openapi.json > shc_toolkit/openapi.json')
-              exit(1)
-          if new_paths or removed_paths:
-              print('Endpoint set changed. Update cached spec.')
-              exit(1)
+               print(f'::warning::API version changed: {cached_version} → {live_version}')
+               print('Run: curl https://blesta.sovereignhybridcompute.com/user-api/openapi.json > shc_toolkit/openapi.json')
+
+          if new_paths or removed_paths or live_version != cached_version:
+               with open('/tmp/openapi-diff.txt', 'w') as f:
+                    f.write(f'API version: {cached_version} → {live_version}\n')
+                    if new_paths:
+                         f.write(f'\nNew endpoints ({len(new_paths)}):\n')
+                         for p in sorted(new_paths):
+                              f.write(f'  + {p}\n')
+                    if removed_paths:
+                         f.write(f'\nRemoved endpoints ({len(removed_paths)}):\n')
+                         for p in sorted(removed_paths):
+                              f.write(f'  - {p}\n')
+               exit(1)
           print('No drift detected ✅')
           "
+
+      - name: Create issue on OpenAPI drift
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            let diff = '(diff not available)';
+            try { diff = readFileSync('/tmp/openapi-diff.txt', 'utf8'); } catch (e) {}
+
+            // Deduplicate: skip if an open api-drift issue already exists
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'api-drift'
+            });
+            if (existing.data.length > 0) {
+              console.log(`Issue already exists: #${existing.data[0].number} — skipping`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'API drift detected: SHC API spec has changed',
+              body: '## OpenAPI spec drift detected\n\n```diff\n' + diff + '\n```\n\n## Action items\n1. Review the changes above\n2. Update `shc_toolkit/openapi.json` with the new spec\n3. Wrap new endpoints in `shc_toolkit/client.py`\n4. Add new MCP tools to `TOOL_MAP` in `mcp_client.py`\n5. Run tests: `python3 -m pytest tests/test_unit.py`\n6. Close this issue once the spec is updated',
+              labels: ['api-drift', 'enhancement']
+            });
 
   mcp-drift:
     name: MCP tool drift detection
@@ -151,20 +192,52 @@ jobs:
           print(f'Client tools: {len(client_names)}')
           print(f'Unwrapped server tools: {len(unwrapped)}')
 
-          if broken:
-              print(f'::error::Client calls {len(broken)} tool(s) not on server:')
-              for name in sorted(broken):
-                  print(f'  ❌ {name}')
-              print('Fix: update the tool name in mcp_client.py to match the server.')
-              sys.exit(1)
+           if broken:
+               print(f'::error::Client calls {len(broken)} tool(s) not on server:')
+               for name in sorted(broken):
+                   print(f'  ❌ {name}')
+               print('Fix: update the tool name in mcp_client.py to match the server.')
+               with open('/tmp/mcp-drift.txt', 'w') as f:
+                   f.write(f'Broken tools ({len(broken)}):\n')
+                   for name in sorted(broken):
+                       f.write(f'  ❌ {name}\n')
+               sys.exit(1)
 
-          if unwrapped:
-              print(f'::warning::{len(unwrapped)} server tool(s) not wrapped by client (coverage gap):')
-              for name in sorted(unwrapped):
-                  print(f'  ⚠ {name}')
+           if unwrapped:
+               print(f'::warning::{len(unwrapped)} server tool(s) not wrapped by client (coverage gap):')
+               for name in sorted(unwrapped):
+                   print(f'  ⚠ {name}')
 
-          print('No broken tool names ✅')
-          "
+           print('No broken tool names ✅')
+           "
+
+      - name: Create issue on MCP drift
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            let diff = '(diff not available)';
+            try { diff = readFileSync('/tmp/mcp-drift.txt', 'utf8'); } catch (e) {}
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'api-drift'
+            });
+            if (existing.data.length > 0) {
+              console.log(`Issue already exists: #${existing.data[0].number} — skipping`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'MCP tool drift detected: client calls non-existent server tools',
+              body: '## MCP tool drift detected\n\nThe shc-toolkit MCP client calls tool names that the live SHC MCP server does not recognize. This means the server renamed or removed a tool and the client needs updating.\n\n```diff\n' + diff + '\n```\n\n## Action items\n1. Check the live MCP server tool list\n2. Update the tool name in `shc_toolkit/mcp_client.py` to match\n3. Run: `python3 -m pytest tests/test_unit.py`\n4. Close this issue once fixed',
+              labels: ['api-drift', 'bug']
+            });
 
   reaper:
     name: Reap orphaned VMs
