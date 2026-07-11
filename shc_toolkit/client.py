@@ -936,6 +936,46 @@ class SHCClient:
     def get_vm_renewal_quote(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/renew")
 
+    # ── VM term + addons (v2.5.0) ─────────────────────────────
+
+    def list_vm_addons(self, service_id: int) -> list[dict]:
+        return self._get_items(f"/vm/{service_id}/addons")
+
+    def get_vm_addon_options(self, service_id: int) -> dict:
+        return self._get(f"/vm/{service_id}/addons/options")
+
+    def create_vm_addon(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/addons", confirm=confirm, json=kwargs,
+        )
+
+    def preview_vm_addon(self, service_id: int, **kwargs) -> dict:
+        return self._post(f"/vm/{service_id}/addons/preview", kwargs)
+
+    def get_vm_term_options(self, service_id: int) -> dict:
+        return self._get(f"/vm/{service_id}/term-options")
+
+    def change_vm_term(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/term", confirm=confirm, json=kwargs,
+        )
+
+    def preview_vm_term_change(self, service_id: int, **kwargs) -> dict:
+        return self._post(f"/vm/{service_id}/term/preview", kwargs)
+
+    # ── Orders (v2.5.0) ───────────────────────────────────────
+
+    def list_orders(self, **params) -> list[dict]:
+        return self._get_items("/orders", params=params or None)
+
+    def get_order(self, order_id: int) -> dict:
+        return self._get(f"/orders/{order_id}")
+
+    def cancel_pending_order(self, order_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/orders/{order_id}/cancel", confirm=confirm,
+        )
+
     # ── Snapshots ────────────────────────────────────────────
 
     def list_snapshots(self, service_id: int) -> list[dict]:

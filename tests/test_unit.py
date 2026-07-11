@@ -241,7 +241,7 @@ class TestMcpConvertArgs:
 class TestMcpToolMap:
     def test_core_tool_count(self):
         from shc_toolkit.mcp_client import TOOL_MAP
-        assert len(TOOL_MAP) == 23
+        assert len(TOOL_MAP) == 47
 
     def test_key_mappings(self):
         from shc_toolkit.mcp_client import TOOL_MAP
@@ -254,6 +254,41 @@ class TestMcpToolMap:
         from shc_toolkit.mcp_client import METHOD_MAP
         assert METHOD_MAP["listVirtualMachines"] == "list_vms"
         assert METHOD_MAP["getAccount"] == "get_account"
+
+    def test_v250_tool_map_entries(self):
+        """All 25 new v2.5.0 MCP tools must be in TOOL_MAP."""
+        from shc_toolkit.mcp_client import TOOL_MAP
+        v250_entries = {
+            "list_vm_addons", "get_vm_addon_options", "create_vm_addon",
+            "preview_vm_addon", "get_vm_term_options", "change_vm_term",
+            "preview_vm_term_change", "list_orders", "get_order",
+            "cancel_pending_order", "list_quotations", "get_quotation",
+            "approve_quotation", "list_quotation_invoices",
+            "link_nostr_identity", "unlink_nostr_identity", "update_nip05",
+            "list_documents", "download_document", "list_downloads",
+            "download_file", "get_support_ticket_attachment",
+            "submit_support_ticket_feedback", "get_invoice_electronic",
+        }
+        missing = v250_entries - set(TOOL_MAP.keys())
+        assert not missing, f"Missing v2.5.0 TOOL_MAP entries: {missing}"
+
+    def test_v250_mcp_methods_exist(self):
+        """Every TOOL_MAP entry must have a corresponding SHCMCPClient method."""
+        from shc_toolkit.mcp_client import TOOL_MAP, SHCMCPClient
+        missing = [name for name in TOOL_MAP if not hasattr(SHCMCPClient, name)]
+        assert not missing, f"SHCMCPClient missing methods for TOOL_MAP entries: {missing}"
+
+    def test_v250_rest_methods_exist(self):
+        """Tier 1+2 new endpoints must have REST methods on SHCClient."""
+        from shc_toolkit.client import SHCClient
+        v250_methods = [
+            "list_vm_addons", "get_vm_addon_options", "create_vm_addon",
+            "preview_vm_addon", "get_vm_term_options", "change_vm_term",
+            "preview_vm_term_change", "list_orders", "get_order",
+            "cancel_pending_order",
+        ]
+        missing = [m for m in v250_methods if not hasattr(SHCClient, m)]
+        assert not missing, f"SHCClient missing v2.5.0 methods: {missing}"
 
 
 class TestMcpClientMocked:
