@@ -193,24 +193,24 @@ jobs:
           print(f'Client tools: {len(client_names)}')
           print(f'Unwrapped server tools: {len(unwrapped)}')
 
-           if broken:
-               print(f'::error::Client calls {len(broken)} tool(s) not on server:')
-               for name in sorted(broken):
-                   print(f'  ❌ {name}')
-               print('Fix: update the tool name in mcp_client.py to match the server.')
-               with open('/tmp/mcp-drift.txt', 'w') as f:
-                   f.write(f'Broken tools ({len(broken)}):\n')
-                   for name in sorted(broken):
-                       f.write(f'  ❌ {name}\n')
-               sys.exit(1)
+          if broken:
+              print(f'::error::Client calls {len(broken)} tool(s) not on server:')
+              for name in sorted(broken):
+                  print(f'  ❌ {name}')
+              print('Fix: update the tool name in mcp_client.py to match the server.')
+              with open('/tmp/mcp-drift.txt', 'w') as f:
+                  f.write(f'Broken tools ({len(broken)}):\n')
+                  for name in sorted(broken):
+                      f.write(f'  ❌ {name}\n')
+              sys.exit(1)
 
-           if unwrapped:
-               print(f'::warning::{len(unwrapped)} server tool(s) not wrapped by client (coverage gap):')
-               for name in sorted(unwrapped):
-                   print(f'  ⚠ {name}')
+          if unwrapped:
+              print(f'::warning::{len(unwrapped)} server tool(s) not wrapped by client (coverage gap):')
+              for name in sorted(unwrapped):
+                  print(f'  ⚠ {name}')
 
-           print('No broken tool names ✅')
-           "
+          print('No broken tool names ✅')
+          "
 
       - name: Create issue on MCP drift
         if: failure() && github.event_name != 'pull_request'
