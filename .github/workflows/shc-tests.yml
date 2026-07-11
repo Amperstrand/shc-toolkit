@@ -3,7 +3,7 @@ name: SHC API Tests
 on:
   push:
     branches: [main]
-    paths: ['shc_toolkit/**', 'tests/**', '.github/workflows/shc-tests.yml']
+    paths: ['shc_toolkit/**', 'tests/**', '.github/workflows/shc-tests.yml', 'pyproject.toml']
   pull_request:
     branches: [main]
   schedule:
