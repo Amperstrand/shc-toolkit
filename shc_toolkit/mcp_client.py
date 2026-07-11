@@ -71,7 +71,7 @@ TOOL_MAP: dict[str, str] = {
     "list_upgrade_options": "getServiceUpgradeOptions",
     "preview_upgrade": "previewServiceUpgrade",
     "upgrade_vm": "upgradeService",
-    # VM term + addons (v2.5.0)
+    # VM term + addons (v2.4.3)
     "list_vm_addons": "listServiceAddons",
     "get_vm_addon_options": "getServiceAddonOptions",
     "create_vm_addon": "createServiceAddon",
@@ -79,28 +79,28 @@ TOOL_MAP: dict[str, str] = {
     "get_vm_term_options": "getVirtualMachineTermOptions",
     "change_vm_term": "changeVirtualMachineTerm",
     "preview_vm_term_change": "previewVirtualMachineTermChange",
-    # Orders (v2.5.0)
+    # Orders (v2.4.3)
     "list_orders": "listOrders",
     "get_order": "getOrder",
     "cancel_pending_order": "cancelPendingOrder",
-    # Quotations (v2.5.0)
+    # Quotations (v2.4.3)
     "list_quotations": "listQuotations",
     "get_quotation": "getQuotation",
     "approve_quotation": "approveQuotation",
     "list_quotation_invoices": "listQuotationInvoices",
-    # Nostr account linking (v2.5.0)
+    # Nostr account linking (v2.4.3)
     "link_nostr_identity": "linkNostrIdentity",
     "unlink_nostr_identity": "unlinkNostrIdentity",
     "update_nip05": "updateNip05",
-    # Documents + Downloads (v2.5.0)
+    # Documents + Downloads (v2.4.3)
     "list_documents": "listClientDocuments",
     "download_document": "downloadClientDocument",
     "list_downloads": "listDownloadFiles",
     "download_file": "downloadDownloadFile",
-    # Support extras (v2.5.0)
+    # Support extras (v2.4.3)
     "get_support_ticket_attachment": "getSupportTicketAttachment",
     "submit_support_ticket_feedback": "submitSupportTicketFeedback",
-    # Invoice electronic (v2.5.0)
+    # Invoice electronic (v2.4.3)
     "get_invoice_electronic": "getInvoiceElectronic",
     # Billing
     "list_invoices": "listInvoices",
@@ -634,7 +634,7 @@ class SHCMCPClient:
     def upgrade_vm(self, service_id: int, package_id: int) -> dict:
         return self._call("upgrade_vm", service_id=service_id, package_id=package_id)
 
-    # VM term + addons (v2.5.0)
+    # VM term + addons (v2.4.3)
     def list_vm_addons(self, service_id: int) -> list[dict]:
         return self._extract_items(self._call("list_vm_addons", service_id=service_id))
 
@@ -656,7 +656,7 @@ class SHCMCPClient:
     def preview_vm_term_change(self, service_id: int, **body) -> dict:
         return self.call_tool("previewVirtualMachineTermChange", {"serviceId": service_id, "body": body})
 
-    # Orders (v2.5.0)
+    # Orders (v2.4.3)
     def list_orders(self, **params) -> list[dict]:
         return self._extract_items(self._call("list_orders", **params))
 
@@ -666,7 +666,7 @@ class SHCMCPClient:
     def cancel_pending_order(self, order_id: int) -> dict:
         return self.call_tool("cancelPendingOrder", {"orderId": order_id})
 
-    # Quotations (v2.5.0)
+    # Quotations (v2.4.3)
     def list_quotations(self, **params) -> list[dict]:
         return self._extract_items(self._call("list_quotations", **params))
 
@@ -679,7 +679,7 @@ class SHCMCPClient:
     def list_quotation_invoices(self, quotation_id: int) -> list[dict]:
         return self._extract_items(self._call("list_quotation_invoices", quotation_id=quotation_id))
 
-    # Nostr account linking (v2.5.0)
+    # Nostr account linking (v2.4.3)
     def link_nostr_identity(self, **body) -> dict:
         return self.call_tool("linkNostrIdentity", {"body": body})
 
@@ -689,7 +689,7 @@ class SHCMCPClient:
     def update_nip05(self, **body) -> dict:
         return self.call_tool("updateNip05", {"body": body})
 
-    # Documents + Downloads (v2.5.0)
+    # Documents + Downloads (v2.4.3)
     def list_documents(self, **params) -> list[dict]:
         return self._extract_items(self._call("list_documents", **params))
 
@@ -702,7 +702,7 @@ class SHCMCPClient:
     def download_file(self, file_id: int) -> dict:
         return self._call("download_file", file_id=file_id)
 
-    # Support extras (v2.5.0)
+    # Support extras (v2.4.3)
     def get_support_ticket_attachment(self, ticket_id: int, attachment_id: int) -> dict:
         return self.call_tool("getSupportTicketAttachment", {"ticketId": ticket_id, "attachmentId": attachment_id})
 
@@ -712,7 +712,7 @@ class SHCMCPClient:
             body["comment"] = comment
         return self.call_tool("submitSupportTicketFeedback", {"ticketId": ticket_id, "body": body})
 
-    # Invoice electronic (v2.5.0)
+    # Invoice electronic (v2.4.3)
     def get_invoice_electronic(self, invoice_id: int) -> dict:
         return self._call("get_invoice_electronic", invoice_id=invoice_id)
 

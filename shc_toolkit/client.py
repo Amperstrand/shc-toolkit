@@ -936,7 +936,7 @@ class SHCClient:
     def get_vm_renewal_quote(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/renew")
 
-    # ── VM term + addons (v2.5.0) ─────────────────────────────
+    # ── VM term + addons (v2.4.3) ─────────────────────────────
 
     def list_vm_addons(self, service_id: int) -> list[dict]:
         return self._get_items(f"/vm/{service_id}/addons")
@@ -963,7 +963,7 @@ class SHCClient:
     def preview_vm_term_change(self, service_id: int, **kwargs) -> dict:
         return self._post(f"/vm/{service_id}/term/preview", kwargs)
 
-    # ── Orders (v2.5.0) ───────────────────────────────────────
+    # ── Orders (v2.4.3) ───────────────────────────────────────
 
     def list_orders(self, **params) -> list[dict]:
         return self._get_items("/orders", params=params or None)
