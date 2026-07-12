@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: debug-statements
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+        files: 'shc_toolkit/.*\.py$'
+  - repo: local
+    hooks:
+      - id: pytest-quick
+        name: pytest (unit tests only, no API calls)
+        entry: python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py --timeout=10 -q --tb=no
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [commit]

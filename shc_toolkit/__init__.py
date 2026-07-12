@@ -15,13 +15,22 @@ Dual-transport client for SHC: REST v2 (default) or MCP Streamable HTTP.
     c = create_client(transport="rest")  # force REST
 """
 
-from .client import SHCClient, SHCError, ProvisioningStuckError, InsufficientCreditError
+from .client import (
+    SHCClient, SHCError, ProvisioningStuckError, InsufficientCreditError,
+    SHCNotFoundError, SHCAuthError, SHCRateLimitError,
+    SHCConfirmationRequiredError, SHCServerError,
+)
 from .transport import resolve_transport
 from .sizes import SIZE_MAP, resolve_size, resolve_specs, list_sizes
 
 __all__ = [
     "SHCClient",
     "SHCError",
+    "SHCNotFoundError",
+    "SHCAuthError",
+    "SHCRateLimitError",
+    "SHCConfirmationRequiredError",
+    "SHCServerError",
     "ProvisioningStuckError",
     "InsufficientCreditError",
     "SHCTransport",

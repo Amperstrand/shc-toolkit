@@ -1190,3 +1190,57 @@ class TestBackoffRetry:
         c._get("/test")
         assert len(captured_headers) == 1
         assert "Idempotency-Key" not in captured_headers[0]
+
+
+class TestExceptionHierarchy:
+    """Tests for the SHCError exception hierarchy."""
+
+    def test_not_found_error(self):
+        from shc_toolkit.client import SHCNotFoundError, SHCError
+        exc = SHCNotFoundError("not_found", "VM not found")
+        assert isinstance(exc, SHCError)
+        assert exc.error_code is None
+        assert "not_found" in str(exc)
+
+    def test_auth_error(self):
+        from shc_toolkit.client import SHCAuthError, SHCError
+        exc = SHCAuthError("unauthorized", "Invalid token")
+        assert isinstance(exc, SHCError)
+
+    def test_rate_limit_error(self):
+        from shc_toolkit.client import SHCRateLimitError, SHCError
+        exc = SHCRateLimitError("rate_limited", "Too many requests",
+                                retry_after_seconds=30)
+        assert isinstance(exc, SHCError)
+        assert exc.retry_after_seconds == 30
+
+    def test_confirmation_required_error(self):
+        from shc_toolkit.client import SHCConfirmationRequiredError, SHCError
+        exc = SHCConfirmationRequiredError("confirmation_required", "Confirm needed")
+        assert isinstance(exc, SHCError)
+
+    def test_server_error(self):
+        from shc_toolkit.client import SHCServerError, SHCError
+        exc = SHCServerError("upstream_failure", "Internal error")
+        assert isinstance(exc, SHCError)
+
+    def test_catch_specific_vs_base(self):
+        """Users can catch specific errors OR the base SHCError."""
+        from shc_toolkit.client import SHCNotFoundError, SHCError
+        exc = SHCNotFoundError("not_found", "Not found")
+        # Catching base works
+        try:
+            raise exc
+        except SHCError:
+            pass
+        # Catching specific works
+        try:
+            raise exc
+        except SHCNotFoundError:
+            pass
+
+    def test_generic_fallback(self):
+        """Unknown error codes still produce a plain SHCError."""
+        from shc_toolkit.client import SHCError, _ERROR_CODE_MAP
+        cls = _ERROR_CODE_MAP.get("unknown_error_code", SHCError)
+        assert cls is SHCError

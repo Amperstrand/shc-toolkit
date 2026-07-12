@@ -29,12 +29,22 @@ _CACHE_TTL = 300
 
 
 class SHCError(Exception):
-    """API error with code, message, request_id, and v2.4.0 stable error_code.
+    """Base exception for all SHC API errors.
 
     error_code is a machine-stable identifier (not_found, invalid_token,
     vm_locked, insufficient_credit, upstream_failure, rate_limited, ...)
     that does not change with message wording. Use it for programmatic
     error handling instead of string-matching messages.
+
+    For granular catching, use the specific subclasses:
+
+    - SHCNotFoundError: resource not found (404, error_code=not_found)
+    - SHCAuthError: authentication/authorization failure (401/403)
+    - SHCRateLimitError: rate limited (429, has retry_after_seconds)
+    - SHCConfirmationRequiredError: destructive op needs confirmation (409)
+    - SHCServerError: upstream 5xx error
+    - InsufficientCreditError: balance too low for an order
+    - ProvisioningStuckError: VM stuck in failure pattern
     """
 
     def __init__(
@@ -88,6 +98,60 @@ class InsufficientCreditError(SHCError):
             f"Insufficient credit: need ${required:.2f}, have ${available:.2f}. "
             f"Add credit at https://blesta.sovereignhybridcompute.com/client/",
         )
+
+
+class SHCNotFoundError(SHCError):
+    """Resource not found (HTTP 404)."""
+
+
+class SHCAuthError(SHCError):
+    """Authentication or authorization failure (HTTP 401/403)."""
+
+
+class SHCRateLimitError(SHCError):
+    """Rate limited (HTTP 429). Check retry_after_seconds."""
+
+
+class SHCConfirmationRequiredError(SHCError):
+    """Destructive operation requires confirmation (HTTP 409).
+
+    The confirmation_id is available on the exception instance. The
+    _confirmed_request method handles this automatically.
+    """
+
+
+class SHCServerError(SHCError):
+    """Upstream server error (HTTP 5xx)."""
+
+
+_ERROR_CODE_MAP: dict[str, type[SHCError]] = {
+    "not_found": SHCNotFoundError,
+    "invalid_token": SHCAuthError,
+    "unauthorized": SHCAuthError,
+    "forbidden": SHCAuthError,
+    "rate_limited": SHCRateLimitError,
+    "confirmation_required": SHCConfirmationRequiredError,
+    "upstream_failure": SHCServerError,
+    "internal_error": SHCServerError,
+}
+
+
+def _raise_shc_error(
+    code: str,
+    message: str,
+    request_id: str | None = None,
+    details: Any = None,
+    error_code: str | None = None,
+    retry_after_seconds: int | None = None,
+) -> None:
+    """Raise the most specific SHCError subclass for the given error_code.
+
+    Falls back to the generic SHCError for unknown error codes.
+    """
+    ec = error_code or code
+    cls = _ERROR_CODE_MAP.get(ec, SHCError)
+    exc = cls(code, message, request_id, details, error_code, retry_after_seconds)
+    raise exc
 
 
 class SHCClient:
@@ -253,14 +317,15 @@ class SHCClient:
         body = _json.loads(text) if text.strip() else {}
         if resp.status_code >= 400:
             err = body.get("error", {})
-            exc = SHCError(
-                err.get("code", "unknown"),
-                err.get("message", resp.text),
-                err.get("request_id"),
-                err.get("details"),
-                err.get("error_code"),
-                err.get("retry_after_seconds"),
-            )
+            code = err.get("code", "unknown")
+            message = err.get("message", resp.text)
+            request_id = err.get("request_id")
+            details = err.get("details")
+            error_code = err.get("error_code")
+            retry_after = err.get("retry_after_seconds")
+            ec = error_code or code
+            cls = _ERROR_CODE_MAP.get(ec, SHCError)
+            exc = cls(code, message, request_id, details, error_code, retry_after)
             conf = body.get("confirmation", {})
             if conf:
                 exc.confirmation_id = (
