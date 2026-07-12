@@ -15,16 +15,19 @@ from __future__ import annotations
 import os
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 import requests
 
 
 def test_fixture_blocks_unmocked_network_call_by_default():
-    """An unmocked requests.Session.request must raise — this is the
-    guarantee that prevents flaky time.sleep retries when a test forgets
-    to mock _safe_credit/get_vm_payments/etc."""
+    """An unmocked requests.Session.request OR httpx.Client.request must
+    raise — this is the guarantee that prevents flaky time.sleep retries
+    when a test forgets to mock _safe_credit/get_vm_payments/etc."""
     with pytest.raises(RuntimeError, match="Network call blocked"):
         requests.Session().request("GET", "https://example.test/")
+    with pytest.raises(RuntimeError, match="Network call blocked"):
+        httpx.Client().request("GET", "https://example.test/")
 
 
 @pytest.mark.allow_network

@@ -18,6 +18,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
+import httpx
 import requests
 
 log = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class SHCClient:
         if not self.api_key:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
         self.base_url = base_url
-        self.session = requests.Session()
+        self.session = httpx.Client(timeout=30.0)
         self.session.headers["Authorization"] = f"Bearer {self.api_key}"
         self._cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, Any]] = {}
@@ -232,7 +233,7 @@ class SHCClient:
         for attempt in range(self._max_retries):
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
-            except requests.exceptions.RequestException:
+            except httpx.HTTPError:
                 if attempt == self._max_retries - 1:
                     raise
                 time.sleep(self._backoff_delay(attempt))
@@ -250,7 +251,7 @@ class SHCClient:
 
         text = resp.text
         body = _json.loads(text) if text.strip() else {}
-        if not resp.ok:
+        if resp.status_code >= 400:
             err = body.get("error", {})
             exc = SHCError(
                 err.get("code", "unknown"),
@@ -447,7 +448,7 @@ class SHCClient:
         if json_start > 0:
             text = text[json_start:]
         body = _json.loads(text) if text.strip() else {}
-        if not resp.ok:
+        if resp.status_code >= 400:
             err = body.get("error", {})
             raise SHCError(
                 err.get("code", "unknown"),
