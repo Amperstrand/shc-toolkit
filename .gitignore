@@ -36,3 +36,4 @@ r[0-9]-*.png
 
 # Compiled tollgate binary (cross-compiled locally)
 tollgate/cashu-tollgate-linux-amd64
+uv.lock
