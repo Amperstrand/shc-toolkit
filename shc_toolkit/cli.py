@@ -511,10 +511,14 @@ def cmd_firewall(args):
         _print(c.set_firewall_policy(args.service_id, args.policy), _get_fmt(args))
     elif args.subcommand == "add-rule":
         kwargs = {}
-        if args.action: kwargs["action"] = args.action
-        if args.protocol: kwargs["protocol"] = args.protocol
-        if args.port: kwargs["port"] = args.port
-        if args.src: kwargs["source"] = args.src
+        if args.action:
+            kwargs["action"] = args.action
+        if args.protocol:
+            kwargs["protocol"] = args.protocol
+        if args.port:
+            kwargs["port"] = args.port
+        if args.src:
+            kwargs["source"] = args.src
         _print(c.create_firewall_rule(args.service_id, **kwargs), _get_fmt(args))
     elif args.subcommand == "del-rule":
         _print(c.delete_firewall_rule(args.service_id, args.position), _get_fmt(args))

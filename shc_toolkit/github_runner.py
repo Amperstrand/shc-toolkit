@@ -893,7 +893,7 @@ def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
         _mark(timings, "t6_finished")
 
         vm_info = _parse_fc_spawn_output(raw)
-        if vm_info.get("error") and not vm_info.get("name"):
+        if vm_info.get("error"):
             raise RuntimeError(
                 f"pool spawn returned error: {vm_info['error']}"
             )

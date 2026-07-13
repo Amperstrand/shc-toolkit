@@ -38,9 +38,12 @@ from .client import SHCClient, SHCError
 
 # create_client is the transport-aware factory (respects SHC_TRANSPORT env).
 # Imported lazily to avoid circular import at package init time.
+
+
 def _create_client(api_key: str | None = None):
     from shc_toolkit import create_client
     return create_client(api_key=api_key)
+
 
 MACHINE_TYPE_MAP = {
     "n1-standard-2": {"package_id": 81, "pricing_id": 245, "name": "Dev VPS - Standard"},
@@ -661,7 +664,8 @@ def cmd_firewall_rules(args):
         source = "0.0.0.0/0"
         vm_name = ""
         for a in args[1:]:
-            if a.startswith("--action=") and "deny" in a: action = "drop"
+            if a.startswith("--action=") and "deny" in a:
+                action = "drop"
             elif a.startswith("--rules="):
                 parts = a.split("=", 1)[1].split(":")
                 if len(parts) >= 2:

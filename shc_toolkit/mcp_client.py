@@ -179,6 +179,7 @@ TOOL_MAP: dict[str, str] = {
     # Remaining niche tools
     "delete_manager": "deleteManager",
     "list_kb_categories": "listKbCategories",
+    "list_images": "listImages",
     "relinquish_managed_account": "relinquishManagedAccount",
     "respond_to_managed_account_invitation": "respondToManagedAccountInvitation",
     "update_account_manager": "updateAccountManager",
@@ -968,6 +969,9 @@ class SHCMCPClient:
 
     def list_kb_categories(self) -> list[dict]:
         return self._extract_items(self._call("list_kb_categories"))
+
+    def list_images(self) -> list[dict]:
+        return self._extract_items(self._call("list_images"))
 
     def relinquish_managed_account(self, **body) -> dict:
         return self.call_tool("relinquishManagedAccount", {"body": body})

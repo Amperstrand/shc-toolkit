@@ -263,8 +263,8 @@ def install_contextvm(
         input=systemd_unit, text=True, timeout=30,
     )
     ssh_cmd(host, "sudo systemctl daemon-reload && "
-             "sudo systemctl enable contextvm && "
-             "sudo systemctl start contextvm", user=user, timeout=30)
+            "sudo systemctl enable contextvm && "
+            "sudo systemctl start contextvm", user=user, timeout=30)
 
     # 7. Wait and check status
     import time

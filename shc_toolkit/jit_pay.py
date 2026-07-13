@@ -80,9 +80,9 @@ def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
             html = result.stdout.lower()
             # BTCPay shows different content when paid
             if any(k in html for k in ['invoice settled', 'invoice paid',
-                                        'payment received', '"status":"settled"',
-                                        '"status":"paid"',
-                                        'class="paid"']):
+                                       'payment received', '"status":"settled"',
+                                       '"status":"paid"',
+                                       'class="paid"']):
                 return True
             # Check if invoice expired
             if 'invoice expired' in html or '"status":"expired"' in html:

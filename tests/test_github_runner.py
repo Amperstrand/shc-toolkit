@@ -383,8 +383,6 @@ class TestBackendSelection:
 
 class TestShcVpsDispatch:
     def test_default_backend_routes_to_shc_vps(self):
-        """provision() with no backend must call into the SHC VPS path
-        and not the firecracker path."""
         req = ProvisionRequest(
             repo="o/r", github_token="ghp_x", labels=["t"], dry_run=True
         )
@@ -469,7 +467,6 @@ class TestFirecrackerProvision:
                    return_value=pool_output) as m_ssh:
             result = provision(req, client=MagicMock())
             m_ssh.assert_called_once()
-            # Confirm the spawn command was passed through with poll-github
             invoked_cmd = m_ssh.call_args.args[1]
             assert "firecracker_pool.py" in invoked_cmd
             assert "--poll-github" in invoked_cmd
@@ -632,8 +629,13 @@ class TestBuildFcSpawnCommand:
             labels_arg="a",
             github_token="ghp_x",
         )
-        assert "$(reboot)" not in cmd.split("--name ")[1].split()[0]
-        assert "rm -rf" not in cmd or "rm -rf /" not in cmd.split()
+        # Bare unquoted metacharacters must NOT appear after --name or --token;
+        # they must be wrapped in single quotes by shlex.quote.
+        assert "--name '$(reboot)'" in cmd
+        assert "--token 'tok; rm -rf /'" in cmd
+        # Unquoted forms must NOT appear (would execute on the host):
+        assert "--name $(reboot)" not in cmd
+        assert "--token tok; rm -rf /" not in cmd
 
     def test_trailing_slash_in_pool_path_normalized(self):
         cmd = _build_fc_spawn_command(
@@ -696,8 +698,6 @@ class TestCLIFirecracker:
         assert data["backend"] == "firecracker"
 
     def test_shc_vps_destroy_default_unchanged(self, capsys):
-        """Backward-compat: destroy with no backend flag still works
-        exactly as before the backend selector existed."""
         from shc_toolkit.cli import main
         sys.argv = ["shc", "github-runner", "destroy"]
         main()

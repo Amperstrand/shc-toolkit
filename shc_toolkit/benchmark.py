@@ -121,6 +121,7 @@ def _extract_shc_daily_price(catalog: Any) -> str:
     if not isinstance(catalog, dict):
         return SHC_DAILY_PRICE
     # Walk the catalog looking for a pricing entry with term "day"
+
     def _walk(obj):
         if isinstance(obj, dict):
             term = str(obj.get("term", "")).lower()
