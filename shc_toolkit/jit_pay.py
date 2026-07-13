@@ -10,12 +10,9 @@ Lightning wallet, VM provisions — no stored credit to drain.
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
-import sys
 import time
-from typing import Any
 
 
 def fetch_bolt11(checkout_url: str) -> str | None:
@@ -25,7 +22,7 @@ def fetch_bolt11(checkout_url: str) -> str | None:
     We curl the page and regex for the lnbc/lntb prefix.
     """
     result = subprocess.run(
-        ["curl", "-sf", "--connect-timeout", "10", checkout_url],
+        ["curl", "-s", "--connect-timeout", "10", checkout_url],
         capture_output=True, text=True, timeout=20,
     )
     if result.returncode != 0 or not result.stdout:
@@ -61,7 +58,7 @@ def render_qr(data: str) -> bool:
         pass
 
     # Option 3: plain text fallback
-    print(f"\n  Lightning Invoice (copy to wallet):\n  {data}\n")
+    print("\n  Lightning Invoice (copy to wallet):\n  {data}\n")
     return False
 
 
@@ -76,7 +73,7 @@ def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
 
     while time.time() < deadline:
         result = subprocess.run(
-            ["curl", "-sf", "--connect-timeout", "10", checkout_url],
+            ["curl", "-s", "--connect-timeout", "10", checkout_url],
             capture_output=True, text=True, timeout=20,
         )
         if result.returncode == 0 and result.stdout:
@@ -94,7 +91,7 @@ def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
 
         remaining = int(deadline - time.time())
         mins, secs = divmod(max(remaining, 0), 60)
-        print(f"\r  Waiting for payment... {mins}:{secs:02d} remaining  ", end="", flush=True)
+        print("\r  Waiting for payment... {mins}:{secs:02d} remaining  ", end="", flush=True)
         time.sleep(check_interval)
 
     return False
@@ -110,16 +107,16 @@ def poll_shc_invoice(shc_client, invoice_id: int, timeout: int = 900) -> bool:
 
     while time.time() < deadline:
         try:
-            inv = shc_client._get(f"/payment/{invoice_id}")
+            inv = shc_client._get("/payment/{invoice_id}")
             status = str(inv.get("status", "")).lower()
             if status in ("paid", "completed"):
                 return True
             remaining = int(deadline - time.time())
             mins, secs = divmod(max(remaining, 0), 60)
-            print(f"\r  Invoice #{invoice_id} status: {status}  "
-                  f"({mins}:{secs:02d} remaining)  ", end="", flush=True)
-        except Exception as e:
-            print(f"\r  Polling error: {e}  ", end="", flush=True)
+            print("\r  Invoice #{invoice_id} status: {status}  "
+                  "({mins}:{secs:02d} remaining)  ", end="", flush=True)
+        except Exception as e:  # noqa: F841
+            print("\r  Polling error: {e}  ", end="", flush=True)
         time.sleep(5)
 
     return False
@@ -144,13 +141,13 @@ def jit_pay(
     Returns:
         True if paid, False on timeout/expiry.
     """
-    print(f"\n{'=' * 60}")
+    print("\n{'=' * 60}")
     print("  JUST-IN-TIME LIGHTNING PAYMENT")
     print(f"{'=' * 60}")
-    print(f"  SHC Invoice:  #{invoice_id}")
+    print("  SHC Invoice:  #{invoice_id}")
     if btcpay_invoice_id:
-        print(f"  BTCPay ID:    {btcpay_invoice_id}")
-    print(f"  Checkout URL: {checkout_url}")
+        print("  BTCPay ID:    {btcpay_invoice_id}")
+    print("  Checkout URL: {checkout_url}")
     print()
 
     # Step 1: Fetch BOLT11
@@ -158,16 +155,16 @@ def jit_pay(
     bolt11 = fetch_bolt11(checkout_url)
     if not bolt11:
         print("  ERROR: Could not extract BOLT11 from BTCPay checkout page.")
-        print(f"  Pay manually: {checkout_url}")
+        print("  Pay manually: {checkout_url}")
         return False
 
-    print(f"  BOLT11: {bolt11[:60]}...")
+    print("  BOLT11: {bolt11[:60]}...")
     print()
 
     # Step 2: Render QR
     print("  Scan with your Lightning wallet:\n")
     render_qr(bolt11)
-    print(f"\n  Or open in browser: {checkout_url}")
+    print("\n  Or open in browser: {checkout_url}")
     print()
 
     # Step 3: Wait for payment
@@ -179,8 +176,8 @@ def jit_pay(
         return False
 
     if paid:
-        print(f"\n\n  ✓ Payment received! Invoice #{invoice_id} paid.")
+        print("\n\n  ✓ Payment received! Invoice #{invoice_id} paid.")
         return True
     else:
-        print(f"\n\n  ✗ Payment not received within timeout.")
+        print("\n\n  ✗ Payment not received within timeout.")
         return False

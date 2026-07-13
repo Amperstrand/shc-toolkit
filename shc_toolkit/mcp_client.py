@@ -173,6 +173,9 @@ TOOL_MAP: dict[str, str] = {
     "get_account_activity": "listAccountActivity",
     "rekey_zk_backup": "rekeyVirtualMachineZkBackup",
     "submit_vm_renewal": "submitVirtualMachineRenewal",
+    "standby_vm": "standbyVirtualMachine",
+    "preview_standby": "previewVirtualMachineStandby",
+    "resume_vm": "resumeVirtualMachine",
     # Remaining niche tools
     "delete_manager": "deleteManager",
     "list_kb_categories": "listKbCategories",
@@ -180,6 +183,7 @@ TOOL_MAP: dict[str, str] = {
     "respond_to_managed_account_invitation": "respondToManagedAccountInvitation",
     "update_account_manager": "updateAccountManager",
     "get_invoice_pdf": "getInvoicePdf",
+    "list_events": "listEvents",
 }
 
 # Reverse map for debugging
@@ -945,6 +949,18 @@ class SHCMCPClient:
 
     def submit_vm_renewal(self, service_id: int, **body) -> dict:
         return self.call_tool("submitVirtualMachineRenewal", {"serviceId": service_id, "body": body})
+
+    def standby_vm(self, service_id: int) -> dict:
+        return self.call_tool("standbyVirtualMachine", {"serviceId": service_id})
+
+    def preview_standby(self, service_id: int) -> dict:
+        return self.call_tool("previewVirtualMachineStandby", {"serviceId": service_id})
+
+    def resume_vm(self, service_id: int) -> dict:
+        return self.call_tool("resumeVirtualMachine", {"serviceId": service_id})
+
+    def list_events(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_events", **params))
 
     # Remaining niche tools
     def delete_manager(self, **body) -> dict:

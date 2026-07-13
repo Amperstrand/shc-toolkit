@@ -17,8 +17,6 @@ from __future__ import annotations
 
 import logging
 import subprocess
-import time
-from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port:
     result = subprocess.run(
         ["ssh", "-p", str(port),
          "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR", "-o", f"ConnectTimeout={min(timeout, 15)}",
+         "-o", "LogLevel=ERROR", "-o", "ConnectTimeout={min(timeout, 15)}",
          f"{user}@{host}", cmd],
         capture_output=True,
         text=True,
@@ -36,8 +34,8 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port:
     )
     if result.returncode != 0:
         raise RuntimeError(
-            f"SSH command failed (rc={result.returncode}): {cmd}\n"
-            f"stderr: {result.stderr}\nstdout: {result.stdout}"
+            "SSH command failed (rc={result.returncode}): {cmd}\n"
+            "stderr: {result.stderr}\nstdout: {result.stdout}"
         )
     return result.stdout.strip()
 
@@ -53,13 +51,13 @@ def scp_to_vm(host: str, local: str, remote: str, user: str = "debian", port: in
         timeout=60,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"scp failed: {result.stderr}")
+        raise RuntimeError("scp failed: {result.stderr}")
     return result.stdout.strip()
 
 
 def install_caddy(host: str, user: str = "debian") -> str:
     """Install Caddy on Debian VM."""
-    log.info(f"Installing Caddy on {host}...")
+    log.info("Installing Caddy on {host}...")
     return ssh_cmd(host, """
         sudo apt-get update -qq
         sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl
@@ -73,7 +71,7 @@ def install_caddy(host: str, user: str = "debian") -> str:
 
 def install_certbot(host: str, user: str = "debian") -> str:
     """Install certbot on Debian VM."""
-    log.info(f"Installing certbot on {host}...")
+    log.info("Installing certbot on {host}...")
     return ssh_cmd(host, """
         sudo apt-get install -y -qq certbot
         certbot --version
@@ -82,7 +80,7 @@ def install_certbot(host: str, user: str = "debian") -> str:
 
 def generate_caddyfile(fqdn: str, backend_port: int = 8080) -> str:
     """Generate a Caddyfile that serves HTTPS with Let's Encrypt cert + reverse proxy."""
-    return f"""{fqdn} {{
+    return """{fqdn} {{
     tls /etc/letsencrypt/live/{fqdn}/fullchain.pem /etc/letsencrypt/live/{fqdn}/privkey.pem
     reverse_proxy localhost:{backend_port}
     respond /health "OK" 200
@@ -93,9 +91,9 @@ def generate_caddyfile(fqdn: str, backend_port: int = 8080) -> str:
 def setup_caddy(host: str, fqdn: str, user: str = "debian") -> str:
     """Write Caddyfile and restart Caddy."""
     caddyfile = generate_caddyfile(fqdn)
-    log.info(f"Writing Caddyfile for {fqdn} on {host}...")
+    log.info("Writing Caddyfile for {fqdn} on {host}...")
 
-    ssh_cmd(host, f"sudo mkdir -p /etc/caddy")
+    ssh_cmd(host, "sudo mkdir -p /etc/caddy")
     # Write Caddyfile via stdin to avoid quoting issues
     subprocess.run(
         ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
@@ -114,7 +112,7 @@ def generate_certbot_auth_hook(venv_path: str = "/home/debian/shc-toolkit", keyp
     The hook reads CERTBOT_DOMAIN and CERTBOT_VALIDATION from the environment,
     publishes _acme-challenge TXT via nodns, and waits for propagation.
     """
-    return f"""#!/bin/sh
+    return """#!/bin/sh
 # Certbot DNS-01 auth hook for nodns
 export PATH="{venv_path}/bin:$PATH"
 export PYTHONPATH="/home/debian:$PYTHONPATH"
@@ -157,24 +155,24 @@ def get_cert_dns01(
     3. Auth hook publishes _acme-challenge TXT via nostr-sdk + nodns
     4. certbot verifies TXT record, issues cert
     """
-    log.info(f"Requesting cert for {fqdn} via DNS-01...")
+    log.info("Requesting cert for {fqdn} via DNS-01...")
 
     hook_script = generate_certbot_auth_hook(keypair_path=keypair_path)
-    hook_remote = "/tmp/certbot-auth-hook.sh"
+    hook_remote = "/tmp/certbot-auth-hook.sh"  # noqa: F841
 
     subprocess.run(
         ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
          "-o", "LogLevel=ERROR", f"{user}@{host}",
-         f"sudo tee {hook_remote} > /dev/null"],
+         "sudo tee {hook_remote} > /dev/null"],
         input=hook_script,
         text=True,
         timeout=30,
     )
-    ssh_cmd(host, f"sudo chmod +x {hook_remote}")
+    ssh_cmd(host, "sudo chmod +x {hook_remote}")
 
     result = ssh_cmd(
         host,
-        f"""
+        """
         sudo certbot certonly \
             --manual \
             --preferred-challenges dns \
@@ -190,8 +188,8 @@ def get_cert_dns01(
         timeout=300,
     )
 
-    cert_dir = f"/etc/letsencrypt/live/{fqdn}"
-    log.info(f"Cert issued: {cert_dir}/fullchain.pem")
+    cert_dir = "/etc/letsencrypt/live/{fqdn}"  # noqa: F841
+    log.info("Cert issued: {cert_dir}/fullchain.pem")
     return result
 
 
@@ -199,8 +197,8 @@ def verify_https(fqdn: str, timeout: int = 30) -> dict:
     """Verify HTTPS is working by curling the domain."""
     try:
         result = subprocess.run(
-            ["curl", "-sSf", "--max-time", str(timeout),
-             f"https://{fqdn}/health"],
+            ["curl", "-sS", "--max-time", str(timeout),
+             "https://{fqdn}/health"],
             capture_output=True,
             text=True,
             timeout=timeout + 10,

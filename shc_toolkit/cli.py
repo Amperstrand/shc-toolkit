@@ -15,7 +15,7 @@ from .client import SHCClient, SHCError
 from .benchmark import run_full_suite, print_results as print_bench_results
 
 try:
-    from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns
+    from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns  # noqa: F401
 except ImportError:
     NoDNSKeyPair = None  # type: ignore
     provision_dns_for_vm = None  # type: ignore
@@ -662,12 +662,27 @@ def cmd_sizes(args):
 def cmd_github_runner_provision(args):
     from .github_runner import (
         ProvisionRequest, provision as do_provision,
+        SUPPORTED_BACKENDS,
     )
     import os as _os
 
     github_token = args.github_token or _os.environ.get("SHC_GITHUB_ADMIN_TOKEN", "")
     if not args.dry_run and not github_token:
         print("Error: --github-token or SHC_GITHUB_ADMIN_TOKEN is required",
+              file=sys.stderr)
+        sys.exit(2)
+
+    backend = args.backend
+    if backend not in SUPPORTED_BACKENDS:
+        print(
+            f"Error: unknown backend {backend!r}; "
+            f"supported: {sorted(SUPPORTED_BACKENDS)}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if backend == "firecracker" and not args.firecracker_host and not args.dry_run:
+        print("Error: --firecracker-host is required for the firecracker backend",
               file=sys.stderr)
         sys.exit(2)
 
@@ -685,6 +700,9 @@ def cmd_github_runner_provision(args):
         install_docker=not args.no_docker,
         install_go=args.install_go,
         dry_run=args.dry_run,
+        backend=backend,
+        firecracker_host=args.firecracker_host,
+        firecracker_pool_path=args.firecracker_pool_path,
     )
     result = do_provision(req)
     print(json.dumps(result.to_dict(), indent=2, default=str))
@@ -693,9 +711,31 @@ def cmd_github_runner_provision(args):
 
 
 def cmd_github_runner_destroy(args):
-    from .github_runner import destroy as do_destroy
-    sid = int(args.service_id) if args.service_id else None
-    result = do_destroy(sid)
+    from .github_runner import destroy as do_destroy, SUPPORTED_BACKENDS
+    backend = args.backend
+    if backend not in SUPPORTED_BACKENDS:
+        print(
+            f"Error: unknown backend {backend!r}; "
+            f"supported: {sorted(SUPPORTED_BACKENDS)}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if backend == "firecracker":
+        sid = None
+        runner_name = args.runner_name
+    else:
+        sid = int(args.service_id) if args.service_id else None
+        runner_name = None
+
+    result = do_destroy(
+        sid,
+        backend=backend,
+        runner_name=runner_name,
+        firecracker_host=args.firecracker_host,
+        firecracker_pool_path=args.firecracker_pool_path,
+        ssh_user=args.ssh_user,
+    )
     print(json.dumps(result, indent=2, default=str))
     if not result.get("ok"):
         sys.exit(1)
@@ -1077,7 +1117,8 @@ def main():
     p_prov.add_argument("--ssh-private-key",
                         help="Path to matching private key (only needed with "
                              "--ssh-public-key for bootstrap)")
-    p_prov.add_argument("--ssh-user", help="SSH user (auto-detected if omitted)")
+    p_prov.add_argument("--ssh-user", help="SSH user (auto-detected if omitted; "
+                                           "root for firecracker host)")
     p_prov.add_argument("--max-wait-seconds", type=int, default=600,
                         help="Max seconds to wait for VM provisioning")
     p_prov.add_argument("--no-docker", action="store_true",
@@ -1087,12 +1128,37 @@ def main():
     p_prov.add_argument("--dry-run", action="store_true",
                         help="Print planned labels/repo/size/template without "
                              "creating a VM or calling GitHub")
+    p_prov.add_argument("--backend", default="shc-vps",
+                        choices=["shc-vps", "firecracker"],
+                        help="Provisioning backend (default shc-vps)")
+    p_prov.add_argument("--firecracker-host",
+                        help="SSH target for the host VM running the pool "
+                             "orchestrator (required for --backend firecracker)")
+    p_prov.add_argument("--firecracker-pool-path",
+                        default="/opt/fc-pool",
+                        help="Path on the host VM where firecracker_pool.py "
+                             "lives (default /opt/fc-pool)")
     p_prov.add_argument("--output-json", action="store_true",
                         help="Always-on for this subcommand (JSON is the contract)")
     p_prov.set_defaults(func=cmd_github_runner_provision)
 
-    p_dest = gr_sub.add_parser("destroy", help="Cancel/destroy an SHC VM by id")
-    p_dest.add_argument("--service-id", help="SHC service_id to cancel")
+    p_dest = gr_sub.add_parser("destroy", help="Cancel/destroy a runner by id or name")
+    p_dest.add_argument("--service-id",
+                        help="SHC service_id to cancel (shc-vps backend)")
+    p_dest.add_argument("--backend", default="shc-vps",
+                        choices=["shc-vps", "firecracker"],
+                        help="Backend the runner was provisioned with "
+                             "(default shc-vps)")
+    p_dest.add_argument("--runner-name",
+                        help="μVM name to kill (required for firecracker backend)")
+    p_dest.add_argument("--firecracker-host",
+                        help="SSH target for the host VM running the pool "
+                             "orchestrator (required for firecracker backend)")
+    p_dest.add_argument("--firecracker-pool-path", default="/opt/fc-pool",
+                        help="Path on the host VM where firecracker_pool.py lives "
+                             "(default /opt/fc-pool)")
+    p_dest.add_argument("--ssh-user", help="SSH user for the firecracker host "
+                                           "(default root)")
     p_dest.set_defaults(func=cmd_github_runner_destroy)
 
     # ── Shell completion ──

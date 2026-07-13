@@ -27,7 +27,6 @@ import hashlib
 import logging
 import socket
 import time
-from typing import Optional
 
 from .client import SHCClient
 from .provision import ssh_cmd
@@ -136,7 +135,7 @@ class VMBootstrap:
         parts.append(f"chmod +x {REMOTE_PATH}")
 
         if verify:
-            local_sha = hashlib.sha256(script.encode()).hexdigest()
+            local_sha = hashlib.sha256(script.encode()).hexdigest()  # noqa: F841
             parts.append(f"echo '{local_sha}  {REMOTE_PATH}' | sha256sum -c -")
 
         if background:
@@ -180,7 +179,7 @@ class VMBootstrap:
 
         # Verify SHA256 (the script self-checks; we just print both for visual confirm)
         if verify:
-            local_sha = hashlib.sha256(script.encode()).hexdigest()
+            local_sha = hashlib.sha256(script.encode()).hexdigest()  # noqa: F841
             console.type_text(f"sha256sum {REMOTE_PATH}\n")
             time.sleep(2)
             console.screenshot(f"/tmp/shc-bootstrap-verify-{service_id}.png")

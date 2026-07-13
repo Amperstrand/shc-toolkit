@@ -15,7 +15,7 @@ import os
 import socket
 import uuid
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -947,6 +947,17 @@ class SHCClient:
     def reset_vm(self, service_id: int) -> dict:
         return self._patch(f"/vm/{service_id}/reset")
 
+    def standby_vm(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/standby", confirm=confirm,
+        )
+
+    def preview_standby(self, service_id: int) -> dict:
+        return self._get(f"/vm/{service_id}/standby/preview")
+
+    def resume_vm(self, service_id: int) -> dict:
+        return self._post(f"/vm/{service_id}/resume")
+
     def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
         credit_before = self._safe_credit() if immediate else None
         result = self._confirmed_request(
@@ -1081,6 +1092,26 @@ class SHCClient:
         return self._confirmed_request(
             "POST", f"/orders/{order_id}/cancel", confirm=confirm,
         )
+
+    # ── Agent sessions + events (v2.4.6) ─────────────────────
+
+    def list_agent_sessions(self, **params) -> list[dict]:
+        return self._get_items("/agent-sessions", params=params or None)
+
+    def create_agent_session(self, **kwargs) -> dict:
+        return self._post("/agent-sessions", kwargs)
+
+    def get_agent_session(self, session_id: str) -> dict:
+        return self._get(f"/agent-sessions/{session_id}")
+
+    def delete_agent_session(self, session_id: str) -> dict:
+        return self._delete(f"/agent-sessions/{session_id}")
+
+    def get_agent_session_audit(self, session_id: str) -> dict:
+        return self._get(f"/agent-sessions/{session_id}/audit")
+
+    def list_events(self, **params) -> list[dict]:
+        return self._get_items("/events", params=params or None)
 
     # ── Snapshots ────────────────────────────────────────────
 

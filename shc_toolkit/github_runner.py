@@ -1,11 +1,16 @@
-"""Provision ephemeral GitHub Actions runners on SHC VPSs.
+"""Provision ephemeral GitHub Actions runners.
 
-MVP backend: full SHC VPS per job (order → wait → SSH bootstrap → runner
-online → cancel after job).
+Two backends share the ``provision()`` / ``destroy()`` interface:
 
-Future backend: Firecracker microVM. The interface in this module
-(``provision()`` / ``destroy()`` and the JSON it returns) is intentionally
-backend-agnostic. The key cold-start metric we instrument is::
+* ``shc-vps`` (default): full SHC VPS per job (order → wait → SSH
+  bootstrap → runner online → cancel after job). ~135 s cold-start.
+* ``firecracker``: a long-lived host VM runs a pool of Firecracker
+  microVMs. ``provision()`` SSHes into the host and calls
+  ``scripts/firecracker_pool.py spawn``, which blocks until the runner
+  is online. ~22 s cold-start (6× faster — see
+  ``docs/firecracker-pool-mode.md``).
+
+The key cold-start metric we instrument is::
 
     t1 order/clone submitted  →  t5 runner online
 
@@ -22,9 +27,8 @@ and ``shc_toolkit/bootstrap.py``.
 from __future__ import annotations
 
 import json
+import shlex
 import ssl
-import os
-import shutil
 import subprocess
 import sys
 import time
@@ -46,6 +50,23 @@ DEFAULT_SSH_TIMEOUT_S = 300         # SSH to come up after VM ready
 DEFAULT_SSH_INTERVAL_S = 5
 DEFAULT_RUNNER_ONLINE_TIMEOUT_S = 180  # runner to register after install
 DEFAULT_RUNNER_ONLINE_INTERVAL_S = 5
+
+# Backend selection ───────────────────────────────────────────────
+# Add new backends here AND wire dispatch in ``provision()`` / ``destroy()``.
+SUPPORTED_BACKENDS: frozenset[str] = frozenset({"shc-vps", "firecracker"})
+
+DEFAULT_FC_POOL_PATH = "/opt/fc-pool"
+DEFAULT_FC_SSH_USER = "root"
+DEFAULT_FC_SPAWN_TIMEOUT_S = 180    # pool spawn blocks until runner online
+
+_FC_BACKEND_NOTE = (
+    "Firecracker microVM spawned via pool orchestrator "
+    "(scripts/firecracker_pool.py). Cold-start ~22s vs ~135s for full VPS."
+)
+_SHC_VPS_BACKEND_NOTE = (
+    "Full SHC VPS. Future backend may use Firecracker microVM "
+    "to reduce cold-start."
+)
 
 # Cancellation idempotency: messages that mean "already gone, treat as success"
 IDEMPOTENT_CANCEL_SUBSTRINGS = (
@@ -78,6 +99,9 @@ class ProvisionRequest:
     install_docker: bool = True
     install_go: bool = False
     dry_run: bool = False
+    backend: str = "shc-vps"           # one of SUPPORTED_BACKENDS
+    firecracker_host: str | None = None  # SSH target for the host VM
+    firecracker_pool_path: str = DEFAULT_FC_POOL_PATH
 
 
 @dataclass
@@ -91,10 +115,7 @@ class ProvisionResult:
     runner_label: str | None = None
     labels: list[str] = field(default_factory=list)
     backend: str = "shc-vps"
-    backend_note: str = (
-        "Full SHC VPS. Future backend may use Firecracker microVM "
-        "to reduce cold-start."
-    )
+    backend_note: str = _SHC_VPS_BACKEND_NOTE
     created_at: str | None = None
     timings: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
@@ -484,9 +505,29 @@ echo "SHC_BOOTSTRAP_DONE_OK"
 
 
 def provision(req: ProvisionRequest, client: SHCClient | None = None) -> ProvisionResult:
-    """Provision an ephemeral SHC GitHub Actions runner.
+    """Provision an ephemeral GitHub Actions runner.
 
-    See module docstring for the timing model and future Firecracker notes.
+    Dispatches to ``_provision_shc_vps`` or ``_provision_firecracker``
+    based on ``req.backend``. Unknown backends raise ``ValueError``.
+
+    See module docstring for the timing model.
+    """
+    if req.backend not in SUPPORTED_BACKENDS:
+        raise ValueError(
+            f"unknown backend: {req.backend!r}; "
+            f"supported: {sorted(SUPPORTED_BACKENDS)}"
+        )
+    if req.backend == "firecracker":
+        return _provision_firecracker(req)
+    return _provision_shc_vps(req, client)
+
+
+def _provision_shc_vps(
+    req: ProvisionRequest, client: SHCClient | None
+) -> ProvisionResult:
+    """Provision an ephemeral SHC VPS runner (the original backend).
+
+    See module docstring for the timing model.
     """
     timings: dict[str, Any] = {}
     _mark(timings, "t0_started")
@@ -635,11 +676,49 @@ def provision(req: ProvisionRequest, client: SHCClient | None = None) -> Provisi
         )
 
 
-def destroy(service_id: int | None, client: SHCClient | None = None) -> dict[str, Any]:
+def destroy(
+    service_id: int | None,
+    client: SHCClient | None = None,
+    *,
+    backend: str = "shc-vps",
+    runner_name: str | None = None,
+    firecracker_host: str | None = None,
+    firecracker_pool_path: str = DEFAULT_FC_POOL_PATH,
+    ssh_user: str | None = None,
+) -> dict[str, Any]:
+    """Idempotently tear down a provisioned runner.
+
+    Dispatches by ``backend``:
+
+    * ``shc-vps`` (default): cancel the SHC VM via ``service_id``.
+      Backward-compatible with the original signature.
+    * ``firecracker``: SSH into ``firecracker_host`` and call
+      ``kill_one()`` on the pool orchestrator using ``runner_name``.
+
+    Returns a JSON-serializable dict. Unknown backends raise ``ValueError``.
+    """
+    if backend not in SUPPORTED_BACKENDS:
+        raise ValueError(
+            f"unknown backend: {backend!r}; "
+            f"supported: {sorted(SUPPORTED_BACKENDS)}"
+        )
+    if backend == "firecracker":
+        return _destroy_firecracker(
+            runner_name=runner_name,
+            firecracker_host=firecracker_host,
+            firecracker_pool_path=firecracker_pool_path,
+            ssh_user=ssh_user,
+        )
+    return _destroy_shc_vps(service_id, client)
+
+
+def _destroy_shc_vps(
+    service_id: int | None, client: SHCClient | None
+) -> dict[str, Any]:
     """Idempotently cancel/destroy an SHC VM by service_id.
 
-    Returns a JSON-serializable dict. Returns success for already-canceled
-    or not-found VMs. Only real cleanup failures return ``ok: False``.
+    Returns success for already-canceled or not-found VMs. Only real
+    cleanup failures return ``ok: False``.
     """
     if not service_id:
         return {
@@ -679,6 +758,236 @@ def destroy(service_id: int | None, client: SHCClient | None = None) -> dict[str
             "ok": False,
             "service_id": sid,
             "action": "failed",
+            "error": f"{type(e).__name__}: {e}",
+        }
+
+
+# ── Firecracker backend ─────────────────────────────────────────
+
+
+def _parse_fc_spawn_output(stdout: str) -> dict[str, Any]:
+    """Parse the JSON MicroVM dict printed by ``firecracker_pool.py spawn``.
+
+    The pool prints ``json.dumps(asdict(vm), indent=2)`` to stdout as its
+    final action. Boot/log lines may precede it on stderr (merged with
+    stdout by ``_ssh``); we take the last balanced ``{...}`` block.
+    """
+    s = stdout.strip()
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+    end = s.rfind("}")
+    while end != -1:
+        start = s.rfind("{", 0, end + 1)
+        while start != -1:
+            candidate = s[start:end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+            start = s.rfind("{", 0, start)
+        end = s.rfind("}", 0, end)
+    return {"error": f"no JSON object in pool output: {s[:200]}"}
+
+
+def _build_fc_spawn_command(
+    *,
+    pool_path: str,
+    runner_name: str,
+    repo: str,
+    reg_token: str,
+    labels_arg: str,
+    github_token: str,
+) -> str:
+    """Render the ``python3 <pool>/firecracker_pool.py spawn ...`` command.
+
+    Uses ``shlex.quote`` so runner names / tokens containing shell
+    metacharacters cannot inject commands on the host VM.
+    """
+    script = f"{pool_path.rstrip('/')}/firecracker_pool.py"
+    return (
+        f"sudo python3 {shlex.quote(script)} spawn "
+        f"--name {shlex.quote(runner_name)} "
+        f"--repo {shlex.quote(repo)} "
+        f"--token {shlex.quote(reg_token)} "
+        f"--labels {shlex.quote(labels_arg)} "
+        f"--poll-github "
+        f"--github-token {shlex.quote(github_token)}"
+    )
+
+
+def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
+    """Spawn an ephemeral runner on a Firecracker microVM.
+
+    SSHes into ``req.firecracker_host`` and calls
+    ``firecracker_pool.py spawn`` (which blocks until the runner reports
+    online via GitHub when ``--poll-github`` is set). The pool
+    orchestrator owns the μVM lifecycle; this function only marshals
+    arguments and parses its JSON result.
+    """
+    timings: dict[str, Any] = {}
+    _mark(timings, "t0_started")
+
+    runner_label = req.labels[0] if req.labels else f"fc-{uuid.uuid4().hex[:8]}"
+    all_labels = parse_labels(
+        default_labels(runner_label) + parse_labels(req.labels)
+    )
+    runner_name = req.runner_name or f"fc-{uuid.uuid4().hex[:8]}"
+
+    if req.dry_run:
+        _mark(timings, "t6_finished")
+        _finalize_durations(timings)
+        return ProvisionResult(
+            ok=True,
+            runner_name=runner_name,
+            runner_label=runner_label,
+            labels=all_labels,
+            backend="firecracker",
+            backend_note=_FC_BACKEND_NOTE,
+            created_at=_iso_now(),
+            timings=timings,
+        )
+
+    if not req.firecracker_host:
+        _mark(timings, "t6_finished")
+        _finalize_durations(timings)
+        return ProvisionResult(
+            ok=False,
+            runner_name=runner_name,
+            runner_label=runner_label,
+            labels=all_labels,
+            backend="firecracker",
+            backend_note=_FC_BACKEND_NOTE,
+            created_at=_iso_now(),
+            timings=timings,
+            error=(
+                "firecracker backend requires firecracker_host "
+                "(SSH target for the host VM running the pool orchestrator)"
+            ),
+        )
+
+    fc_user = req.ssh_user or DEFAULT_FC_SSH_USER
+
+    try:
+        reg = fetch_registration_token(req.repo, req.github_token)
+
+        spawn_cmd = _build_fc_spawn_command(
+            pool_path=req.firecracker_pool_path,
+            runner_name=runner_name,
+            repo=req.repo,
+            reg_token=reg["token"],
+            labels_arg=",".join(all_labels),
+            github_token=req.github_token,
+        )
+
+        _mark(timings, "t1_order_submitted")
+        raw = _ssh(
+            req.firecracker_host, spawn_cmd,
+            user=fc_user, identity=req.ssh_private_key,
+            timeout=DEFAULT_FC_SPAWN_TIMEOUT_S,
+        )
+        # The pool blocks on --poll-github, so a successful return means
+        # the runner is online; subsequent markers collapse to "now".
+        _mark(timings, "t5_runner_online")
+        _mark(timings, "t6_finished")
+
+        vm_info = _parse_fc_spawn_output(raw)
+        if vm_info.get("error") and not vm_info.get("name"):
+            raise RuntimeError(
+                f"pool spawn returned error: {vm_info['error']}"
+            )
+
+        _finalize_durations(timings)
+
+        return ProvisionResult(
+            ok=True,
+            service_id=None,
+            ip=vm_info.get("ip"),
+            runner_name=runner_name,
+            runner_label=runner_label,
+            labels=all_labels,
+            backend="firecracker",
+            backend_note=_FC_BACKEND_NOTE,
+            created_at=_iso_now(),
+            timings=timings,
+        )
+
+    except Exception as e:  # noqa: BLE001
+        _mark(timings, "t6_finished")
+        _finalize_durations(timings)
+        return ProvisionResult(
+            ok=False,
+            runner_name=runner_name,
+            runner_label=runner_label,
+            labels=all_labels,
+            backend="firecracker",
+            backend_note=_FC_BACKEND_NOTE,
+            created_at=_iso_now(),
+            timings=timings,
+            error=f"{type(e).__name__}: {e}",
+        )
+
+
+def _destroy_firecracker(
+    *,
+    runner_name: str | None,
+    firecracker_host: str | None,
+    firecracker_pool_path: str,
+    ssh_user: str | None,
+) -> dict[str, Any]:
+    """Kill a Firecracker μVM by name via the pool orchestrator."""
+    if not runner_name:
+        return {
+            "ok": True,
+            "service_id": None,
+            "action": "no-op",
+            "backend": "firecracker",
+            "message": "no runner_name provided; nothing to destroy",
+        }
+    if not firecracker_host:
+        return {
+            "ok": False,
+            "service_id": None,
+            "action": "failed",
+            "backend": "firecracker",
+            "runner_name": runner_name,
+            "error": (
+                "firecracker destroy requires firecracker_host "
+                "(SSH target for the host VM running the pool orchestrator)"
+            ),
+        }
+    script = f"{firecracker_pool_path.rstrip('/')}/firecracker_pool.py"
+    cmd = (
+        f"sudo python3 {shlex.quote(script)} kill "
+        f"--name {shlex.quote(runner_name)}"
+    )
+    try:
+        raw = _ssh(
+            firecracker_host, cmd,
+            user=ssh_user or DEFAULT_FC_SSH_USER,
+            identity=None,
+            timeout=60,
+        )
+        try:
+            payload = json.loads(raw.strip())
+        except json.JSONDecodeError:
+            payload = {"raw": raw}
+        return {
+            "ok": True,
+            "service_id": None,
+            "action": "killed",
+            "backend": "firecracker",
+            "runner_name": runner_name,
+            "result": payload,
+        }
+    except Exception as e:  # noqa: BLE001
+        return {
+            "ok": False,
+            "service_id": None,
+            "action": "failed",
+            "backend": "firecracker",
+            "runner_name": runner_name,
             "error": f"{type(e).__name__}: {e}",
         }
 
@@ -737,4 +1046,5 @@ __all__ = [
     "fetch_runners",
     "wait_runner_online",
     "wait_ssh",
+    "SUPPORTED_BACKENDS",
 ]

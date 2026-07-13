@@ -71,7 +71,6 @@ def create_client(
         ImportError: If transport='mcp' but the 'mcp' package is not installed.
         ValueError: If no API key is available.
     """
-    import os
 
     resolved = resolve_transport(transport)
 
@@ -93,7 +92,7 @@ def create_client(
 # Import lazily so `pip install shc-toolkit` works without playwright.
 def __getattr__(name):
     if name in ("ConsoleSession", "ConsoleError"):
-        from .console import ConsoleSession, ConsoleError
+        from .console import ConsoleSession, ConsoleError  # noqa: F401
         return locals()[name]
     if name in ("VMBootstrap",):
         from .bootstrap import VMBootstrap

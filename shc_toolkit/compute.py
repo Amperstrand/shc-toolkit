@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -92,7 +91,7 @@ def _vm_to_gcloud_format(vm: dict, metadata: dict | None = None) -> dict:
         "status": status,
         "creationTimestamp": vm.get("created_at", ""),
         "zone": "us-central1-a",
-        "machineType": f"projects/shc/zones/us-central1-a/machineTypes/n1-standard-2",
+        "machineType": "projects/shc/zones/us-central1-a/machineTypes/n1-standard-2",
         "metadata": {
             "fingerprint": "",
             "items": [{"key": k, "value": v} for k, v in vm_meta.items()],
@@ -188,7 +187,7 @@ def _firewall_rules_to_gcloud(fw: dict, instance_name: str = "") -> list[dict]:
         action_raw = str(rule.get("action", "pass")).lower()
         direction_raw = str(rule.get("direction", rule.get("type", "in"))).lower()
         rules_out.append({
-            "name": rule.get("comment") or f"rule-{rule.get('pos', '?')}",
+            "name": rule.get("comment") or "rule-{rule.get('pos', '?')}",
             "network": "default",
             "direction": "EGRESS" if direction_raw.startswith("out") else "INGRESS",
             "action": "ALLOW" if action_raw in ("pass", "accept", "allow") else "DENY",
@@ -228,7 +227,7 @@ def cmd_instances(args):
         name = args[1] if len(args) > 1 else ""
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(json.dumps({"error": f"Instance {name} not found"}))
+            print(json.dumps({"error": "Instance {name} not found"}))
             sys.exit(1)
         md = _load_metadata()
         instance = _vm_to_gcloud_format(vm, md)
@@ -250,12 +249,12 @@ def cmd_instances(args):
         _output(instance, fmt)
 
     elif sub == "create":
-        name = args[1] if len(args) > 1 else f"shc-vm-{int(time.time())}"
+        name = args[1] if len(args) > 1 else "shc-vm-{int(time.time())}"
         machine_type = "n1-standard-2"
-        snapshot_name = None
+        snapshot_name = None  # noqa: F841
         metadata = {}
         ssh_key = os.path.expanduser("~/.ssh/id_ed25519.pub")
-        disk_size = 16
+        disk_size = 16  # noqa: F841
 
         i = 2
         while i < len(args):
@@ -263,7 +262,7 @@ def cmd_instances(args):
             if a.startswith("--machine-type="):
                 machine_type = a.split("=", 1)[1]
             elif a.startswith("--source-snapshot="):
-                snapshot_name = a.split("=", 1)[1]
+                snapshot_name = a.split("=", 1)[1]  # noqa: F841
             elif a.startswith("--metadata="):
                 metadata.update(_parse_metadata_flag(a.split("=", 1)[1]))
             elif a.startswith("--metadata-from-file"):
@@ -278,7 +277,7 @@ def cmd_instances(args):
                 for dp in disk_parts.split(","):
                     if dp.startswith("size="):
                         try:
-                            disk_size = int(dp[5:]) // 1024
+                            disk_size = int(dp[5:]) // 1024  # noqa: F841
                         except ValueError:
                             pass
             elif a.startswith("--tags="):
@@ -307,8 +306,8 @@ def cmd_instances(args):
         try:
             result = client.submit_order(**order_kwargs)
             service_id = result.get("service_id") or result.get("id")
-        except SHCError as e:
-            print(f"ERROR ordering VM: {e}", file=sys.stderr)
+        except SHCError:
+            print("ERROR ordering VM: {e}", file=sys.stderr)
             sys.exit(1)
 
         md = _load_metadata()
@@ -331,7 +330,7 @@ def cmd_instances(args):
             instance = _vm_to_gcloud_format(vm, md)
             _output(instance, fmt)
         else:
-            print(f"Created {name} (service_id={service_id}) but IP not ready yet", file=sys.stderr)
+            print("Created {name} (service_id={service_id}) but IP not ready yet", file=sys.stderr)
 
     elif sub == "delete":
         quiet = "--quiet" in args or "-q" in args
@@ -344,10 +343,10 @@ def cmd_instances(args):
                 md.pop(name, None)
                 _save_metadata(md)
                 if not quiet:
-                    print(f"Deleted [{name}]")
+                    print("Deleted [{name}]")
             else:
                 if not quiet:
-                    print(f"Instance {name} not found")
+                    print("Instance {name} not found")
 
     elif sub == "start":
         name = args[1] if len(args) > 1 else ""
@@ -355,7 +354,7 @@ def cmd_instances(args):
         if vm:
             sid = vm.get("id") or vm.get("service_id")
             client.start_vm(sid)
-            print(f"Started [{name}]")
+            print("Started [{name}]")
 
     elif sub == "stop":
         name = args[1] if len(args) > 1 else ""
@@ -363,7 +362,7 @@ def cmd_instances(args):
         if vm:
             sid = vm.get("id") or vm.get("service_id")
             client.stop_vm(sid)
-            print(f"Stopped [{name}]")
+            print("Stopped [{name}]")
 
     elif sub == "reset":
         name = args[1] if len(args) > 1 else ""
@@ -371,7 +370,7 @@ def cmd_instances(args):
         if vm:
             sid = vm.get("id") or vm.get("service_id")
             client.reset_vm(sid)
-            print(f"Reset [{name}]")
+            print("Reset [{name}]")
 
     elif sub == "set-machine-type":
         name = args[1] if len(args) > 1 else ""
@@ -383,16 +382,16 @@ def cmd_instances(args):
             machine_type = machine_type.rstrip("/").split("/")[-1]
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         mt = MACHINE_TYPE_MAP.get(machine_type)
         if not mt:
-            available = ", ".join(sorted(MACHINE_TYPE_MAP))
-            print(f"Unknown machine type '{machine_type}'. Available: {available}", file=sys.stderr)
+            available = ", ".join(sorted(MACHINE_TYPE_MAP))  # noqa: F841
+            print("Unknown machine type '{machine_type}'. Available: {available}", file=sys.stderr)
             sys.exit(1)
         client.upgrade_vm(sid, mt["package_id"])
-        print(f"Machine type changed for [{name}] -> {machine_type} ({mt['name']})")
+        print("Machine type changed for [{name}] -> {machine_type} ({mt['name']})")
 
     elif sub == "add-metadata":
         name = args[1] if len(args) > 1 else ""
@@ -406,47 +405,47 @@ def cmd_instances(args):
         else:
             md[name] = metadata
         _save_metadata(md)
-        print(f"Updated metadata for [{name}]")
+        print("Updated metadata for [{name}]")
 
     elif sub == "restart":
         name = args[1] if len(args) > 1 else ""
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         client.restart_vm(sid)
-        print(f"Restarted [{name}]")
+        print("Restarted [{name}]")
 
     elif sub == "suspend":
         name = args[1] if len(args) > 1 else ""
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         client.stop_vm(sid)
-        print(f"Suspended [{name}]")
+        print("Suspended [{name}]")
 
     elif sub == "resume":
         name = args[1] if len(args) > 1 else ""
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         client.start_vm(sid)
-        print(f"Resumed [{name}]")
+        print("Resumed [{name}]")
 
     elif sub == "shutdown":
         name = args[1] if len(args) > 1 else ""
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         client.shutdown_vm(sid)
-        print(f"Shutting down [{name}]")
+        print("Shutting down [{name}]")
 
     elif sub == "reinstall":
         name = args[1] if len(args) > 1 else ""
@@ -458,14 +457,14 @@ def cmd_instances(args):
                 template = a.split("=", 1)[1]
         vm = _find_vm_by_name(client, name)
         if not vm:
-            print(f"Instance {name} not found", file=sys.stderr)
+            print("Instance {name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         client.reinstall_vm(sid, template=template)
-        print(f"Reinstalling [{name}] with template {template}")
+        print("Reinstalling [{name}] with template {template}")
 
     else:
-        print(f"Unknown instances subcommand: {sub}", file=sys.stderr)
+        print("Unknown instances subcommand: {sub}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -499,12 +498,12 @@ def cmd_snapshots(args):
         _output(all_snapshots, fmt)
 
     elif sub == "create":
-        snapshot_name = None
+        snapshot_name = None  # noqa: F841
         for a in args[1:]:
             if a.startswith("--snapshot-names="):
-                snapshot_name = a.split("=", 1)[1]
+                snapshot_name = a.split("=", 1)[1]  # noqa: F841
             elif a.startswith("--name="):
-                snapshot_name = a.split("=", 1)[1]
+                snapshot_name = a.split("=", 1)[1]  # noqa: F841
 
         name_arg = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         vm_name = name_arg
@@ -518,11 +517,11 @@ def cmd_snapshots(args):
                 "status": "READY",
             }, indent=2))
         else:
-            print(f"Instance {vm_name} not found", file=sys.stderr)
+            print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
 
     elif sub == "delete":
-        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""  # noqa: F841
         quiet = "--quiet" in args or "-q" in args
         md = _load_metadata()
         deleted = False
@@ -534,10 +533,10 @@ def cmd_snapshots(args):
                     for s in snaps:
                         sname = s.get("name", s.get("id", ""))
                         if sname == snapshot_name or str(s.get("id", "")) == snapshot_name:
-                            client._post(f"/vm/{sid}/snapshots/delete",
+                            client._post("/vm/{sid}/snapshots/delete",
                                          {"backup_id": s.get("id", sname)})
                             if not quiet:
-                                print(f"Deleted [{snapshot_name}]")
+                                print("Deleted [{snapshot_name}]")
                             deleted = True
                             break
                 except Exception:
@@ -545,10 +544,10 @@ def cmd_snapshots(args):
             if deleted:
                 break
         if not deleted and not quiet:
-            print(f"Snapshot {snapshot_name} not found", file=sys.stderr)
+            print("Snapshot {snapshot_name} not found", file=sys.stderr)
 
     elif sub == "describe":
-        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""  # noqa: F841
         md = _load_metadata()
         found = None
         for hostname, meta in md.items():
@@ -576,11 +575,11 @@ def cmd_snapshots(args):
             if found:
                 break
         if not found:
-            found = {"error": f"Snapshot {snapshot_name} not found"}
+            found = {"error": "Snapshot {snapshot_name} not found"}
         _output(found, fmt)
 
     else:
-        print(f"Unknown snapshots subcommand: {sub}", file=sys.stderr)
+        print("Unknown snapshots subcommand: {sub}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -598,16 +597,16 @@ def cmd_ssh(args):
     client = _get_client()
     vm = _find_vm_by_name(client, name)
     if not vm:
-        print(f"Instance {name} not found", file=sys.stderr)
+        print("Instance {name} not found", file=sys.stderr)
         sys.exit(1)
 
     ip = vm.get("ipv4") or vm.get("ip", "")
     if not ip:
-        print(f"No IP for {name}", file=sys.stderr)
+        print("No IP for {name}", file=sys.stderr)
         sys.exit(1)
 
     ssh_cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-               "-o", "LogLevel=ERROR", f"root@{ip}"]
+               "-o", "LogLevel=ERROR", "root@{ip}"]
     if command:
         ssh_cmd.extend(["--", command])
     os.execvp("ssh", ssh_cmd)
@@ -642,7 +641,7 @@ def cmd_firewall_rules(args):
                 rule_pos = a
         vm = _find_vm_by_name(client, vm_name)
         if not vm:
-            print(f"Instance {vm_name} not found", file=sys.stderr)
+            print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         fw = client.get_firewall(int(sid))
@@ -650,7 +649,7 @@ def cmd_firewall_rules(args):
         if rule_pos:
             pos_int = int(rule_pos) if rule_pos.lstrip("-").isdigit() else -1
             matched = [r for r in rules if str(r.get("position")) == rule_pos or r.get("position") == pos_int]
-            _output(matched[0] if matched else {"error": f"Rule {rule_pos} not found on {vm_name}"}, fmt)
+            _output(matched[0] if matched else {"error": "Rule {rule_pos} not found on {vm_name}"}, fmt)
         else:
             _output(rules[0] if rules else {"error": "No rules found"}, fmt)
 
@@ -678,14 +677,14 @@ def cmd_firewall_rules(args):
             client.create_firewall_rule(int(sid), {
                 "action": action,
                 "direction": "in",
-                "name": rule_name or f"rule-{ports}",
+                "name": rule_name or "rule-{ports}",
                 "source": source,
                 "dest_port": ports,
                 "protocol": protocol,
             })
-            print(f"Firewall rule created for [{vm_name}]: {protocol}:{ports} from {source}")
+            print("Firewall rule created for [{vm_name}]: {protocol}:{ports} from {source}")
         else:
-            print(f"Instance {vm_name} not found", file=sys.stderr)
+            print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
 
     elif sub == "delete":
@@ -699,9 +698,9 @@ def cmd_firewall_rules(args):
             sid = vm.get("id") or vm.get("service_id")
             pos = int(rule_pos) if rule_pos.isdigit() else 0
             client.delete_firewall_rule(int(sid), pos)
-            print(f"Deleted firewall rule {rule_pos} for [{vm_name}]")
+            print("Deleted firewall rule {rule_pos} for [{vm_name}]")
         else:
-            print(f"Instance {vm_name} not found", file=sys.stderr)
+            print("Instance {vm_name} not found", file=sys.stderr)
 
     elif sub == "update":
         vm_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
@@ -734,12 +733,12 @@ def cmd_firewall_rules(args):
             i += 1
         vm = _find_vm_by_name(client, vm_name)
         if not vm:
-            print(f"Instance {vm_name} not found", file=sys.stderr)
+            print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
         sid = vm.get("id") or vm.get("service_id")
         pos = int(rule_pos) if rule_pos.lstrip("-").isdigit() else 0
-        result = client.edit_firewall_rule(int(sid), pos, **updates)
-        print(f"Updated firewall rule {rule_pos} for [{vm_name}]")
+        client.edit_firewall_rule(int(sid), pos, **updates)
+        print("Updated firewall rule {rule_pos} for [{vm_name}]")
 
 
 def cmd_images(args):
@@ -785,7 +784,7 @@ def cmd_images(args):
         except Exception:
             pass
         if not found:
-            found = {"error": f"Image {image_name} not found"}
+            found = {"error": "Image {image_name} not found"}
         _output(found, fmt)
 
 
@@ -821,7 +820,7 @@ def _cmd_machine_types(args):
             mt_name = mt_name.rstrip("/").split("/")[-1]
         mt = MACHINE_TYPE_MAP.get(mt_name)
         if not mt:
-            _output({"error": f"Machine type {mt_name} not found"}, fmt)
+            _output({"error": "Machine type {mt_name} not found"}, fmt)
             return
         _output(_machine_type_to_gcloud(mt_name, mt), fmt)
         return
@@ -835,13 +834,13 @@ def _cmd_machine_types(args):
             pkg_id = item.get("id") or item.get("package_id")
             if pkg_id and not any(m["id"] == str(pkg_id) for m in machine_types):
                 machine_types.append({
-                    "name": item.get("name", f"pkg-{pkg_id}"),
+                    "name": item.get("name", "pkg-{pkg_id}"),
                     "id": str(pkg_id),
                     "zone": "us-central1-a",
                     "guestCpus": item.get("cpu", ""),
                     "memoryMb": item.get("ram", ""),
                     "description": item.get("description", ""),
-                    "selfLink": f"projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
+                    "selfLink": "projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
                 })
     except Exception:
         pass
@@ -856,7 +855,7 @@ def _machine_type_to_gcloud(name: str, mt: dict) -> dict:
         "zone": "us-central1-a",
         "guestCpus": name.split("-")[-1] if name.startswith("n1-standard-") else "",
         "memoryMb": "",
-        "selfLink": f"projects/shc/zones/us-central1-a/machineTypes/{name}",
+        "selfLink": "projects/shc/zones/us-central1-a/machineTypes/{name}",
     }
 
 
@@ -871,7 +870,7 @@ def _cmd_zones(args):
     elif sub == "describe":
         zone_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         matched = [z for z in SHC_ZONES if z["name"] == zone_name]
-        _output(matched[0] if matched else {"error": f"Zone {zone_name} not found"}, fmt)
+        _output(matched[0] if matched else {"error": "Zone {zone_name} not found"}, fmt)
 
 
 def _cmd_regions(args):
@@ -885,7 +884,7 @@ def _cmd_regions(args):
     elif sub == "describe":
         region_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         matched = [r for r in SHC_REGIONS if r["name"] == region_name]
-        _output(matched[0] if matched else {"error": f"Region {region_name} not found"}, fmt)
+        _output(matched[0] if matched else {"error": "Region {region_name} not found"}, fmt)
 
 
 def _cmd_operations(args):
@@ -902,7 +901,7 @@ def _cmd_operations(args):
         if vm_name:
             vm = _find_vm_by_name(client, vm_name)
             if not vm:
-                print(f"Instance {vm_name} not found", file=sys.stderr)
+                print("Instance {vm_name} not found", file=sys.stderr)
                 sys.exit(1)
             sid = vm.get("id") or vm.get("service_id")
             try:
@@ -946,11 +945,11 @@ def _cmd_operations(args):
             except Exception:
                 pass
         if not found:
-            found = {"error": f"Operation {op_id} not found"}
+            found = {"error": "Operation {op_id} not found"}
         _output(found, fmt)
 
     else:
-        print(f"Unknown operations subcommand: {sub}", file=sys.stderr)
+        print("Unknown operations subcommand: {sub}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -963,12 +962,12 @@ def _job_to_gcloud(job: dict, hostname: str, sid) -> dict:
     else:
         op_status = status_raw.upper() or "DONE"
     return {
-        "name": f"operation-{job.get('id', job.get('job_id', ''))}",
+        "name": "operation-{job.get('id', job.get('job_id', ''))}",
         "id": str(job.get("id", job.get("job_id", ""))),
         "operationType": job.get("type", job.get("action", "")),
         "status": op_status,
         "targetId": str(sid),
-        "targetLink": f"projects/shc/zones/us-central1-a/instances/{hostname}",
+        "targetLink": "projects/shc/zones/us-central1-a/instances/{hostname}",
         "creationTimestamp": job.get("created_at", job.get("started_at", "")),
         "startTime": job.get("started_at", ""),
         "endTime": job.get("finished_at", job.get("completed_at", "")),
@@ -1043,10 +1042,10 @@ def main():
         elif resource == "project-info":
             _cmd_project_info(rest)
         else:
-            print(f"Unknown resource: {resource}", file=sys.stderr)
+            print("Unknown resource: {resource}", file=sys.stderr)
             sys.exit(1)
     elif cmd == "config":
         cmd_config(rest)
     else:
-        print(f"Unknown command: {cmd}", file=sys.stderr)
+        print("Unknown command: {cmd}", file=sys.stderr)
         sys.exit(1)

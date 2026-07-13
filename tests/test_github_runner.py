@@ -15,6 +15,9 @@ import pytest
 from shc_toolkit.client import SHCError
 from shc_toolkit.github_runner import (
     ProvisionRequest,
+    SUPPORTED_BACKENDS,
+    _build_fc_spawn_command,
+    _parse_fc_spawn_output,
     default_labels,
     destroy,
     fetch_registration_token,
@@ -337,6 +340,364 @@ class TestCLISmoke:
         assert data["timings"]["durations"]["total_s"] is not None
 
     def test_destroy_no_service_id_via_main(self, capsys):
+        from shc_toolkit.cli import main
+        sys.argv = ["shc", "github-runner", "destroy"]
+        main()
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["ok"] is True
+        assert data["action"] == "no-op"
+
+
+# ── Backend dispatch ────────────────────────────────────────────
+
+
+class TestBackendSelection:
+    def test_supported_backends_contains_both(self):
+        assert "shc-vps" in SUPPORTED_BACKENDS
+        assert "firecracker" in SUPPORTED_BACKENDS
+
+    def test_default_backend_is_shc_vps(self):
+        req = ProvisionRequest(repo="o/r", github_token="")
+        assert req.backend == "shc-vps"
+
+    def test_unknown_backend_raises_value_error(self):
+        req = ProvisionRequest(
+            repo="o/r", github_token="", backend="bogus", dry_run=True
+        )
+        with pytest.raises(ValueError, match="unknown backend"):
+            provision(req, client=MagicMock())
+
+    def test_unknown_backend_in_destroy_raises(self):
+        with pytest.raises(ValueError, match="unknown backend"):
+            destroy(123, client=MagicMock(), backend="bogus")
+
+    def test_default_fc_pool_path(self):
+        req = ProvisionRequest(repo="o/r", github_token="")
+        assert req.firecracker_pool_path == "/opt/fc-pool"
+
+    def test_default_fc_host_is_none(self):
+        req = ProvisionRequest(repo="o/r", github_token="")
+        assert req.firecracker_host is None
+
+
+class TestShcVpsDispatch:
+    def test_default_backend_routes_to_shc_vps(self):
+        """provision() with no backend must call into the SHC VPS path
+        and not the firecracker path."""
+        req = ProvisionRequest(
+            repo="o/r", github_token="ghp_x", labels=["t"], dry_run=True
+        )
+        with patch("shc_toolkit.github_runner._provision_firecracker") as m_fc, \
+             patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps:
+            m_vps.return_value = MagicMock(ok=True, backend="shc-vps")
+            provision(req, client=MagicMock())
+            m_fc.assert_not_called()
+            m_vps.assert_called_once()
+
+    def test_explicit_shc_vps_backend_dry_run(self):
+        req = ProvisionRequest(
+            repo="o/r", github_token="", labels=["t"],
+            backend="shc-vps", dry_run=True,
+        )
+        result = provision(req, client=MagicMock())
+        assert result.ok is True
+        assert result.backend == "shc-vps"
+
+
+class TestFirecrackerProvision:
+    def _fc_req(self, **kw) -> ProvisionRequest:
+        defaults = dict(
+            repo="o/r",
+            github_token="ghp_x",
+            backend="firecracker",
+            firecracker_host="host.example.com",
+            labels=["fc-1"],
+        )
+        defaults.update(kw)
+        return ProvisionRequest(**defaults)
+
+    def test_firecracker_dispatch_avoids_shc_path(self):
+        req = self._fc_req()
+        with patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps, \
+             patch("shc_toolkit.github_runner._provision_firecracker") as m_fc:
+            m_fc.return_value = MagicMock(ok=True, backend="firecracker")
+            provision(req, client=MagicMock())
+            m_vps.assert_not_called()
+            m_fc.assert_called_once_with(req)
+
+    def test_dry_run_returns_firecracker_backend_no_io(self):
+        req = self._fc_req(dry_run=True)
+        with patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh, \
+             patch("shc_toolkit.github_runner._ssh") as m_ssh:
+            result = provision(req, client=MagicMock())
+            m_gh.assert_not_called()
+            m_ssh.assert_not_called()
+        assert result.ok is True
+        assert result.backend == "firecracker"
+        assert "fc-1" in result.labels
+        assert "self-hosted" in result.labels
+        assert result.runner_label == "fc-1"
+        assert result.error is None
+
+    def test_missing_host_returns_error(self):
+        req = self._fc_req(firecracker_host=None)
+        with patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh, \
+             patch("shc_toolkit.github_runner._ssh") as m_ssh:
+            result = provision(req, client=MagicMock())
+            m_gh.assert_not_called()
+            m_ssh.assert_not_called()
+        assert result.ok is False
+        assert result.backend == "firecracker"
+        assert "firecracker_host" in (result.error or "")
+
+    def test_successful_spawn_parses_pool_json(self):
+        pool_output = json.dumps({
+            "name": "fc-abc",
+            "workdir": "/tmp/fc-fc-abc-x",
+            "tap": "fctap0100",
+            "pid": 12345,
+            "started_at": 1.0,
+            "boot_to_init_s": 22.1,
+            "ip": "10.0.0.5",
+            "error": None,
+        })
+        req = self._fc_req()
+        with patch("shc_toolkit.github_runner.fetch_registration_token",
+                   return_value={"token": "regtok", "expires_at": ""}), \
+             patch("shc_toolkit.github_runner._ssh",
+                   return_value=pool_output) as m_ssh:
+            result = provision(req, client=MagicMock())
+            m_ssh.assert_called_once()
+            # Confirm the spawn command was passed through with poll-github
+            invoked_cmd = m_ssh.call_args.args[1]
+            assert "firecracker_pool.py" in invoked_cmd
+            assert "--poll-github" in invoked_cmd
+            assert "--github-token" in invoked_cmd
+
+        assert result.ok is True
+        assert result.backend == "firecracker"
+        assert result.ip == "10.0.0.5"
+        assert result.service_id is None
+        assert "t1_order_submitted" in result.timings
+        assert "t5_runner_online" in result.timings
+        assert "t6_finished" in result.timings
+        assert result.error is None
+
+    def test_pool_returned_error_propagates(self):
+        pool_output = json.dumps({
+            "name": "fc-abc",
+            "workdir": "",
+            "tap": "",
+            "pid": None,
+            "started_at": 0.0,
+            "boot_to_init_s": None,
+            "ip": None,
+            "error": "kernel panic in μVM console",
+        })
+        req = self._fc_req()
+        with patch("shc_toolkit.github_runner.fetch_registration_token",
+                   return_value={"token": "regtok", "expires_at": ""}), \
+             patch("shc_toolkit.github_runner._ssh",
+                   return_value=pool_output):
+            result = provision(req, client=MagicMock())
+        assert result.ok is False
+        assert "kernel panic" in (result.error or "")
+
+    def test_ssh_failure_returns_error_result(self):
+        req = self._fc_req()
+        with patch("shc_toolkit.github_runner.fetch_registration_token",
+                   return_value={"token": "regtok", "expires_at": ""}), \
+             patch("shc_toolkit.github_runner._ssh",
+                   side_effect=RuntimeError("SSH command failed")):
+            result = provision(req, client=MagicMock())
+        assert result.ok is False
+        assert "SSH command failed" in (result.error or "")
+        assert result.backend == "firecracker"
+
+    def test_custom_pool_path_used(self):
+        pool_output = json.dumps({
+            "name": "x", "workdir": "", "tap": "", "pid": 1,
+            "started_at": 0.0, "boot_to_init_s": 1.0,
+            "ip": "10.0.0.6", "error": None,
+        })
+        req = self._fc_req(firecracker_pool_path="/custom/pool")
+        with patch("shc_toolkit.github_runner.fetch_registration_token",
+                   return_value={"token": "regtok", "expires_at": ""}), \
+             patch("shc_toolkit.github_runner._ssh",
+                   return_value=pool_output) as m_ssh:
+            provision(req, client=MagicMock())
+            invoked_cmd = m_ssh.call_args.args[1]
+            assert "/custom/pool/firecracker_pool.py" in invoked_cmd
+
+
+class TestFirecrackerDestroy:
+    def test_no_runner_name_is_noop(self):
+        result = destroy(None, backend="firecracker")
+        assert result["ok"] is True
+        assert result["action"] == "no-op"
+        assert result["backend"] == "firecracker"
+
+    def test_missing_host_returns_failure(self):
+        result = destroy(
+            None, backend="firecracker",
+            runner_name="fc-1", firecracker_host=None,
+        )
+        assert result["ok"] is False
+        assert result["backend"] == "firecracker"
+        assert "firecracker_host" in result["error"]
+
+    def test_successful_kill_calls_pool(self):
+        with patch("shc_toolkit.github_runner._ssh",
+                   return_value='{"killed": true, "name": "fc-1"}') as m_ssh:
+            result = destroy(
+                None, backend="firecracker",
+                runner_name="fc-1",
+                firecracker_host="host.example.com",
+            )
+        assert result["ok"] is True
+        assert result["action"] == "killed"
+        assert result["runner_name"] == "fc-1"
+        assert result["result"]["killed"] is True
+        invoked_cmd = m_ssh.call_args.args[1]
+        assert "firecracker_pool.py kill" in invoked_cmd
+        assert "--name fc-1" in invoked_cmd
+
+    def test_ssh_failure_is_failure(self):
+        with patch("shc_toolkit.github_runner._ssh",
+                   side_effect=RuntimeError("connection refused")):
+            result = destroy(
+                None, backend="firecracker",
+                runner_name="fc-1",
+                firecracker_host="host.example.com",
+            )
+        assert result["ok"] is False
+        assert "connection refused" in result["error"]
+
+
+# ── Pool output parser & command builder ────────────────────────
+
+
+class TestParseFcSpawnOutput:
+    def test_pure_json(self):
+        out = '{"name": "x", "ip": "10.0.0.1"}'
+        assert _parse_fc_spawn_output(out)["name"] == "x"
+
+    def test_json_with_prefix_logs(self):
+        out = 'spawning...\nboot: 1.2s\n{"name": "y", "ip": "10.0.0.2"}\n'
+        assert _parse_fc_spawn_output(out)["ip"] == "10.0.0.2"
+
+    def test_indented_json_with_prefix_logs(self):
+        out = (
+            'log line\n'
+            '{\n'
+            '  "name": "z",\n'
+            '  "boot_to_init_s": 22.1,\n'
+            '  "ip": "10.0.0.3"\n'
+            '}\n'
+        )
+        parsed = _parse_fc_spawn_output(out)
+        assert parsed["name"] == "z"
+        assert parsed["boot_to_init_s"] == 22.1
+
+    def test_no_json_returns_error_dict(self):
+        parsed = _parse_fc_spawn_output("not json at all")
+        assert "error" in parsed
+
+
+class TestBuildFcSpawnCommand:
+    def test_includes_required_args(self):
+        cmd = _build_fc_spawn_command(
+            pool_path="/opt/fc-pool",
+            runner_name="fc-1",
+            repo="o/r",
+            reg_token="regtok",
+            labels_arg="shc,fc,fc-1",
+            github_token="ghp_x",
+        )
+        assert "/opt/fc-pool/firecracker_pool.py" in cmd
+        assert "--name fc-1" in cmd
+        assert "--repo o/r" in cmd
+        assert "--poll-github" in cmd
+        assert "--github-token ghp_x" in cmd
+
+    def test_shell_quotes_metacharacters(self):
+        """Runner name with shell metacharacters must be quoted — prevents
+        command injection on the host VM."""
+        cmd = _build_fc_spawn_command(
+            pool_path="/opt/fc-pool",
+            runner_name="$(reboot)",
+            repo="o/r",
+            reg_token="tok; rm -rf /",
+            labels_arg="a",
+            github_token="ghp_x",
+        )
+        assert "$(reboot)" not in cmd.split("--name ")[1].split()[0]
+        assert "rm -rf" not in cmd or "rm -rf /" not in cmd.split()
+
+    def test_trailing_slash_in_pool_path_normalized(self):
+        cmd = _build_fc_spawn_command(
+            pool_path="/opt/fc-pool/",
+            runner_name="x",
+            repo="o/r",
+            reg_token="t",
+            labels_arg="a",
+            github_token="g",
+        )
+        assert "//firecracker_pool.py" not in cmd
+
+
+# ── CLI: firecracker backend ────────────────────────────────────
+
+
+class TestCLIFirecracker:
+    def test_fc_dry_run_via_main(self, capsys):
+        from shc_toolkit.cli import main
+        sys.argv = [
+            "shc", "github-runner", "provision",
+            "--repo", "o/r",
+            "--backend", "firecracker",
+            "--labels", "fc-cli-test",
+            "--dry-run",
+        ]
+        main()
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["ok"] is True
+        assert data["backend"] == "firecracker"
+        assert data["runner_label"] == "fc-cli-test"
+        assert "fc-cli-test" in data["labels"]
+
+    def test_fc_provision_without_host_errors(self, capsys):
+        from shc_toolkit.cli import main
+        sys.argv = [
+            "shc", "github-runner", "provision",
+            "--repo", "o/r",
+            "--backend", "firecracker",
+            "--github-token", "faketoken",
+        ]
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 2
+        err = capsys.readouterr().err
+        assert "--firecracker-host" in err
+
+    def test_fc_destroy_noop_via_main(self, capsys):
+        from shc_toolkit.cli import main
+        sys.argv = [
+            "shc", "github-runner", "destroy",
+            "--backend", "firecracker",
+        ]
+        main()
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["ok"] is True
+        assert data["action"] == "no-op"
+        assert data["backend"] == "firecracker"
+
+    def test_shc_vps_destroy_default_unchanged(self, capsys):
+        """Backward-compat: destroy with no backend flag still works
+        exactly as before the backend selector existed."""
         from shc_toolkit.cli import main
         sys.argv = ["shc", "github-runner", "destroy"]
         main()

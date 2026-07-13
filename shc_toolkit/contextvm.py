@@ -47,7 +47,7 @@ def generate_server_script(
     Returns:
         TypeScript source code for the server script.
     """
-    bun_bin = f"/home/{user}/.bun/bin/bun" if user else "/root/.bun/bin/bun"
+    bun_bin = "/home/{user}/.bun/bin/bun" if user else "/root/.bun/bin/bun"
     return f'''import {{
   NostrMCPGateway,
 }} from "@contextvm/sdk";
@@ -161,7 +161,7 @@ await server.connect(transport);
 
 def generate_systemd_service(user: str = "debian") -> str:
     """Generate a systemd unit file for the ContextVM gateway."""
-    return f"""[Unit]
+    return """[Unit]
 Description=ContextVM MCP Gateway
 After=network.target
 
@@ -207,15 +207,15 @@ def install_contextvm(
     log.info("Installing ContextVM on %s@%s", user, host)
 
     # 1. Create working directory
-    ssh_cmd(host, f"mkdir -p {REMOTE_DIR}", user=user, timeout=15)
+    ssh_cmd(host, "mkdir -p {REMOTE_DIR}", user=user, timeout=15)
 
     # 2. Install unzip (required by Bun installer, not on fresh Debian cloud images)
     log.info("Installing unzip (wait for cloud-init dpkg lock to release)...")
     ssh_cmd(
         host,
-        f"sudo bash -c 'for i in $(seq 1 30); do "
-        f"apt-get update -qq && apt-get install -y -qq unzip && break "
-        f"|| sleep 5; done'",
+        "sudo bash -c 'for i in $(seq 1 30); do "
+        "apt-get update -qq && apt-get install -y -qq unzip && break "
+        "|| sleep 5; done'",
         user=user,
         timeout=300,
     )
@@ -228,10 +228,10 @@ def install_contextvm(
     log.info("Installing @contextvm/sdk...")
     ssh_cmd(
         host,
-        f"cd {REMOTE_DIR} && "
+        "cd {REMOTE_DIR} && "
         f'/home/{user}/.bun/bin/bun init -y && '
-        f"/home/{user}/.bun/bin/bun add @contextvm/sdk nostr-tools "
-        f"@modelcontextprotocol/sdk",
+        "/home/{user}/.bun/bin/bun add @contextvm/sdk nostr-tools "
+        "@modelcontextprotocol/sdk",
         user=user,
         timeout=120,
     )
@@ -250,7 +250,7 @@ def install_contextvm(
         subprocess.run(
             ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
              "-o", "LogLevel=ERROR",
-             f"{user}@{host}", f"cat > {REMOTE_DIR}/{filename}"],
+             f"{user}@{host}", "cat > {REMOTE_DIR}/{filename}"],
             input=content, text=True, timeout=30,
         )
 
@@ -259,7 +259,7 @@ def install_contextvm(
     subprocess.run(
         ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
          "-o", "LogLevel=ERROR",
-         f"{user}@{host}", f"sudo tee /etc/systemd/system/contextvm.service"],
+         f"{user}@{host}", "sudo tee /etc/systemd/system/contextvm.service"],
         input=systemd_unit, text=True, timeout=30,
     )
     ssh_cmd(host, "sudo systemctl daemon-reload && "
