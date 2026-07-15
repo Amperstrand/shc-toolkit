@@ -329,7 +329,8 @@ class SHCClient:
             conf = body.get("confirmation", {})
             if conf:
                 exc.confirmation_id = (
-                    conf.get("structuredContent", {}).get("confirmation_id")
+                    conf.get("confirmation_id")
+                    or conf.get("structuredContent", {}).get("confirmation_id")
                 )
             raise exc
         return body.get("data", body)
@@ -1213,7 +1214,10 @@ class SHCClient:
         return self._delete("/ssh-key", params={"service_id": service_id})
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
-        return self._post(f"/vm/{service_id}/ssh-keys/apply-live", {"ssh_key": public_key})
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/ssh-keys/apply-live",
+            json={"ssh_key": public_key},
+        )
 
     def remove_ssh_key_live(self, service_id: int, public_key: str) -> dict:
         return self._delete(f"/vm/{service_id}/ssh-keys/live", params={"public_key": public_key})
