@@ -854,15 +854,6 @@ class SHCClient:
         if pay and result.get("invoice_id"):
             self.pay_invoice(result["invoice_id"])
 
-        if result.get("service_id"):
-            credit_after = self._safe_credit()
-            actual_charge = (
-                round(credit_before - credit_after, 2)
-                if credit_before is not None and credit_after is not None
-                else None
-            )
-            self.cost_tracker.update_charge(result["service_id"], actual_charge)
-
         return result
 
     def preview_order(self, **kwargs) -> dict:
@@ -910,15 +901,9 @@ class SHCClient:
         service_ids = result.get("service_ids") or (
             [result["service_id"]] if result.get("service_id") else []
         )
-        credit_after = self._safe_credit()
-        actual_charge = (
-            round(credit_before - credit_after, 2)
-            if credit_before is not None and credit_after is not None
-            else None
-        )
         for sid in service_ids:
             if sid not in self.cost_tracker._sessions:
-                self.cost_tracker.track_order(sid, pkg_id, actual_charge)
+                self.cost_tracker.track_order(sid, pkg_id, credit_before)
 
         return result
 
@@ -960,7 +945,6 @@ class SHCClient:
         return self._post(f"/vm/{service_id}/resume")
 
     def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
-        credit_before = self._safe_credit() if immediate else None
         result = self._confirmed_request(
             "POST", f"/vm/{service_id}/cancel", confirm=confirm,
             json={"immediate": True} if immediate else {},
@@ -968,22 +952,7 @@ class SHCClient:
         self.invalidate_cache("credit")
         if immediate:
             credit_after = self._safe_credit()
-            actual_refund = (
-                round(credit_after - credit_before, 2)
-                if credit_before is not None and credit_after is not None
-                else None
-            )
-            cancel_credit = result.get("cancel_credit") or {}
-            server_refund = cancel_credit.get("amount")
-            if server_refund is not None and actual_refund is not None:
-                if abs(actual_refund - server_refund) > 0.01:
-                    log.warning(
-                        "Cost audit: cancel refund mismatch — balance diff $%.2f, server reports $%.2f",
-                        actual_refund, server_refund,
-                    )
-            elif server_refund is not None:
-                actual_refund = server_refund
-            self.cost_tracker.audit_cancel(service_id, actual_refund)
+            self.cost_tracker.audit_cancel(service_id, credit_after)
         return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:

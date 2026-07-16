@@ -1,8 +1,11 @@
 """Cost tracking and balance-diff auditing for SHC VM sessions.
 
-Captures credit balance before and after each order/cancel, computes the
-**diff** (never logs or stores the absolute balance), and compares it to
-the expected cost based on catalog pricing and hourly proration.
+Records session metadata at order time and performs the single authoritative
+audit at cancel time, when the actual charge + refund have settled.
+
+SHC uses post-pay billing: credit is NOT deducted at order time. The charge
+appears asynchronously via the billing cycle. Attempting to audit at order
+time produces false mismatches ($0.00 diff vs expected daily price).
 
 All verification is best-effort: if the API is unavailable, the tracker
 logs a debug message and continues. It never blocks an operation.
@@ -25,35 +28,13 @@ HOURLY_PRECISION = 4
 PRICE_TOLERANCE_USD = 0.01
 
 
-class CostMismatchError(Exception):
-    """Raised when actual charge or refund differs from expected."""
-
-    def __init__(self, service_id: int, expected: float, actual: float, kind: str = "charge"):
-        self.service_id = service_id
-        self.expected = expected
-        self.actual = actual
-        self.kind = kind
-        super().__init__(
-            f"Cost mismatch for service {service_id}: "
-            f"expected {kind} ${expected:.4f}, actual ${actual:.4f} "
-            f"(diff ${actual - expected:+.4f})"
-        )
-
-
-def _truncate(amount: float, decimals: int) -> float:
-    """Truncate toward zero to the given number of decimal places."""
-    factor = 10 ** decimals
-    return float(int(amount * factor)) / factor
-
-
 @dataclass
 class CostSession:
     service_id: int
     package_id: int
     daily_price: float
     ordered_at: datetime
-    actual_charge: float | None = None
-    charge_verified: bool = False
+    credit_before_order: float | None = None
 
 
 @dataclass
@@ -65,10 +46,7 @@ class CostReport:
     canceled_at: datetime
     duration_hours: float
     expected_cost: float
-    expected_refund: float
-    actual_charge: float | None = None
-    actual_refund: float | None = None
-    ledger_refund: float | None = None
+    actual_net_cost: float | None = None
     mismatch: bool = False
     notes: list[str] = field(default_factory=list)
 
@@ -81,26 +59,18 @@ class CostReport:
             "canceled_at": self.canceled_at.isoformat(),
             "duration_hours": round(self.duration_hours, 2),
             "expected_cost": self.expected_cost,
-            "expected_refund": self.expected_refund,
-            "actual_charge": self.actual_charge,
-            "actual_refund": self.actual_refund,
-            "ledger_refund": self.ledger_refund,
-            "net_cost": self._net_cost(),
+            "actual_net_cost": self.actual_net_cost,
             "mismatch": self.mismatch,
             "notes": self.notes,
         }
 
-    def _net_cost(self) -> float | None:
-        charge = self.actual_charge if self.actual_charge is not None else self.daily_price
-        refund = self.actual_refund or 0.0
-        return round(charge - refund, 4)
-
 
 class CostTracker:
-    """Track expected vs actual costs via balance diffs.
+    """Track session metadata at order time; audit at cancel time.
 
-    Absolute balance is NEVER stored or logged — only the diff between
-    before and after snapshots.
+    The ONLY audit happens at cancel, comparing the full-lifecycle balance
+    diff (credit_before_order - credit_after_cancel) to the expected
+    prorated cost. This avoids false mismatches from post-pay billing.
     """
 
     def __init__(self, client: SHCClient) -> None:
@@ -111,15 +81,15 @@ class CostTracker:
         self,
         service_id: int,
         package_id: int,
-        actual_charge: float | None = None,
+        credit_before: float | None = None,
     ) -> CostSession:
-        """Record expected cost at order time and verify via balance diff.
+        """Record session metadata at order time. No audit — just tracking.
 
         Args:
             service_id: The VM service ID.
             package_id: The package ordered.
-            actual_charge: Credit diff (before - after) from the order.
-                None if balance couldn't be captured.
+            credit_before: Credit balance snapshot from before the order,
+                used later at cancel time for the full-lifecycle diff.
         """
         daily_price = self._client.estimate_daily_cost(package_id)
         session = CostSession(
@@ -127,68 +97,29 @@ class CostTracker:
             package_id=package_id,
             daily_price=daily_price,
             ordered_at=datetime.now(timezone.utc),
-            actual_charge=actual_charge,
+            credit_before_order=credit_before,
         )
         self._sessions[service_id] = session
-
-        if actual_charge is not None:
-            diff = abs(actual_charge - daily_price)
-            session.charge_verified = diff <= PRICE_TOLERANCE_USD
-            if session.charge_verified:
-                log.info(
-                    "Cost audit: order svc %s — charged $%.4f, expected $%.4f — OK",
-                    service_id, actual_charge, daily_price,
-                )
-            else:
-                log.warning(
-                    "Cost audit: order svc %s — CHARGE MISMATCH: "
-                    "charged $%.4f, expected $%.4f (diff $%+.4f)",
-                    service_id, actual_charge, daily_price,
-                    actual_charge - daily_price,
-                )
-        else:
-            log.info(
-                "Cost audit: tracking svc %s — expected $%.4f/day (balance diff unavailable)",
-                service_id, daily_price,
-            )
-
+        log.info(
+            "Cost audit: tracking svc %s — $%.2f/day",
+            service_id, daily_price,
+        )
         return session
-
-    def update_charge(self, service_id: int, actual_charge: float | None) -> None:
-        """Update the recorded charge for a session (e.g. after pay_invoice).
-
-        Called by order_vm() after submit_order + pay_invoice to capture the
-        full balance diff including the payment.
-        """
-        session = self._sessions.get(service_id)
-        if not session or actual_charge is None:
-            return
-        session.actual_charge = actual_charge
-        diff = abs(actual_charge - session.daily_price)
-        session.charge_verified = diff <= PRICE_TOLERANCE_USD
-        if session.charge_verified:
-            log.info(
-                "Cost audit: order svc %s — charged $%.2f, expected $%.2f — OK",
-                service_id, actual_charge, session.daily_price,
-            )
-        else:
-            log.warning(
-                "Cost audit: order svc %s — CHARGE MISMATCH: "
-                "charged $%.2f, expected $%.2f (diff $%+.2f)",
-                service_id, actual_charge, session.daily_price,
-                actual_charge - session.daily_price,
-            )
 
     def audit_cancel(
         self,
         service_id: int,
-        actual_refund: float | None = None,
+        credit_after_cancel: float | None = None,
     ) -> CostReport | None:
-        """At cancel time, compare actual refund diff to expected proration.
+        """Single authoritative audit at cancel time.
+
+        Computes the full-lifecycle net cost as the balance diff between
+        credit_before_order and credit_after_cancel, then compares to the
+        expected prorated cost.
 
         Args:
             service_id: The VM service ID.
-            actual_refund: Credit diff (after - before) from the cancel.
+            credit_after_cancel: Credit balance snapshot from after cancel.
                 None if balance couldn't be captured.
         """
         session = self._sessions.get(service_id)
@@ -201,9 +132,16 @@ class CostTracker:
 
         hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
         charged_hours = max(hours, MIN_CHARGE_HOURS)
-        raw_charge = charged_hours * hourly_rate
-        expected_cost = _truncate(raw_charge, 2)
-        expected_refund = round(session.daily_price - expected_cost, 2)
+        expected_cost = _truncate(charged_hours * hourly_rate, 2)
+
+        actual_net_cost = None
+        if (
+            session.credit_before_order is not None
+            and credit_after_cancel is not None
+        ):
+            actual_net_cost = round(
+                session.credit_before_order - credit_after_cancel, 2
+            )
 
         report = CostReport(
             service_id=service_id,
@@ -213,79 +151,58 @@ class CostTracker:
             canceled_at=now,
             duration_hours=round(hours, 2),
             expected_cost=expected_cost,
-            expected_refund=expected_refund,
-            actual_charge=session.actual_charge,
-            actual_refund=actual_refund,
+            actual_net_cost=actual_net_cost,
         )
 
-        if actual_refund is not None:
-            diff = abs(actual_refund - expected_refund)
-            if diff > PRICE_TOLERANCE_USD:
-                ledger_refund = self._ledger_refund(service_id)
-                if ledger_refund is not None and abs(ledger_refund - expected_refund) <= PRICE_TOLERANCE_USD:
+        if actual_net_cost is not None:
+            diff = abs(actual_net_cost - expected_cost)
+            if diff <= PRICE_TOLERANCE_USD:
+                log.info(
+                    "Cost audit: svc %s — %.1f hrs, net $%.2f, expected $%.2f — OK",
+                    service_id, hours, actual_net_cost, expected_cost,
+                )
+            else:
+                report.mismatch = True
+                report.notes.append(f"net_cost_diff_${actual_net_cost - expected_cost:+.2f}")
+                ledger_cost = self._ledger_cost(service_id)
+                if ledger_cost is not None and abs(ledger_cost - expected_cost) <= PRICE_TOLERANCE_USD:
                     report.mismatch = False
-                    report.notes.append("balance_diff_noisy_concurrent_activity")
-                    report.ledger_refund = ledger_refund
+                    report.notes.append("ledger_confirms_expected_concurrent_balance_noise")
                     log.info(
-                        "Cost audit: cancel svc %s — balance diff $%.4f ≠ expected $%.4f, "
-                        "but per-VM ledger confirms $%.4f — concurrent activity, OK",
-                        service_id, actual_refund, expected_refund, ledger_refund,
+                        "Cost audit: svc %s — balance diff $%.2f ≠ expected $%.2f, "
+                        "but ledger confirms $%.2f — concurrent activity, OK",
+                        service_id, actual_net_cost, expected_cost, ledger_cost,
                     )
-                elif ledger_refund is not None:
-                    report.mismatch = True
-                    report.notes.append("ledger_confirms_mismatch")
-                    report.ledger_refund = ledger_refund
+                elif ledger_cost is not None:
                     log.warning(
-                        "Cost audit: cancel svc %s — REFUND MISMATCH confirmed by ledger: "
-                        "balance diff $%.4f, ledger $%.4f, expected $%.4f",
-                        service_id, actual_refund, ledger_refund, expected_refund,
+                        "Cost audit: svc %s — MISMATCH: net $%.2f, ledger $%.2f, expected $%.2f",
+                        service_id, actual_net_cost, ledger_cost, expected_cost,
                     )
                 else:
-                    report.mismatch = True
-                    report.notes.append(
-                        f"refund_diff_${actual_refund - expected_refund:+.4f}"
-                    )
                     log.warning(
-                        "Cost audit: cancel svc %s — REFUND MISMATCH: "
-                        "refunded $%.4f, expected $%.4f (diff $%+.4f)",
-                        service_id, actual_refund, expected_refund,
-                        actual_refund - expected_refund,
+                        "Cost audit: svc %s — MISMATCH: net $%.2f, expected $%.2f (diff $%+.2f)",
+                        service_id, actual_net_cost, expected_cost,
+                        actual_net_cost - expected_cost,
                     )
-            else:
-                log.info(
-                    "Cost audit: cancel svc %s — refunded $%.4f, expected $%.4f — OK",
-                    service_id, actual_refund, expected_refund,
-                )
         else:
-            report.notes.append("refund_diff_unavailable")
+            report.notes.append("balance_diff_unavailable")
+            log.info(
+                "Cost audit: svc %s — %.1f hrs, expected $%.2f (balance diff unavailable)",
+                service_id, hours, expected_cost,
+            )
 
-        charge_str = (
-            f"${session.actual_charge:.4f}" if session.actual_charge is not None else "?"
-        )
-        refund_str = (
-            f"${actual_refund:.4f}" if actual_refund is not None else "?"
-        )
-        net = report._net_cost()
-        log.info(
-            "Cost audit: session svc %s — %.1f hrs, charged %s, refunded %s, net $%.4f",
-            service_id, hours, charge_str, refund_str, net,
-        )
-
+        del self._sessions[service_id]
         return report
 
-    def _ledger_refund(self, service_id: int) -> float | None:
-        """Look up per-VM ledger to isolate this VM's refund from concurrent activity.
-
-        Returns the sum of negative (credit/refund) entries, or None if the
-        ledger can't be fetched.
-        """
+    def _ledger_cost(self, service_id: int) -> float | None:
+        """Sum of all charges for this VM from the per-VM payment ledger."""
         try:
             payments = self._client.get_vm_payments(service_id)
         except Exception as exc:
             log.debug("Cost audit: ledger fetch failed for svc %s: %s", service_id, exc)
             return None
 
-        refunds = []
+        charges = []
         for p in payments:
             for field_name in ("total", "paid", "amount"):
                 raw = p.get(field_name)
@@ -295,10 +212,10 @@ class CostTracker:
                     val = float(raw)
                 except (TypeError, ValueError):
                     continue
-                if val < 0:
-                    refunds.append(abs(val))
+                if val > 0:
+                    charges.append(val)
                     break
-        return round(sum(refunds), 4) if refunds else 0.0
+        return round(sum(charges), 2) if charges else 0.0
 
     def current_burn(self, service_id: int) -> float:
         """Current expected cost for a running VM (does not call the API)."""
@@ -329,8 +246,6 @@ class CostTracker:
             "ordered_at": session.ordered_at.isoformat(),
             "elapsed_hours": round(hours, 2),
             "current_expected_cost": expected_cost,
-            "actual_charge": session.actual_charge,
-            "charge_verified": session.charge_verified,
         }
 
     def all_sessions(self) -> list[dict]:
@@ -340,3 +255,8 @@ class CostTracker:
             for sid in self._sessions
             if sid is not None
         ]
+
+
+def _truncate(amount: float, decimals: int) -> float:
+    factor = 10 ** decimals
+    return float(int(amount * factor)) / factor
