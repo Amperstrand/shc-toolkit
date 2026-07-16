@@ -241,7 +241,7 @@ class TestMcpConvertArgs:
 class TestMcpToolMap:
     def test_core_tool_count(self):
         from shc_toolkit.mcp_client import TOOL_MAP
-        assert len(TOOL_MAP) == 113
+        assert len(TOOL_MAP) == 127
 
     def test_key_mappings(self):
         from shc_toolkit.mcp_client import TOOL_MAP

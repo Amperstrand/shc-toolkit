@@ -180,6 +180,25 @@ TOOL_MAP: dict[str, str] = {
     "delete_manager": "deleteManager",
     "list_kb_categories": "listKbCategories",
     "list_images": "listImages",
+    # Cloud-init (v2.4.7+)
+    "update_vm_cloud_init": "updateVirtualMachineCloudInit",
+    "delete_vm_cloud_init": "deleteVirtualMachineCloudInit",
+    "validate_vm_cloud_init": "validateVirtualMachineCloudInit",
+    # Event subscriptions (v2.4.x)
+    "create_event_subscription": "createEventSubscription",
+    "list_event_subscriptions": "listEventSubscriptions",
+    "get_event_subscription": "getEventSubscription",
+    "delete_event_subscription": "deleteEventSubscription",
+    # Batch operations (v2.4.x)
+    "submit_batch": "submitBatch",
+    # ZK backup extensions (v2.4.x)
+    "get_zk_backup_status": "getVirtualMachineZkBackupStatus",
+    "list_zk_backup_recipients": "listVirtualMachineZkBackupRecipients",
+    "register_zk_backup": "registerVirtualMachineZkBackup",
+    "rekey_zk_backup_retain": "rekeyVirtualMachineZkBackupWithRetention",
+    "revoke_zk_backup_recipient": "revokeVirtualMachineZkBackupRecipient",
+    # Managed accounts (v2.4.x)
+    "switch_managed_account": "switchManagedAccount",
     "relinquish_managed_account": "relinquishManagedAccount",
     "respond_to_managed_account_invitation": "respondToManagedAccountInvitation",
     "update_account_manager": "updateAccountManager",
@@ -972,6 +991,48 @@ class SHCMCPClient:
 
     def list_images(self) -> list[dict]:
         return self._extract_items(self._call("list_images"))
+
+    def update_vm_cloud_init(self, vm_id: str, **body) -> dict:
+        return self.call_tool("updateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body})
+
+    def delete_vm_cloud_init(self, vm_id: str) -> dict:
+        return self.call_tool("deleteVirtualMachineCloudInit", {"virtualMachineId": vm_id})
+
+    def validate_vm_cloud_init(self, vm_id: str, **body) -> dict:
+        return self.call_tool("validateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body})
+
+    def create_event_subscription(self, **body) -> dict:
+        return self.call_tool("createEventSubscription", {"body": body})
+
+    def list_event_subscriptions(self, **params) -> list[dict]:
+        return self._extract_items(self._call("list_event_subscriptions", **params))
+
+    def get_event_subscription(self, subscription_id: str) -> dict:
+        return self._call("get_event_subscription", eventSubscriptionId=subscription_id)
+
+    def delete_event_subscription(self, subscription_id: str) -> dict:
+        return self.call_tool("deleteEventSubscription", {"eventSubscriptionId": subscription_id})
+
+    def submit_batch(self, **body) -> dict:
+        return self.call_tool("submitBatch", {"body": body})
+
+    def get_zk_backup_status(self, service_id: int) -> dict:
+        return self._call("get_zk_backup_status", service_id=service_id)
+
+    def list_zk_backup_recipients(self, service_id: int) -> list[dict]:
+        return self._extract_items(self._call("list_zk_backup_recipients", service_id=service_id))
+
+    def register_zk_backup(self, service_id: int, **body) -> dict:
+        return self.call_tool("registerVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
+
+    def rekey_zk_backup_retain(self, service_id: int, **body) -> dict:
+        return self.call_tool("rekeyVirtualMachineZkBackupWithRetention", {"serviceId": service_id, "body": body})
+
+    def revoke_zk_backup_recipient(self, service_id: int, **body) -> dict:
+        return self.call_tool("revokeVirtualMachineZkBackupRecipient", {"serviceId": service_id, "body": body})
+
+    def switch_managed_account(self, managed_client_id: str) -> dict:
+        return self.call_tool("switchManagedAccount", {"managedClientId": managed_client_id})
 
     def relinquish_managed_account(self, **body) -> dict:
         return self.call_tool("relinquishManagedAccount", {"body": body})
