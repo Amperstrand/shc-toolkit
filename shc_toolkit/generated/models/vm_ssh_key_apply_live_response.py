@@ -22,7 +22,7 @@ class VmSshKeyApplyLiveResponse:
             service_id (int):  Example: 353.
             live_inject (VmSshKeyApplyLiveResponseLiveInject):  Example: attempted.
             key_fingerprint (None | str): Server-computed SHA-256 fingerprint of the injected key (pass to DELETE
-                /vm/{serviceId}/ssh-keys/live to live-remove it). Example: SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU.
+                /vm/{service_id}/ssh-keys/live to live-remove it). Example: SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU.
     """
 
     service_id: int

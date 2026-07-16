@@ -7,20 +7,20 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 | Repo | Tests | CI | Key Features |
 |------|-------|----|-------------|
-| shc-toolkit | 170 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (142 tools, 99% wrapped), v2.4.3, catalog generator, auto-generated client (718 files, 100% endpoints), idempotency keys, 408 retry |
+| shc-toolkit | 207 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (157 tools, 99% wrapped), v2.4.3, catalog generator, auto-generated client (718 files, 100% endpoints), idempotency keys, 408 retry |
 | shc-pulumi | 95 unit | Push + CI | Spec-encoding sizes, config options, snapshots, backups, firewall, rDNS, NoDNS. TF Bridge migration guide published. |
 | terraform-provider-shc | 57 unit | Push + CI + integration | Spec-encoding sizes, config options, cost audit, snapshots, backups, firewall, rDNS, VM term attribute |
 
-### API version: v2.4.3 (129 paths, 156 schemas)
-### Toolkit version: 2.4.3.1 (API-aligned: `<SHC_API_VERSION>.<toolkit_patch>`)
+### API version: v2.4.15 (148 paths)
+### Toolkit version: 2.4.15.1 (API-aligned: `<SHC_API_VERSION>.<toolkit_patch>`)
 
 ## Completed Work
 
-### v2.4.3.1 Release (2026-07-11)
-- **MCP coverage**: 33% → 99% (141/142 tools, 108 TOOL_MAP entries)
+### v2.4.15.1 Release (2026-07-11)
+- **MCP coverage**: 33% → 99% (141/142 tools, 124 TOOL_MAP entries)
 - **Auto-generated Python client**: 718 files from OpenAPI spec (149 endpoints, 543 Pydantic models)
 - **API resilience**: 408 retry, auto-idempotency keys on confirmed requests, ±20% jitter
-- **Package maturity**: CHANGELOG.md, pyproject.toml v2.4.3.1, mypy CI (0 errors), PyPI publish workflow
+- **Package maturity**: CHANGELOG.md, pyproject.toml v2.4.15.1, mypy CI (0 errors), PyPI publish workflow
 - **CI improvements**: auto-issue-creation on drift, cross-repo parity CI, network-blocking test fixture
 - **Ansible**: 4 bugs fixed, 13 tests, ansible-lint CI, molecule caddy scenario, weekly live E2E
 - **Pulumi**: TF Bridge migration guide (replaces hand-written Python provider)
@@ -82,7 +82,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 | Orders | list/get/cancel (v2.4.3) | list/get/cancel | N/A |
 | Catalog generator | --format go\|pulumi\|python | regenerate_sizes.sh | regenerate_sizes.sh |
 | Drift detection CI | OpenAPI + MCP + size-map + cross-repo | size-map | size-map |
-| MCP transport | 141/142 tools wrapped (99%) | N/A | N/A |
+| MCP transport | 156/157 tools wrapped (99%) | N/A | N/A |
 | Auto-generated client | 718 files, 149 endpoints, 543 models | N/A | N/A |
 | API resilience | 408 retry + jitter + idempotency | N/A | N/A |
 | Type checking | mypy 0 errors | go vet | N/A |

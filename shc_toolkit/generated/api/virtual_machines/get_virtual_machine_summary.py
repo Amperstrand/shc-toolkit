@@ -87,12 +87,13 @@ def sync_detailed(
     r"""Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
-    /vm/{serviceId} (identity + service_status/provisioning_state + current period/renewal) PLUS a
+    /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
     recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
-    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{serviceId}/detail for a
+    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
-    v2.4.0: response now includes the live `runtime` object (nullable, tolerant).
+    v2.4.0: response now includes the live `runtime` object when available; the field may be null when
+    the hypervisor read fails.
 
     Args:
         service_id (int):
@@ -127,12 +128,13 @@ def sync(
     r"""Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
-    /vm/{serviceId} (identity + service_status/provisioning_state + current period/renewal) PLUS a
+    /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
     recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
-    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{serviceId}/detail for a
+    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
-    v2.4.0: response now includes the live `runtime` object (nullable, tolerant).
+    v2.4.0: response now includes the live `runtime` object when available; the field may be null when
+    the hypervisor read fails.
 
     Args:
         service_id (int):
@@ -162,12 +164,13 @@ async def asyncio_detailed(
     r"""Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
-    /vm/{serviceId} (identity + service_status/provisioning_state + current period/renewal) PLUS a
+    /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
     recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
-    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{serviceId}/detail for a
+    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
-    v2.4.0: response now includes the live `runtime` object (nullable, tolerant).
+    v2.4.0: response now includes the live `runtime` object when available; the field may be null when
+    the hypervisor read fails.
 
     Args:
         service_id (int):
@@ -200,12 +203,13 @@ async def asyncio(
     r"""Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
-    /vm/{serviceId} (identity + service_status/provisioning_state + current period/renewal) PLUS a
+    /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
     recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
-    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{serviceId}/detail for a
+    round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
-    v2.4.0: response now includes the live `runtime` object (nullable, tolerant).
+    v2.4.0: response now includes the live `runtime` object when available; the field may be null when
+    the hypervisor read fails.
 
     Args:
         service_id (int):

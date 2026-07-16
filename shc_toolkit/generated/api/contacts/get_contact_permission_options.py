@@ -6,7 +6,9 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
-from ...models.permission_options_envelope import PermissionOptionsEnvelope
+from ...models.get_contact_permission_options_response_200 import (
+    GetContactPermissionOptionsResponse200,
+)
 from ...types import UNSET, Response, Unset
 
 
@@ -29,9 +31,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Error | PermissionOptionsEnvelope | None:
+) -> Error | GetContactPermissionOptionsResponse200 | None:
     if response.status_code == 200:
-        response_200 = PermissionOptionsEnvelope.from_dict(response.json())
+        response_200 = GetContactPermissionOptionsResponse200.from_dict(response.json())
 
         return response_200
 
@@ -68,7 +70,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Error | PermissionOptionsEnvelope]:
+) -> Response[Error | GetContactPermissionOptionsResponse200]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,7 +83,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
-) -> Response[Error | PermissionOptionsEnvelope]:
+) -> Response[Error | GetContactPermissionOptionsResponse200]:
     """List grantable contact permission areas
 
      Returns the vocabulary of permission areas that may be granted to a contact, as key/label pairs
@@ -95,7 +97,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Error | PermissionOptionsEnvelope]
+        Response[Error | GetContactPermissionOptionsResponse200]
     """
 
     kwargs = _get_kwargs(
@@ -113,7 +115,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
-) -> Error | PermissionOptionsEnvelope | None:
+) -> Error | GetContactPermissionOptionsResponse200 | None:
     """List grantable contact permission areas
 
      Returns the vocabulary of permission areas that may be granted to a contact, as key/label pairs
@@ -127,7 +129,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Error | PermissionOptionsEnvelope
+        Error | GetContactPermissionOptionsResponse200
     """
 
     return sync_detailed(
@@ -140,7 +142,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
-) -> Response[Error | PermissionOptionsEnvelope]:
+) -> Response[Error | GetContactPermissionOptionsResponse200]:
     """List grantable contact permission areas
 
      Returns the vocabulary of permission areas that may be granted to a contact, as key/label pairs
@@ -154,7 +156,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Error | PermissionOptionsEnvelope]
+        Response[Error | GetContactPermissionOptionsResponse200]
     """
 
     kwargs = _get_kwargs(
@@ -170,7 +172,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
-) -> Error | PermissionOptionsEnvelope | None:
+) -> Error | GetContactPermissionOptionsResponse200 | None:
     """List grantable contact permission areas
 
      Returns the vocabulary of permission areas that may be granted to a contact, as key/label pairs
@@ -184,7 +186,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Error | PermissionOptionsEnvelope
+        Error | GetContactPermissionOptionsResponse200
     """
 
     return (

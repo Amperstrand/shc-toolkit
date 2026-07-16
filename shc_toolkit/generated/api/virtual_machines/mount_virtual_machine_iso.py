@@ -129,13 +129,13 @@ def sync_detailed(
     """Mount an ISO image
 
      Mounts an ISO (from the node's offered inventory) as a new CD-ROM drive and prepends it to the boot
-    order. Returns the refreshed ISO view (same shape as GET /vm/{serviceId}/iso).
+    order. Returns the refreshed ISO view (same shape as GET /vm/{service_id}/iso).
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmIsoMountRequest): Mount an ISO image as a new CD-ROM drive. The ISO must be one
-            offered by GET /vm/{serviceId}/iso and not already mounted. Example: {'iso':
+            offered by GET /vm/{service_id}/iso and not already mounted. Example: {'iso':
             'local:iso/debian-12.7.0-amd64-netinst.iso'}.
 
     Raises:
@@ -169,13 +169,13 @@ def sync(
     """Mount an ISO image
 
      Mounts an ISO (from the node's offered inventory) as a new CD-ROM drive and prepends it to the boot
-    order. Returns the refreshed ISO view (same shape as GET /vm/{serviceId}/iso).
+    order. Returns the refreshed ISO view (same shape as GET /vm/{service_id}/iso).
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmIsoMountRequest): Mount an ISO image as a new CD-ROM drive. The ISO must be one
-            offered by GET /vm/{serviceId}/iso and not already mounted. Example: {'iso':
+            offered by GET /vm/{service_id}/iso and not already mounted. Example: {'iso':
             'local:iso/debian-12.7.0-amd64-netinst.iso'}.
 
     Raises:
@@ -204,13 +204,13 @@ async def asyncio_detailed(
     """Mount an ISO image
 
      Mounts an ISO (from the node's offered inventory) as a new CD-ROM drive and prepends it to the boot
-    order. Returns the refreshed ISO view (same shape as GET /vm/{serviceId}/iso).
+    order. Returns the refreshed ISO view (same shape as GET /vm/{service_id}/iso).
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmIsoMountRequest): Mount an ISO image as a new CD-ROM drive. The ISO must be one
-            offered by GET /vm/{serviceId}/iso and not already mounted. Example: {'iso':
+            offered by GET /vm/{service_id}/iso and not already mounted. Example: {'iso':
             'local:iso/debian-12.7.0-amd64-netinst.iso'}.
 
     Raises:
@@ -242,13 +242,13 @@ async def asyncio(
     """Mount an ISO image
 
      Mounts an ISO (from the node's offered inventory) as a new CD-ROM drive and prepends it to the boot
-    order. Returns the refreshed ISO view (same shape as GET /vm/{serviceId}/iso).
+    order. Returns the refreshed ISO view (same shape as GET /vm/{service_id}/iso).
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmIsoMountRequest): Mount an ISO image as a new CD-ROM drive. The ISO must be one
-            offered by GET /vm/{serviceId}/iso and not already mounted. Example: {'iso':
+            offered by GET /vm/{service_id}/iso and not already mounted. Example: {'iso':
             'local:iso/debian-12.7.0-amd64-netinst.iso'}.
 
     Raises:

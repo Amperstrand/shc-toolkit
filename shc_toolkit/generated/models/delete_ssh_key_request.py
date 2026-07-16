@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+
+if TYPE_CHECKING:
+    from ..models.delete_ssh_key_request_additional_property_type_4 import (
+        DeleteSshKeyRequestAdditionalPropertyType4,
+    )
+
 
 T = TypeVar("T", bound="DeleteSshKeyRequest")
 
@@ -23,15 +29,36 @@ class DeleteSshKeyRequest:
 
     service_id: int
     key_fingerprint: str
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+    additional_properties: dict[
+        str,
+        bool
+        | DeleteSshKeyRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str,
+    ] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.delete_ssh_key_request_additional_property_type_4 import (
+            DeleteSshKeyRequestAdditionalPropertyType4,
+        )
+
         service_id = self.service_id
 
         key_fingerprint = self.key_fingerprint
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+        for prop_name, prop in self.additional_properties.items():
+            if isinstance(prop, DeleteSshKeyRequestAdditionalPropertyType4):
+                field_dict[prop_name] = prop.to_dict()
+            elif isinstance(prop, list):
+                field_dict[prop_name] = prop
+
+            else:
+                field_dict[prop_name] = prop
+
         field_dict.update(
             {
                 "service_id": service_id,
@@ -43,6 +70,10 @@ class DeleteSshKeyRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.delete_ssh_key_request_additional_property_type_4 import (
+            DeleteSshKeyRequestAdditionalPropertyType4,
+        )
+
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
@@ -53,17 +84,86 @@ class DeleteSshKeyRequest:
             key_fingerprint=key_fingerprint,
         )
 
-        delete_ssh_key_request.additional_properties = d
+        additional_properties = {}
+        for prop_name, prop_dict in d.items():
+
+            def _parse_additional_property(
+                data: object,
+            ) -> (
+                bool
+                | DeleteSshKeyRequestAdditionalPropertyType4
+                | float
+                | int
+                | list[str]
+                | None
+                | str
+            ):
+                if data is None:
+                    return data
+                try:
+                    if not isinstance(data, dict):
+                        raise TypeError()
+                    additional_property_type_4 = (
+                        DeleteSshKeyRequestAdditionalPropertyType4.from_dict(data)
+                    )
+
+                    return additional_property_type_4
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                try:
+                    if not isinstance(data, list):
+                        raise TypeError()
+                    additional_property_type_5 = cast(list[str], data)
+
+                    return additional_property_type_5
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                return cast(
+                    bool
+                    | DeleteSshKeyRequestAdditionalPropertyType4
+                    | float
+                    | int
+                    | list[str]
+                    | None
+                    | str,
+                    data,
+                )
+
+            additional_property = _parse_additional_property(prop_dict)
+
+            additional_properties[prop_name] = additional_property
+
+        delete_ssh_key_request.additional_properties = additional_properties
         return delete_ssh_key_request
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(
+        self, key: str
+    ) -> (
+        bool
+        | DeleteSshKeyRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str
+    ):
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(
+        self,
+        key: str,
+        value: bool
+        | DeleteSshKeyRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str,
+    ) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

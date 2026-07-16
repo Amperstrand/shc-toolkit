@@ -89,11 +89,10 @@ def sync_detailed(
 ) -> Response[Error | GetOrderResponse200]:
     """Get one owned order
 
-     Get one owned order. Staged parity op: declared in the canonical 2.5 surface; handler lands
-    separately (release_state=staged until then).
+     Get one authenticated-client-owned order by the live /v2 order_id path parameter.
 
     Args:
-        order_id (int):  Example: 88.
+        order_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -124,11 +123,10 @@ def sync(
 ) -> Error | GetOrderResponse200 | None:
     """Get one owned order
 
-     Get one owned order. Staged parity op: declared in the canonical 2.5 surface; handler lands
-    separately (release_state=staged until then).
+     Get one authenticated-client-owned order by the live /v2 order_id path parameter.
 
     Args:
-        order_id (int):  Example: 88.
+        order_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -154,11 +152,10 @@ async def asyncio_detailed(
 ) -> Response[Error | GetOrderResponse200]:
     """Get one owned order
 
-     Get one owned order. Staged parity op: declared in the canonical 2.5 surface; handler lands
-    separately (release_state=staged until then).
+     Get one authenticated-client-owned order by the live /v2 order_id path parameter.
 
     Args:
-        order_id (int):  Example: 88.
+        order_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -187,11 +184,10 @@ async def asyncio(
 ) -> Error | GetOrderResponse200 | None:
     """Get one owned order
 
-     Get one owned order. Staged parity op: declared in the canonical 2.5 surface; handler lands
-    separately (release_state=staged until then).
+     Get one authenticated-client-owned order by the live /v2 order_id path parameter.
 
     Args:
-        order_id (int):  Example: 88.
+        order_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:

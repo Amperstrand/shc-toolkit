@@ -93,11 +93,12 @@ def sync_detailed(
 ) -> Response[Error | GetVirtualMachineCredentialsResponse200]:
     """Get VM Service-Info credentials
 
-     Returns the Service-Info login credentials (user + password) for one owned VM service — the API
-    equivalent of the portal Service Info / client service-info view. The password is stored Blesta-
-    encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-READ: read-only,
-    no spend, no write. Client-ownership scoped like every other /vm/{serviceId} endpoint — a foreign /
-    unowned / non-VM serviceId returns 404.
+     SECURITY HARDENING 2.4.14: this secret-read returns a reusable decrypted VM password and requires
+    X-User-Api-Confirm. Returns the Service-Info login credentials (user + password) for one owned VM
+    service — the API equivalent of the portal Service Info / client service-info view. The password is
+    stored Blesta-encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-
+    READ: read-only, no spend, no write. Client-ownership scoped like every other /vm/{service_id}
+    endpoint — a foreign / unowned / non-VM service_id returns 404.
 
     Args:
         service_id (int):
@@ -131,11 +132,12 @@ def sync(
 ) -> Error | GetVirtualMachineCredentialsResponse200 | None:
     """Get VM Service-Info credentials
 
-     Returns the Service-Info login credentials (user + password) for one owned VM service — the API
-    equivalent of the portal Service Info / client service-info view. The password is stored Blesta-
-    encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-READ: read-only,
-    no spend, no write. Client-ownership scoped like every other /vm/{serviceId} endpoint — a foreign /
-    unowned / non-VM serviceId returns 404.
+     SECURITY HARDENING 2.4.14: this secret-read returns a reusable decrypted VM password and requires
+    X-User-Api-Confirm. Returns the Service-Info login credentials (user + password) for one owned VM
+    service — the API equivalent of the portal Service Info / client service-info view. The password is
+    stored Blesta-encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-
+    READ: read-only, no spend, no write. Client-ownership scoped like every other /vm/{service_id}
+    endpoint — a foreign / unowned / non-VM service_id returns 404.
 
     Args:
         service_id (int):
@@ -164,11 +166,12 @@ async def asyncio_detailed(
 ) -> Response[Error | GetVirtualMachineCredentialsResponse200]:
     """Get VM Service-Info credentials
 
-     Returns the Service-Info login credentials (user + password) for one owned VM service — the API
-    equivalent of the portal Service Info / client service-info view. The password is stored Blesta-
-    encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-READ: read-only,
-    no spend, no write. Client-ownership scoped like every other /vm/{serviceId} endpoint — a foreign /
-    unowned / non-VM serviceId returns 404.
+     SECURITY HARDENING 2.4.14: this secret-read returns a reusable decrypted VM password and requires
+    X-User-Api-Confirm. Returns the Service-Info login credentials (user + password) for one owned VM
+    service — the API equivalent of the portal Service Info / client service-info view. The password is
+    stored Blesta-encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-
+    READ: read-only, no spend, no write. Client-ownership scoped like every other /vm/{service_id}
+    endpoint — a foreign / unowned / non-VM service_id returns 404.
 
     Args:
         service_id (int):
@@ -200,11 +203,12 @@ async def asyncio(
 ) -> Error | GetVirtualMachineCredentialsResponse200 | None:
     """Get VM Service-Info credentials
 
-     Returns the Service-Info login credentials (user + password) for one owned VM service — the API
-    equivalent of the portal Service Info / client service-info view. The password is stored Blesta-
-    encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-READ: read-only,
-    no spend, no write. Client-ownership scoped like every other /vm/{serviceId} endpoint — a foreign /
-    unowned / non-VM serviceId returns 404.
+     SECURITY HARDENING 2.4.14: this secret-read returns a reusable decrypted VM password and requires
+    X-User-Api-Confirm. Returns the Service-Info login credentials (user + password) for one owned VM
+    service — the API equivalent of the portal Service Info / client service-info view. The password is
+    stored Blesta-encrypted and is returned DECRYPTED, exactly as the portal decrypts it. CREDENTIAL-
+    READ: read-only, no spend, no write. Client-ownership scoped like every other /vm/{service_id}
+    endpoint — a foreign / unowned / non-VM service_id returns 404.
 
     Args:
         service_id (int):

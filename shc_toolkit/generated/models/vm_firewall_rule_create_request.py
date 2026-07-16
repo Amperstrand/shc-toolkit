@@ -38,10 +38,10 @@ class VmFirewallRuleCreateRequest:
             dest_port (None | str | Unset): Destination port: a port, a `lo:hi` range, a comma list, or a service name.
                 Example: 22.
             protocol (None | str | Unset): Protocol name (tcp, udp, icmp, ...) or a numeric protocol id 0-255. Example: tcp.
-            macro (None | str | Unset): A firewall macro name from GET /vm/{serviceId}/firewall, or `none` for no macro.
+            macro (None | str | Unset): A firewall macro name from GET /vm/{service_id}/firewall, or `none` for no macro.
                 Example: SSH.
             interface (None | str | Unset): Bind to a VM network interface name (e.g. net0). Example: net0.
-            icmp_type (None | str | Unset): ICMP type, from the firewall vocabulary (GET /vm/{serviceId}/firewall
+            icmp_type (None | str | Unset): ICMP type, from the firewall vocabulary (GET /vm/{service_id}/firewall
                 `icmp_types`). Example: echo-request.
             enabled (bool | Unset): Whether the rule is enabled. Accepts a JSON boolean or on/off/true/false/1/0. Defaults
                 to true on create; on edit, omitting it keeps the current state. Example: True.

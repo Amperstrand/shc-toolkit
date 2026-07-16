@@ -115,7 +115,7 @@ def sync_detailed(
     """List VM activity (Proxmox task history)
 
      Lists the live Proxmox node task history for one owned VM (qmstart, qmstop, vzdump, etc.), scoped to
-    the current provisioning generation. This is distinct from GET /vm/{serviceId}/jobs, which lists
+    the current provisioning generation. This is distinct from GET /vm/{service_id}/jobs, which lists
     Blesta-side background jobs. Each item carries only command type, start/finish times, and status;
     infrastructure identifiers (UPID/node/PID/PVE user) are stripped. pagination.total is best-effort
     (Proxmox does not return a reliable count) — treat the X-User-Api-Has-More header as authoritative
@@ -160,7 +160,7 @@ def sync(
     """List VM activity (Proxmox task history)
 
      Lists the live Proxmox node task history for one owned VM (qmstart, qmstop, vzdump, etc.), scoped to
-    the current provisioning generation. This is distinct from GET /vm/{serviceId}/jobs, which lists
+    the current provisioning generation. This is distinct from GET /vm/{service_id}/jobs, which lists
     Blesta-side background jobs. Each item carries only command type, start/finish times, and status;
     infrastructure identifiers (UPID/node/PID/PVE user) are stripped. pagination.total is best-effort
     (Proxmox does not return a reliable count) — treat the X-User-Api-Has-More header as authoritative
@@ -200,7 +200,7 @@ async def asyncio_detailed(
     """List VM activity (Proxmox task history)
 
      Lists the live Proxmox node task history for one owned VM (qmstart, qmstop, vzdump, etc.), scoped to
-    the current provisioning generation. This is distinct from GET /vm/{serviceId}/jobs, which lists
+    the current provisioning generation. This is distinct from GET /vm/{service_id}/jobs, which lists
     Blesta-side background jobs. Each item carries only command type, start/finish times, and status;
     infrastructure identifiers (UPID/node/PID/PVE user) are stripped. pagination.total is best-effort
     (Proxmox does not return a reliable count) — treat the X-User-Api-Has-More header as authoritative
@@ -243,7 +243,7 @@ async def asyncio(
     """List VM activity (Proxmox task history)
 
      Lists the live Proxmox node task history for one owned VM (qmstart, qmstop, vzdump, etc.), scoped to
-    the current provisioning generation. This is distinct from GET /vm/{serviceId}/jobs, which lists
+    the current provisioning generation. This is distinct from GET /vm/{service_id}/jobs, which lists
     Blesta-side background jobs. Each item carries only command type, start/finish times, and status;
     infrastructure identifiers (UPID/node/PID/PVE user) are stripped. pagination.total is best-effort
     (Proxmox does not return a reliable count) — treat the X-User-Api-Has-More header as authoritative

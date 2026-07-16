@@ -94,7 +94,7 @@ def sync_detailed(
      Reports whether the noVNC console feature is available for one owned VM service, mirroring the
     portal's console tab gate (node console enabled, console-eligible hostname, and active VM). This is
     a pure availability probe: it mints no console session and returns no VNC/PVE credentials, tickets,
-    ports, or websocket URLs. To open a live console, POST /vm/{serviceId}/console/session.
+    ports, or websocket URLs. To open a live console, POST /vm/{service_id}/console/session.
 
     Args:
         service_id (int):
@@ -131,7 +131,7 @@ def sync(
      Reports whether the noVNC console feature is available for one owned VM service, mirroring the
     portal's console tab gate (node console enabled, console-eligible hostname, and active VM). This is
     a pure availability probe: it mints no console session and returns no VNC/PVE credentials, tickets,
-    ports, or websocket URLs. To open a live console, POST /vm/{serviceId}/console/session.
+    ports, or websocket URLs. To open a live console, POST /vm/{service_id}/console/session.
 
     Args:
         service_id (int):
@@ -163,7 +163,7 @@ async def asyncio_detailed(
      Reports whether the noVNC console feature is available for one owned VM service, mirroring the
     portal's console tab gate (node console enabled, console-eligible hostname, and active VM). This is
     a pure availability probe: it mints no console session and returns no VNC/PVE credentials, tickets,
-    ports, or websocket URLs. To open a live console, POST /vm/{serviceId}/console/session.
+    ports, or websocket URLs. To open a live console, POST /vm/{service_id}/console/session.
 
     Args:
         service_id (int):
@@ -198,7 +198,7 @@ async def asyncio(
      Reports whether the noVNC console feature is available for one owned VM service, mirroring the
     portal's console tab gate (node console enabled, console-eligible hostname, and active VM). This is
     a pure availability probe: it mints no console session and returns no VNC/PVE credentials, tickets,
-    ports, or websocket URLs. To open a live console, POST /vm/{serviceId}/console/session.
+    ports, or websocket URLs. To open a live console, POST /vm/{service_id}/console/session.
 
     Args:
         service_id (int):

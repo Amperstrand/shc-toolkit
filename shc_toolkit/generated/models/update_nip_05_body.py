@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="UpdateNip05Body")
 
@@ -14,38 +12,37 @@ T = TypeVar("T", bound="UpdateNip05Body")
 class UpdateNip05Body:
     """
     Attributes:
-        name (str | Unset):
-        enabled (bool | Unset):
+        nip05_name (float | str): Desired NIP-05 local name, lowercased by the handler and limited to a-z, 0-9, dot,
+            hyphen, and underscore.
     """
 
-    name: str | Unset = UNSET
-    enabled: bool | Unset = UNSET
+    nip05_name: float | str
 
     def to_dict(self) -> dict[str, Any]:
-        name = self.name
-
-        enabled = self.enabled
+        nip05_name: float | str
+        nip05_name = self.nip05_name
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update({})
-        if name is not UNSET:
-            field_dict["name"] = name
-        if enabled is not UNSET:
-            field_dict["enabled"] = enabled
+        field_dict.update(
+            {
+                "nip05_name": nip05_name,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        name = d.pop("name", UNSET)
 
-        enabled = d.pop("enabled", UNSET)
+        def _parse_nip05_name(data: object) -> float | str:
+            return cast(float | str, data)
+
+        nip05_name = _parse_nip05_name(d.pop("nip05_name"))
 
         update_nip_05_body = cls(
-            name=name,
-            enabled=enabled,
+            nip05_name=nip05_name,
         )
 
         return update_nip_05_body

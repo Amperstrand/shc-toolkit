@@ -12,8 +12,7 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    category_id: int | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -22,9 +21,7 @@ def _get_kwargs(
 
     params: dict[str, Any] = {}
 
-    params["limit"] = limit
-
-    params["offset"] = offset
+    params["category_id"] = category_id
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -86,18 +83,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    category_id: int | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListDownloadFilesResponse200]:
     """List downloadable files available to the authenticated account
 
-     List downloadable files available to the authenticated account. Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List download-manager files and categories available to the authenticated client.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        category_id (int | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -109,8 +103,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        limit=limit,
-        offset=offset,
+        category_id=category_id,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -124,18 +117,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    category_id: int | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListDownloadFilesResponse200 | None:
     """List downloadable files available to the authenticated account
 
-     List downloadable files available to the authenticated account. Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List download-manager files and categories available to the authenticated client.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        category_id (int | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -148,8 +138,7 @@ def sync(
 
     return sync_detailed(
         client=client,
-        limit=limit,
-        offset=offset,
+        category_id=category_id,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -157,18 +146,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    category_id: int | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListDownloadFilesResponse200]:
     """List downloadable files available to the authenticated account
 
-     List downloadable files available to the authenticated account. Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List download-manager files and categories available to the authenticated client.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        category_id (int | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -180,8 +166,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        limit=limit,
-        offset=offset,
+        category_id=category_id,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -193,18 +178,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    category_id: int | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListDownloadFilesResponse200 | None:
     """List downloadable files available to the authenticated account
 
-     List downloadable files available to the authenticated account. Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List download-manager files and categories available to the authenticated client.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        category_id (int | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -218,8 +200,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
-            limit=limit,
-            offset=offset,
+            category_id=category_id,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

@@ -7,14 +7,15 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
 from ...models.list_orders_response_200 import ListOrdersResponse200
+from ...models.list_orders_status import ListOrdersStatus
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    status: str | Unset = UNSET,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -23,7 +24,11 @@ def _get_kwargs(
 
     params: dict[str, Any] = {}
 
-    params["status"] = status
+    json_status: str | Unset = UNSET
+    if not isinstance(status, Unset):
+        json_status = status.value
+
+    params["status"] = json_status
 
     params["limit"] = limit
 
@@ -89,20 +94,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: str | Unset = UNSET,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListOrdersResponse200]:
     """List orders visible to the authenticated account, including pending orders
 
-     List orders visible to the authenticated account, including pending orders. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (str | Unset):
-        limit (int | Unset):
-        offset (int | Unset):
+        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -130,20 +134,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    status: str | Unset = UNSET,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListOrdersResponse200 | None:
     """List orders visible to the authenticated account, including pending orders
 
-     List orders visible to the authenticated account, including pending orders. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (str | Unset):
-        limit (int | Unset):
-        offset (int | Unset):
+        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -166,20 +169,19 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: str | Unset = UNSET,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListOrdersResponse200]:
     """List orders visible to the authenticated account, including pending orders
 
-     List orders visible to the authenticated account, including pending orders. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (str | Unset):
-        limit (int | Unset):
-        offset (int | Unset):
+        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -205,20 +207,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    status: str | Unset = UNSET,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListOrdersResponse200 | None:
     """List orders visible to the authenticated account, including pending orders
 
-     List orders visible to the authenticated account, including pending orders. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (str | Unset):
-        limit (int | Unset):
-        offset (int | Unset):
+        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:

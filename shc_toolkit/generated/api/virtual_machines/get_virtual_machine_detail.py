@@ -96,10 +96,10 @@ def sync_detailed(
 ) -> Response[Error | GetVirtualMachineDetailResponse200]:
     """Get enriched VM detail
 
-     Returns the full DB detail (same fields as GET /vm/{serviceId}, with the service lifecycle status
+     Returns the full DB detail (same fields as GET /vm/{service_id}, with the service lifecycle status
     surfaced as service_status) PLUS a live runtime snapshot (power state, lock, CPU/RAM percent), the
     network interface list, and a GPU/PCI summary card. Makes one live Proxmox status + config call, so
-    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{serviceId}.
+    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{service_id}.
 
     Args:
         service_id (int):
@@ -133,10 +133,10 @@ def sync(
 ) -> Error | GetVirtualMachineDetailResponse200 | None:
     """Get enriched VM detail
 
-     Returns the full DB detail (same fields as GET /vm/{serviceId}, with the service lifecycle status
+     Returns the full DB detail (same fields as GET /vm/{service_id}, with the service lifecycle status
     surfaced as service_status) PLUS a live runtime snapshot (power state, lock, CPU/RAM percent), the
     network interface list, and a GPU/PCI summary card. Makes one live Proxmox status + config call, so
-    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{serviceId}.
+    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{service_id}.
 
     Args:
         service_id (int):
@@ -165,10 +165,10 @@ async def asyncio_detailed(
 ) -> Response[Error | GetVirtualMachineDetailResponse200]:
     """Get enriched VM detail
 
-     Returns the full DB detail (same fields as GET /vm/{serviceId}, with the service lifecycle status
+     Returns the full DB detail (same fields as GET /vm/{service_id}, with the service lifecycle status
     surfaced as service_status) PLUS a live runtime snapshot (power state, lock, CPU/RAM percent), the
     network interface list, and a GPU/PCI summary card. Makes one live Proxmox status + config call, so
-    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{serviceId}.
+    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{service_id}.
 
     Args:
         service_id (int):
@@ -200,10 +200,10 @@ async def asyncio(
 ) -> Error | GetVirtualMachineDetailResponse200 | None:
     """Get enriched VM detail
 
-     Returns the full DB detail (same fields as GET /vm/{serviceId}, with the service lifecycle status
+     Returns the full DB detail (same fields as GET /vm/{service_id}, with the service lifecycle status
     surfaced as service_status) PLUS a live runtime snapshot (power state, lock, CPU/RAM percent), the
     network interface list, and a GPU/PCI summary card. Makes one live Proxmox status + config call, so
-    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{serviceId}.
+    it is the live-enriched counterpart to the cheaper DB-only GET /vm/{service_id}.
 
     Args:
         service_id (int):

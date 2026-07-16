@@ -19,14 +19,11 @@ def _get_kwargs(
     *,
     body: ChangeVirtualMachineTermBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
     if not isinstance(x_user_api_confirm, Unset):
         headers["X-User-Api-Confirm"] = x_user_api_confirm
-
-    headers["Idempotency-Key"] = idempotency_key
 
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
@@ -107,18 +104,16 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: ChangeVirtualMachineTermBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[ChangeVirtualMachineTermResponse200 | Error]:
     """Commit a term change for this virtual machine
 
-     Commit a term change for this virtual machine. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Commit a VM term change by renewing the authenticated-client-owned VM on the requested pricing_id
+    term.
 
     Args:
         service_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
         body (ChangeVirtualMachineTermBody):
 
@@ -134,7 +129,6 @@ def sync_detailed(
         service_id=service_id,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -151,18 +145,16 @@ def sync(
     client: AuthenticatedClient | Client,
     body: ChangeVirtualMachineTermBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> ChangeVirtualMachineTermResponse200 | Error | None:
     """Commit a term change for this virtual machine
 
-     Commit a term change for this virtual machine. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Commit a VM term change by renewing the authenticated-client-owned VM on the requested pricing_id
+    term.
 
     Args:
         service_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
         body (ChangeVirtualMachineTermBody):
 
@@ -179,7 +171,6 @@ def sync(
         client=client,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -190,18 +181,16 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: ChangeVirtualMachineTermBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[ChangeVirtualMachineTermResponse200 | Error]:
     """Commit a term change for this virtual machine
 
-     Commit a term change for this virtual machine. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Commit a VM term change by renewing the authenticated-client-owned VM on the requested pricing_id
+    term.
 
     Args:
         service_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
         body (ChangeVirtualMachineTermBody):
 
@@ -217,7 +206,6 @@ async def asyncio_detailed(
         service_id=service_id,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -232,18 +220,16 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: ChangeVirtualMachineTermBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> ChangeVirtualMachineTermResponse200 | Error | None:
     """Commit a term change for this virtual machine
 
-     Commit a term change for this virtual machine. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Commit a VM term change by renewing the authenticated-client-owned VM on the requested pricing_id
+    term.
 
     Args:
         service_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
         body (ChangeVirtualMachineTermBody):
 
@@ -261,7 +247,6 @@ async def asyncio(
             client=client,
             body=body,
             x_user_api_confirm=x_user_api_confirm,
-            idempotency_key=idempotency_key,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

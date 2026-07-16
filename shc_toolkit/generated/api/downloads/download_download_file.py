@@ -89,11 +89,10 @@ def sync_detailed(
 ) -> Response[Error | File]:
     """Download an available file (binary)
 
-     Download an available file (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one entitled download-manager file by the live /v2 file_id path parameter.
 
     Args:
-        file_id (int):  Example: 88.
+        file_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -124,11 +123,10 @@ def sync(
 ) -> Error | File | None:
     """Download an available file (binary)
 
-     Download an available file (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one entitled download-manager file by the live /v2 file_id path parameter.
 
     Args:
-        file_id (int):  Example: 88.
+        file_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -154,11 +152,10 @@ async def asyncio_detailed(
 ) -> Response[Error | File]:
     """Download an available file (binary)
 
-     Download an available file (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one entitled download-manager file by the live /v2 file_id path parameter.
 
     Args:
-        file_id (int):  Example: 88.
+        file_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -187,11 +184,10 @@ async def asyncio(
 ) -> Error | File | None:
     """Download an available file (binary)
 
-     Download an available file (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one entitled download-manager file by the live /v2 file_id path parameter.
 
     Args:
-        file_id (int):  Example: 88.
+        file_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -26,7 +25,8 @@ class ListContactsResponse200ItemsItem:
         has_login (bool):
         company (None | str | Unset):
         title (None | str | Unset):
-        date_added (datetime.datetime | None | Unset):
+        date_added (None | str | Unset): Blesta UTC timestamp as emitted by the v2 handler. Example: 2026-07-12
+            02:50:55.
     """
 
     id: int
@@ -37,7 +37,7 @@ class ListContactsResponse200ItemsItem:
     has_login: bool
     company: None | str | Unset = UNSET
     title: None | str | Unset = UNSET
-    date_added: datetime.datetime | None | Unset = UNSET
+    date_added: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
@@ -70,8 +70,6 @@ class ListContactsResponse200ItemsItem:
         date_added: None | str | Unset
         if isinstance(self.date_added, Unset):
             date_added = UNSET
-        elif isinstance(self.date_added, datetime.datetime):
-            date_added = self.date_added.isoformat()
         else:
             date_added = self.date_added
 
@@ -146,20 +144,12 @@ class ListContactsResponse200ItemsItem:
 
         title = _parse_title(d.pop("title", UNSET))
 
-        def _parse_date_added(data: object) -> datetime.datetime | None | Unset:
+        def _parse_date_added(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                date_added_type_0 = datetime.datetime.fromisoformat(data)
-
-                return date_added_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(datetime.datetime | None | Unset, data)
+            return cast(None | str | Unset, data)
 
         date_added = _parse_date_added(d.pop("date_added", UNSET))
 

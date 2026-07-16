@@ -15,16 +15,13 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     quotation_id: int,
     *,
-    body: ApproveQuotationBody | Unset = UNSET,
+    body: ApproveQuotationBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
     if not isinstance(x_user_api_confirm, Unset):
         headers["X-User-Api-Confirm"] = x_user_api_confirm
-
-    headers["Idempotency-Key"] = idempotency_key
 
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
@@ -36,8 +33,7 @@ def _get_kwargs(
         ),
     }
 
-    if not isinstance(body, Unset):
-        _kwargs["json"] = body.to_dict()
+    _kwargs["json"] = body.to_dict()
 
     headers["Content-Type"] = "application/json"
 
@@ -104,22 +100,20 @@ def sync_detailed(
     quotation_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ApproveQuotationBody | Unset = UNSET,
+    body: ApproveQuotationBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[ApproveQuotationResponse201 | Error]:
     """Approve an owned quotation and create the resulting invoice or checkout pointer
 
-     Approve an owned quotation and create the resulting invoice or checkout pointer. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Approve an authenticated-client-owned pending quotation using the live /v2 quotation_id path and
+    body idempotency_key.
 
     Args:
-        quotation_id (int):  Example: 9001.
+        quotation_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
-        body (ApproveQuotationBody | Unset):
+        body (ApproveQuotationBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,7 +127,6 @@ def sync_detailed(
         quotation_id=quotation_id,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -148,22 +141,20 @@ def sync(
     quotation_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ApproveQuotationBody | Unset = UNSET,
+    body: ApproveQuotationBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> ApproveQuotationResponse201 | Error | None:
     """Approve an owned quotation and create the resulting invoice or checkout pointer
 
-     Approve an owned quotation and create the resulting invoice or checkout pointer. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Approve an authenticated-client-owned pending quotation using the live /v2 quotation_id path and
+    body idempotency_key.
 
     Args:
-        quotation_id (int):  Example: 9001.
+        quotation_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
-        body (ApproveQuotationBody | Unset):
+        body (ApproveQuotationBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -178,7 +169,6 @@ def sync(
         client=client,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -187,22 +177,20 @@ async def asyncio_detailed(
     quotation_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ApproveQuotationBody | Unset = UNSET,
+    body: ApproveQuotationBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[ApproveQuotationResponse201 | Error]:
     """Approve an owned quotation and create the resulting invoice or checkout pointer
 
-     Approve an owned quotation and create the resulting invoice or checkout pointer. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Approve an authenticated-client-owned pending quotation using the live /v2 quotation_id path and
+    body idempotency_key.
 
     Args:
-        quotation_id (int):  Example: 9001.
+        quotation_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
-        body (ApproveQuotationBody | Unset):
+        body (ApproveQuotationBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -216,7 +204,6 @@ async def asyncio_detailed(
         quotation_id=quotation_id,
         body=body,
         x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -229,22 +216,20 @@ async def asyncio(
     quotation_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ApproveQuotationBody | Unset = UNSET,
+    body: ApproveQuotationBody,
     x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str,
     x_user_api_otp: str | Unset = UNSET,
 ) -> ApproveQuotationResponse201 | Error | None:
     """Approve an owned quotation and create the resulting invoice or checkout pointer
 
-     Approve an owned quotation and create the resulting invoice or checkout pointer. Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Approve an authenticated-client-owned pending quotation using the live /v2 quotation_id path and
+    body idempotency_key.
 
     Args:
-        quotation_id (int):  Example: 9001.
+        quotation_id (int):
         x_user_api_confirm (str | Unset):
-        idempotency_key (str):
         x_user_api_otp (str | Unset):
-        body (ApproveQuotationBody | Unset):
+        body (ApproveQuotationBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -260,7 +245,6 @@ async def asyncio(
             client=client,
             body=body,
             x_user_api_confirm=x_user_api_confirm,
-            idempotency_key=idempotency_key,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

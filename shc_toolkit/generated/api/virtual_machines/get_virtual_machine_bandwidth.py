@@ -94,7 +94,7 @@ def sync_detailed(
      Returns the stored transfer usage versus the package cap for one owned VM. used_bytes is the
     customer-visible synced figure (service_fields.bandwidth_usage) shown on the portal Manage tab, NOT
     a live RRD recomputation. as_of is the last bandwidth sync timestamp. Unit note: limit_gb uses the
-    GB (/1000) convention consistent with GET /vm/{serviceId} specs.bandwidth_gb; the portal Manage
+    GB (/1000) convention consistent with GET /vm/{service_id} specs.bandwidth_gb; the portal Manage
     card's TB label is a display-only quirk.
 
     Args:
@@ -132,7 +132,7 @@ def sync(
      Returns the stored transfer usage versus the package cap for one owned VM. used_bytes is the
     customer-visible synced figure (service_fields.bandwidth_usage) shown on the portal Manage tab, NOT
     a live RRD recomputation. as_of is the last bandwidth sync timestamp. Unit note: limit_gb uses the
-    GB (/1000) convention consistent with GET /vm/{serviceId} specs.bandwidth_gb; the portal Manage
+    GB (/1000) convention consistent with GET /vm/{service_id} specs.bandwidth_gb; the portal Manage
     card's TB label is a display-only quirk.
 
     Args:
@@ -165,7 +165,7 @@ async def asyncio_detailed(
      Returns the stored transfer usage versus the package cap for one owned VM. used_bytes is the
     customer-visible synced figure (service_fields.bandwidth_usage) shown on the portal Manage tab, NOT
     a live RRD recomputation. as_of is the last bandwidth sync timestamp. Unit note: limit_gb uses the
-    GB (/1000) convention consistent with GET /vm/{serviceId} specs.bandwidth_gb; the portal Manage
+    GB (/1000) convention consistent with GET /vm/{service_id} specs.bandwidth_gb; the portal Manage
     card's TB label is a display-only quirk.
 
     Args:
@@ -201,7 +201,7 @@ async def asyncio(
      Returns the stored transfer usage versus the package cap for one owned VM. used_bytes is the
     customer-visible synced figure (service_fields.bandwidth_usage) shown on the portal Manage tab, NOT
     a live RRD recomputation. as_of is the last bandwidth sync timestamp. Unit note: limit_gb uses the
-    GB (/1000) convention consistent with GET /vm/{serviceId} specs.bandwidth_gb; the portal Manage
+    GB (/1000) convention consistent with GET /vm/{service_id} specs.bandwidth_gb; the portal Manage
     card's TB label is a display-only quirk.
 
     Args:

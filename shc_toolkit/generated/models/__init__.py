@@ -6,6 +6,9 @@ from .account_contact_update_response import AccountContactUpdateResponse
 from .account_invoice_detail import AccountInvoiceDetail
 from .account_invoice_summary import AccountInvoiceSummary
 from .account_password_change_request import AccountPasswordChangeRequest
+from .account_password_change_request_additional_property_type_4 import (
+    AccountPasswordChangeRequestAdditionalPropertyType4,
+)
 from .account_password_change_response import AccountPasswordChangeResponse
 from .account_preferences_update_request import AccountPreferencesUpdateRequest
 from .activity_item import ActivityItem
@@ -28,21 +31,60 @@ from .affiliate_program_terms import AffiliateProgramTerms
 from .affiliate_program_terms_commission_type import AffiliateProgramTermsCommissionType
 from .affiliate_referral import AffiliateReferral
 from .affiliate_referral_status import AffiliateReferralStatus
+from .agent_recovery import AgentRecovery
+from .agent_recovery_action import AgentRecoveryAction
+from .agent_session import AgentSession
+from .agent_session_audit_record import AgentSessionAuditRecord
+from .agent_session_audit_record_data import AgentSessionAuditRecordData
+from .agent_session_audit_record_data_additional_property_type_4 import (
+    AgentSessionAuditRecordDataAdditionalPropertyType4,
+)
+from .agent_session_create_request import AgentSessionCreateRequest
+from .agent_session_create_request_scope import AgentSessionCreateRequestScope
+from .agent_session_created import AgentSessionCreated
+from .agent_session_created_scope import AgentSessionCreatedScope
+from .agent_session_proof_of_possession import AgentSessionProofOfPossession
+from .agent_session_scope import AgentSessionScope
 from .applied_payment import AppliedPayment
 from .apply_live_service_ssh_key_response_200 import ApplyLiveServiceSshKeyResponse200
 from .approve_quotation_body import ApproveQuotationBody
+from .approve_quotation_body_additional_property_type_4 import (
+    ApproveQuotationBodyAdditionalPropertyType4,
+)
 from .approve_quotation_response_201 import ApproveQuotationResponse201
 from .approve_quotation_response_201_data import ApproveQuotationResponse201Data
+from .batch_sub_request import BatchSubRequest
+from .batch_sub_request_body_type_0 import BatchSubRequestBodyType0
+from .batch_sub_request_body_type_0_additional_property_type_4 import (
+    BatchSubRequestBodyType0AdditionalPropertyType4,
+)
+from .batch_sub_request_body_type_1_item import BatchSubRequestBodyType1Item
+from .batch_sub_request_method import BatchSubRequestMethod
+from .batch_sub_response import BatchSubResponse
+from .batch_sub_response_body_type_0 import BatchSubResponseBodyType0
+from .batch_sub_response_body_type_0_additional_property_type_4 import (
+    BatchSubResponseBodyType0AdditionalPropertyType4,
+)
+from .batch_sub_response_body_type_1_item import BatchSubResponseBodyType1Item
+from .batch_sub_response_headers import BatchSubResponseHeaders
+from .begin_two_factor_enrollment_response_200 import (
+    BeginTwoFactorEnrollmentResponse200,
+)
+from .begin_two_factor_enrollment_response_200_data import (
+    BeginTwoFactorEnrollmentResponse200Data,
+)
 from .billing_balance import BillingBalance
 from .billing_balance_credit_item import BillingBalanceCreditItem
 from .billing_currency_balance import BillingCurrencyBalance
 from .buy_virtual_machine_response_201 import BuyVirtualMachineResponse201
-from .cancel_pending_order_body import CancelPendingOrderBody
 from .cancel_pending_order_response_200 import CancelPendingOrderResponse200
 from .cancel_pending_order_response_200_data import CancelPendingOrderResponse200Data
 from .cancel_virtual_machine_response_200 import CancelVirtualMachineResponse200
 from .cancel_vm_credit import CancelVmCredit
 from .cancel_vm_request import CancelVmRequest
+from .cancel_vm_request_additional_property_type_4 import (
+    CancelVmRequestAdditionalPropertyType4,
+)
 from .cancel_vm_response_data import CancelVmResponseData
 from .change_account_password_response_200 import ChangeAccountPasswordResponse200
 from .change_virtual_machine_term_body import ChangeVirtualMachineTermBody
@@ -59,6 +101,22 @@ from .claim_agent_key_response_200 import ClaimAgentKeyResponse200
 from .claim_agent_key_response_200_data import ClaimAgentKeyResponse200Data
 from .claim_agent_key_response_200_data_scope import ClaimAgentKeyResponse200DataScope
 from .close_support_ticket_response_200 import CloseSupportTicketResponse200
+from .cloud_event import CloudEvent
+from .cloud_event_data import CloudEventData
+from .cloud_event_data_additional_property_type_4 import (
+    CloudEventDataAdditionalPropertyType4,
+)
+from .cloud_event_specversion import CloudEventSpecversion
+from .cloud_init_apply_result import CloudInitApplyResult
+from .cloud_init_apply_result_format import CloudInitApplyResultFormat
+from .cloud_init_apply_result_volume_label import CloudInitApplyResultVolumeLabel
+from .cloud_init_attached_drive import CloudInitAttachedDrive
+from .cloud_init_attached_drive_media import CloudInitAttachedDriveMedia
+from .cloud_init_delete_result import CloudInitDeleteResult
+from .cloud_init_derived_seed import CloudInitDerivedSeed
+from .cloud_init_derived_seed_volume_label import CloudInitDerivedSeedVolumeLabel
+from .cloud_init_request import CloudInitRequest
+from .cloud_init_validate_result import CloudInitValidateResult
 from .console_session_response import ConsoleSessionResponse
 from .console_session_response_via import ConsoleSessionResponseVia
 from .contact_create_request import ContactCreateRequest
@@ -68,12 +126,15 @@ from .contact_create_request_contact_type_type_0 import (
 from .contact_create_response import ContactCreateResponse
 from .contact_create_response_contact_type import ContactCreateResponseContactType
 from .contact_delete_response import ContactDeleteResponse
+from .create_agent_session_response_201 import CreateAgentSessionResponse201
 from .create_api_key_body import CreateApiKeyBody
 from .create_api_key_body_areas_item import CreateApiKeyBodyAreasItem
 from .create_api_key_body_scope import CreateApiKeyBodyScope
 from .create_api_key_response_201 import CreateApiKeyResponse201
 from .create_api_key_response_201_data import CreateApiKeyResponse201Data
 from .create_contact_response_201 import CreateContactResponse201
+from .create_event_subscription_response_200 import CreateEventSubscriptionResponse200
+from .create_event_subscription_response_201 import CreateEventSubscriptionResponse201
 from .create_service_addon_body import CreateServiceAddonBody
 from .create_service_addon_body_config_options import (
     CreateServiceAddonBodyConfigOptions,
@@ -96,17 +157,29 @@ from .credit_handling_update_request_thresholds import (
     CreditHandlingUpdateRequestThresholds,
 )
 from .credit_topup_request import CreditTopupRequest
+from .credit_topup_request_additional_property_type_4 import (
+    CreditTopupRequestAdditionalPropertyType4,
+)
 from .credit_topup_response import CreditTopupResponse
 from .credit_topup_response_status import CreditTopupResponseStatus
 from .credit_topup_response_type import CreditTopupResponseType
 from .delete_contact_response_200 import DeleteContactResponse200
+from .delete_event_subscription_body import DeleteEventSubscriptionBody
+from .delete_event_subscription_response_200 import DeleteEventSubscriptionResponse200
 from .delete_live_service_ssh_key_response_200 import DeleteLiveServiceSshKeyResponse200
 from .delete_manager_response_200 import DeleteManagerResponse200
 from .delete_service_ssh_key_response_200 import DeleteServiceSshKeyResponse200
 from .delete_ssh_key_request import DeleteSshKeyRequest
+from .delete_ssh_key_request_additional_property_type_4 import (
+    DeleteSshKeyRequestAdditionalPropertyType4,
+)
 from .delete_ssh_key_response import DeleteSshKeyResponse
 from .delete_virtual_machine_backup_response_200 import (
     DeleteVirtualMachineBackupResponse200,
+)
+from .delete_virtual_machine_cloud_init_body import DeleteVirtualMachineCloudInitBody
+from .delete_virtual_machine_cloud_init_response_200 import (
+    DeleteVirtualMachineCloudInitResponse200,
 )
 from .delete_virtual_machine_firewall_rule_response_200 import (
     DeleteVirtualMachineFirewallRuleResponse200,
@@ -121,8 +194,19 @@ from .delete_virtual_machine_reverse_dns_response_202_data import (
 from .delete_virtual_machine_snapshot_response_200 import (
     DeleteVirtualMachineSnapshotResponse200,
 )
+from .disable_two_factor_body import DisableTwoFactorBody
+from .disable_two_factor_response_200 import DisableTwoFactorResponse200
+from .disable_two_factor_response_200_data import DisableTwoFactorResponse200Data
+from .disable_two_factor_response_200_data_mode import (
+    DisableTwoFactorResponse200DataMode,
+)
+from .document_list_item import DocumentListItem
 from .email_detail import EmailDetail
 from .email_summary import EmailSummary
+from .enable_two_factor_body import EnableTwoFactorBody
+from .enable_two_factor_response_200 import EnableTwoFactorResponse200
+from .enable_two_factor_response_200_data import EnableTwoFactorResponse200Data
+from .enable_two_factor_response_200_data_mode import EnableTwoFactorResponse200DataMode
 from .enroll_affiliate_response_201 import EnrollAffiliateResponse201
 from .error import Error
 from .error_detail import ErrorDetail
@@ -130,6 +214,31 @@ from .error_detail_code import ErrorDetailCode
 from .error_error import ErrorError
 from .error_error_links_item import ErrorErrorLinksItem
 from .error_error_links_item_rel import ErrorErrorLinksItemRel
+from .event_subscription import EventSubscription
+from .event_subscription_create_request import EventSubscriptionCreateRequest
+from .event_subscription_created import EventSubscriptionCreated
+from .event_subscription_created_delivery_id_header import (
+    EventSubscriptionCreatedDeliveryIdHeader,
+)
+from .event_subscription_created_event_id_header import (
+    EventSubscriptionCreatedEventIdHeader,
+)
+from .event_subscription_created_signature_header import (
+    EventSubscriptionCreatedSignatureHeader,
+)
+from .event_subscription_created_signing_algorithm import (
+    EventSubscriptionCreatedSigningAlgorithm,
+)
+from .event_subscription_created_status import EventSubscriptionCreatedStatus
+from .event_subscription_created_timestamp_header import (
+    EventSubscriptionCreatedTimestampHeader,
+)
+from .event_subscription_delivery_id_header import EventSubscriptionDeliveryIdHeader
+from .event_subscription_event_id_header import EventSubscriptionEventIdHeader
+from .event_subscription_signature_header import EventSubscriptionSignatureHeader
+from .event_subscription_signing_algorithm import EventSubscriptionSigningAlgorithm
+from .event_subscription_status import EventSubscriptionStatus
+from .event_subscription_timestamp_header import EventSubscriptionTimestampHeader
 from .get_account_balance_response_200 import GetAccountBalanceResponse200
 from .get_account_balance_response_200_data import GetAccountBalanceResponse200Data
 from .get_account_balance_response_200_data_balances_item import (
@@ -153,6 +262,7 @@ from .get_affiliate_account_response_200 import GetAffiliateAccountResponse200
 from .get_affiliate_payout_destination_response_200 import (
     GetAffiliatePayoutDestinationResponse200,
 )
+from .get_agent_session_response_200 import GetAgentSessionResponse200
 from .get_auto_debit_response_200 import GetAutoDebitResponse200
 from .get_auto_debit_response_200_data import GetAutoDebitResponse200Data
 from .get_auto_debit_response_200_data_type_type_1 import (
@@ -165,6 +275,9 @@ from .get_auto_debit_response_200_data_type_type_3_type_1 import (
     GetAutoDebitResponse200DataTypeType3Type1,
 )
 from .get_billing_balance_response_200 import GetBillingBalanceResponse200
+from .get_contact_permission_options_response_200 import (
+    GetContactPermissionOptionsResponse200,
+)
 from .get_contact_response_200 import GetContactResponse200
 from .get_contact_response_200_data import GetContactResponse200Data
 from .get_contact_response_200_data_contact_type import (
@@ -181,10 +294,11 @@ from .get_contact_response_200_data_numbers_item_type import (
 )
 from .get_credit_handling_response_200 import GetCreditHandlingResponse200
 from .get_credit_handling_response_200_data import GetCreditHandlingResponse200Data
-from .get_credit_handling_response_200_data_thresholds import (
-    GetCreditHandlingResponse200DataThresholds,
+from .get_credit_handling_response_200_data_thresholds_type_0 import (
+    GetCreditHandlingResponse200DataThresholdsType0,
 )
 from .get_email_response_200 import GetEmailResponse200
+from .get_event_subscription_response_200 import GetEventSubscriptionResponse200
 from .get_invoice_response_200 import GetInvoiceResponse200
 from .get_kb_article_response_200 import GetKbArticleResponse200
 from .get_kb_article_response_200_data import GetKbArticleResponse200Data
@@ -199,6 +313,9 @@ from .get_kb_article_response_200_data_content_type_type_2_type_1 import (
 )
 from .get_kb_article_response_200_data_content_type_type_3_type_1 import (
     GetKbArticleResponse200DataContentTypeType3Type1,
+)
+from .get_manager_permission_options_response_200 import (
+    GetManagerPermissionOptionsResponse200,
 )
 from .get_nostr_link_challenge_response_200 import GetNostrLinkChallengeResponse200
 from .get_nostr_link_challenge_response_200_data import (
@@ -249,8 +366,8 @@ from .get_virtual_machine_backup_restore_hints_response_200_data import (
 from .get_virtual_machine_backup_restore_hints_response_200_data_source import (
     GetVirtualMachineBackupRestoreHintsResponse200DataSource,
 )
-from .get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item import (
-    GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem,
+from .get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
+    GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4,
 )
 from .get_virtual_machine_bandwidth_response_200 import (
     GetVirtualMachineBandwidthResponse200,
@@ -323,8 +440,8 @@ from .get_virtual_machine_snapshot_restore_hints_response_200_data import (
 from .get_virtual_machine_snapshot_restore_hints_response_200_data_source import (
     GetVirtualMachineSnapshotRestoreHintsResponse200DataSource,
 )
-from .get_virtual_machine_snapshot_restore_hints_response_200_data_unwrap_hints_item import (
-    GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItem,
+from .get_virtual_machine_snapshot_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
+    GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItemType4,
 )
 from .get_virtual_machine_summary_response_200 import (
     GetVirtualMachineSummaryResponse200,
@@ -340,6 +457,9 @@ from .get_virtual_machine_term_options_response_200 import (
 )
 from .get_virtual_machine_term_options_response_200_data import (
     GetVirtualMachineTermOptionsResponse200Data,
+)
+from .get_virtual_machine_zk_backup_status_response_200 import (
+    GetVirtualMachineZkBackupStatusResponse200,
 )
 from .get_vm_console_availability_response_200 import (
     GetVmConsoleAvailabilityResponse200,
@@ -372,8 +492,24 @@ from .invoice_summary_list import InvoiceSummaryList
 from .ip_address import IpAddress
 from .ip_address_type import IpAddressType
 from .link_nostr_identity_body import LinkNostrIdentityBody
+from .link_nostr_identity_body_event_type_0 import LinkNostrIdentityBodyEventType0
+from .link_nostr_identity_body_event_type_0_additional_property_type_4 import (
+    LinkNostrIdentityBodyEventType0AdditionalPropertyType4,
+)
+from .link_nostr_identity_body_target_event_type_0 import (
+    LinkNostrIdentityBodyTargetEventType0,
+)
+from .link_nostr_identity_body_target_event_type_0_additional_property_type_4 import (
+    LinkNostrIdentityBodyTargetEventType0AdditionalPropertyType4,
+)
 from .link_nostr_identity_response_200 import LinkNostrIdentityResponse200
 from .link_nostr_identity_response_200_data import LinkNostrIdentityResponse200Data
+from .link_target import LinkTarget
+from .link_target_method import LinkTargetMethod
+from .links import Links
+from .lint_finding import LintFinding
+from .lint_finding_severity import LintFindingSeverity
+from .lint_report import LintReport
 from .list_account_managers_response_200 import ListAccountManagersResponse200
 from .list_account_managers_response_200_items_item import (
     ListAccountManagersResponse200ItemsItem,
@@ -391,14 +527,17 @@ from .list_affiliate_payouts_response_200 import ListAffiliatePayoutsResponse200
 from .list_affiliate_payouts_status import ListAffiliatePayoutsStatus
 from .list_affiliate_referrals_response_200 import ListAffiliateReferralsResponse200
 from .list_affiliate_referrals_status import ListAffiliateReferralsStatus
+from .list_agent_session_audit_response_200 import ListAgentSessionAuditResponse200
+from .list_agent_sessions_response_200 import ListAgentSessionsResponse200
 from .list_api_keys_response_200 import ListApiKeysResponse200
 from .list_api_keys_response_200_items_item import ListApiKeysResponse200ItemsItem
 from .list_api_keys_response_200_items_item_scope import (
     ListApiKeysResponse200ItemsItemScope,
 )
 from .list_api_keys_response_200_pagination import ListApiKeysResponse200Pagination
+from .list_client_documents_order import ListClientDocumentsOrder
 from .list_client_documents_response_200 import ListClientDocumentsResponse200
-from .list_client_documents_response_200_data import ListClientDocumentsResponse200Data
+from .list_client_documents_sort import ListClientDocumentsSort
 from .list_contacts_response_200 import ListContactsResponse200
 from .list_contacts_response_200_items_item import ListContactsResponse200ItemsItem
 from .list_contacts_response_200_items_item_contact_type import (
@@ -409,6 +548,8 @@ from .list_download_files_response_200_data import ListDownloadFilesResponse200D
 from .list_emails_order import ListEmailsOrder
 from .list_emails_response_200 import ListEmailsResponse200
 from .list_emails_sort import ListEmailsSort
+from .list_event_subscriptions_response_200 import ListEventSubscriptionsResponse200
+from .list_events_response_200 import ListEventsResponse200
 from .list_invoices_response_200 import ListInvoicesResponse200
 from .list_invoices_status import ListInvoicesStatus
 from .list_kb_categories_response_200 import ListKbCategoriesResponse200
@@ -427,7 +568,7 @@ from .list_managed_accounts_response_200_items_item_status import (
     ListManagedAccountsResponse200ItemsItemStatus,
 )
 from .list_orders_response_200 import ListOrdersResponse200
-from .list_orders_response_200_data import ListOrdersResponse200Data
+from .list_orders_status import ListOrdersStatus
 from .list_payment_methods_response_200 import ListPaymentMethodsResponse200
 from .list_payment_methods_response_200_items_item import (
     ListPaymentMethodsResponse200ItemsItem,
@@ -481,6 +622,9 @@ from .list_virtual_machine_activity_response_200 import (
 )
 from .list_virtual_machine_jobs_status import ListVirtualMachineJobsStatus
 from .list_virtual_machine_jobs_type import ListVirtualMachineJobsType
+from .list_virtual_machine_zk_backup_recipients_response_200 import (
+    ListVirtualMachineZkBackupRecipientsResponse200,
+)
 from .list_vm_file_restore_entries_response_200 import (
     ListVmFileRestoreEntriesResponse200,
 )
@@ -511,6 +655,10 @@ from .managed_account_invitation_response_action import (
     ManagedAccountInvitationResponseAction,
 )
 from .managed_account_release_response import ManagedAccountReleaseResponse
+from .managed_account_switch_request import ManagedAccountSwitchRequest
+from .managed_account_switch_response import ManagedAccountSwitchResponse
+from .managed_account_switch_response_audit import ManagedAccountSwitchResponseAudit
+from .managed_account_switch_response_headers import ManagedAccountSwitchResponseHeaders
 from .manager_delete_response import ManagerDeleteResponse
 from .manager_delete_response_status import ManagerDeleteResponseStatus
 from .manager_invite_request import ManagerInviteRequest
@@ -523,6 +671,8 @@ from .mount_virtual_machine_iso_response_200 import MountVirtualMachineIsoRespon
 from .next_checkout import NextCheckout
 from .next_poll import NextPoll
 from .next_verify import NextVerify
+from .order_list_item import OrderListItem
+from .order_list_item_status import OrderListItemStatus
 from .order_path_summary import OrderPathSummary
 from .orderable_plan import OrderablePlan
 from .orderable_plan_list import OrderablePlanList
@@ -530,6 +680,9 @@ from .pagination import Pagination
 from .paid_response import PaidResponse
 from .paid_response_status import PaidResponseStatus
 from .payment_checkout_request import PaymentCheckoutRequest
+from .payment_checkout_request_additional_property_type_4 import (
+    PaymentCheckoutRequestAdditionalPropertyType4,
+)
 from .payment_checkout_request_gateway import PaymentCheckoutRequestGateway
 from .permission_options_envelope import PermissionOptionsEnvelope
 from .permission_options_envelope_permissions_item import (
@@ -549,8 +702,14 @@ from .preview_service_upgrade_response_200 import PreviewServiceUpgradeResponse2
 from .preview_virtual_machine_order_response_200 import (
     PreviewVirtualMachineOrderResponse200,
 )
+from .preview_virtual_machine_standby_response_200 import (
+    PreviewVirtualMachineStandbyResponse200,
+)
 from .preview_virtual_machine_term_change_body import (
     PreviewVirtualMachineTermChangeBody,
+)
+from .preview_virtual_machine_term_change_body_additional_property_type_4 import (
+    PreviewVirtualMachineTermChangeBodyAdditionalPropertyType4,
 )
 from .preview_virtual_machine_term_change_response_200 import (
     PreviewVirtualMachineTermChangeResponse200,
@@ -558,6 +717,10 @@ from .preview_virtual_machine_term_change_response_200 import (
 from .preview_virtual_machine_term_change_response_200_data import (
     PreviewVirtualMachineTermChangeResponse200Data,
 )
+from .problem import Problem
+from .problem_field_error import ProblemFieldError
+from .problem_field_error_type import ProblemFieldErrorType
+from .problem_x_error_code import ProblemXErrorCode
 from .provisioning_state import ProvisioningState
 from .proxmox_job import ProxmoxJob
 from .proxmox_job_list import ProxmoxJobList
@@ -575,14 +738,19 @@ from .register_request_scope import RegisterRequestScope
 from .register_response import RegisterResponse
 from .register_response_data import RegisterResponseData
 from .register_response_data_next import RegisterResponseDataNext
+from .register_virtual_machine_zk_backup_response_201 import (
+    RegisterVirtualMachineZkBackupResponse201,
+)
 from .reinstall_virtual_machine_response_202 import ReinstallVirtualMachineResponse202
 from .reinstall_vm_request import ReinstallVmRequest
-from .rekey_virtual_machine_zk_backup_body import RekeyVirtualMachineZkBackupBody
-from .rekey_virtual_machine_zk_backup_body_destroy_ack import (
-    RekeyVirtualMachineZkBackupBodyDestroyAck,
+from .reinstall_vm_request_additional_property_type_4 import (
+    ReinstallVmRequestAdditionalPropertyType4,
 )
 from .rekey_virtual_machine_zk_backup_response_200 import (
     RekeyVirtualMachineZkBackupResponse200,
+)
+from .rekey_virtual_machine_zk_backup_with_retention_response_200 import (
+    RekeyVirtualMachineZkBackupWithRetentionResponse200,
 )
 from .relinquish_managed_account_response_200 import RelinquishManagedAccountResponse200
 from .renew_quote import RenewQuote
@@ -599,12 +767,20 @@ from .restore_virtual_machine_backup_response_202 import (
 from .restore_virtual_machine_snapshot_response_202 import (
     RestoreVirtualMachineSnapshotResponse202,
 )
+from .resume_virtual_machine_response_200 import ResumeVirtualMachineResponse200
+from .revoke_agent_session_response_200 import RevokeAgentSessionResponse200
+from .revoke_virtual_machine_zk_backup_recipient_response_200 import (
+    RevokeVirtualMachineZkBackupRecipientResponse200,
+)
 from .runtime_status import RuntimeStatus
 from .search_kb_response_200 import SearchKbResponse200
 from .search_kb_response_200_items_item import SearchKbResponse200ItemsItem
 from .service_status import ServiceStatus
 from .set_service_ssh_key_response_201 import SetServiceSshKeyResponse201
 from .set_ssh_key_request import SetSshKeyRequest
+from .set_ssh_key_request_additional_property_type_4 import (
+    SetSshKeyRequestAdditionalPropertyType4,
+)
 from .set_virtual_machine_backup_protection_response_200 import (
     SetVirtualMachineBackupProtectionResponse200,
 )
@@ -622,11 +798,13 @@ from .shutdown_virtual_machine_response_200 import ShutdownVirtualMachineRespons
 from .ssh_key_entry import SshKeyEntry
 from .ssh_key_entry_list import SshKeyEntryList
 from .ssh_key_stored_response import SshKeyStoredResponse
+from .standby_virtual_machine_response_200 import StandbyVirtualMachineResponse200
 from .start_virtual_machine_response_200 import StartVirtualMachineResponse200
 from .stop_virtual_machine_response_200 import StopVirtualMachineResponse200
 from .storage_item import StorageItem
 from .storage_item_kind import StorageItemKind
 from .storage_item_list import StorageItemList
+from .submit_batch_response_200 import SubmitBatchResponse200
 from .submit_credit_topup_response_200 import SubmitCreditTopupResponse200
 from .submit_payment_checkout_response_200 import SubmitPaymentCheckoutResponse200
 from .submit_support_ticket_feedback_body import SubmitSupportTicketFeedbackBody
@@ -654,6 +832,7 @@ from .support_ticket_reply_response_reply import SupportTicketReplyResponseReply
 from .support_ticket_reply_response_reply_author_type import (
     SupportTicketReplyResponseReplyAuthorType,
 )
+from .switch_managed_account_response_200 import SwitchManagedAccountResponse200
 from .template import Template
 from .template_list import TemplateList
 from .transaction_applied_invoice_list import TransactionAppliedInvoiceList
@@ -665,12 +844,19 @@ from .transaction_summary import TransactionSummary
 from .transaction_summary_status import TransactionSummaryStatus
 from .transaction_summary_type import TransactionSummaryType
 from .unlink_nostr_identity_body import UnlinkNostrIdentityBody
+from .unlink_nostr_identity_body_event_type_0 import UnlinkNostrIdentityBodyEventType0
+from .unlink_nostr_identity_body_event_type_0_additional_property_type_4 import (
+    UnlinkNostrIdentityBodyEventType0AdditionalPropertyType4,
+)
 from .unlink_nostr_identity_response_200 import UnlinkNostrIdentityResponse200
 from .unlink_nostr_identity_response_200_data import UnlinkNostrIdentityResponse200Data
 from .unmount_virtual_machine_iso_response_200 import (
     UnmountVirtualMachineIsoResponse200,
 )
 from .update_account_contact_request import UpdateAccountContactRequest
+from .update_account_contact_request_additional_property_type_4 import (
+    UpdateAccountContactRequestAdditionalPropertyType4,
+)
 from .update_account_contact_response_200 import UpdateAccountContactResponse200
 from .update_account_manager_body import UpdateAccountManagerBody
 from .update_account_manager_response_200 import UpdateAccountManagerResponse200
@@ -685,6 +871,9 @@ from .update_account_preferences_response_200_data_editable import (
     UpdateAccountPreferencesResponse200DataEditable,
 )
 from .update_account_request import UpdateAccountRequest
+from .update_account_request_additional_property_type_4 import (
+    UpdateAccountRequestAdditionalPropertyType4,
+)
 from .update_account_response_200 import UpdateAccountResponse200
 from .update_affiliate_payout_destination_response_200 import (
     UpdateAffiliatePayoutDestinationResponse200,
@@ -696,12 +885,15 @@ from .update_credit_handling_response_200 import UpdateCreditHandlingResponse200
 from .update_credit_handling_response_200_data import (
     UpdateCreditHandlingResponse200Data,
 )
-from .update_credit_handling_response_200_data_thresholds import (
-    UpdateCreditHandlingResponse200DataThresholds,
+from .update_credit_handling_response_200_data_thresholds_type_0 import (
+    UpdateCreditHandlingResponse200DataThresholdsType0,
 )
 from .update_nip_05_body import UpdateNip05Body
 from .update_nip_05_response_200 import UpdateNip05Response200
 from .update_nip_05_response_200_data import UpdateNip05Response200Data
+from .update_virtual_machine_cloud_init_response_200 import (
+    UpdateVirtualMachineCloudInitResponse200,
+)
 from .update_virtual_machine_firewall_policy_response_200 import (
     UpdateVirtualMachineFirewallPolicyResponse200,
 )
@@ -722,6 +914,9 @@ from .update_vm_data_preferences_response_200_data_snapshot import (
     UpdateVmDataPreferencesResponse200DataSnapshot,
 )
 from .upgrade_service_response_202 import UpgradeServiceResponse202
+from .validate_virtual_machine_cloud_init_response_200 import (
+    ValidateVirtualMachineCloudInitResponse200,
+)
 from .verify_virtual_machine_backup_response_200 import (
     VerifyVirtualMachineBackupResponse200,
 )
@@ -731,6 +926,9 @@ from .verify_virtual_machine_snapshot_response_200 import (
 from .vm_action_response import VmActionResponse
 from .vm_activity_item import VmActivityItem
 from .vm_backup_create_request import VmBackupCreateRequest
+from .vm_backup_create_request_additional_property_type_4 import (
+    VmBackupCreateRequestAdditionalPropertyType4,
+)
 from .vm_backup_create_request_mode import VmBackupCreateRequestMode
 from .vm_data_preferences_update_request import VmDataPreferencesUpdateRequest
 from .vm_data_preferences_update_request_backup import (
@@ -804,9 +1002,18 @@ from .vm_firewall_rule_update_request_direction import (
 from .vm_iso import VmIso
 from .vm_iso_available_item import VmIsoAvailableItem
 from .vm_iso_mount_request import VmIsoMountRequest
+from .vm_iso_mount_request_additional_property_type_4 import (
+    VmIsoMountRequestAdditionalPropertyType4,
+)
 from .vm_iso_mounted_item import VmIsoMountedItem
 from .vm_iso_unmount_request import VmIsoUnmountRequest
+from .vm_iso_unmount_request_additional_property_type_4 import (
+    VmIsoUnmountRequestAdditionalPropertyType4,
+)
 from .vm_metric_series import VmMetricSeries
+from .vm_metric_series_values_item_item_type_2_type_4 import (
+    VmMetricSeriesValuesItemItemType2Type4,
+)
 from .vm_network_interface import VmNetworkInterface
 from .vm_order_billing_preview import VmOrderBillingPreview
 from .vm_order_invoice import VmOrderInvoice
@@ -815,6 +1022,9 @@ from .vm_order_normalized_request import VmOrderNormalizedRequest
 from .vm_order_preview import VmOrderPreview
 from .vm_order_provisioning_preview import VmOrderProvisioningPreview
 from .vm_order_request import VmOrderRequest
+from .vm_order_request_additional_property_type_4 import (
+    VmOrderRequestAdditionalPropertyType4,
+)
 from .vm_order_request_config_options import VmOrderRequestConfigOptions
 from .vm_order_result import VmOrderResult
 from .vm_order_result_status import VmOrderResultStatus
@@ -827,22 +1037,54 @@ from .vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
 from .vm_pricing import VmPricing
 from .vm_queued_job_response import VmQueuedJobResponse
 from .vm_reinstall_response import VmReinstallResponse
+from .vm_resume_request import VmResumeRequest
+from .vm_resume_response import VmResumeResponse
+from .vm_resume_response_lifecycle_state import VmResumeResponseLifecycleState
+from .vm_resume_response_state import VmResumeResponseState
 from .vm_runtime_overview import VmRuntimeOverview
 from .vm_snapshot_create_request import VmSnapshotCreateRequest
+from .vm_snapshot_create_request_additional_property_type_4 import (
+    VmSnapshotCreateRequestAdditionalPropertyType4,
+)
 from .vm_specs import VmSpecs
 from .vm_ssh_key_apply_live_request import VmSshKeyApplyLiveRequest
+from .vm_ssh_key_apply_live_request_additional_property_type_4 import (
+    VmSshKeyApplyLiveRequestAdditionalPropertyType4,
+)
 from .vm_ssh_key_apply_live_response import VmSshKeyApplyLiveResponse
 from .vm_ssh_key_apply_live_response_live_inject import (
     VmSshKeyApplyLiveResponseLiveInject,
 )
 from .vm_ssh_key_delete_live_request import VmSshKeyDeleteLiveRequest
+from .vm_ssh_key_delete_live_request_additional_property_type_4 import (
+    VmSshKeyDeleteLiveRequestAdditionalPropertyType4,
+)
 from .vm_ssh_key_delete_live_response import VmSshKeyDeleteLiveResponse
+from .vm_standby_preview_response import VmStandbyPreviewResponse
+from .vm_standby_quote_side import VmStandbyQuoteSide
+from .vm_standby_request import VmStandbyRequest
+from .vm_standby_response import VmStandbyResponse
+from .vm_standby_response_ip_disposition import VmStandbyResponseIpDisposition
+from .vm_standby_response_lifecycle_state import VmStandbyResponseLifecycleState
+from .vm_standby_response_state import VmStandbyResponseState
 from .vm_storage_delete_request import VmStorageDeleteRequest
+from .vm_storage_delete_request_additional_property_type_4 import (
+    VmStorageDeleteRequestAdditionalPropertyType4,
+)
 from .vm_storage_delete_response import VmStorageDeleteResponse
 from .vm_storage_protection_request import VmStorageProtectionRequest
+from .vm_storage_protection_request_additional_property_type_4 import (
+    VmStorageProtectionRequestAdditionalPropertyType4,
+)
 from .vm_storage_protection_response import VmStorageProtectionResponse
 from .vm_storage_restore_request import VmStorageRestoreRequest
+from .vm_storage_restore_request_additional_property_type_4 import (
+    VmStorageRestoreRequestAdditionalPropertyType4,
+)
 from .vm_storage_verify_request import VmStorageVerifyRequest
+from .vm_storage_verify_request_additional_property_type_4 import (
+    VmStorageVerifyRequestAdditionalPropertyType4,
+)
 from .vm_storage_verify_response import VmStorageVerifyResponse
 from .vm_summary import VmSummary
 from .vm_summary_list import VmSummaryList
@@ -850,9 +1092,18 @@ from .vm_upgradable_plan import VmUpgradablePlan
 from .vm_upgradable_plan_available_config_options_item import (
     VmUpgradablePlanAvailableConfigOptionsItem,
 )
+from .vm_upgradable_plan_available_config_options_item_additional_property_type_4 import (
+    VmUpgradablePlanAvailableConfigOptionsItemAdditionalPropertyType4,
+)
 from .vm_upgrade_config_option_catalog import VmUpgradeConfigOptionCatalog
+from .vm_upgrade_config_option_catalog_additional_property_type_4 import (
+    VmUpgradeConfigOptionCatalogAdditionalPropertyType4,
+)
 from .vm_upgrade_config_option_catalog_values_item import (
     VmUpgradeConfigOptionCatalogValuesItem,
+)
+from .vm_upgrade_config_option_catalog_values_item_additional_property_type_4 import (
+    VmUpgradeConfigOptionCatalogValuesItemAdditionalPropertyType4,
 )
 from .vm_upgrade_option_term import VmUpgradeOptionTerm
 from .vm_upgrade_options_response import VmUpgradeOptionsResponse
@@ -868,16 +1119,25 @@ from .vm_upgrade_options_response_blocked_reason_type_3_type_1 import (
 from .vm_upgrade_options_response_current import VmUpgradeOptionsResponseCurrent
 from .vm_upgrade_preview_line import VmUpgradePreviewLine
 from .vm_upgrade_preview_request import VmUpgradePreviewRequest
+from .vm_upgrade_preview_request_additional_property_type_4 import (
+    VmUpgradePreviewRequestAdditionalPropertyType4,
+)
 from .vm_upgrade_preview_request_config_options import (
     VmUpgradePreviewRequestConfigOptions,
 )
 from .vm_upgrade_preview_response import VmUpgradePreviewResponse
 from .vm_upgrade_preview_response_applies import VmUpgradePreviewResponseApplies
 from .vm_upgrade_request import VmUpgradeRequest
+from .vm_upgrade_request_additional_property_type_4 import (
+    VmUpgradeRequestAdditionalPropertyType4,
+)
 from .vm_upgrade_request_config_options import VmUpgradeRequestConfigOptions
 from .vm_upgrade_response import VmUpgradeResponse
 from .vm_upgrade_response_amount_due import VmUpgradeResponseAmountDue
 from .vm_upgrade_response_change import VmUpgradeResponseChange
+from .zk_backup_recipient_set_status import ZkBackupRecipientSetStatus
+from .zk_backup_recipient_status import ZkBackupRecipientStatus
+from .zk_backup_recipient_status_kind import ZkBackupRecipientStatusKind
 from .zk_backup_registration import ZkBackupRegistration
 from .zk_backup_registration_config import ZkBackupRegistrationConfig
 from .zk_backup_registration_config_alg import ZkBackupRegistrationConfigAlg
@@ -887,6 +1147,11 @@ from .zk_backup_registration_recipients_item import ZkBackupRegistrationRecipien
 from .zk_backup_registration_recipients_item_kind import (
     ZkBackupRegistrationRecipientsItemKind,
 )
+from .zk_backup_retention_rekey_request import ZkBackupRetentionRekeyRequest
+from .zk_backup_retention_rekey_request_ack import ZkBackupRetentionRekeyRequestAck
+from .zk_backup_revoke_request import ZkBackupRevokeRequest
+from .zk_backup_revoke_request_ack import ZkBackupRevokeRequestAck
+from .zk_backup_status_envelope import ZkBackupStatusEnvelope
 
 __all__ = (
     "Account",
@@ -895,6 +1160,7 @@ __all__ = (
     "AccountInvoiceDetail",
     "AccountInvoiceSummary",
     "AccountPasswordChangeRequest",
+    "AccountPasswordChangeRequestAdditionalPropertyType4",
     "AccountPasswordChangeResponse",
     "AccountPreferencesUpdateRequest",
     "ActivityItem",
@@ -915,21 +1181,46 @@ __all__ = (
     "AffiliateProgramTermsCommissionType",
     "AffiliateReferral",
     "AffiliateReferralStatus",
+    "AgentRecovery",
+    "AgentRecoveryAction",
+    "AgentSession",
+    "AgentSessionAuditRecord",
+    "AgentSessionAuditRecordData",
+    "AgentSessionAuditRecordDataAdditionalPropertyType4",
+    "AgentSessionCreated",
+    "AgentSessionCreatedScope",
+    "AgentSessionCreateRequest",
+    "AgentSessionCreateRequestScope",
+    "AgentSessionProofOfPossession",
+    "AgentSessionScope",
     "AppliedPayment",
     "ApplyLiveServiceSshKeyResponse200",
     "ApproveQuotationBody",
+    "ApproveQuotationBodyAdditionalPropertyType4",
     "ApproveQuotationResponse201",
     "ApproveQuotationResponse201Data",
+    "BatchSubRequest",
+    "BatchSubRequestBodyType0",
+    "BatchSubRequestBodyType0AdditionalPropertyType4",
+    "BatchSubRequestBodyType1Item",
+    "BatchSubRequestMethod",
+    "BatchSubResponse",
+    "BatchSubResponseBodyType0",
+    "BatchSubResponseBodyType0AdditionalPropertyType4",
+    "BatchSubResponseBodyType1Item",
+    "BatchSubResponseHeaders",
+    "BeginTwoFactorEnrollmentResponse200",
+    "BeginTwoFactorEnrollmentResponse200Data",
     "BillingBalance",
     "BillingBalanceCreditItem",
     "BillingCurrencyBalance",
     "BuyVirtualMachineResponse201",
-    "CancelPendingOrderBody",
     "CancelPendingOrderResponse200",
     "CancelPendingOrderResponse200Data",
     "CancelVirtualMachineResponse200",
     "CancelVmCredit",
     "CancelVmRequest",
+    "CancelVmRequestAdditionalPropertyType4",
     "CancelVmResponseData",
     "ChangeAccountPasswordResponse200",
     "ChangeVirtualMachineTermBody",
@@ -942,6 +1233,20 @@ __all__ = (
     "ClaimAgentKeyResponse200Data",
     "ClaimAgentKeyResponse200DataScope",
     "CloseSupportTicketResponse200",
+    "CloudEvent",
+    "CloudEventData",
+    "CloudEventDataAdditionalPropertyType4",
+    "CloudEventSpecversion",
+    "CloudInitApplyResult",
+    "CloudInitApplyResultFormat",
+    "CloudInitApplyResultVolumeLabel",
+    "CloudInitAttachedDrive",
+    "CloudInitAttachedDriveMedia",
+    "CloudInitDeleteResult",
+    "CloudInitDerivedSeed",
+    "CloudInitDerivedSeedVolumeLabel",
+    "CloudInitRequest",
+    "CloudInitValidateResult",
     "ConsoleSessionResponse",
     "ConsoleSessionResponseVia",
     "ContactCreateRequest",
@@ -949,12 +1254,15 @@ __all__ = (
     "ContactCreateResponse",
     "ContactCreateResponseContactType",
     "ContactDeleteResponse",
+    "CreateAgentSessionResponse201",
     "CreateApiKeyBody",
     "CreateApiKeyBodyAreasItem",
     "CreateApiKeyBodyScope",
     "CreateApiKeyResponse201",
     "CreateApiKeyResponse201Data",
     "CreateContactResponse201",
+    "CreateEventSubscriptionResponse200",
+    "CreateEventSubscriptionResponse201",
     "CreateServiceAddonBody",
     "CreateServiceAddonBodyConfigOptions",
     "CreateServiceAddonBodyFields",
@@ -967,23 +1275,38 @@ __all__ = (
     "CreditHandlingUpdateRequest",
     "CreditHandlingUpdateRequestThresholds",
     "CreditTopupRequest",
+    "CreditTopupRequestAdditionalPropertyType4",
     "CreditTopupResponse",
     "CreditTopupResponseStatus",
     "CreditTopupResponseType",
     "DeleteContactResponse200",
+    "DeleteEventSubscriptionBody",
+    "DeleteEventSubscriptionResponse200",
     "DeleteLiveServiceSshKeyResponse200",
     "DeleteManagerResponse200",
     "DeleteServiceSshKeyResponse200",
     "DeleteSshKeyRequest",
+    "DeleteSshKeyRequestAdditionalPropertyType4",
     "DeleteSshKeyResponse",
     "DeleteVirtualMachineBackupResponse200",
+    "DeleteVirtualMachineCloudInitBody",
+    "DeleteVirtualMachineCloudInitResponse200",
     "DeleteVirtualMachineFirewallRuleResponse200",
     "DeleteVirtualMachineReverseDnsBody",
     "DeleteVirtualMachineReverseDnsResponse202",
     "DeleteVirtualMachineReverseDnsResponse202Data",
     "DeleteVirtualMachineSnapshotResponse200",
+    "DisableTwoFactorBody",
+    "DisableTwoFactorResponse200",
+    "DisableTwoFactorResponse200Data",
+    "DisableTwoFactorResponse200DataMode",
+    "DocumentListItem",
     "EmailDetail",
     "EmailSummary",
+    "EnableTwoFactorBody",
+    "EnableTwoFactorResponse200",
+    "EnableTwoFactorResponse200Data",
+    "EnableTwoFactorResponse200DataMode",
     "EnrollAffiliateResponse201",
     "Error",
     "ErrorDetail",
@@ -991,6 +1314,21 @@ __all__ = (
     "ErrorError",
     "ErrorErrorLinksItem",
     "ErrorErrorLinksItemRel",
+    "EventSubscription",
+    "EventSubscriptionCreated",
+    "EventSubscriptionCreatedDeliveryIdHeader",
+    "EventSubscriptionCreatedEventIdHeader",
+    "EventSubscriptionCreatedSignatureHeader",
+    "EventSubscriptionCreatedSigningAlgorithm",
+    "EventSubscriptionCreatedStatus",
+    "EventSubscriptionCreatedTimestampHeader",
+    "EventSubscriptionCreateRequest",
+    "EventSubscriptionDeliveryIdHeader",
+    "EventSubscriptionEventIdHeader",
+    "EventSubscriptionSignatureHeader",
+    "EventSubscriptionSigningAlgorithm",
+    "EventSubscriptionStatus",
+    "EventSubscriptionTimestampHeader",
     "GetAccountBalanceResponse200",
     "GetAccountBalanceResponse200Data",
     "GetAccountBalanceResponse200DataBalancesItem",
@@ -1002,12 +1340,14 @@ __all__ = (
     "GetAccountResponse200",
     "GetAffiliateAccountResponse200",
     "GetAffiliatePayoutDestinationResponse200",
+    "GetAgentSessionResponse200",
     "GetAutoDebitResponse200",
     "GetAutoDebitResponse200Data",
     "GetAutoDebitResponse200DataTypeType1",
     "GetAutoDebitResponse200DataTypeType2Type1",
     "GetAutoDebitResponse200DataTypeType3Type1",
     "GetBillingBalanceResponse200",
+    "GetContactPermissionOptionsResponse200",
     "GetContactResponse200",
     "GetContactResponse200Data",
     "GetContactResponse200DataContactType",
@@ -1016,8 +1356,9 @@ __all__ = (
     "GetContactResponse200DataNumbersItemType",
     "GetCreditHandlingResponse200",
     "GetCreditHandlingResponse200Data",
-    "GetCreditHandlingResponse200DataThresholds",
+    "GetCreditHandlingResponse200DataThresholdsType0",
     "GetEmailResponse200",
+    "GetEventSubscriptionResponse200",
     "GetInvoiceResponse200",
     "GetKbArticleResponse200",
     "GetKbArticleResponse200Data",
@@ -1025,6 +1366,7 @@ __all__ = (
     "GetKbArticleResponse200DataContentTypeType1",
     "GetKbArticleResponse200DataContentTypeType2Type1",
     "GetKbArticleResponse200DataContentTypeType3Type1",
+    "GetManagerPermissionOptionsResponse200",
     "GetNostrLinkChallengeResponse200",
     "GetNostrLinkChallengeResponse200Data",
     "GetOrderResponse200",
@@ -1050,7 +1392,7 @@ __all__ = (
     "GetVirtualMachineBackupRestoreHintsResponse200",
     "GetVirtualMachineBackupRestoreHintsResponse200Data",
     "GetVirtualMachineBackupRestoreHintsResponse200DataSource",
-    "GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem",
+    "GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4",
     "GetVirtualMachineBandwidthResponse200",
     "GetVirtualMachineBandwidthResponse200Data",
     "GetVirtualMachineBandwidthResponse200DataCountDirection",
@@ -1078,12 +1420,13 @@ __all__ = (
     "GetVirtualMachineSnapshotRestoreHintsResponse200",
     "GetVirtualMachineSnapshotRestoreHintsResponse200Data",
     "GetVirtualMachineSnapshotRestoreHintsResponse200DataSource",
-    "GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItem",
+    "GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItemType4",
     "GetVirtualMachineSummaryResponse200",
     "GetVirtualMachineSummaryResponse200Data",
     "GetVirtualMachineSummaryResponse200DataRecentJobsItem",
     "GetVirtualMachineTermOptionsResponse200",
     "GetVirtualMachineTermOptionsResponse200Data",
+    "GetVirtualMachineZkBackupStatusResponse200",
     "GetVmConsoleAvailabilityResponse200",
     "GetVmConsoleAvailabilityResponse200Data",
     "GetVmDataPreferencesResponse200",
@@ -1103,8 +1446,18 @@ __all__ = (
     "IpAddress",
     "IpAddressType",
     "LinkNostrIdentityBody",
+    "LinkNostrIdentityBodyEventType0",
+    "LinkNostrIdentityBodyEventType0AdditionalPropertyType4",
+    "LinkNostrIdentityBodyTargetEventType0",
+    "LinkNostrIdentityBodyTargetEventType0AdditionalPropertyType4",
     "LinkNostrIdentityResponse200",
     "LinkNostrIdentityResponse200Data",
+    "Links",
+    "LinkTarget",
+    "LinkTargetMethod",
+    "LintFinding",
+    "LintFindingSeverity",
+    "LintReport",
     "ListAccountManagersResponse200",
     "ListAccountManagersResponse200ItemsItem",
     "ListAccountManagersResponse200ItemsItemStatusType1",
@@ -1114,12 +1467,15 @@ __all__ = (
     "ListAffiliatePayoutsStatus",
     "ListAffiliateReferralsResponse200",
     "ListAffiliateReferralsStatus",
+    "ListAgentSessionAuditResponse200",
+    "ListAgentSessionsResponse200",
     "ListApiKeysResponse200",
     "ListApiKeysResponse200ItemsItem",
     "ListApiKeysResponse200ItemsItemScope",
     "ListApiKeysResponse200Pagination",
+    "ListClientDocumentsOrder",
     "ListClientDocumentsResponse200",
-    "ListClientDocumentsResponse200Data",
+    "ListClientDocumentsSort",
     "ListContactsResponse200",
     "ListContactsResponse200ItemsItem",
     "ListContactsResponse200ItemsItemContactType",
@@ -1128,6 +1484,8 @@ __all__ = (
     "ListEmailsOrder",
     "ListEmailsResponse200",
     "ListEmailsSort",
+    "ListEventsResponse200",
+    "ListEventSubscriptionsResponse200",
     "ListInvoicesResponse200",
     "ListInvoicesStatus",
     "ListKbCategoriesResponse200",
@@ -1138,7 +1496,7 @@ __all__ = (
     "ListManagedAccountsResponse200ItemsItem",
     "ListManagedAccountsResponse200ItemsItemStatus",
     "ListOrdersResponse200",
-    "ListOrdersResponse200Data",
+    "ListOrdersStatus",
     "ListPaymentMethodsResponse200",
     "ListPaymentMethodsResponse200ItemsItem",
     "ListPaymentMethodsResponse200ItemsItemStatus",
@@ -1166,6 +1524,7 @@ __all__ = (
     "ListVirtualMachineActivityResponse200",
     "ListVirtualMachineJobsStatus",
     "ListVirtualMachineJobsType",
+    "ListVirtualMachineZkBackupRecipientsResponse200",
     "ListVmFileRestoreEntriesResponse200",
     "ListVmFileRestoreEntriesResponse200Data",
     "ListVmFileRestoreEntriesResponse200DataEntriesItem",
@@ -1178,6 +1537,10 @@ __all__ = (
     "ManagedAccountInvitationResponse",
     "ManagedAccountInvitationResponseAction",
     "ManagedAccountReleaseResponse",
+    "ManagedAccountSwitchRequest",
+    "ManagedAccountSwitchResponse",
+    "ManagedAccountSwitchResponseAudit",
+    "ManagedAccountSwitchResponseHeaders",
     "ManagerDeleteResponse",
     "ManagerDeleteResponseStatus",
     "ManagerInviteRequest",
@@ -1192,11 +1555,14 @@ __all__ = (
     "NextVerify",
     "OrderablePlan",
     "OrderablePlanList",
+    "OrderListItem",
+    "OrderListItemStatus",
     "OrderPathSummary",
     "Pagination",
     "PaidResponse",
     "PaidResponseStatus",
     "PaymentCheckoutRequest",
+    "PaymentCheckoutRequestAdditionalPropertyType4",
     "PaymentCheckoutRequestGateway",
     "PermissionOptionsEnvelope",
     "PermissionOptionsEnvelopePermissionsItem",
@@ -1210,9 +1576,15 @@ __all__ = (
     "PreviewServiceAddonResponse200Data",
     "PreviewServiceUpgradeResponse200",
     "PreviewVirtualMachineOrderResponse200",
+    "PreviewVirtualMachineStandbyResponse200",
     "PreviewVirtualMachineTermChangeBody",
+    "PreviewVirtualMachineTermChangeBodyAdditionalPropertyType4",
     "PreviewVirtualMachineTermChangeResponse200",
     "PreviewVirtualMachineTermChangeResponse200Data",
+    "Problem",
+    "ProblemFieldError",
+    "ProblemFieldErrorType",
+    "ProblemXErrorCode",
     "ProvisioningState",
     "ProxmoxJob",
     "ProxmoxJobList",
@@ -1230,11 +1602,12 @@ __all__ = (
     "RegisterResponse",
     "RegisterResponseData",
     "RegisterResponseDataNext",
+    "RegisterVirtualMachineZkBackupResponse201",
     "ReinstallVirtualMachineResponse202",
     "ReinstallVmRequest",
-    "RekeyVirtualMachineZkBackupBody",
-    "RekeyVirtualMachineZkBackupBodyDestroyAck",
+    "ReinstallVmRequestAdditionalPropertyType4",
     "RekeyVirtualMachineZkBackupResponse200",
+    "RekeyVirtualMachineZkBackupWithRetentionResponse200",
     "RelinquishManagedAccountResponse200",
     "RenewQuote",
     "ReplySupportTicketResponse201",
@@ -1244,12 +1617,16 @@ __all__ = (
     "RestartVirtualMachineResponse200",
     "RestoreVirtualMachineBackupResponse202",
     "RestoreVirtualMachineSnapshotResponse202",
+    "ResumeVirtualMachineResponse200",
+    "RevokeAgentSessionResponse200",
+    "RevokeVirtualMachineZkBackupRecipientResponse200",
     "RuntimeStatus",
     "SearchKbResponse200",
     "SearchKbResponse200ItemsItem",
     "ServiceStatus",
     "SetServiceSshKeyResponse201",
     "SetSshKeyRequest",
+    "SetSshKeyRequestAdditionalPropertyType4",
     "SetVirtualMachineBackupProtectionResponse200",
     "SetVirtualMachineReverseDnsBody",
     "SetVirtualMachineReverseDnsResponse202",
@@ -1259,11 +1636,13 @@ __all__ = (
     "SshKeyEntry",
     "SshKeyEntryList",
     "SshKeyStoredResponse",
+    "StandbyVirtualMachineResponse200",
     "StartVirtualMachineResponse200",
     "StopVirtualMachineResponse200",
     "StorageItem",
     "StorageItemKind",
     "StorageItemList",
+    "SubmitBatchResponse200",
     "SubmitCreditTopupResponse200",
     "SubmitPaymentCheckoutResponse200",
     "SubmitSupportTicketFeedbackBody",
@@ -1281,6 +1660,7 @@ __all__ = (
     "SupportTicketReplyResponse",
     "SupportTicketReplyResponseReply",
     "SupportTicketReplyResponseReplyAuthorType",
+    "SwitchManagedAccountResponse200",
     "Template",
     "TemplateList",
     "TransactionAppliedInvoiceList",
@@ -1290,10 +1670,13 @@ __all__ = (
     "TransactionSummaryStatus",
     "TransactionSummaryType",
     "UnlinkNostrIdentityBody",
+    "UnlinkNostrIdentityBodyEventType0",
+    "UnlinkNostrIdentityBodyEventType0AdditionalPropertyType4",
     "UnlinkNostrIdentityResponse200",
     "UnlinkNostrIdentityResponse200Data",
     "UnmountVirtualMachineIsoResponse200",
     "UpdateAccountContactRequest",
+    "UpdateAccountContactRequestAdditionalPropertyType4",
     "UpdateAccountContactResponse200",
     "UpdateAccountManagerBody",
     "UpdateAccountManagerResponse200",
@@ -1302,6 +1685,7 @@ __all__ = (
     "UpdateAccountPreferencesResponse200Data",
     "UpdateAccountPreferencesResponse200DataEditable",
     "UpdateAccountRequest",
+    "UpdateAccountRequestAdditionalPropertyType4",
     "UpdateAccountResponse200",
     "UpdateAffiliatePayoutDestinationResponse200",
     "UpdateContactBody",
@@ -1309,10 +1693,11 @@ __all__ = (
     "UpdateContactResponse200Data",
     "UpdateCreditHandlingResponse200",
     "UpdateCreditHandlingResponse200Data",
-    "UpdateCreditHandlingResponse200DataThresholds",
+    "UpdateCreditHandlingResponse200DataThresholdsType0",
     "UpdateNip05Body",
     "UpdateNip05Response200",
     "UpdateNip05Response200Data",
+    "UpdateVirtualMachineCloudInitResponse200",
     "UpdateVirtualMachineFirewallPolicyResponse200",
     "UpdateVirtualMachineFirewallRuleResponse200",
     "UpdateVmDataPreferencesResponse200",
@@ -1321,11 +1706,13 @@ __all__ = (
     "UpdateVmDataPreferencesResponse200DataNotify",
     "UpdateVmDataPreferencesResponse200DataSnapshot",
     "UpgradeServiceResponse202",
+    "ValidateVirtualMachineCloudInitResponse200",
     "VerifyVirtualMachineBackupResponse200",
     "VerifyVirtualMachineSnapshotResponse200",
     "VmActionResponse",
     "VmActivityItem",
     "VmBackupCreateRequest",
+    "VmBackupCreateRequestAdditionalPropertyType4",
     "VmBackupCreateRequestMode",
     "VmDataPreferencesUpdateRequest",
     "VmDataPreferencesUpdateRequestBackup",
@@ -1366,8 +1753,11 @@ __all__ = (
     "VmIsoAvailableItem",
     "VmIsoMountedItem",
     "VmIsoMountRequest",
+    "VmIsoMountRequestAdditionalPropertyType4",
     "VmIsoUnmountRequest",
+    "VmIsoUnmountRequestAdditionalPropertyType4",
     "VmMetricSeries",
+    "VmMetricSeriesValuesItemItemType2Type4",
     "VmNetworkInterface",
     "VmOrderBillingPreview",
     "VmOrderInvoice",
@@ -1376,6 +1766,7 @@ __all__ = (
     "VmOrderPreview",
     "VmOrderProvisioningPreview",
     "VmOrderRequest",
+    "VmOrderRequestAdditionalPropertyType4",
     "VmOrderRequestConfigOptions",
     "VmOrderResult",
     "VmOrderResultStatus",
@@ -1388,27 +1779,48 @@ __all__ = (
     "VmPricing",
     "VmQueuedJobResponse",
     "VmReinstallResponse",
+    "VmResumeRequest",
+    "VmResumeResponse",
+    "VmResumeResponseLifecycleState",
+    "VmResumeResponseState",
     "VmRuntimeOverview",
     "VmSnapshotCreateRequest",
+    "VmSnapshotCreateRequestAdditionalPropertyType4",
     "VmSpecs",
     "VmSshKeyApplyLiveRequest",
+    "VmSshKeyApplyLiveRequestAdditionalPropertyType4",
     "VmSshKeyApplyLiveResponse",
     "VmSshKeyApplyLiveResponseLiveInject",
     "VmSshKeyDeleteLiveRequest",
+    "VmSshKeyDeleteLiveRequestAdditionalPropertyType4",
     "VmSshKeyDeleteLiveResponse",
+    "VmStandbyPreviewResponse",
+    "VmStandbyQuoteSide",
+    "VmStandbyRequest",
+    "VmStandbyResponse",
+    "VmStandbyResponseIpDisposition",
+    "VmStandbyResponseLifecycleState",
+    "VmStandbyResponseState",
     "VmStorageDeleteRequest",
+    "VmStorageDeleteRequestAdditionalPropertyType4",
     "VmStorageDeleteResponse",
     "VmStorageProtectionRequest",
+    "VmStorageProtectionRequestAdditionalPropertyType4",
     "VmStorageProtectionResponse",
     "VmStorageRestoreRequest",
+    "VmStorageRestoreRequestAdditionalPropertyType4",
     "VmStorageVerifyRequest",
+    "VmStorageVerifyRequestAdditionalPropertyType4",
     "VmStorageVerifyResponse",
     "VmSummary",
     "VmSummaryList",
     "VmUpgradablePlan",
     "VmUpgradablePlanAvailableConfigOptionsItem",
+    "VmUpgradablePlanAvailableConfigOptionsItemAdditionalPropertyType4",
     "VmUpgradeConfigOptionCatalog",
+    "VmUpgradeConfigOptionCatalogAdditionalPropertyType4",
     "VmUpgradeConfigOptionCatalogValuesItem",
+    "VmUpgradeConfigOptionCatalogValuesItemAdditionalPropertyType4",
     "VmUpgradeOptionsResponse",
     "VmUpgradeOptionsResponseBlockedReasonType1",
     "VmUpgradeOptionsResponseBlockedReasonType2Type1",
@@ -1417,14 +1829,19 @@ __all__ = (
     "VmUpgradeOptionTerm",
     "VmUpgradePreviewLine",
     "VmUpgradePreviewRequest",
+    "VmUpgradePreviewRequestAdditionalPropertyType4",
     "VmUpgradePreviewRequestConfigOptions",
     "VmUpgradePreviewResponse",
     "VmUpgradePreviewResponseApplies",
     "VmUpgradeRequest",
+    "VmUpgradeRequestAdditionalPropertyType4",
     "VmUpgradeRequestConfigOptions",
     "VmUpgradeResponse",
     "VmUpgradeResponseAmountDue",
     "VmUpgradeResponseChange",
+    "ZkBackupRecipientSetStatus",
+    "ZkBackupRecipientStatus",
+    "ZkBackupRecipientStatusKind",
     "ZkBackupRegistration",
     "ZkBackupRegistrationConfig",
     "ZkBackupRegistrationConfigAlg",
@@ -1432,4 +1849,9 @@ __all__ = (
     "ZkBackupRegistrationConfigV",
     "ZkBackupRegistrationRecipientsItem",
     "ZkBackupRegistrationRecipientsItemKind",
+    "ZkBackupRetentionRekeyRequest",
+    "ZkBackupRetentionRekeyRequestAck",
+    "ZkBackupRevokeRequest",
+    "ZkBackupRevokeRequestAck",
+    "ZkBackupStatusEnvelope",
 )

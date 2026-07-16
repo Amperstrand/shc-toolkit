@@ -55,7 +55,7 @@ class GetVirtualMachineDetailResponse200Data:
         date_suspended (datetime.datetime | None):  Example: 2026-03-01T10:15:00+00:00.
         date_canceled (datetime.datetime | None):  Example: 2026-03-15T10:15:00+00:00.
         has_active_job (bool | Unset): True when the VM has a backup/snapshot/restore/reinstall/provision job that is
-            pending or running. When true, poll /vm/{serviceId}/jobs/{job_id} before mutating.
+            pending or running. When true, poll /vm/{service_id}/jobs/{job_id} before mutating.
         runtime (VmRuntimeOverview | Unset): Live power-state snapshot (subset of the Proxmox status/current; host-
             identifying fields are omitted).
         network_interfaces (list[VmNetworkInterface] | Unset):

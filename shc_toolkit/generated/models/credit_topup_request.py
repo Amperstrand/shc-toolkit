@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.credit_topup_request_additional_property_type_4 import (
+        CreditTopupRequestAdditionalPropertyType4,
+    )
+
 
 T = TypeVar("T", bound="CreditTopupRequest")
 
@@ -35,9 +41,22 @@ class CreditTopupRequest:
     idempotency_key: str
     currency: str | Unset = UNSET
     return_url: None | str | Unset = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+    additional_properties: dict[
+        str,
+        bool
+        | CreditTopupRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str,
+    ] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.credit_topup_request_additional_property_type_4 import (
+            CreditTopupRequestAdditionalPropertyType4,
+        )
+
         amount: int | str
         amount = self.amount
 
@@ -52,7 +71,15 @@ class CreditTopupRequest:
             return_url = self.return_url
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+        for prop_name, prop in self.additional_properties.items():
+            if isinstance(prop, CreditTopupRequestAdditionalPropertyType4):
+                field_dict[prop_name] = prop.to_dict()
+            elif isinstance(prop, list):
+                field_dict[prop_name] = prop
+
+            else:
+                field_dict[prop_name] = prop
+
         field_dict.update(
             {
                 "amount": amount,
@@ -68,6 +95,10 @@ class CreditTopupRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.credit_topup_request_additional_property_type_4 import (
+            CreditTopupRequestAdditionalPropertyType4,
+        )
+
         d = dict(src_dict)
 
         def _parse_amount(data: object) -> int | str:
@@ -95,17 +126,86 @@ class CreditTopupRequest:
             return_url=return_url,
         )
 
-        credit_topup_request.additional_properties = d
+        additional_properties = {}
+        for prop_name, prop_dict in d.items():
+
+            def _parse_additional_property(
+                data: object,
+            ) -> (
+                bool
+                | CreditTopupRequestAdditionalPropertyType4
+                | float
+                | int
+                | list[str]
+                | None
+                | str
+            ):
+                if data is None:
+                    return data
+                try:
+                    if not isinstance(data, dict):
+                        raise TypeError()
+                    additional_property_type_4 = (
+                        CreditTopupRequestAdditionalPropertyType4.from_dict(data)
+                    )
+
+                    return additional_property_type_4
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                try:
+                    if not isinstance(data, list):
+                        raise TypeError()
+                    additional_property_type_5 = cast(list[str], data)
+
+                    return additional_property_type_5
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                return cast(
+                    bool
+                    | CreditTopupRequestAdditionalPropertyType4
+                    | float
+                    | int
+                    | list[str]
+                    | None
+                    | str,
+                    data,
+                )
+
+            additional_property = _parse_additional_property(prop_dict)
+
+            additional_properties[prop_name] = additional_property
+
+        credit_topup_request.additional_properties = additional_properties
         return credit_topup_request
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(
+        self, key: str
+    ) -> (
+        bool
+        | CreditTopupRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str
+    ):
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(
+        self,
+        key: str,
+        value: bool
+        | CreditTopupRequestAdditionalPropertyType4
+        | float
+        | int
+        | list[str]
+        | None
+        | str,
+    ) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

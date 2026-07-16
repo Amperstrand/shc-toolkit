@@ -14,17 +14,25 @@ from ...types import UNSET, File, Response, Unset
 def _get_kwargs(
     invoice_id: int,
     *,
+    format_: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
 
+    params: dict[str, Any] = {}
+
+    params["format"] = format_
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/invoices/{invoice_id}/electronic".format(
             invoice_id=quote(str(invoice_id), safe=""),
         ),
+        "params": params,
     }
 
     _kwargs["headers"] = headers
@@ -85,15 +93,16 @@ def sync_detailed(
     invoice_id: int,
     *,
     client: AuthenticatedClient | Client,
+    format_: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | File]:
     """Download the electronic representation of an owned invoice (binary)
 
-     Download the electronic representation of an owned invoice (binary). Staged parity op: declared in
-    the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download an electronic invoice document for an authenticated-client-owned invoice.
 
     Args:
         invoice_id (int):
+        format_ (str | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -106,6 +115,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         invoice_id=invoice_id,
+        format_=format_,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -120,15 +130,16 @@ def sync(
     invoice_id: int,
     *,
     client: AuthenticatedClient | Client,
+    format_: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | File | None:
     """Download the electronic representation of an owned invoice (binary)
 
-     Download the electronic representation of an owned invoice (binary). Staged parity op: declared in
-    the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download an electronic invoice document for an authenticated-client-owned invoice.
 
     Args:
         invoice_id (int):
+        format_ (str | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -142,6 +153,7 @@ def sync(
     return sync_detailed(
         invoice_id=invoice_id,
         client=client,
+        format_=format_,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -150,15 +162,16 @@ async def asyncio_detailed(
     invoice_id: int,
     *,
     client: AuthenticatedClient | Client,
+    format_: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | File]:
     """Download the electronic representation of an owned invoice (binary)
 
-     Download the electronic representation of an owned invoice (binary). Staged parity op: declared in
-    the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download an electronic invoice document for an authenticated-client-owned invoice.
 
     Args:
         invoice_id (int):
+        format_ (str | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -171,6 +184,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         invoice_id=invoice_id,
+        format_=format_,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -183,15 +197,16 @@ async def asyncio(
     invoice_id: int,
     *,
     client: AuthenticatedClient | Client,
+    format_: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | File | None:
     """Download the electronic representation of an owned invoice (binary)
 
-     Download the electronic representation of an owned invoice (binary). Staged parity op: declared in
-    the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download an electronic invoice document for an authenticated-client-owned invoice.
 
     Args:
         invoice_id (int):
+        format_ (str | Unset):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -206,6 +221,7 @@ async def asyncio(
         await asyncio_detailed(
             invoice_id=invoice_id,
             client=client,
+            format_=format_,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

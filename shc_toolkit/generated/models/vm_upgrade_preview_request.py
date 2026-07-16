@@ -9,6 +9,9 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.vm_upgrade_preview_request_additional_property_type_4 import (
+        VmUpgradePreviewRequestAdditionalPropertyType4,
+    )
     from ..models.vm_upgrade_preview_request_config_options import (
         VmUpgradePreviewRequestConfigOptions,
     )
@@ -36,9 +39,22 @@ class VmUpgradePreviewRequest:
     pricing_ref: int | str | Unset = UNSET
     config_options: VmUpgradePreviewRequestConfigOptions | Unset = UNSET
     pricing_id: int | Unset = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+    additional_properties: dict[
+        str,
+        bool
+        | float
+        | int
+        | list[str]
+        | None
+        | str
+        | VmUpgradePreviewRequestAdditionalPropertyType4,
+    ] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.vm_upgrade_preview_request_additional_property_type_4 import (
+            VmUpgradePreviewRequestAdditionalPropertyType4,
+        )
+
         pricing_ref: int | str | Unset
         if isinstance(self.pricing_ref, Unset):
             pricing_ref = UNSET
@@ -52,7 +68,15 @@ class VmUpgradePreviewRequest:
         pricing_id = self.pricing_id
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+        for prop_name, prop in self.additional_properties.items():
+            if isinstance(prop, VmUpgradePreviewRequestAdditionalPropertyType4):
+                field_dict[prop_name] = prop.to_dict()
+            elif isinstance(prop, list):
+                field_dict[prop_name] = prop
+
+            else:
+                field_dict[prop_name] = prop
+
         field_dict.update({})
         if pricing_ref is not UNSET:
             field_dict["pricing_ref"] = pricing_ref
@@ -65,6 +89,9 @@ class VmUpgradePreviewRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.vm_upgrade_preview_request_additional_property_type_4 import (
+            VmUpgradePreviewRequestAdditionalPropertyType4,
+        )
         from ..models.vm_upgrade_preview_request_config_options import (
             VmUpgradePreviewRequestConfigOptions,
         )
@@ -95,17 +122,86 @@ class VmUpgradePreviewRequest:
             pricing_id=pricing_id,
         )
 
-        vm_upgrade_preview_request.additional_properties = d
+        additional_properties = {}
+        for prop_name, prop_dict in d.items():
+
+            def _parse_additional_property(
+                data: object,
+            ) -> (
+                bool
+                | float
+                | int
+                | list[str]
+                | None
+                | str
+                | VmUpgradePreviewRequestAdditionalPropertyType4
+            ):
+                if data is None:
+                    return data
+                try:
+                    if not isinstance(data, dict):
+                        raise TypeError()
+                    additional_property_type_4 = (
+                        VmUpgradePreviewRequestAdditionalPropertyType4.from_dict(data)
+                    )
+
+                    return additional_property_type_4
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                try:
+                    if not isinstance(data, list):
+                        raise TypeError()
+                    additional_property_type_5 = cast(list[str], data)
+
+                    return additional_property_type_5
+                except (TypeError, ValueError, AttributeError, KeyError):
+                    pass
+                return cast(
+                    bool
+                    | float
+                    | int
+                    | list[str]
+                    | None
+                    | str
+                    | VmUpgradePreviewRequestAdditionalPropertyType4,
+                    data,
+                )
+
+            additional_property = _parse_additional_property(prop_dict)
+
+            additional_properties[prop_name] = additional_property
+
+        vm_upgrade_preview_request.additional_properties = additional_properties
         return vm_upgrade_preview_request
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(
+        self, key: str
+    ) -> (
+        bool
+        | float
+        | int
+        | list[str]
+        | None
+        | str
+        | VmUpgradePreviewRequestAdditionalPropertyType4
+    ):
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(
+        self,
+        key: str,
+        value: bool
+        | float
+        | int
+        | list[str]
+        | None
+        | str
+        | VmUpgradePreviewRequestAdditionalPropertyType4,
+    ) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

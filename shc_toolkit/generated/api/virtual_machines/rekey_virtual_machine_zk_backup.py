@@ -7,19 +7,17 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
-from ...models.rekey_virtual_machine_zk_backup_body import (
-    RekeyVirtualMachineZkBackupBody,
-)
 from ...models.rekey_virtual_machine_zk_backup_response_200 import (
     RekeyVirtualMachineZkBackupResponse200,
 )
+from ...models.zk_backup_retention_rekey_request import ZkBackupRetentionRekeyRequest
 from ...types import Response
 
 
 def _get_kwargs(
     service_id: int,
     *,
-    body: RekeyVirtualMachineZkBackupBody,
+    body: ZkBackupRetentionRekeyRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -122,23 +120,24 @@ def sync_detailed(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: RekeyVirtualMachineZkBackupBody,
+    body: ZkBackupRetentionRekeyRequest,
 ) -> Response[Error | RekeyVirtualMachineZkBackupResponse200]:
     """Rekey (rotate) a VM's zero-knowledge backup registration
 
-     DESTRUCTIVE. Installs a NEW zero-knowledge backup key generation for the VM. Prior-generation
-    encrypted backups become UNRECOVERABLE by design. Two-step confirm: first call without X-User-Api-
-    Confirm to receive a 409 confirmation_id, then re-send the identical request with the header after a
-    human approves. The body carries the client-derived recipient pubkeys + KDF config; SHC never
-    receives the password or any private key.
+     Rotates the VM ZK backup recipient set forward for future backups while preserving self-custody for
+    existing sealed backups. Requires X-User-Api-Confirm and ack=REKEY-WITH-RETENTION with selected
+    currently-active recipient fingerprints carried forward into the submitted new set. SHC ZK backup is
+    genuine self-custody, the same model as Bitcoin: your keys, your data. Backups already sealed to a
+    recovery key stay openable by that key until you rotate forward and re-upload the backups you care
+    about; that is the sovereignty property. If a recovery key is exposed, register a fresh recipient
+    set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC cannot
+    re-seal, claw back, or reach into existing backup data; that inability is the guarantee.
 
     Args:
         service_id (int):
-        body (RekeyVirtualMachineZkBackupBody):  Example: {'destroy_ack': 'DESTROY-MY-BACKUPS',
-            'zk_backup': {'config': {'v': 1, 'alg': 'argon2id13', 'ctx': 'shc-vps-backup-v1', 'ops':
-            3, 'mem': 268435456, 'salt': '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind':
-            'password', 'pubkey': 'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f',
-            'label': 'primary'}]}}.
+        body (ZkBackupRetentionRekeyRequest): Rotate-forward ZK backup rekey request. Future
+            backups use the submitted recipient set; existing backups stay openable by their sealed
+            recovery keys until the customer re-uploads the backups they care about.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -164,23 +163,24 @@ def sync(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: RekeyVirtualMachineZkBackupBody,
+    body: ZkBackupRetentionRekeyRequest,
 ) -> Error | RekeyVirtualMachineZkBackupResponse200 | None:
     """Rekey (rotate) a VM's zero-knowledge backup registration
 
-     DESTRUCTIVE. Installs a NEW zero-knowledge backup key generation for the VM. Prior-generation
-    encrypted backups become UNRECOVERABLE by design. Two-step confirm: first call without X-User-Api-
-    Confirm to receive a 409 confirmation_id, then re-send the identical request with the header after a
-    human approves. The body carries the client-derived recipient pubkeys + KDF config; SHC never
-    receives the password or any private key.
+     Rotates the VM ZK backup recipient set forward for future backups while preserving self-custody for
+    existing sealed backups. Requires X-User-Api-Confirm and ack=REKEY-WITH-RETENTION with selected
+    currently-active recipient fingerprints carried forward into the submitted new set. SHC ZK backup is
+    genuine self-custody, the same model as Bitcoin: your keys, your data. Backups already sealed to a
+    recovery key stay openable by that key until you rotate forward and re-upload the backups you care
+    about; that is the sovereignty property. If a recovery key is exposed, register a fresh recipient
+    set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC cannot
+    re-seal, claw back, or reach into existing backup data; that inability is the guarantee.
 
     Args:
         service_id (int):
-        body (RekeyVirtualMachineZkBackupBody):  Example: {'destroy_ack': 'DESTROY-MY-BACKUPS',
-            'zk_backup': {'config': {'v': 1, 'alg': 'argon2id13', 'ctx': 'shc-vps-backup-v1', 'ops':
-            3, 'mem': 268435456, 'salt': '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind':
-            'password', 'pubkey': 'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f',
-            'label': 'primary'}]}}.
+        body (ZkBackupRetentionRekeyRequest): Rotate-forward ZK backup rekey request. Future
+            backups use the submitted recipient set; existing backups stay openable by their sealed
+            recovery keys until the customer re-uploads the backups they care about.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -201,23 +201,24 @@ async def asyncio_detailed(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: RekeyVirtualMachineZkBackupBody,
+    body: ZkBackupRetentionRekeyRequest,
 ) -> Response[Error | RekeyVirtualMachineZkBackupResponse200]:
     """Rekey (rotate) a VM's zero-knowledge backup registration
 
-     DESTRUCTIVE. Installs a NEW zero-knowledge backup key generation for the VM. Prior-generation
-    encrypted backups become UNRECOVERABLE by design. Two-step confirm: first call without X-User-Api-
-    Confirm to receive a 409 confirmation_id, then re-send the identical request with the header after a
-    human approves. The body carries the client-derived recipient pubkeys + KDF config; SHC never
-    receives the password or any private key.
+     Rotates the VM ZK backup recipient set forward for future backups while preserving self-custody for
+    existing sealed backups. Requires X-User-Api-Confirm and ack=REKEY-WITH-RETENTION with selected
+    currently-active recipient fingerprints carried forward into the submitted new set. SHC ZK backup is
+    genuine self-custody, the same model as Bitcoin: your keys, your data. Backups already sealed to a
+    recovery key stay openable by that key until you rotate forward and re-upload the backups you care
+    about; that is the sovereignty property. If a recovery key is exposed, register a fresh recipient
+    set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC cannot
+    re-seal, claw back, or reach into existing backup data; that inability is the guarantee.
 
     Args:
         service_id (int):
-        body (RekeyVirtualMachineZkBackupBody):  Example: {'destroy_ack': 'DESTROY-MY-BACKUPS',
-            'zk_backup': {'config': {'v': 1, 'alg': 'argon2id13', 'ctx': 'shc-vps-backup-v1', 'ops':
-            3, 'mem': 268435456, 'salt': '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind':
-            'password', 'pubkey': 'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f',
-            'label': 'primary'}]}}.
+        body (ZkBackupRetentionRekeyRequest): Rotate-forward ZK backup rekey request. Future
+            backups use the submitted recipient set; existing backups stay openable by their sealed
+            recovery keys until the customer re-uploads the backups they care about.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -241,23 +242,24 @@ async def asyncio(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: RekeyVirtualMachineZkBackupBody,
+    body: ZkBackupRetentionRekeyRequest,
 ) -> Error | RekeyVirtualMachineZkBackupResponse200 | None:
     """Rekey (rotate) a VM's zero-knowledge backup registration
 
-     DESTRUCTIVE. Installs a NEW zero-knowledge backup key generation for the VM. Prior-generation
-    encrypted backups become UNRECOVERABLE by design. Two-step confirm: first call without X-User-Api-
-    Confirm to receive a 409 confirmation_id, then re-send the identical request with the header after a
-    human approves. The body carries the client-derived recipient pubkeys + KDF config; SHC never
-    receives the password or any private key.
+     Rotates the VM ZK backup recipient set forward for future backups while preserving self-custody for
+    existing sealed backups. Requires X-User-Api-Confirm and ack=REKEY-WITH-RETENTION with selected
+    currently-active recipient fingerprints carried forward into the submitted new set. SHC ZK backup is
+    genuine self-custody, the same model as Bitcoin: your keys, your data. Backups already sealed to a
+    recovery key stay openable by that key until you rotate forward and re-upload the backups you care
+    about; that is the sovereignty property. If a recovery key is exposed, register a fresh recipient
+    set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC cannot
+    re-seal, claw back, or reach into existing backup data; that inability is the guarantee.
 
     Args:
         service_id (int):
-        body (RekeyVirtualMachineZkBackupBody):  Example: {'destroy_ack': 'DESTROY-MY-BACKUPS',
-            'zk_backup': {'config': {'v': 1, 'alg': 'argon2id13', 'ctx': 'shc-vps-backup-v1', 'ops':
-            3, 'mem': 268435456, 'salt': '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind':
-            'password', 'pubkey': 'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f',
-            'label': 'primary'}]}}.
+        body (ZkBackupRetentionRekeyRequest): Rotate-forward ZK backup rekey request. Future
+            backups use the submitted recipient set; existing backups stay openable by their sealed
+            recovery keys until the customer re-uploads the backups they care about.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

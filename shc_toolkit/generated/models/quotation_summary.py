@@ -21,7 +21,7 @@ T = TypeVar("T", bound="QuotationSummary")
 class QuotationSummary:
     """Compact view of one quotation owned by the authenticated client. Money fields are formatted as fixed-point strings
     (two decimal places) to preserve precision. Returned directly in the GET /quotations list; the GET
-    /quotations/{quotationId} detail response composes this summary with notes and line_items via allOf.
+    /quotations/{quotation_id} detail response composes this summary with notes and line_items via allOf.
 
         Attributes:
             id (int):  Example: 9001.

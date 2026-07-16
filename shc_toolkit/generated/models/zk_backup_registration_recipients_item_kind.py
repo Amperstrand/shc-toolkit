@@ -7,6 +7,7 @@ class ZkBackupRegistrationRecipientsItemKind(str, Enum):
     PASSKEY = "passkey"
     PASSWORD = "password"
     PGP = "pgp"
+    PQ_HYBRID = "pq-hybrid"
     RECOVERY_KEY = "recovery-key"
     SECP256K1 = "secp256k1"
     SHAMIR = "shamir"

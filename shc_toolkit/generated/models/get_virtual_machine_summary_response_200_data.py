@@ -57,9 +57,8 @@ class GetVirtualMachineSummaryResponse200Data:
         has_active_job (bool | Unset): True if any of the recent jobs is pending or running.
         recent_jobs (list[GetVirtualMachineSummaryResponse200DataRecentJobsItem] | Unset): The five most recent
             provisioning/lifecycle jobs for this VM (placement fields omitted).
-        runtime (None | Unset | VmRuntimeOverview): v2.4.0 (additive): live runtime (state/lock/cpu/mem) so /detail is
-            not needed for power state. null when the hypervisor read fails — the summary itself still succeeds (tolerant by
-            design, unlike /detail which 502s).
+        runtime (VmRuntimeOverview | Unset): Live power-state snapshot (subset of the Proxmox status/current; host-
+            identifying fields are omitted).
     """
 
     id: int
@@ -82,12 +81,10 @@ class GetVirtualMachineSummaryResponse200Data:
     recent_jobs: list[GetVirtualMachineSummaryResponse200DataRecentJobsItem] | Unset = (
         UNSET
     )
-    runtime: None | Unset | VmRuntimeOverview = UNSET
+    runtime: VmRuntimeOverview | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.vm_runtime_overview import VmRuntimeOverview
-
         id = self.id
 
         hostname: None | str
@@ -156,13 +153,9 @@ class GetVirtualMachineSummaryResponse200Data:
                 recent_jobs_item = recent_jobs_item_data.to_dict()
                 recent_jobs.append(recent_jobs_item)
 
-        runtime: dict[str, Any] | None | Unset
-        if isinstance(self.runtime, Unset):
-            runtime = UNSET
-        elif isinstance(self.runtime, VmRuntimeOverview):
+        runtime: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.runtime, Unset):
             runtime = self.runtime.to_dict()
-        else:
-            runtime = self.runtime
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -347,22 +340,12 @@ class GetVirtualMachineSummaryResponse200Data:
 
                 recent_jobs.append(recent_jobs_item)
 
-        def _parse_runtime(data: object) -> None | Unset | VmRuntimeOverview:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, dict):
-                    raise TypeError()
-                runtime_type_1 = VmRuntimeOverview.from_dict(data)
-
-                return runtime_type_1
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(None | Unset | VmRuntimeOverview, data)
-
-        runtime = _parse_runtime(d.pop("runtime", UNSET))
+        _runtime = d.pop("runtime", UNSET)
+        runtime: VmRuntimeOverview | Unset
+        if isinstance(_runtime, Unset):
+            runtime = UNSET
+        else:
+            runtime = VmRuntimeOverview.from_dict(_runtime)
 
         get_virtual_machine_summary_response_200_data = cls(
             id=id,

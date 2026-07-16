@@ -92,12 +92,11 @@ def sync_detailed(
 ) -> Response[Error | File]:
     """Download an attachment from an owned support ticket (binary)
 
-     Download an attachment from an owned support ticket (binary). Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download one attachment from an authenticated-client-owned support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        attachment_id (int):  Example: 88.
+        ticket_id (int):
+        attachment_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -130,12 +129,11 @@ def sync(
 ) -> Error | File | None:
     """Download an attachment from an owned support ticket (binary)
 
-     Download an attachment from an owned support ticket (binary). Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download one attachment from an authenticated-client-owned support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        attachment_id (int):  Example: 88.
+        ticket_id (int):
+        attachment_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -163,12 +161,11 @@ async def asyncio_detailed(
 ) -> Response[Error | File]:
     """Download an attachment from an owned support ticket (binary)
 
-     Download an attachment from an owned support ticket (binary). Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download one attachment from an authenticated-client-owned support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        attachment_id (int):  Example: 88.
+        ticket_id (int):
+        attachment_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -199,12 +196,11 @@ async def asyncio(
 ) -> Error | File | None:
     """Download an attachment from an owned support ticket (binary)
 
-     Download an attachment from an owned support ticket (binary). Staged parity op: declared in the
-    canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Download one attachment from an authenticated-client-owned support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        attachment_id (int):  Example: 88.
+        ticket_id (int):
+        attachment_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:

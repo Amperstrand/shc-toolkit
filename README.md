@@ -301,10 +301,10 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 
 ## Testing Status
 
-### v2.4.3.1 Release (2026-07-11)
-- **170 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
+### v2.4.15.1 Release
+- **207 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
 - **mypy type checking**: 0 errors
-- **MCP coverage**: 141/142 tools wrapped (99%)
+- ** MCP coverage**: 156/157 tools wrapped (99%)
 - **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
 - **CI**: 6 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity) + auto-issue-creation on drift

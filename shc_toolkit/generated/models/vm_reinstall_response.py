@@ -21,7 +21,8 @@ class VmReinstallResponse:
     Attributes:
         id (int):  Example: 353.
         action (str):  Example: reinstall.
-        job_id (int): Id of the queued reinstall job; poll GET /vm/{serviceId}/jobs/{jobId} for progress. Example: 912.
+        job_id (int): Id of the queued reinstall job; poll GET /vm/{service_id}/jobs/{job_id} for progress. Example:
+            912.
         template (str):  Example: debian13-cloud.
         gui_choice (str): Server-resolved desktop/GUI provisioning choice for the reinstall (`none` when not
             applicable). Not client-settable. Example: none.

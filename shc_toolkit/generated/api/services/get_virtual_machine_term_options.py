@@ -93,8 +93,8 @@ def sync_detailed(
 ) -> Response[Error | GetVirtualMachineTermOptionsResponse200]:
     """List available billing terms for this virtual machine
 
-     List available billing terms for this virtual machine. Staged parity op: declared in the canonical
-    2.5 surface; handler lands separately (release_state=staged until then).
+     List same-package recurring billing terms available to an authenticated-client-owned virtual
+    machine.
 
     Args:
         service_id (int):
@@ -128,8 +128,8 @@ def sync(
 ) -> Error | GetVirtualMachineTermOptionsResponse200 | None:
     """List available billing terms for this virtual machine
 
-     List available billing terms for this virtual machine. Staged parity op: declared in the canonical
-    2.5 surface; handler lands separately (release_state=staged until then).
+     List same-package recurring billing terms available to an authenticated-client-owned virtual
+    machine.
 
     Args:
         service_id (int):
@@ -158,8 +158,8 @@ async def asyncio_detailed(
 ) -> Response[Error | GetVirtualMachineTermOptionsResponse200]:
     """List available billing terms for this virtual machine
 
-     List available billing terms for this virtual machine. Staged parity op: declared in the canonical
-    2.5 surface; handler lands separately (release_state=staged until then).
+     List same-package recurring billing terms available to an authenticated-client-owned virtual
+    machine.
 
     Args:
         service_id (int):
@@ -191,8 +191,8 @@ async def asyncio(
 ) -> Error | GetVirtualMachineTermOptionsResponse200 | None:
     """List available billing terms for this virtual machine
 
-     List available billing terms for this virtual machine. Staged parity op: declared in the canonical
-    2.5 surface; handler lands separately (release_state=staged until then).
+     List same-package recurring billing terms available to an authenticated-client-owned virtual
+    machine.
 
     Args:
         service_id (int):

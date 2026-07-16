@@ -81,8 +81,8 @@ def sync_detailed(
 ) -> Response[Error | GetNostrLinkChallengeResponse200]:
     """Get a short-lived challenge for linking a Nostr public key (Basic+OTP only)
 
-     Get a short-lived challenge for linking a Nostr public key (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Mint a short-lived Nostr link/unlink challenge for the Basic-authenticated client; OTP may be
+    required by the account.
 
     Args:
         x_user_api_otp (str | Unset):
@@ -113,8 +113,8 @@ def sync(
 ) -> Error | GetNostrLinkChallengeResponse200 | None:
     """Get a short-lived challenge for linking a Nostr public key (Basic+OTP only)
 
-     Get a short-lived challenge for linking a Nostr public key (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Mint a short-lived Nostr link/unlink challenge for the Basic-authenticated client; OTP may be
+    required by the account.
 
     Args:
         x_user_api_otp (str | Unset):
@@ -140,8 +140,8 @@ async def asyncio_detailed(
 ) -> Response[Error | GetNostrLinkChallengeResponse200]:
     """Get a short-lived challenge for linking a Nostr public key (Basic+OTP only)
 
-     Get a short-lived challenge for linking a Nostr public key (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Mint a short-lived Nostr link/unlink challenge for the Basic-authenticated client; OTP may be
+    required by the account.
 
     Args:
         x_user_api_otp (str | Unset):
@@ -170,8 +170,8 @@ async def asyncio(
 ) -> Error | GetNostrLinkChallengeResponse200 | None:
     """Get a short-lived challenge for linking a Nostr public key (Basic+OTP only)
 
-     Get a short-lived challenge for linking a Nostr public key (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Mint a short-lived Nostr link/unlink challenge for the Basic-authenticated client; OTP may be
+    required by the account.
 
     Args:
         x_user_api_otp (str | Unset):

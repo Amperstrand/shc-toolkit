@@ -108,7 +108,7 @@ def sync_detailed(
     """List VM snapshots
 
      Returns a canonical paginated list of snapshot items for one owned VM service. Active job metadata
-    is no longer embedded here; use `GET /vm/{serviceId}/jobs` for job state.
+    is no longer embedded here; use `GET /vm/{service_id}/jobs` for job state.
 
     Args:
         service_id (int):
@@ -149,7 +149,7 @@ def sync(
     """List VM snapshots
 
      Returns a canonical paginated list of snapshot items for one owned VM service. Active job metadata
-    is no longer embedded here; use `GET /vm/{serviceId}/jobs` for job state.
+    is no longer embedded here; use `GET /vm/{service_id}/jobs` for job state.
 
     Args:
         service_id (int):
@@ -185,7 +185,7 @@ async def asyncio_detailed(
     """List VM snapshots
 
      Returns a canonical paginated list of snapshot items for one owned VM service. Active job metadata
-    is no longer embedded here; use `GET /vm/{serviceId}/jobs` for job state.
+    is no longer embedded here; use `GET /vm/{service_id}/jobs` for job state.
 
     Args:
         service_id (int):
@@ -224,7 +224,7 @@ async def asyncio(
     """List VM snapshots
 
      Returns a canonical paginated list of snapshot items for one owned VM service. Active job metadata
-    is no longer embedded here; use `GET /vm/{serviceId}/jobs` for job state.
+    is no longer embedded here; use `GET /vm/{service_id}/jobs` for job state.
 
     Args:
         service_id (int):

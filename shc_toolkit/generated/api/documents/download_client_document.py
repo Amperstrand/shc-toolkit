@@ -89,11 +89,10 @@ def sync_detailed(
 ) -> Response[Error | File]:
     """Download an owned document (binary)
 
-     Download an owned document (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one authenticated-client-owned document by the live /v2 document_id path parameter.
 
     Args:
-        document_id (int):  Example: 88.
+        document_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -124,11 +123,10 @@ def sync(
 ) -> Error | File | None:
     """Download an owned document (binary)
 
-     Download an owned document (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one authenticated-client-owned document by the live /v2 document_id path parameter.
 
     Args:
-        document_id (int):  Example: 88.
+        document_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -154,11 +152,10 @@ async def asyncio_detailed(
 ) -> Response[Error | File]:
     """Download an owned document (binary)
 
-     Download an owned document (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one authenticated-client-owned document by the live /v2 document_id path parameter.
 
     Args:
-        document_id (int):  Example: 88.
+        document_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -187,11 +184,10 @@ async def asyncio(
 ) -> Error | File | None:
     """Download an owned document (binary)
 
-     Download an owned document (binary). Staged parity op: declared in the canonical 2.5 surface;
-    handler lands separately (release_state=staged until then).
+     Download one authenticated-client-owned document by the live /v2 document_id path parameter.
 
     Args:
-        document_id (int):  Example: 88.
+        document_id (int):
         x_user_api_otp (str | Unset):
 
     Raises:

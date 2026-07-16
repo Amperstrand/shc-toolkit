@@ -120,16 +120,19 @@ def sync_detailed(
 
      Updates backup/snapshot schedule, retention, notification, and encryption-pubkey preferences for one
     owned VM. PATCH semantics: only the sections/keys present are changed. Returns the refreshed
-    preferences (same shape as GET). The encryption pubkey value is never returned.
+    preferences (same shape as GET). The encryption pubkey value is never returned. If the body contains
+    zk_backup for first registration, the request requires X-User-Api-Confirm; SHC writes the initial
+    customer recipient set and never receives private key material.
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmDataPreferencesUpdateRequest): Update backup/snapshot schedule, retention,
             notification, and encryption-pubkey preferences. PATCH semantics: only the sections/keys
-            present are changed. At least one recognized field is expected. Example: {'backup':
-            {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'], 'auto_time': '03:00'},
-            'notify': {'failed': True, 'success': False}}.
+            present are changed. At least one recognized field is expected. If zk_backup is supplied
+            for first registration, X-User-Api-Confirm is required before the initial recipient set is
+            written. Example: {'backup': {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'],
+            'auto_time': '03:00'}, 'notify': {'failed': True, 'success': False}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -163,16 +166,19 @@ def sync(
 
      Updates backup/snapshot schedule, retention, notification, and encryption-pubkey preferences for one
     owned VM. PATCH semantics: only the sections/keys present are changed. Returns the refreshed
-    preferences (same shape as GET). The encryption pubkey value is never returned.
+    preferences (same shape as GET). The encryption pubkey value is never returned. If the body contains
+    zk_backup for first registration, the request requires X-User-Api-Confirm; SHC writes the initial
+    customer recipient set and never receives private key material.
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmDataPreferencesUpdateRequest): Update backup/snapshot schedule, retention,
             notification, and encryption-pubkey preferences. PATCH semantics: only the sections/keys
-            present are changed. At least one recognized field is expected. Example: {'backup':
-            {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'], 'auto_time': '03:00'},
-            'notify': {'failed': True, 'success': False}}.
+            present are changed. At least one recognized field is expected. If zk_backup is supplied
+            for first registration, X-User-Api-Confirm is required before the initial recipient set is
+            written. Example: {'backup': {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'],
+            'auto_time': '03:00'}, 'notify': {'failed': True, 'success': False}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -201,16 +207,19 @@ async def asyncio_detailed(
 
      Updates backup/snapshot schedule, retention, notification, and encryption-pubkey preferences for one
     owned VM. PATCH semantics: only the sections/keys present are changed. Returns the refreshed
-    preferences (same shape as GET). The encryption pubkey value is never returned.
+    preferences (same shape as GET). The encryption pubkey value is never returned. If the body contains
+    zk_backup for first registration, the request requires X-User-Api-Confirm; SHC writes the initial
+    customer recipient set and never receives private key material.
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmDataPreferencesUpdateRequest): Update backup/snapshot schedule, retention,
             notification, and encryption-pubkey preferences. PATCH semantics: only the sections/keys
-            present are changed. At least one recognized field is expected. Example: {'backup':
-            {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'], 'auto_time': '03:00'},
-            'notify': {'failed': True, 'success': False}}.
+            present are changed. At least one recognized field is expected. If zk_backup is supplied
+            for first registration, X-User-Api-Confirm is required before the initial recipient set is
+            written. Example: {'backup': {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'],
+            'auto_time': '03:00'}, 'notify': {'failed': True, 'success': False}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -242,16 +251,19 @@ async def asyncio(
 
      Updates backup/snapshot schedule, retention, notification, and encryption-pubkey preferences for one
     owned VM. PATCH semantics: only the sections/keys present are changed. Returns the refreshed
-    preferences (same shape as GET). The encryption pubkey value is never returned.
+    preferences (same shape as GET). The encryption pubkey value is never returned. If the body contains
+    zk_backup for first registration, the request requires X-User-Api-Confirm; SHC writes the initial
+    customer recipient set and never receives private key material.
 
     Args:
         service_id (int):
         x_user_api_otp (str | Unset):
         body (VmDataPreferencesUpdateRequest): Update backup/snapshot schedule, retention,
             notification, and encryption-pubkey preferences. PATCH semantics: only the sections/keys
-            present are changed. At least one recognized field is expected. Example: {'backup':
-            {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'], 'auto_time': '03:00'},
-            'notify': {'failed': True, 'success': False}}.
+            present are changed. At least one recognized field is expected. If zk_backup is supplied
+            for first registration, X-User-Api-Confirm is required before the initial recipient set is
+            written. Example: {'backup': {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'],
+            'auto_time': '03:00'}, 'notify': {'failed': True, 'success': False}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

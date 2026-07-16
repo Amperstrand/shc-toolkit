@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -12,8 +12,8 @@ from ..models.get_virtual_machine_backup_restore_hints_response_200_data_source 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item import (
-        GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem,
+    from ..models.get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
+        GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4,
     )
 
 
@@ -33,7 +33,8 @@ class GetVirtualMachineBackupRestoreHintsResponse200Data:
         encrypted (bool):
         key_type (str | Unset):
         wrapped_blob (str | Unset):
-        unwrap_hints (list[GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem] | Unset):
+        unwrap_hints (list[bool | float | GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4 | int |
+            list[str] | None | str] | Unset):
         fingerprint (str | Unset):
     """
 
@@ -44,12 +45,25 @@ class GetVirtualMachineBackupRestoreHintsResponse200Data:
     key_type: str | Unset = UNSET
     wrapped_blob: str | Unset = UNSET
     unwrap_hints: (
-        list[GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem] | Unset
+        list[
+            bool
+            | float
+            | GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4
+            | int
+            | list[str]
+            | None
+            | str
+        ]
+        | Unset
     ) = UNSET
     fingerprint: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
+            GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4,
+        )
+
         service_id = self.service_id
 
         source = self.source.value
@@ -62,11 +76,25 @@ class GetVirtualMachineBackupRestoreHintsResponse200Data:
 
         wrapped_blob = self.wrapped_blob
 
-        unwrap_hints: list[dict[str, Any]] | Unset = UNSET
+        unwrap_hints: (
+            list[bool | dict[str, Any] | float | int | list[str] | None | str] | Unset
+        ) = UNSET
         if not isinstance(self.unwrap_hints, Unset):
             unwrap_hints = []
             for unwrap_hints_item_data in self.unwrap_hints:
-                unwrap_hints_item = unwrap_hints_item_data.to_dict()
+                unwrap_hints_item: (
+                    bool | dict[str, Any] | float | int | list[str] | None | str
+                )
+                if isinstance(
+                    unwrap_hints_item_data,
+                    GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4,
+                ):
+                    unwrap_hints_item = unwrap_hints_item_data.to_dict()
+                elif isinstance(unwrap_hints_item_data, list):
+                    unwrap_hints_item = unwrap_hints_item_data
+
+                else:
+                    unwrap_hints_item = unwrap_hints_item_data
                 unwrap_hints.append(unwrap_hints_item)
 
         fingerprint = self.fingerprint
@@ -94,8 +122,8 @@ class GetVirtualMachineBackupRestoreHintsResponse200Data:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item import (
-            GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem,
+        from ..models.get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
+            GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4,
         )
 
         d = dict(src_dict)
@@ -115,15 +143,64 @@ class GetVirtualMachineBackupRestoreHintsResponse200Data:
 
         _unwrap_hints = d.pop("unwrap_hints", UNSET)
         unwrap_hints: (
-            list[GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem]
+            list[
+                bool
+                | float
+                | GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4
+                | int
+                | list[str]
+                | None
+                | str
+            ]
             | Unset
         ) = UNSET
         if _unwrap_hints is not UNSET:
             unwrap_hints = []
             for unwrap_hints_item_data in _unwrap_hints:
-                unwrap_hints_item = GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItem.from_dict(
-                    unwrap_hints_item_data
-                )
+
+                def _parse_unwrap_hints_item(
+                    data: object,
+                ) -> (
+                    bool
+                    | float
+                    | GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4
+                    | int
+                    | list[str]
+                    | None
+                    | str
+                ):
+                    if data is None:
+                        return data
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        unwrap_hints_item_type_4 = GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4.from_dict(
+                            data
+                        )
+
+                        return unwrap_hints_item_type_4
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, list):
+                            raise TypeError()
+                        unwrap_hints_item_type_5 = cast(list[str], data)
+
+                        return unwrap_hints_item_type_5
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    return cast(
+                        bool
+                        | float
+                        | GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4
+                        | int
+                        | list[str]
+                        | None
+                        | str,
+                        data,
+                    )
+
+                unwrap_hints_item = _parse_unwrap_hints_item(unwrap_hints_item_data)
 
                 unwrap_hints.append(unwrap_hints_item)
 

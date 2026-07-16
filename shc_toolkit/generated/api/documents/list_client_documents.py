@@ -6,14 +6,18 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
+from ...models.list_client_documents_order import ListClientDocumentsOrder
 from ...models.list_client_documents_response_200 import ListClientDocumentsResponse200
+from ...models.list_client_documents_sort import ListClientDocumentsSort
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
+    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -21,6 +25,18 @@ def _get_kwargs(
         headers["X-User-Api-OTP"] = x_user_api_otp
 
     params: dict[str, Any] = {}
+
+    json_sort: str | Unset = UNSET
+    if not isinstance(sort, Unset):
+        json_sort = sort.value
+
+    params["sort"] = json_sort
+
+    json_order: str | Unset = UNSET
+    if not isinstance(order, Unset):
+        json_order = order.value
+
+    params["order"] = json_order
 
     params["limit"] = limit
 
@@ -86,18 +102,22 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
+    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListClientDocumentsResponse200]:
     """List documents visible to the authenticated account
 
-     List documents visible to the authenticated account. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     List documents visible to the authenticated client using the live /v2 sort and pagination query
+    parameters.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
+        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -109,6 +129,8 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
+        sort=sort,
+        order=order,
         limit=limit,
         offset=offset,
         x_user_api_otp=x_user_api_otp,
@@ -124,18 +146,22 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
+    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListClientDocumentsResponse200 | None:
     """List documents visible to the authenticated account
 
-     List documents visible to the authenticated account. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     List documents visible to the authenticated client using the live /v2 sort and pagination query
+    parameters.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
+        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -148,6 +174,8 @@ def sync(
 
     return sync_detailed(
         client=client,
+        sort=sort,
+        order=order,
         limit=limit,
         offset=offset,
         x_user_api_otp=x_user_api_otp,
@@ -157,18 +185,22 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
+    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListClientDocumentsResponse200]:
     """List documents visible to the authenticated account
 
-     List documents visible to the authenticated account. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     List documents visible to the authenticated client using the live /v2 sort and pagination query
+    parameters.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
+        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -180,6 +212,8 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
+        sort=sort,
+        order=order,
         limit=limit,
         offset=offset,
         x_user_api_otp=x_user_api_otp,
@@ -193,18 +227,22 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = UNSET,
-    offset: int | Unset = UNSET,
+    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
+    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    limit: int | Unset = 100,
+    offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListClientDocumentsResponse200 | None:
     """List documents visible to the authenticated account
 
-     List documents visible to the authenticated account. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     List documents visible to the authenticated client using the live /v2 sort and pagination query
+    parameters.
 
     Args:
-        limit (int | Unset):
-        offset (int | Unset):
+        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
+        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        limit (int | Unset):  Default: 100.
+        offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -218,6 +256,8 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
+            sort=sort,
+            order=order,
             limit=limit,
             offset=offset,
             x_user_api_otp=x_user_api_otp,

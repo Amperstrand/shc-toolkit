@@ -13,18 +13,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    body: UnlinkNostrIdentityBody | Unset = UNSET,
-    x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str | Unset = UNSET,
+    body: UnlinkNostrIdentityBody,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    if not isinstance(x_user_api_confirm, Unset):
-        headers["X-User-Api-Confirm"] = x_user_api_confirm
-
-    if not isinstance(idempotency_key, Unset):
-        headers["Idempotency-Key"] = idempotency_key
-
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
 
@@ -33,8 +25,7 @@ def _get_kwargs(
         "url": "/account/nostr/unlink",
     }
 
-    if not isinstance(body, Unset):
-        _kwargs["json"] = body.to_dict()
+    _kwargs["json"] = body.to_dict()
 
     headers["Content-Type"] = "application/json"
 
@@ -94,22 +85,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    body: UnlinkNostrIdentityBody | Unset = UNSET,
-    x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str | Unset = UNSET,
+    client: AuthenticatedClient,
+    body: UnlinkNostrIdentityBody,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | UnlinkNostrIdentityResponse200]:
     """Unlink the Nostr identity from the authenticated account (Basic+OTP only)
 
-     Unlink the Nostr identity from the authenticated account (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Unlink the authenticated client's Nostr identity using a signed challenge event from the currently
+    linked key.
 
     Args:
-        x_user_api_confirm (str | Unset):
-        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
-        body (UnlinkNostrIdentityBody | Unset):
+        body (UnlinkNostrIdentityBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,8 +108,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -135,22 +120,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    body: UnlinkNostrIdentityBody | Unset = UNSET,
-    x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str | Unset = UNSET,
+    client: AuthenticatedClient,
+    body: UnlinkNostrIdentityBody,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | UnlinkNostrIdentityResponse200 | None:
     """Unlink the Nostr identity from the authenticated account (Basic+OTP only)
 
-     Unlink the Nostr identity from the authenticated account (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Unlink the authenticated client's Nostr identity using a signed challenge event from the currently
+    linked key.
 
     Args:
-        x_user_api_confirm (str | Unset):
-        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
-        body (UnlinkNostrIdentityBody | Unset):
+        body (UnlinkNostrIdentityBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -163,30 +144,24 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    body: UnlinkNostrIdentityBody | Unset = UNSET,
-    x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str | Unset = UNSET,
+    client: AuthenticatedClient,
+    body: UnlinkNostrIdentityBody,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | UnlinkNostrIdentityResponse200]:
     """Unlink the Nostr identity from the authenticated account (Basic+OTP only)
 
-     Unlink the Nostr identity from the authenticated account (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Unlink the authenticated client's Nostr identity using a signed challenge event from the currently
+    linked key.
 
     Args:
-        x_user_api_confirm (str | Unset):
-        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
-        body (UnlinkNostrIdentityBody | Unset):
+        body (UnlinkNostrIdentityBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -198,8 +173,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        x_user_api_confirm=x_user_api_confirm,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -210,22 +183,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    body: UnlinkNostrIdentityBody | Unset = UNSET,
-    x_user_api_confirm: str | Unset = UNSET,
-    idempotency_key: str | Unset = UNSET,
+    client: AuthenticatedClient,
+    body: UnlinkNostrIdentityBody,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | UnlinkNostrIdentityResponse200 | None:
     """Unlink the Nostr identity from the authenticated account (Basic+OTP only)
 
-     Unlink the Nostr identity from the authenticated account (Basic+OTP only). Staged parity op:
-    declared in the canonical 2.5 surface; handler lands separately (release_state=staged until then).
+     Unlink the authenticated client's Nostr identity using a signed challenge event from the currently
+    linked key.
 
     Args:
-        x_user_api_confirm (str | Unset):
-        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
-        body (UnlinkNostrIdentityBody | Unset):
+        body (UnlinkNostrIdentityBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -239,8 +208,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            x_user_api_confirm=x_user_api_confirm,
-            idempotency_key=idempotency_key,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

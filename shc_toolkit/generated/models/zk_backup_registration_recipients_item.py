@@ -27,11 +27,17 @@ class ZkBackupRegistrationRecipientsItem:
             `btc` — a Bitcoin key. `other` — any other X25519-capable material the customer manages.
         pubkey (str): X25519 public key (hex); private key never leaves the client.
         label (str | Unset):
+        mlkem_pubkey (str | Unset): ML-KEM-1024 public key hex for pq-hybrid recipients. Public key only; private key
+            never leaves the customer.
+        reader_id (str | Unset): Derived by SHC as SHA256(pubkey_x25519_hex || mlkem_pubkey) and returned in recipient
+            status.
     """
 
     kind: ZkBackupRegistrationRecipientsItemKind
     pubkey: str
     label: str | Unset = UNSET
+    mlkem_pubkey: str | Unset = UNSET
+    reader_id: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,6 +46,10 @@ class ZkBackupRegistrationRecipientsItem:
         pubkey = self.pubkey
 
         label = self.label
+
+        mlkem_pubkey = self.mlkem_pubkey
+
+        reader_id = self.reader_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -51,6 +61,10 @@ class ZkBackupRegistrationRecipientsItem:
         )
         if label is not UNSET:
             field_dict["label"] = label
+        if mlkem_pubkey is not UNSET:
+            field_dict["mlkem_pubkey"] = mlkem_pubkey
+        if reader_id is not UNSET:
+            field_dict["reader_id"] = reader_id
 
         return field_dict
 
@@ -63,10 +77,16 @@ class ZkBackupRegistrationRecipientsItem:
 
         label = d.pop("label", UNSET)
 
+        mlkem_pubkey = d.pop("mlkem_pubkey", UNSET)
+
+        reader_id = d.pop("reader_id", UNSET)
+
         zk_backup_registration_recipients_item = cls(
             kind=kind,
             pubkey=pubkey,
             label=label,
+            mlkem_pubkey=mlkem_pubkey,
+            reader_id=reader_id,
         )
 
         zk_backup_registration_recipients_item.additional_properties = d

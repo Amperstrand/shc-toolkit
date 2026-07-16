@@ -18,9 +18,13 @@ def _get_kwargs(
     body: AffiliatePayoutRequest,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
+    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
+    if not isinstance(idempotency_key, Unset):
+        headers["Idempotency-Key"] = idempotency_key
+
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
 
@@ -132,6 +136,7 @@ def sync_detailed(
     body: AffiliatePayoutRequest,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
+    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | RequestAffiliatePayoutResponse201]:
     """Request an affiliate payout
@@ -148,6 +153,7 @@ def sync_detailed(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
+        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
         body (AffiliatePayoutRequest):  Example: {'requested_amount': '0.001',
             'requested_currency': 'BTC'}.
@@ -164,6 +170,7 @@ def sync_detailed(
         body=body,
         limit=limit,
         offset=offset,
+        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -180,6 +187,7 @@ def sync(
     body: AffiliatePayoutRequest,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
+    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | RequestAffiliatePayoutResponse201 | None:
     """Request an affiliate payout
@@ -196,6 +204,7 @@ def sync(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
+        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
         body (AffiliatePayoutRequest):  Example: {'requested_amount': '0.001',
             'requested_currency': 'BTC'}.
@@ -213,6 +222,7 @@ def sync(
         body=body,
         limit=limit,
         offset=offset,
+        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -223,6 +233,7 @@ async def asyncio_detailed(
     body: AffiliatePayoutRequest,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
+    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | RequestAffiliatePayoutResponse201]:
     """Request an affiliate payout
@@ -239,6 +250,7 @@ async def asyncio_detailed(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
+        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
         body (AffiliatePayoutRequest):  Example: {'requested_amount': '0.001',
             'requested_currency': 'BTC'}.
@@ -255,6 +267,7 @@ async def asyncio_detailed(
         body=body,
         limit=limit,
         offset=offset,
+        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -269,6 +282,7 @@ async def asyncio(
     body: AffiliatePayoutRequest,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
+    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | RequestAffiliatePayoutResponse201 | None:
     """Request an affiliate payout
@@ -285,6 +299,7 @@ async def asyncio(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
+        idempotency_key (str | Unset):
         x_user_api_otp (str | Unset):
         body (AffiliatePayoutRequest):  Example: {'requested_amount': '0.001',
             'requested_currency': 'BTC'}.
@@ -303,6 +318,7 @@ async def asyncio(
             body=body,
             limit=limit,
             offset=offset,
+            idempotency_key=idempotency_key,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed

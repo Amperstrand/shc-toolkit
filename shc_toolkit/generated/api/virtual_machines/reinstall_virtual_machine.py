@@ -139,7 +139,7 @@ def sync_detailed(
 
      Destructive operation. The VM must already be stopped, and the template name must be one returned by
     GET /vm/templates. The reinstall is asynchronous: it returns 202 with a job_id you can poll via GET
-    /vm/{serviceId}/jobs/{jobId}.
+    /vm/{service_id}/jobs/{job_id}.
 
     Args:
         service_id (int):
@@ -181,7 +181,7 @@ def sync(
 
      Destructive operation. The VM must already be stopped, and the template name must be one returned by
     GET /vm/templates. The reinstall is asynchronous: it returns 202 with a job_id you can poll via GET
-    /vm/{serviceId}/jobs/{jobId}.
+    /vm/{service_id}/jobs/{job_id}.
 
     Args:
         service_id (int):
@@ -218,7 +218,7 @@ async def asyncio_detailed(
 
      Destructive operation. The VM must already be stopped, and the template name must be one returned by
     GET /vm/templates. The reinstall is asynchronous: it returns 202 with a job_id you can poll via GET
-    /vm/{serviceId}/jobs/{jobId}.
+    /vm/{service_id}/jobs/{job_id}.
 
     Args:
         service_id (int):
@@ -258,7 +258,7 @@ async def asyncio(
 
      Destructive operation. The VM must already be stopped, and the template name must be one returned by
     GET /vm/templates. The reinstall is asynchronous: it returns 202 with a job_id you can poll via GET
-    /vm/{serviceId}/jobs/{jobId}.
+    /vm/{service_id}/jobs/{job_id}.
 
     Args:
         service_id (int):

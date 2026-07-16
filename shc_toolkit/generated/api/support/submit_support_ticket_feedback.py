@@ -20,13 +20,9 @@ def _get_kwargs(
     ticket_id: int,
     *,
     body: SubmitSupportTicketFeedbackBody,
-    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    if not isinstance(idempotency_key, Unset):
-        headers["Idempotency-Key"] = idempotency_key
-
     if not isinstance(x_user_api_otp, Unset):
         headers["X-User-Api-OTP"] = x_user_api_otp
 
@@ -100,17 +96,14 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: SubmitSupportTicketFeedbackBody,
-    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | SubmitSupportTicketFeedbackResponse200]:
     """Record feedback for an owned support ticket
 
-     Record feedback for an owned support ticket. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Submit or replace feedback for an authenticated-client-owned closed support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        idempotency_key (str | Unset):
+        ticket_id (int):
         x_user_api_otp (str | Unset):
         body (SubmitSupportTicketFeedbackBody):
 
@@ -125,7 +118,6 @@ def sync_detailed(
     kwargs = _get_kwargs(
         ticket_id=ticket_id,
         body=body,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -141,17 +133,14 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: SubmitSupportTicketFeedbackBody,
-    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | SubmitSupportTicketFeedbackResponse200 | None:
     """Record feedback for an owned support ticket
 
-     Record feedback for an owned support ticket. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Submit or replace feedback for an authenticated-client-owned closed support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        idempotency_key (str | Unset):
+        ticket_id (int):
         x_user_api_otp (str | Unset):
         body (SubmitSupportTicketFeedbackBody):
 
@@ -167,7 +156,6 @@ def sync(
         ticket_id=ticket_id,
         client=client,
         body=body,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     ).parsed
 
@@ -177,17 +165,14 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: SubmitSupportTicketFeedbackBody,
-    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | SubmitSupportTicketFeedbackResponse200]:
     """Record feedback for an owned support ticket
 
-     Record feedback for an owned support ticket. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Submit or replace feedback for an authenticated-client-owned closed support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        idempotency_key (str | Unset):
+        ticket_id (int):
         x_user_api_otp (str | Unset):
         body (SubmitSupportTicketFeedbackBody):
 
@@ -202,7 +187,6 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         ticket_id=ticket_id,
         body=body,
-        idempotency_key=idempotency_key,
         x_user_api_otp=x_user_api_otp,
     )
 
@@ -216,17 +200,14 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: SubmitSupportTicketFeedbackBody,
-    idempotency_key: str | Unset = UNSET,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | SubmitSupportTicketFeedbackResponse200 | None:
     """Record feedback for an owned support ticket
 
-     Record feedback for an owned support ticket. Staged parity op: declared in the canonical 2.5
-    surface; handler lands separately (release_state=staged until then).
+     Submit or replace feedback for an authenticated-client-owned closed support ticket.
 
     Args:
-        ticket_id (int):  Example: 501.
-        idempotency_key (str | Unset):
+        ticket_id (int):
         x_user_api_otp (str | Unset):
         body (SubmitSupportTicketFeedbackBody):
 
@@ -243,7 +224,6 @@ async def asyncio(
             ticket_id=ticket_id,
             client=client,
             body=body,
-            idempotency_key=idempotency_key,
             x_user_api_otp=x_user_api_otp,
         )
     ).parsed
