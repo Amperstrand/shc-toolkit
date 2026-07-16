@@ -241,7 +241,7 @@ class TestMcpConvertArgs:
 class TestMcpToolMap:
     def test_core_tool_count(self):
         from shc_toolkit.mcp_client import TOOL_MAP
-        assert len(TOOL_MAP) == 127
+        assert len(TOOL_MAP) == 124
 
     def test_key_mappings(self):
         from shc_toolkit.mcp_client import TOOL_MAP
@@ -264,7 +264,6 @@ class TestMcpToolMap:
             "preview_vm_term_change", "list_orders", "get_order",
             "cancel_pending_order", "list_quotations", "get_quotation",
             "approve_quotation", "list_quotation_invoices",
-            "link_nostr_identity", "unlink_nostr_identity", "update_nip05",
             "list_documents", "download_document", "list_downloads",
             "download_file", "get_support_ticket_attachment",
             "submit_support_ticket_feedback", "get_invoice_electronic",

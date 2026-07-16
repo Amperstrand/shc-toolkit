@@ -89,9 +89,6 @@ TOOL_MAP: dict[str, str] = {
     "approve_quotation": "approveQuotation",
     "list_quotation_invoices": "listQuotationInvoices",
     # Nostr account linking (v2.4.3)
-    "link_nostr_identity": "linkNostrIdentity",
-    "unlink_nostr_identity": "unlinkNostrIdentity",
-    "update_nip05": "updateNip05",
     # Documents + Downloads (v2.4.3)
     "list_documents": "listClientDocuments",
     "download_document": "downloadClientDocument",
@@ -779,15 +776,6 @@ class SHCMCPClient:
         return self._extract_items(self._call("list_quotation_invoices", quotation_id=quotation_id))
 
     # Nostr account linking (v2.4.3)
-    def link_nostr_identity(self, **body) -> dict:
-        return self.call_tool("linkNostrIdentity", {"body": body})
-
-    def unlink_nostr_identity(self, **body) -> dict:
-        return self.call_tool("unlinkNostrIdentity", {"body": body})
-
-    def update_nip05(self, **body) -> dict:
-        return self.call_tool("updateNip05", {"body": body})
-
     # Documents + Downloads (v2.4.3)
     def list_documents(self, **params) -> list[dict]:
         return self._extract_items(self._call("list_documents", **params))
