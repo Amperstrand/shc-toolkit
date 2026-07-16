@@ -35,6 +35,8 @@ class CostSession:
     daily_price: float
     ordered_at: datetime
     credit_before_order: float | None = None
+    actual_charge: float | None = None
+    charge_verified: bool = False
 
 
 @dataclass
@@ -47,6 +49,10 @@ class CostReport:
     duration_hours: float
     expected_cost: float
     actual_net_cost: float | None = None
+    actual_charge: float | None = None
+    expected_refund: float | None = None
+    actual_refund: float | None = None
+    ledger_refund: float | None = None
     mismatch: bool = False
     notes: list[str] = field(default_factory=list)
 
@@ -60,6 +66,9 @@ class CostReport:
             "duration_hours": round(self.duration_hours, 2),
             "expected_cost": self.expected_cost,
             "actual_net_cost": self.actual_net_cost,
+            "actual_charge": self.actual_charge,
+            "expected_refund": self.expected_refund,
+            "actual_refund": self.actual_refund,
             "mismatch": self.mismatch,
             "notes": self.notes,
         }
@@ -82,6 +91,7 @@ class CostTracker:
         service_id: int,
         package_id: int,
         credit_before: float | None = None,
+        actual_charge: float | None = None,
     ) -> CostSession:
         """Record session metadata at order time. No audit — just tracking.
 
@@ -90,14 +100,22 @@ class CostTracker:
             package_id: The package ordered.
             credit_before: Credit balance snapshot from before the order,
                 used later at cancel time for the full-lifecycle diff.
+            actual_charge: The charge amount returned by the API, if available.
+                Compared against daily_price to flag mismatches.
         """
         daily_price = self._client.estimate_daily_cost(package_id)
+        charge_verified = (
+            actual_charge is not None
+            and abs(actual_charge - daily_price) <= PRICE_TOLERANCE_USD
+        )
         session = CostSession(
             service_id=service_id,
             package_id=package_id,
             daily_price=daily_price,
             ordered_at=datetime.now(timezone.utc),
             credit_before_order=credit_before,
+            actual_charge=actual_charge,
+            charge_verified=charge_verified,
         )
         self._sessions[service_id] = session
         log.info(
@@ -109,6 +127,7 @@ class CostTracker:
     def audit_cancel(
         self,
         service_id: int,
+        actual_refund: float | None = None,
         credit_after_cancel: float | None = None,
     ) -> CostReport | None:
         """Single authoritative audit at cancel time.
@@ -119,6 +138,7 @@ class CostTracker:
 
         Args:
             service_id: The VM service ID.
+            actual_refund: The refund amount returned by the cancel API.
             credit_after_cancel: Credit balance snapshot from after cancel.
                 None if balance couldn't be captured.
         """
@@ -152,7 +172,36 @@ class CostTracker:
             duration_hours=round(hours, 2),
             expected_cost=expected_cost,
             actual_net_cost=actual_net_cost,
+            actual_charge=session.actual_charge,
+            actual_refund=actual_refund,
         )
+
+        if session.actual_charge is not None:
+            report.expected_refund = round(session.actual_charge - expected_cost, 2)
+            if actual_refund is not None and report.expected_refund is not None:
+                refund_diff = abs(actual_refund - report.expected_refund)
+                if refund_diff <= PRICE_TOLERANCE_USD:
+                    log.info(
+                        "Cost audit: svc %s — refund $%.2f matches expected $%.2f",
+                        service_id, actual_refund, report.expected_refund,
+                    )
+                else:
+                    ledger_refund = self._ledger_refund(service_id)
+                    report.ledger_refund = ledger_refund
+                    if (
+                        ledger_refund is not None
+                        and abs(ledger_refund - report.expected_refund) <= PRICE_TOLERANCE_USD
+                    ):
+                        report.mismatch = False
+                        report.notes.append("balance_diff_noisy_concurrent_activity")
+                    elif ledger_refund is not None:
+                        report.mismatch = True
+                        report.notes.append("ledger_confirms_mismatch")
+                    else:
+                        report.mismatch = True
+                        report.notes.append(
+                            f"refund_diff_${actual_refund - report.expected_refund:+.2f}"
+                        )
 
         if actual_net_cost is not None:
             diff = abs(actual_net_cost - expected_cost)
@@ -191,8 +240,29 @@ class CostTracker:
                 service_id, hours, expected_cost,
             )
 
-        del self._sessions[service_id]
         return report
+
+    def _ledger_refund(self, service_id: int) -> float | None:
+        """Sum of all refunds (negative payments) for this VM from the ledger."""
+        try:
+            payments = self._client.get_vm_payments(service_id)
+        except Exception:
+            return None
+
+        refunds = []
+        for p in payments:
+            for field_name in ("total", "paid", "amount"):
+                raw = p.get(field_name)
+                if raw is None:
+                    continue
+                try:
+                    val = float(raw)
+                except (TypeError, ValueError):
+                    continue
+                if val < 0:
+                    refunds.append(abs(val))
+                    break
+        return round(sum(refunds), 2) if refunds else None
 
     def _ledger_cost(self, service_id: int) -> float | None:
         """Sum of all charges for this VM from the per-VM payment ledger."""
@@ -246,6 +316,7 @@ class CostTracker:
             "ordered_at": session.ordered_at.isoformat(),
             "elapsed_hours": round(hours, 2),
             "current_expected_cost": expected_cost,
+            "actual_charge": session.actual_charge,
         }
 
     def all_sessions(self) -> list[dict]:
