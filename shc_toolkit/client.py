@@ -1055,6 +1055,7 @@ class SHCClient:
         max_age_hours: float = 2.0,
         hostname_prefixes: list[str] | None = None,
         exclude_hostnames: list[str] | None = None,
+        keep_patterns: list[str] | None = None,
         dry_run: bool = False,
     ) -> list[dict]:
         """Destroy orphaned VMs that match test patterns and exceed max age.
@@ -1065,12 +1066,16 @@ class SHCClient:
         Args:
             max_age_hours: Destroy VMs older than this (default: 2 hours).
             hostname_prefixes: List of prefixes to match (default: test patterns).
-            exclude_hostnames: Never destroy these hostnames (default: production).
+            exclude_hostnames: Never destroy these exact hostnames (default: production).
+            keep_patterns: Never destroy VMs whose hostname contains any of these
+                substrings (default: ["tollgate-main-"]). Parallel to KEEP_PATTERNS
+                in reap_orphan_vms.py. Use to protect intentional test VMs.
             dry_run: If True, report what would be destroyed without cancelling.
 
         Returns:
             List of destroyed (or would-be-destroyed) VM dicts.
         """
+        import os
         from datetime import datetime, timezone
 
         if hostname_prefixes is None:
@@ -1091,6 +1096,12 @@ class SHCClient:
                 "europa-vpn-vps",
             ]
 
+        if keep_patterns is None:
+            keep_patterns = ["tollgate-main-"]
+        env_extra = os.environ.get("SHC_REAPER_EXTRA_KEEP_PATTERNS", "")
+        if env_extra:
+            keep_patterns = [*keep_patterns, *(p.strip() for p in env_extra.split(",") if p.strip())]
+
         now = datetime.now(timezone.utc)
         orphans = []
 
@@ -1104,6 +1115,10 @@ class SHCClient:
 
             if hostname in exclude_hostnames:
                 log.debug(f"reap: skipping excluded hostname {hostname}")
+                continue
+
+            if any(p in hostname for p in keep_patterns):
+                log.debug(f"reap: skipping hostname {hostname} (matches keep pattern)")
                 continue
 
             is_test_vm = any(hostname.startswith(p) for p in hostname_prefixes)

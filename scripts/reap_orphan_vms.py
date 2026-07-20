@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -45,7 +46,11 @@ def should_keep(hostname: str) -> bool:
     h = hostname.lower()
     if h in KEEP_HOSTNAMES:
         return True
-    return any(p in h for p in KEEP_PATTERNS)
+    keep = KEEP_PATTERNS
+    env_extra = os.environ.get("SHC_REAPER_EXTRA_KEEP_PATTERNS", "")
+    if env_extra:
+        keep = [*keep, *(p.strip() for p in env_extra.split(",") if p.strip())]
+    return any(p in h for p in keep)
 
 
 def vm_age_hours(vm: dict) -> float:
