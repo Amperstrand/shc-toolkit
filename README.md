@@ -136,9 +136,12 @@ Both transports are **fully functional** for all operations including reads,
 writes, spend/destructive actions with confirmation flow, and upgrades.
 
 The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
-142 tools over Streamable HTTP. The toolkit wraps **141/142 (99%)** — the only
-unwrapped tool is `buyVirtualMachine` (a deprecated alias for
-`createVirtualMachineOrder`). Every spend and destructive op is confirm-gated
+157 tools over Streamable HTTP (the curated everyday subset is 35 ops marked
+`x-shc-core` in the spec). The toolkit's `TOOL_MAP` wraps 124 of the 157
+(79% of all MCP-exposed ops; 34/35 = 97% of the `x-shc-core` curated subset).
+The unwrapped ops are largely low-level siblings of wrapped parent ops (e.g.
+`getVirtualMachineBandwidth` is unwrapped because `getVirtualMachineSummary`
+already returns bandwidth). Every spend and destructive op is confirm-gated
 with automatic `Idempotency-Key` generation and `X-User-Api-Confirm` handling.
 
 CI tests randomly select REST or MCP per run, ensuring both transports receive

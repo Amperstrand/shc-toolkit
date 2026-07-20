@@ -1,19 +1,32 @@
 """Transport-agnostic interface for SHC API operations.
 
-Defines the SHCTransport Protocol that both SHCRESTClient (REST v2) and
+Defines the SHCTransport Protocol that both SHCClient (REST v2) and
 SHCMCPClient (MCP Streamable HTTP) implement. The factory in __init__.py
 selects the transport at runtime via SHC_TRANSPORT env var or explicit
 parameter.
 
 Transport selection:
-    SHC_TRANSPORT=rest   → SHCRESTClient (default, 85+ methods)
-    SHC_TRANSPORT=mcp    → SHCMCPClient  (23 core tools, 116 total)
+    SHC_TRANSPORT=rest   → SHCClient    (default; ~165 hand-written methods)
+    SHC_TRANSPORT=mcp    → SHCMCPClient (124 TOOL_MAP entries; live MCP
+                                         server exposes 157 tools total)
     SHC_TRANSPORT=auto   → try MCP, fall back to REST
 
 Both transports share identical method names and return shapes for all
 core operations. The REST client has additional methods (snapshots, ISO,
-rDNS, console, etc.) that the MCP client exposes via its full 116-tool
-catalog (request with header X-MCP-Tools: all).
+rDNS, console, firewall detail, contacts, affiliate, KB, etc.) that the
+MCP client exposes via the live server's full 157-tool catalog (request
+with header `X-MCP-Tools: all`).
+
+NOTE on `confirm` semantics across transports: methods that take
+`*, confirm: bool = True` behave differently depending on transport:
+  - REST (SHCClient): `confirm=False` is PROBE MODE — surfaces the 409
+    `confirmation_required` to the caller without auto-completing the
+    re-send. The caller reads `e.confirmation_id` and decides.
+  - MCP (SHCMCPClient): `confirm` is IGNORED — the MCP transport always
+    auto-completes the confirmation re-send inside `call_tool`. Probe
+    mode is not currently implementable on MCP without a wrapper change.
+Transport-agnostic callers should not rely on `confirm=False` surfacing
+the 409 uniformly; if probe mode is required, use REST explicitly.
 """
 
 from __future__ import annotations
@@ -25,13 +38,13 @@ from typing import Protocol, runtime_checkable
 class SHCTransport(Protocol):
     """Interface contract for SHC API transports.
 
-    Both SHCRESTClient and SHCMCPClient must implement these methods.
-    Method signatures match SHCRESTClient (client.py) exactly.
+    Both SHCClient and SHCMCPClient must implement these methods.
+    Method signatures match SHCClient (client.py) exactly.
 
-    The 23 core methods below are guaranteed on BOTH transports.
-    REST-only methods (snapshots, ISO, rDNS, console, firewall detail,
-    contacts, affiliate, KB, etc.) are available on REST always, and on
-    MCP when the full tool catalog is loaded.
+    The Protocol declares the shared surface — every method here is
+    implemented on BOTH transports. REST-only methods (e.g.
+    `revoke_api_key` which is identity-class per SHC v2.4.13 and not
+    exposed by the MCP server) are NOT on this Protocol.
     """
 
     # ── Account ──────────────────────────────────────────────
@@ -165,7 +178,9 @@ class SHCTransport(Protocol):
     def update_vm_cloud_init(
         self, service_id: int, *, cloud_init: str, confirm: bool = True
     ) -> dict: ...
-    def delete_vm_cloud_init(self, service_id: int, *, confirm: bool = True) -> dict: ...
+    def delete_vm_cloud_init(
+        self, service_id: int, *, confirm: bool = True
+    ) -> dict: ...
 
     # ── SSH Keys ─────────────────────────────────────────────
 
@@ -241,9 +256,7 @@ class SHCTransport(Protocol):
         **kwargs,
     ) -> dict: ...
 
-    def close_support_ticket(
-        self, ticket_id: int, *, confirm: bool = True
-    ) -> dict: ...
+    def close_support_ticket(self, ticket_id: int, *, confirm: bool = True) -> dict: ...
 
     # ── Wait / Poll ──────────────────────────────────────────
 

@@ -13,7 +13,7 @@ shc-toolkit (Python, v2.4.15.1)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (openapi-python-client)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 207+ tests (unit, ansible, network fixture, integration)
+├── tests/                       — 231+ tests (unit, ansible, network fixture, integration)
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper utilities
 └── .github/workflows/           — 7 CI workflows
@@ -127,7 +127,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/ -v --timeout=60
 ```
-All tests must pass. Currently 213 tests (207 existing + 6 reap_orphans).
+All tests must pass. Currently 231 tests.
 
 ### 2. Lint
 ```bash

@@ -16,7 +16,9 @@ Usage:
     vms = c.list_vms()
     c.start_vm(123)
 
-The MCP server exposes 116 tools (23 core). This client maps all core tools
+The MCP server exposes 157 tools (35 marked x-shc-core in the spec). This
+client maps 124 of them into TOOL_MAP — see ROADMAP.md for the coverage
+breakdown.
 to method names matching SHCClient. Non-core tools are callable via
 ``call_tool(name, arguments)``.
 """
@@ -737,7 +739,12 @@ class SHCMCPClient:
         )
 
     def set_snapshot_protection(
-        self, service_id: int, snapshot_id: str, protected: bool, *, confirm: bool = True
+        self,
+        service_id: int,
+        snapshot_id: str,
+        protected: bool,
+        *,
+        confirm: bool = True,
     ) -> dict:
         return self.call_tool(
             "setVirtualMachineSnapshotProtection",

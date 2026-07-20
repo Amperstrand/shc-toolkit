@@ -241,7 +241,8 @@ def cmd_order(args):
     # Validate idempotency key against SHC API constraints:
     # 16-128 chars, only [A-Za-z0-9_-]
     import re
-    if not re.match(r'^[A-Za-z0-9_-]{16,128}$', idem):
+
+    if not re.match(r"^[A-Za-z0-9_-]{16,128}$", idem):
         raise SystemExit(
             f"Error: idempotency key '{idem}' is invalid.\n"
             f"SHC requires 16-128 characters using only letters, numbers, "

@@ -24,7 +24,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 - **No hand-written code change**: `SHCClient` / `SHCMCPClient` / `transport.py` are byte-identical. `TOOL_MAP` stays at 124 entries. Decision: keep hand-written layer returning raw dicts (per 2026 maintainer consensus — avoid duplicate typed surfaces when an OpenAPI-generated Pydantic layer already exists).
 
 ### v2.4.15.1 Release (2026-07-16)
-- **MCP coverage**: 33% → 99% (141/142 tools, 124 TOOL_MAP entries)
+- **MCP coverage**: `TOOL_MAP` 124 entries wrapping 124/157 (79%) of MCP-exposed ops and 34/35 (97%) of the curated `x-shc-core` subset
 - **Auto-generated Python client**: 718 files from OpenAPI spec (149 endpoints, 543 Pydantic models)
 - **API resilience**: 408 retry, auto-idempotency keys on confirmed requests, ±20% jitter
 - **Package maturity**: CHANGELOG.md, pyproject.toml v2.4.15.1, mypy CI (0 errors), PyPI publish workflow

@@ -708,7 +708,9 @@ class SHCClient:
     def get_affiliate_payout_destination(self) -> dict:
         return self._get("/affiliate/payout-destination")
 
-    def set_affiliate_payout_destination(self, *, confirm: bool = True, **kwargs) -> dict:
+    def set_affiliate_payout_destination(
+        self, *, confirm: bool = True, **kwargs
+    ) -> dict:
         return self._confirmed_request(
             "PUT", "/affiliate/payout-destination", confirm=confirm, json=kwargs
         )
@@ -1341,7 +1343,12 @@ class SHCClient:
         )
 
     def set_snapshot_protection(
-        self, service_id: int, snapshot_id: str, protected: bool, *, confirm: bool = True
+        self,
+        service_id: int,
+        snapshot_id: str,
+        protected: bool,
+        *,
+        confirm: bool = True,
     ) -> dict:
         return self._confirmed_request(
             "PATCH",

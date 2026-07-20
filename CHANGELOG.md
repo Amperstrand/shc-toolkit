@@ -42,7 +42,7 @@ fully wrapped in the toolkit's REST surface).
 - OpenAPI spec refreshed to v2.4.24 (148 paths, 197 schemas). Path count and
   `x-shc-core` count (35) are unchanged from v2.4.15; the drift is entirely
   response-shape specifications + one new schema.
-- Regenerated typed client: **727 attrs models** (was 543) across **932
+- Regenerated typed client: **729 attrs models** (was 543) across **932
   Python files** (was 906). The new response schemas are now typed end-to-end
   for anyone using `shc_toolkit.generated`. (openapi-python-client v0.29
   generates `attrs` classes — not Pydantic as previous CHANGELOG entries
