@@ -21,10 +21,11 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 - **Regenerated typed client**: 729 attrs models (was 543) across 932 files (was 906). Brings the typed surface up to v2.4.24; the v2.4.3 → v2.4.15 codegen blocker (duplicate enum) is resolved upstream. (openapi-python-client v0.29 generates `attrs` classes, not Pydantic — correcting a doc inaccuracy that dated back to v2.4.3.1.)
 - **New typed models**: `ConfirmationChallenge` (formalises the 409 / confirmation_id re-call flow) + 14 newly-specified response schemas (Nostr link/unlink/NIP-05, contact update, downloads, account manager, order fetch, pending-order cancel, quotation approve, ticket feedback, VM term options/preview).
 - **Drift CI fix**: added missing `.omo/llms.txt` baseline (40 lines). The `api-drift.yml` workflow was silently no-op'ing llms.txt drift detection without it.
-- **No hand-written code change**: `SHCClient` / `SHCMCPClient` / `transport.py` are byte-identical. `TOOL_MAP` stays at 124 entries. Decision: keep hand-written layer returning raw dicts (per 2026 maintainer consensus — avoid duplicate typed surfaces when an OpenAPI-generated Pydantic layer already exists).
+- **MCP coverage**: `TOOL_MAP` 125 entries wrapping 125/157 (80%) of MCP-exposed ops and 35/35 (100%) of the curated `x-shc-core` subset. The +1 entry vs v2.4.15.1 (`get_vm_credentials` → `getVirtualMachineCredentials`) closes the last unwrapped `x-shc-core` gap.
+- **Hand-written layer**: SHCClient / SHCMCPClient / transport.py method bodies unchanged from v2.4.15.1 except for: (a) 11 confirmation-flow fixes (#22) that swap `_post`/`_patch`/`_delete`/`_get` for `_confirmed_request`; (b) 3 new cloud-init REST wrappers (`validate_vm_cloud_init`/`update_vm_cloud_init`/`delete_vm_cloud_init`); (c) `close_support_ticket` switched to `_confirmed_request`. Decision on response typing: keep hand-written layer returning raw `dict` / `list[dict]` (per 2026 maintainer consensus — avoid duplicate typed surfaces when an OpenAPI-generated attrs layer already exists).
 
 ### v2.4.15.1 Release (2026-07-16)
-- **MCP coverage**: `TOOL_MAP` 125 entries wrapping 125/157 (80%) of MCP-exposed ops and 35/35 (100%) of the curated `x-shc-core` subset
+- **MCP coverage**: `TOOL_MAP` 124 entries (33% → 99% of the curated `x-shc-core` subset; 141/142 of the then-server tools)
 - **Auto-generated Python client**: 718 files from OpenAPI spec (149 endpoints, 543 Pydantic models)
 - **API resilience**: 408 retry, auto-idempotency keys on confirmed requests, ±20% jitter
 - **Package maturity**: CHANGELOG.md, pyproject.toml v2.4.15.1, mypy CI (0 errors), PyPI publish workflow

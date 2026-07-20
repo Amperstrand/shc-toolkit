@@ -137,8 +137,8 @@ writes, spend/destructive actions with confirmation flow, and upgrades.
 
 The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
 157 tools over Streamable HTTP (the curated everyday subset is 35 ops marked
-`x-shc-core` in the spec). The toolkit's `TOOL_MAP` wraps 124 of the 157
-(79% of all MCP-exposed ops; 34/35 = 97% of the `x-shc-core` curated subset).
+`x-shc-core` in the spec). The toolkit's `TOOL_MAP` wraps 125 of the 157
+(80% of all MCP-exposed ops; 35/35 = 100% of the `x-shc-core` curated subset).
 The unwrapped ops are largely low-level siblings of wrapped parent ops (e.g.
 `getVirtualMachineBandwidth` is unwrapped because `getVirtualMachineSummary`
 already returns bandwidth). Every spend and destructive op is confirm-gated
@@ -310,7 +310,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 - **231 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
 - **mypy type checking**: 0 errors (17 source files; generated/ excluded)
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
-- **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 124 entries
+- **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 125 entries
 - **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
 - **Generated typed client**: 932 files, 148 endpoint modules, 729 attrs models
 - **CI**: 7 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity, typecheck, ansible, publish) + auto-issue-creation on drift
