@@ -108,15 +108,24 @@ class ConsoleShell:
             .lower()
         )
 
-    def _send_text(self, text: str) -> None:
-        """Send text to the VM via noVNC textarea + Type button."""
+    def _send_text(self, text: str, max_wait: int = 15) -> None:
+        """Send text via noVNC textarea + Type button. Polls status for completion."""
         self._page.evaluate(
             f"""() => {{
                 document.getElementById('clipboard-textarea').value = {repr(text)};
                 document.getElementById('btn-send').click();
             }}"""
         )
-        self._page.wait_for_timeout(800)
+        for _ in range(30):
+            status = self._page.evaluate("() => document.getElementById('status').textContent")
+            if "typing" in status.lower():
+                break
+            self._page.wait_for_timeout(100)
+        for _ in range(max_wait * 10):
+            status = self._page.evaluate("() => document.getElementById('status').textContent")
+            if "connected" in status.lower():
+                return
+            self._page.wait_for_timeout(100)
 
     def connect(self) -> None:
         """Open a noVNC console session and connect."""
@@ -244,29 +253,40 @@ class CloudflareTunnel:
         return tunnel_url
 
     def _extract_tunnel_url(self, console: ConsoleShell) -> str | None:
-        """Get the tunnel URL via a transfer service for reliable extraction."""
-        output = console.run_cmd(
-            "grep -o 'https://[a-z0-9-]*\\.trycloudflare\\.com' "
-            "/tmp/cf-tunnel.log | head -1 | curl -s -L -F 'f:1=<-' http://ix.io 2>&1",
-            wait=10,
+        """Get the tunnel URL via ntfy.sh — OCR-free data transfer.
+
+        The VM posts the URL to an ntfy.sh topic; we read it via HTTP.
+        This avoids the unreliable OCR-based approach entirely.
+        """
+        import json as _json
+        import time as _time
+
+        topic = f"tg-tunnel-{self.service_id}-{int(_time.time())}"
+
+        console.run_cmd(
+            f"grep -m1 -o 'https://[a-z0-9-]*\\.trycloudflare\\.com' "
+            f"/tmp/cf-tunnel.log | curl -s -d @- ntfy.sh/{topic}",
+            wait=12,
         )
 
-        for line in output.split("\n"):
-            line = line.strip().replace(" ", "")
-            if "ix.io" in line and len(line) < 30:
-                r = subprocess.run(
-                    ["curl", "-s", "-L", line],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
+        import urllib.request
+        for _ in range(10):
+            _time.sleep(2)
+            try:
+                req = urllib.request.Request(
+                    f"https://ntfy.sh/{topic}/json?poll=1"
                 )
-                if "trycloudflare" in r.stdout:
-                    return r.stdout.strip()
-
-        for line in output.split("\n"):
-            line = line.strip().replace(" ", "")
-            if "trycloudflare" in line:
-                return line
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    for line in resp:
+                        line = line.strip().decode()
+                        if not line:
+                            continue
+                        msg = _json.loads(line)
+                        content = msg.get("message", "")
+                        if "trycloudflare" in content:
+                            return content.strip()
+            except Exception:
+                continue
 
         return None
 
