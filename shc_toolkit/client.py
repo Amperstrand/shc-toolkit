@@ -886,7 +886,7 @@ class SHCClient:
         if config_options:
             order_kwargs["config_options"] = config_options
 
-        _ = self._safe_credit()
+        credit_before = self._safe_credit()  # noqa: F841
         result = self.submit_order(
             check_credit=check_credit,
             include_dev_vps_options=not config_options,
@@ -938,7 +938,7 @@ class SHCClient:
             kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
-        _ = self._safe_credit()
+        credit_before = self._safe_credit()  # noqa: F841
         result = self._confirmed_request(
             "POST", "/ordering/submit", json=kwargs, headers=headers
         )
