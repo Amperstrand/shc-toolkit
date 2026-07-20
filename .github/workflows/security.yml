@@ -1,0 +1,44 @@
+---
+name: security
+
+on:
+  push:
+    branches: [main]
+    paths: ['shc_toolkit/**', '.github/workflows/security.yml', 'pyproject.toml']
+  pull_request:
+    branches: [main]
+    paths: ['shc_toolkit/**', '.github/workflows/security.yml', 'pyproject.toml']
+
+jobs:
+  bandit:
+    name: bandit security linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install bandit -q
+      - run: bandit -r shc_toolkit/ -ll
+
+  safety:
+    name: safety dependency scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install safety -q
+      - run: safety check --short-report
+
+  pip-audit:
+    name: pip-audit dependency scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install pip-audit -q
+      - run: pip-audit

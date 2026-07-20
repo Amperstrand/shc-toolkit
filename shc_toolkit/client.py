@@ -1306,6 +1306,42 @@ class SHCClient:
     def list_events(self, **params) -> list[dict]:
         return self._get_items("/events", params=params or None)
 
+    def batch(
+        self, requests: list[dict], *, idempotency_key: str | None = None
+    ) -> list[dict]:
+        """Submit up to 25 sub-requests as a single batch call.
+
+        Each request dict should have:
+            - method: HTTP method (GET, POST, PATCH, PUT, DELETE)
+            - path: API path relative to /user-api/v2 (e.g. "/account", "/vm/123")
+            - id (optional): correlation ID echoed in the response
+            - query (optional): query parameters
+            - body (optional): request body
+
+        Returns a list of result dicts in the same order, each with:
+            - id: correlation ID (if provided)
+            - status: HTTP status code
+            - body: response body
+
+        Each sub-request is independent — partial failures don't roll back
+        siblings. The batch itself requires Idempotency-Key; replaying the
+        same key returns the cached response without re-executing.
+
+        Example:
+            results = c.batch([
+                {"method": "GET", "path": "/account", "id": "acct"},
+                {"method": "GET", "path": "/vm/1077", "id": "vm"},
+            ])
+        """
+        if len(requests) > 25:
+            raise ValueError(
+                f"Batch supports at most 25 sub-requests, got {len(requests)}"
+            )
+        if not requests:
+            return []
+        result = self._post("/batch", {"items": requests})
+        return result.get("items", []) if isinstance(result, dict) else result
+
     # ── Snapshots ────────────────────────────────────────────
 
     def list_snapshots(self, service_id: int) -> list[dict]:

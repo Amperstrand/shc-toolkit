@@ -1548,3 +1548,103 @@ class TestIssue22ConfirmationFlowWiring:
         with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
             client.get_vm_credentials(1077, confirm=False)
             assert mock.call_args.kwargs["confirm"] is False
+
+
+class TestMcpProbeMode:
+    """MCP confirm=False probe mode — call_tool honors the confirm parameter."""
+
+    def test_confirm_false_passed_through_to_call_tool(self):
+        from unittest.mock import patch
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        with patch.object(mc, "call_tool", return_value={"ok": True}) as mock:
+            mc.update_preferences(theme="dark", confirm=False)
+            assert mock.call_args.kwargs.get("confirm") is False
+
+    def test_call_tool_probe_mode_raises_on_confirmation_required(self):
+        from unittest.mock import patch
+        from shc_toolkit.mcp_client import SHCMCPClient
+        from shc_toolkit.client import SHCConfirmationRequiredError
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        confirmation_response = {
+            "result": {
+                "structuredContent": {
+                    "status": "confirmation_required",
+                    "how_to_proceed": {"arguments": {"_confirmation_id": "cnf_test"}},
+                    "request_id": "req_test",
+                }
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=confirmation_response):
+            with pytest.raises(SHCConfirmationRequiredError):
+                mc.call_tool("cancelVirtualMachine", {"serviceId": 123}, confirm=False)
+
+    def test_call_tool_default_auto_confirms(self):
+        from unittest.mock import patch
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        confirmation_response = {
+            "result": {
+                "structuredContent": {
+                    "status": "confirmation_required",
+                    "how_to_proceed": {"arguments": {"_confirmation_id": "cnf_test"}},
+                }
+            }
+        }
+        success_response = {
+            "result": {"structuredContent": {"data": {"ok": True}}},
+        }
+        with patch.object(
+            mc, "_send_jsonrpc", side_effect=[confirmation_response, success_response]
+        ):
+            result = mc.call_tool("cancelVirtualMachine", {"serviceId": 123})
+            assert result == {"ok": True}
+
+
+class TestBatchHelper:
+    """SHCClient.batch() convenience wrapper for POST /batch."""
+
+    def test_batch_single_request(self):
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        fake = {"items": [{"id": "r1", "status": 200, "body": {"data": {"ok": True}}}]}
+        with patch.object(client, "_post", return_value=fake):
+            results = client.batch([{"method": "GET", "path": "/account", "id": "r1"}])
+            assert len(results) == 1
+            assert results[0]["status"] == 200
+
+    def test_batch_preserves_order(self):
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        fake = {
+            "items": [
+                {"id": "a", "status": 200, "body": {}},
+                {"id": "b", "status": 200, "body": {}},
+            ]
+        }
+        with patch.object(client, "_post", return_value=fake):
+            results = client.batch(
+                [
+                    {"method": "GET", "path": "/account", "id": "a"},
+                    {"method": "GET", "path": "/vms", "id": "b"},
+                ]
+            )
+            assert results[0]["id"] == "a"
+            assert results[1]["id"] == "b"
+
+    def test_batch_rejects_over_25(self):
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        too_many = [{"method": "GET", "path": f"/x/{i}"} for i in range(26)]
+        with pytest.raises(ValueError, match="25"):
+            client.batch(too_many)

@@ -34,7 +34,7 @@ from typing import Any
 
 import requests
 
-from .client import SHCError
+from .client import SHCConfirmationRequiredError, SHCError
 
 log = logging.getLogger(__name__)
 
@@ -446,12 +446,18 @@ class SHCMCPClient:
             return {}
         return json.loads(text[json_start:])
 
-    def call_tool(self, name: str, arguments: dict | None = None) -> Any:
+    def call_tool(
+        self, name: str, arguments: dict | None = None, *, confirm: bool = True
+    ) -> Any:
         """Call an MCP tool by name. Auto-handles confirmation flow.
 
         Args:
             name: MCP tool name (e.g. 'listVirtualMachines').
             arguments: Tool arguments dict.
+            confirm: When True (default), auto-completes the confirmation
+                re-send if the server returns 409 confirmation_required.
+                When False (probe mode), raises SHCConfirmationRequiredError
+                instead — matching REST's confirm=False behavior.
 
         Returns:
             The tool result data (unwrapped from MCP content array).
@@ -472,6 +478,15 @@ class SHCMCPClient:
             sc = result.get("structuredContent", {})
 
             if sc.get("status") == "confirmation_required":
+                if not confirm:
+                    raise SHCConfirmationRequiredError(
+                        "confirmation_required",
+                        "Probe mode (confirm=False): action NOT performed. "
+                        "Pass confirm=True to auto-complete.",
+                        sc.get("request_id"),
+                        sc,
+                        "confirmation_required",
+                    )
                 how_to = sc.get("how_to_proceed", {})
                 retry_args = how_to.get("arguments")
                 if retry_args and attempt == 0:
@@ -487,7 +502,7 @@ class SHCMCPClient:
                     conf = e.details.get("confirmation", {})
                     if not cid and isinstance(conf, dict):
                         cid = conf.get("confirmation_id")
-                if not cid or attempt > 0:
+                if not cid or attempt > 0 or not confirm:
                     raise
                 args = {**args, "_confirmation_id": cid}
 
@@ -658,6 +673,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": body,
             },
+            confirm=confirm,
         )
         self.invalidate_cache("credit")
         return result
@@ -669,6 +685,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": self._convert_args(kwargs),
             },
+            confirm=confirm,
         )
 
     # Jobs
@@ -705,6 +722,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "backupId": backup_id,
             },
+            confirm=confirm,
         )
 
     def delete_backup(
@@ -716,6 +734,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": {"backup_id": backup_id},
             },
+            confirm=confirm,
         )
 
     def verify_backup(self, service_id: int, backup_id: str) -> dict:
@@ -736,6 +755,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": {"backup_id": backup_id, "protected": protected},
             },
+            confirm=confirm,
         )
 
     def get_backup_restore_hints(self, service_id: int) -> dict:
@@ -771,6 +791,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": {"snapshot_id": snapshot_id},
             },
+            confirm=confirm,
         )
 
     def delete_snapshot(
@@ -782,6 +803,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": {"snapshot_id": snapshot_id},
             },
+            confirm=confirm,
         )
 
     def verify_snapshot(self, service_id: int, snapshot_id: str) -> dict:
@@ -807,6 +829,7 @@ class SHCMCPClient:
                 "serviceId": service_id,
                 "body": {"snapshot_id": snapshot_id, "protected": protected},
             },
+            confirm=confirm,
         )
 
     def get_snapshot_restore_hints(self, service_id: int) -> dict:
@@ -1012,7 +1035,9 @@ class SHCMCPClient:
         return self._call("get_preferences")
 
     def update_preferences(self, *, confirm: bool = True, **body) -> dict:
-        return self.call_tool("updateAccountPreferences", {"body": body})
+        return self.call_tool(
+            "updateAccountPreferences", {"body": body}, confirm=confirm
+        )
 
     def get_autodebit(self) -> dict:
         return self._call("get_autodebit")
@@ -1021,7 +1046,7 @@ class SHCMCPClient:
         return self._call("get_credit_handling")
 
     def set_credit_handling(self, *, confirm: bool = True, **body) -> dict:
-        return self.call_tool("updateCreditHandling", {"body": body})
+        return self.call_tool("updateCreditHandling", {"body": body}, confirm=confirm)
 
     # Contacts
     def list_contacts(self) -> list[dict]:
@@ -1031,7 +1056,7 @@ class SHCMCPClient:
         return self._call("get_contact", contact_id=contact_id)
 
     def create_contact(self, *, confirm: bool = True, **body) -> dict:
-        return self.call_tool("createContact", {"body": body})
+        return self.call_tool("createContact", {"body": body}, confirm=confirm)
 
     def update_contact(self, contact_id: int, **body) -> dict:
         return self.call_tool("updateContact", {"contactId": contact_id, "body": body})
@@ -1047,11 +1072,15 @@ class SHCMCPClient:
         self, service_id: int, ssh_key: str, *, confirm: bool = True
     ) -> dict:
         return self.call_tool(
-            "setServiceSshKey", {"body": {"service_id": service_id, "ssh_key": ssh_key}}
+            "setServiceSshKey",
+            {"body": {"service_id": service_id, "ssh_key": ssh_key}},
+            confirm=confirm,
         )
 
     def delete_stored_ssh_key(self, service_id: int, *, confirm: bool = True) -> dict:
-        return self.call_tool("deleteServiceSshKey", {"serviceId": service_id})
+        return self.call_tool(
+            "deleteServiceSshKey", {"serviceId": service_id}, confirm=confirm
+        )
 
     def remove_ssh_key_live(self, service_id: int) -> dict:
         return self.call_tool("deleteLiveServiceSshKey", {"serviceId": service_id})
@@ -1073,7 +1102,9 @@ class SHCMCPClient:
 
     def close_support_ticket(self, ticket_id: int, *, confirm: bool = True) -> dict:
         # `confirm` is a Protocol-symmetry no-op: MCP handles confirmation_id via call_tool.
-        return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
+        return self.call_tool(
+            "closeSupportTicket", {"ticketId": ticket_id}, confirm=confirm
+        )
 
     # Affiliate
     def get_affiliate_overview(self) -> dict:
@@ -1089,7 +1120,9 @@ class SHCMCPClient:
         return self._call("get_affiliate_payout_destination")
 
     def set_affiliate_payout_destination(self, *, confirm: bool = True, **body) -> dict:
-        return self.call_tool("updateAffiliatePayoutDestination", {"body": body})
+        return self.call_tool(
+            "updateAffiliatePayoutDestination", {"body": body}, confirm=confirm
+        )
 
     def request_affiliate_payout(self, **body) -> dict:
         return self.call_tool("requestAffiliatePayout", {"body": body})
@@ -1256,7 +1289,9 @@ class SHCMCPClient:
         return self.call_tool("getVirtualMachineBandwidth", {"serviceId": service_id})
 
     def get_vm_credentials(self, service_id: int, *, confirm: bool = True) -> dict:
-        return self.call_tool("getVirtualMachineCredentials", {"serviceId": service_id})
+        return self.call_tool(
+            "getVirtualMachineCredentials", {"serviceId": service_id}, confirm=confirm
+        )
 
     def get_vm_network(self, service_id: int) -> dict:
         return self.call_tool("getVirtualMachineNetwork", {"serviceId": service_id})
@@ -1346,7 +1381,9 @@ class SHCMCPClient:
         )
 
     def unmount_iso(self, service_id: int, *, confirm: bool = True) -> dict:
-        return self.call_tool("unmountVirtualMachineIso", {"serviceId": service_id})
+        return self.call_tool(
+            "unmountVirtualMachineIso", {"serviceId": service_id}, confirm=confirm
+        )
 
     # Reverse DNS
     def list_rdns(self, service_id: int) -> list[dict]:

@@ -1498,6 +1498,63 @@ def main():
     p_kvm.add_argument("service_id", type=int)
     p_kvm.set_defaults(func=cmd_kvm_check)
 
+    # ── batch: multi-request convenience ─────────────────────
+    def cmd_batch(args):
+        import json as _json
+
+        c = _client(args)
+        if args.file:
+            with open(args.file) as f:
+                requests = _json.load(f)
+        else:
+            requests = _json.loads(sys.stdin.read())
+        results = c.batch(requests)
+        _print(results, _get_fmt(args))
+
+    p_batch = sub.add_parser(
+        "batch", help="Submit up to 25 API calls as a single batch"
+    )
+    p_batch.add_argument("--file", help="JSON file with request array (or read stdin)")
+    p_batch.set_defaults(func=cmd_batch)
+
+    # ── addons / term / contacts / quotations ────────────────
+    def cmd_addons(args):
+        c = _client(args)
+        _print(c.list_vm_addons(args.service_id), _get_fmt(args))
+
+    p = sub.add_parser("addons", help="List VM add-ons")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_addons)
+
+    def cmd_term_options(args):
+        c = _client(args)
+        _print(c.get_vm_term_options(args.service_id), _get_fmt(args))
+
+    p = sub.add_parser("term-options", help="List VM term/pricing options")
+    p.add_argument("service_id", type=int)
+    p.set_defaults(func=cmd_term_options)
+
+    def cmd_contacts(args):
+        c = _client(args)
+        _print(c.list_contacts(), _get_fmt(args))
+
+    p = sub.add_parser("contacts", help="List account contacts")
+    p.set_defaults(func=cmd_contacts)
+
+    def cmd_quotations(args):
+        c = _client(args)
+        _print(c.list_quotations(), _get_fmt(args))
+
+    p = sub.add_parser("quotations", help="List quotations")
+    p.set_defaults(func=cmd_quotations)
+
+    def cmd_downloads(args):
+        c = _client(args)
+        _print(c.list_downloads(), _get_fmt(args))
+
+    p = sub.add_parser("downloads", help="List downloadable files")
+    p.set_defaults(func=cmd_downloads)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()

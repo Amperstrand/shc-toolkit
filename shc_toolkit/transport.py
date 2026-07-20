@@ -17,16 +17,14 @@ rDNS, console, firewall detail, contacts, affiliate, KB, etc.) that the
 MCP client exposes via the live server's full 157-tool catalog (request
 with header `X-MCP-Tools: all`).
 
-NOTE on `confirm` semantics across transports: methods that take
-`*, confirm: bool = True` behave differently depending on transport:
-  - REST (SHCClient): `confirm=False` is PROBE MODE — surfaces the 409
-    `confirmation_required` to the caller without auto-completing the
-    re-send. The caller reads `e.confirmation_id` and decides.
-  - MCP (SHCMCPClient): `confirm` is IGNORED — the MCP transport always
-    auto-completes the confirmation re-send inside `call_tool`. Probe
-    mode is not currently implementable on MCP without a wrapper change.
-Transport-agnostic callers should not rely on `confirm=False` surfacing
-the 409 uniformly; if probe mode is required, use REST explicitly.
+NOTE on `confirm` semantics: methods that take `*, confirm: bool = True`
+behave consistently across both transports:
+  - `confirm=True` (default): auto-completes the confirmation re-send
+    when the server returns 409 confirmation_required.
+  - `confirm=False` (probe mode): surfaces the 409 to the caller as
+    SHCConfirmationRequiredError without performing the action. The
+    caller reads `e.confirmation_id` and decides whether to re-send.
+Both transports honor both modes identically.
 """
 
 from __future__ import annotations
