@@ -992,6 +992,32 @@ class SHCClient:
     def resume_vm(self, service_id: int) -> dict:
         return self._post(f"/vm/{service_id}/resume")
 
+    # Cloud-init (v2.4.7+). NOTE: path uses /virtual-machines/{virtualMachineId}/...
+    # not /vm/{serviceId}/... — the value is the same service_id, only the URL shape differs.
+
+    def validate_vm_cloud_init(self, service_id: int, *, cloud_init: str) -> dict:
+        return self._post(
+            f"/virtual-machines/{service_id}/cloud-init/validate",
+            {"cloudInit": cloud_init},
+        )
+
+    def update_vm_cloud_init(
+        self, service_id: int, *, cloud_init: str, confirm: bool = True
+    ) -> dict:
+        return self._confirmed_request(
+            "PUT",
+            f"/virtual-machines/{service_id}/cloud-init",
+            confirm=confirm,
+            json={"cloudInit": cloud_init},
+        )
+
+    def delete_vm_cloud_init(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "DELETE",
+            f"/virtual-machines/{service_id}/cloud-init",
+            confirm=confirm,
+        )
+
     def cancel_vm(
         self, service_id: int, *, immediate: bool = True, confirm: bool = True
     ) -> dict:
@@ -1038,6 +1064,8 @@ class SHCClient:
                 "test-",
                 "tmp-",
                 "ci-",
+                "tg-",
+                "zone-test-",
             ]
 
         if exclude_hostnames is None:

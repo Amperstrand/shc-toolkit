@@ -1347,3 +1347,70 @@ class TestReapOrphans:
                 exclude_hostnames=["tf-acc-keep"],
             )
             assert len(orphans) == 0
+
+
+class TestCloudInitRestWrappers:
+    """Unit tests for the SHCClient cloud-init REST wrappers.
+
+    SHC shipped customer cloud-init in v2.4.7 (validate / update / delete).
+    The MCP transport already wraps all three (TOOL_MAP entries); these
+    tests pin the REST surface that ships in v2.4.24.0 to close the parity
+    gap surfaced during the ticket-#2211883 audit.
+    """
+
+    def test_validate_vm_cloud_init_posts_to_correct_path(self):
+        """validate_vm_cloud_init POSTs to /virtual-machines/{id}/cloud-init/validate
+        with the {cloudInit: ...} body shape. Read-only, no confirmation."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_post", return_value={"accepted": True}) as mock:
+            result = client.validate_vm_cloud_init(1077, cloud_init="#cloud-config\npackages: [nginx]\n")
+            assert result == {"accepted": True}
+            mock.assert_called_once()
+            args, kwargs = mock.call_args
+            assert args[0] == "/virtual-machines/1077/cloud-init/validate"
+            assert args[1] == {"cloudInit": "#cloud-config\npackages: [nginx]\n"}
+
+    def test_update_vm_cloud_init_uses_confirmation_flow(self):
+        """update_vm_cloud_init is confirm-gated via _confirmed_request (PUT)."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            result = client.update_vm_cloud_init(1077, cloud_init="#cloud-config\nruncmd: []\n")
+            assert result == {"ok": True}
+            mock.assert_called_once()
+            args, kwargs = mock.call_args
+            assert args[0] == "PUT"
+            assert args[1] == "/virtual-machines/1077/cloud-init"
+            assert kwargs["json"] == {"cloudInit": "#cloud-config\nruncmd: []\n"}
+            assert kwargs["confirm"] is True
+
+    def test_update_vm_cloud_init_probe_mode(self):
+        """update_vm_cloud_init(confirm=False) probes — raises on 409 instead of auto-confirming."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            client.update_vm_cloud_init(1077, cloud_init="#cloud-config\n", confirm=False)
+            kwargs = mock.call_args.kwargs
+            assert kwargs["confirm"] is False
+
+    def test_delete_vm_cloud_init_uses_confirmation_flow(self):
+        """delete_vm_cloud_init is confirm-gated via _confirmed_request (DELETE)."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            result = client.delete_vm_cloud_init(1077)
+            assert result == {"ok": True}
+            mock.assert_called_once()
+            args, kwargs = mock.call_args
+            assert args[0] == "DELETE"
+            assert args[1] == "/virtual-machines/1077/cloud-init"
+            assert kwargs["confirm"] is True

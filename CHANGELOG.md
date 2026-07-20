@@ -12,16 +12,29 @@ same-day iterations, v2.4.16 → v2.4.24). The drift was detected by
 `shc-tests.yml` and tracked in issue #21. All changes are additive / editorial
 on SHC's side; no `operationId`, path, request body, response shape, auth
 requirement, or enforcement behaviour changed (per SHC's contract stability
-rule). This release closes #20 and closes #21.
+rule). This release closes #20, closes #21, and closes customer-support
+ticket #2211883 (cloud-init feature request — SHC shipped in v2.4.7, now
+fully wrapped in the toolkit's REST surface).
 
 ### Added
+- **Cloud-init REST wrappers on `SHCClient` + `SHCTransport` Protocol** —
+  `validate_vm_cloud_init`, `update_vm_cloud_init`, `delete_vm_cloud_init`.
+  SHC shipped customer cloud-init in v2.4.7 (`#cloud-config` content via a
+  server-managed NoCloud ISO); the MCP transport already wrapped all three
+  via `TOOL_MAP`, but the REST transport was missing them. Live-verified
+  against VM 1077: `validate_vm_cloud_init` returns a structured lint report
+  (`policy: shc-cloud-init-customer-v1`, `findings: []`, `accepted: true`).
+  Closes the parity gap surfaced during the ticket-#2211883 audit. The
+  endpoint paths use the `/virtual-machines/{virtualMachineId}/cloud-init`
+  convention (distinct from most `/vm/{serviceId}` paths but the value is
+  the same `service_id`).
 - `.omo/llms.txt` baseline (40 lines). `api-drift.yml` references this file but
   it was missing from the repo; the workflow's first-run self-baseline path was
   silently no-op'ing the llms.txt drift check. Future llms.txt drift will now
   open an issue.
-- `ConfirmationChallenge` typed model in the regenerated client (Pydantic v2).
-  Documents the 409 `confirmation_required` re-call flow that the hand-written
-  `SHCClient` already implements via `_confirmed_request`.
+- `ConfirmationChallenge` typed model in the regenerated client. Documents the
+  409 `confirmation_required` re-call flow that the hand-written `SHCClient`
+  already implements via `_confirmed_request`.
 - `Error.confirmation` optional field in the regenerated client (the hand-written
   client already reads `confirmation.confirmation_id`).
 
@@ -29,9 +42,11 @@ rule). This release closes #20 and closes #21.
 - OpenAPI spec refreshed to v2.4.24 (148 paths, 197 schemas). Path count and
   `x-shc-core` count (35) are unchanged from v2.4.15; the drift is entirely
   response-shape specifications + one new schema.
-- Regenerated typed client: **727 Pydantic models** (was 543) across **932
+- Regenerated typed client: **727 attrs models** (was 543) across **932
   Python files** (was 906). The new response schemas are now typed end-to-end
-  for anyone using `shc_toolkit.generated`.
+  for anyone using `shc_toolkit.generated`. (openapi-python-client v0.29
+  generates `attrs` classes — not Pydantic as previous CHANGELOG entries
+  erroneously stated since v2.4.3.1.)
 - 14 operations that previously returned a `"Staged contract stub"` placeholder
   now carry their real response schema. Affected: `linkNostrIdentity`,
   `unlinkNostrIdentity`, `updateNip05`, `getNostrLinkChallenge`,
@@ -62,6 +77,12 @@ rule). This release closes #20 and closes #21.
 - Documentation audit: `ROADMAP.md` and `README.md` updated to v2.4.24.
 
 ### Fixed
+- **Documentation: `attrs` not Pydantic.** The generated client uses
+  `openapi-python-client` v0.29.0, which generates `attrs` classes (verified
+  via `attrs.has(GetOrderResponse200Data) == True`, `issubclass(...,
+  pydantic.BaseModel) == False`). Previous CHANGELOG / README / ROADMAP
+  entries since v2.4.3.1 described these as "Pydantic models" — corrected
+  across all three docs in this release.
 - **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
   value. Previously both `cloud-init-policy-violation` and
   `cloud_init_policy_violation` were present and normalised to the same
@@ -85,7 +106,7 @@ rule). This release closes #20 and closes #21.
 The hand-written `SHCClient` / `SHCMCPClient` continue to return raw `dict` /
 `list[dict]` from JSON responses. We did **not** add dataclass / Pydantic
 typed wrappers in the hand-written layer. The regenerated client
-(`shc_toolkit.generated`, +727 Pydantic v2 models) is the typed surface.
+(`shc_toolkit.generated`, +727 attrs models) is the typed surface.
 
 This follows the 2026 maintainer consensus: avoid duplicate typed surfaces
 when an OpenAPI-generated Pydantic layer already exists (cf. Slothbox SDK

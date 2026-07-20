@@ -237,6 +237,19 @@ def cmd_order(args):
         return
 
     idem = args.idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
+
+    # Validate idempotency key against SHC API constraints:
+    # 16-128 chars, only [A-Za-z0-9_-]
+    import re
+    if not re.match(r'^[A-Za-z0-9_-]{16,128}$', idem):
+        raise SystemExit(
+            f"Error: idempotency key '{idem}' is invalid.\n"
+            f"SHC requires 16-128 characters using only letters, numbers, "
+            f"hyphens, and underscores (pattern: ^[A-Za-z0-9_-]{{16,128}}$).\n"
+            f"If you passed --idempotency-key with shell expansions like "
+            f"$(date), ensure they expand before reaching the CLI."
+        )
+
     result = c.submit_order(idempotency_key=idem, **kwargs)
 
     if args.pay or args.pay_qr:
