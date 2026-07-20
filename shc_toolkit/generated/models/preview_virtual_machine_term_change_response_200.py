@@ -19,8 +19,7 @@ T = TypeVar("T", bound="PreviewVirtualMachineTermChangeResponse200")
 class PreviewVirtualMachineTermChangeResponse200:
     """
     Attributes:
-        data (PreviewVirtualMachineTermChangeResponse200Data): Staged contract stub -- field shape finalizes when the
-            handler lands.
+        data (PreviewVirtualMachineTermChangeResponse200Data):
     """
 
     data: PreviewVirtualMachineTermChangeResponse200Data

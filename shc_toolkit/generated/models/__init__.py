@@ -53,6 +53,9 @@ from .approve_quotation_body_additional_property_type_4 import (
 )
 from .approve_quotation_response_201 import ApproveQuotationResponse201
 from .approve_quotation_response_201_data import ApproveQuotationResponse201Data
+from .approve_quotation_response_201_data_status import (
+    ApproveQuotationResponse201DataStatus,
+)
 from .batch_sub_request import BatchSubRequest
 from .batch_sub_request_body_type_0 import BatchSubRequestBodyType0
 from .batch_sub_request_body_type_0_additional_property_type_4 import (
@@ -79,6 +82,9 @@ from .billing_currency_balance import BillingCurrencyBalance
 from .buy_virtual_machine_response_201 import BuyVirtualMachineResponse201
 from .cancel_pending_order_response_200 import CancelPendingOrderResponse200
 from .cancel_pending_order_response_200_data import CancelPendingOrderResponse200Data
+from .cancel_pending_order_response_200_data_status import (
+    CancelPendingOrderResponse200DataStatus,
+)
 from .cancel_virtual_machine_response_200 import CancelVirtualMachineResponse200
 from .cancel_vm_credit import CancelVmCredit
 from .cancel_vm_request import CancelVmRequest
@@ -117,6 +123,17 @@ from .cloud_init_derived_seed import CloudInitDerivedSeed
 from .cloud_init_derived_seed_volume_label import CloudInitDerivedSeedVolumeLabel
 from .cloud_init_request import CloudInitRequest
 from .cloud_init_validate_result import CloudInitValidateResult
+from .confirmation_challenge import ConfirmationChallenge
+from .confirmation_challenge_content_item import ConfirmationChallengeContentItem
+from .confirmation_challenge_structured_content import (
+    ConfirmationChallengeStructuredContent,
+)
+from .confirmation_challenge_structured_content_how_to_proceed import (
+    ConfirmationChallengeStructuredContentHowToProceed,
+)
+from .confirmation_challenge_structured_content_how_to_proceed_arguments import (
+    ConfirmationChallengeStructuredContentHowToProceedArguments,
+)
 from .console_session_response import ConsoleSessionResponse
 from .console_session_response_via import ConsoleSessionResponseVia
 from .contact_create_request import ContactCreateRequest
@@ -321,8 +338,29 @@ from .get_nostr_link_challenge_response_200 import GetNostrLinkChallengeResponse
 from .get_nostr_link_challenge_response_200_data import (
     GetNostrLinkChallengeResponse200Data,
 )
+from .get_nostr_link_challenge_response_200_data_expires_in_seconds import (
+    GetNostrLinkChallengeResponse200DataExpiresInSeconds,
+)
+from .get_nostr_link_challenge_response_200_data_nip_98 import (
+    GetNostrLinkChallengeResponse200DataNip98,
+)
+from .get_nostr_link_challenge_response_200_data_nip_98_kind import (
+    GetNostrLinkChallengeResponse200DataNip98Kind,
+)
+from .get_nostr_link_challenge_response_200_data_nip_98_max_event_age_seconds import (
+    GetNostrLinkChallengeResponse200DataNip98MaxEventAgeSeconds,
+)
+from .get_nostr_link_challenge_response_200_data_nip_98_required_tags_item import (
+    GetNostrLinkChallengeResponse200DataNip98RequiredTagsItem,
+)
 from .get_order_response_200 import GetOrderResponse200
 from .get_order_response_200_data import GetOrderResponse200Data
+from .get_order_response_200_data_invoice import GetOrderResponse200DataInvoice
+from .get_order_response_200_data_next import GetOrderResponse200DataNext
+from .get_order_response_200_data_services_item import (
+    GetOrderResponse200DataServicesItem,
+)
+from .get_order_response_200_data_status import GetOrderResponse200DataStatus
 from .get_payment_response_200 import GetPaymentResponse200
 from .get_quotation_response_200 import GetQuotationResponse200
 from .get_quotation_response_200_data import GetQuotationResponse200Data
@@ -458,6 +496,9 @@ from .get_virtual_machine_term_options_response_200 import (
 from .get_virtual_machine_term_options_response_200_data import (
     GetVirtualMachineTermOptionsResponse200Data,
 )
+from .get_virtual_machine_term_options_response_200_data_items_item import (
+    GetVirtualMachineTermOptionsResponse200DataItemsItem,
+)
 from .get_virtual_machine_zk_backup_status_response_200 import (
     GetVirtualMachineZkBackupStatusResponse200,
 )
@@ -504,6 +545,9 @@ from .link_nostr_identity_body_target_event_type_0_additional_property_type_4 im
 )
 from .link_nostr_identity_response_200 import LinkNostrIdentityResponse200
 from .link_nostr_identity_response_200_data import LinkNostrIdentityResponse200Data
+from .link_nostr_identity_response_200_data_status import (
+    LinkNostrIdentityResponse200DataStatus,
+)
 from .link_target import LinkTarget
 from .link_target_method import LinkTargetMethod
 from .links import Links
@@ -545,6 +589,18 @@ from .list_contacts_response_200_items_item_contact_type import (
 )
 from .list_download_files_response_200 import ListDownloadFilesResponse200
 from .list_download_files_response_200_data import ListDownloadFilesResponse200Data
+from .list_download_files_response_200_data_categories_item import (
+    ListDownloadFilesResponse200DataCategoriesItem,
+)
+from .list_download_files_response_200_data_category_type_0 import (
+    ListDownloadFilesResponse200DataCategoryType0,
+)
+from .list_download_files_response_200_data_files_item import (
+    ListDownloadFilesResponse200DataFilesItem,
+)
+from .list_download_files_response_200_data_parent_category_type_0 import (
+    ListDownloadFilesResponse200DataParentCategoryType0,
+)
 from .list_emails_order import ListEmailsOrder
 from .list_emails_response_200 import ListEmailsResponse200
 from .list_emails_sort import ListEmailsSort
@@ -717,6 +773,12 @@ from .preview_virtual_machine_term_change_response_200 import (
 from .preview_virtual_machine_term_change_response_200_data import (
     PreviewVirtualMachineTermChangeResponse200Data,
 )
+from .preview_virtual_machine_term_change_response_200_data_current import (
+    PreviewVirtualMachineTermChangeResponse200DataCurrent,
+)
+from .preview_virtual_machine_term_change_response_200_data_target import (
+    PreviewVirtualMachineTermChangeResponse200DataTarget,
+)
 from .problem import Problem
 from .problem_field_error import ProblemFieldError
 from .problem_field_error_type import ProblemFieldErrorType
@@ -814,6 +876,9 @@ from .submit_support_ticket_feedback_response_200 import (
 from .submit_support_ticket_feedback_response_200_data import (
     SubmitSupportTicketFeedbackResponse200Data,
 )
+from .submit_support_ticket_feedback_response_200_data_status import (
+    SubmitSupportTicketFeedbackResponse200DataStatus,
+)
 from .submit_virtual_machine_renewal_body import SubmitVirtualMachineRenewalBody
 from .submit_virtual_machine_renewal_response_201 import (
     SubmitVirtualMachineRenewalResponse201,
@@ -850,6 +915,9 @@ from .unlink_nostr_identity_body_event_type_0_additional_property_type_4 import 
 )
 from .unlink_nostr_identity_response_200 import UnlinkNostrIdentityResponse200
 from .unlink_nostr_identity_response_200_data import UnlinkNostrIdentityResponse200Data
+from .unlink_nostr_identity_response_200_data_status import (
+    UnlinkNostrIdentityResponse200DataStatus,
+)
 from .unmount_virtual_machine_iso_response_200 import (
     UnmountVirtualMachineIsoResponse200,
 )
@@ -891,6 +959,7 @@ from .update_credit_handling_response_200_data_thresholds_type_0 import (
 from .update_nip_05_body import UpdateNip05Body
 from .update_nip_05_response_200 import UpdateNip05Response200
 from .update_nip_05_response_200_data import UpdateNip05Response200Data
+from .update_nip_05_response_200_data_status import UpdateNip05Response200DataStatus
 from .update_virtual_machine_cloud_init_response_200 import (
     UpdateVirtualMachineCloudInitResponse200,
 )
@@ -1199,6 +1268,7 @@ __all__ = (
     "ApproveQuotationBodyAdditionalPropertyType4",
     "ApproveQuotationResponse201",
     "ApproveQuotationResponse201Data",
+    "ApproveQuotationResponse201DataStatus",
     "BatchSubRequest",
     "BatchSubRequestBodyType0",
     "BatchSubRequestBodyType0AdditionalPropertyType4",
@@ -1217,6 +1287,7 @@ __all__ = (
     "BuyVirtualMachineResponse201",
     "CancelPendingOrderResponse200",
     "CancelPendingOrderResponse200Data",
+    "CancelPendingOrderResponse200DataStatus",
     "CancelVirtualMachineResponse200",
     "CancelVmCredit",
     "CancelVmRequest",
@@ -1247,6 +1318,11 @@ __all__ = (
     "CloudInitDerivedSeedVolumeLabel",
     "CloudInitRequest",
     "CloudInitValidateResult",
+    "ConfirmationChallenge",
+    "ConfirmationChallengeContentItem",
+    "ConfirmationChallengeStructuredContent",
+    "ConfirmationChallengeStructuredContentHowToProceed",
+    "ConfirmationChallengeStructuredContentHowToProceedArguments",
     "ConsoleSessionResponse",
     "ConsoleSessionResponseVia",
     "ContactCreateRequest",
@@ -1369,8 +1445,17 @@ __all__ = (
     "GetManagerPermissionOptionsResponse200",
     "GetNostrLinkChallengeResponse200",
     "GetNostrLinkChallengeResponse200Data",
+    "GetNostrLinkChallengeResponse200DataExpiresInSeconds",
+    "GetNostrLinkChallengeResponse200DataNip98",
+    "GetNostrLinkChallengeResponse200DataNip98Kind",
+    "GetNostrLinkChallengeResponse200DataNip98MaxEventAgeSeconds",
+    "GetNostrLinkChallengeResponse200DataNip98RequiredTagsItem",
     "GetOrderResponse200",
     "GetOrderResponse200Data",
+    "GetOrderResponse200DataInvoice",
+    "GetOrderResponse200DataNext",
+    "GetOrderResponse200DataServicesItem",
+    "GetOrderResponse200DataStatus",
     "GetPaymentResponse200",
     "GetQuotationResponse200",
     "GetQuotationResponse200Data",
@@ -1426,6 +1511,7 @@ __all__ = (
     "GetVirtualMachineSummaryResponse200DataRecentJobsItem",
     "GetVirtualMachineTermOptionsResponse200",
     "GetVirtualMachineTermOptionsResponse200Data",
+    "GetVirtualMachineTermOptionsResponse200DataItemsItem",
     "GetVirtualMachineZkBackupStatusResponse200",
     "GetVmConsoleAvailabilityResponse200",
     "GetVmConsoleAvailabilityResponse200Data",
@@ -1452,6 +1538,7 @@ __all__ = (
     "LinkNostrIdentityBodyTargetEventType0AdditionalPropertyType4",
     "LinkNostrIdentityResponse200",
     "LinkNostrIdentityResponse200Data",
+    "LinkNostrIdentityResponse200DataStatus",
     "Links",
     "LinkTarget",
     "LinkTargetMethod",
@@ -1481,6 +1568,10 @@ __all__ = (
     "ListContactsResponse200ItemsItemContactType",
     "ListDownloadFilesResponse200",
     "ListDownloadFilesResponse200Data",
+    "ListDownloadFilesResponse200DataCategoriesItem",
+    "ListDownloadFilesResponse200DataCategoryType0",
+    "ListDownloadFilesResponse200DataFilesItem",
+    "ListDownloadFilesResponse200DataParentCategoryType0",
     "ListEmailsOrder",
     "ListEmailsResponse200",
     "ListEmailsSort",
@@ -1581,6 +1672,8 @@ __all__ = (
     "PreviewVirtualMachineTermChangeBodyAdditionalPropertyType4",
     "PreviewVirtualMachineTermChangeResponse200",
     "PreviewVirtualMachineTermChangeResponse200Data",
+    "PreviewVirtualMachineTermChangeResponse200DataCurrent",
+    "PreviewVirtualMachineTermChangeResponse200DataTarget",
     "Problem",
     "ProblemFieldError",
     "ProblemFieldErrorType",
@@ -1648,6 +1741,7 @@ __all__ = (
     "SubmitSupportTicketFeedbackBody",
     "SubmitSupportTicketFeedbackResponse200",
     "SubmitSupportTicketFeedbackResponse200Data",
+    "SubmitSupportTicketFeedbackResponse200DataStatus",
     "SubmitVirtualMachineRenewalBody",
     "SubmitVirtualMachineRenewalResponse201",
     "SubmitVirtualMachineRenewalResponse201Data",
@@ -1674,6 +1768,7 @@ __all__ = (
     "UnlinkNostrIdentityBodyEventType0AdditionalPropertyType4",
     "UnlinkNostrIdentityResponse200",
     "UnlinkNostrIdentityResponse200Data",
+    "UnlinkNostrIdentityResponse200DataStatus",
     "UnmountVirtualMachineIsoResponse200",
     "UpdateAccountContactRequest",
     "UpdateAccountContactRequestAdditionalPropertyType4",
@@ -1697,6 +1792,7 @@ __all__ = (
     "UpdateNip05Body",
     "UpdateNip05Response200",
     "UpdateNip05Response200Data",
+    "UpdateNip05Response200DataStatus",
     "UpdateVirtualMachineCloudInitResponse200",
     "UpdateVirtualMachineFirewallPolicyResponse200",
     "UpdateVirtualMachineFirewallRuleResponse200",

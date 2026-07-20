@@ -19,8 +19,7 @@ T = TypeVar("T", bound="SubmitSupportTicketFeedbackResponse200")
 class SubmitSupportTicketFeedbackResponse200:
     """
     Attributes:
-        data (SubmitSupportTicketFeedbackResponse200Data): Staged contract stub -- field shape finalizes when the
-            handler lands.
+        data (SubmitSupportTicketFeedbackResponse200Data):
     """
 
     data: SubmitSupportTicketFeedbackResponse200Data

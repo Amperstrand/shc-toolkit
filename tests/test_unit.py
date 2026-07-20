@@ -1243,3 +1243,107 @@ class TestExceptionHierarchy:
         from shc_toolkit.client import SHCError, _ERROR_CODE_MAP
         cls = _ERROR_CODE_MAP.get("unknown_error_code", SHCError)
         assert cls is SHCError
+
+class TestReapOrphans:
+    """Unit tests for reap_orphans method."""
+
+    def test_reap_dry_run_returns_list(self):
+        """reap_orphans with dry_run returns a list."""
+        from unittest.mock import MagicMock, patch
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, 'list_vms', return_value=[]):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(dry_run=True)
+            assert isinstance(orphans, list)
+            assert len(orphans) == 0
+
+    def test_reap_excludes_production(self):
+        """reap_orphans never destroys production VMs."""
+        from unittest.mock import MagicMock, patch
+        from shc_toolkit.client import SHCClient
+
+        fake_vms = [
+            {"id": 1, "hostname": "europa-vpn-vps", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "prod"},
+        ]
+        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
+            assert len(orphans) == 0  # europa-vpn-vps excluded
+
+    def test_reap_matches_test_prefixes(self):
+        """reap_orphans matches VMs with test prefixes."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        fake_vms = [
+            {"id": 1, "hostname": "tf-acc-basic", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+            {"id": 2, "hostname": "tollgate-test-vm", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+            {"id": 3, "hostname": "production-server", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "prod"},
+        ]
+        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
+            hostnames = [o["hostname"] for o in orphans]
+            assert "tf-acc-basic" in hostnames
+            assert "tollgate-test-vm" in hostnames
+            assert "production-server" not in hostnames
+
+    def test_reap_respects_age_threshold(self):
+        """reap_orphans respects max_age_hours."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+        from datetime import datetime, timezone, timedelta
+
+        now = datetime.now(timezone.utc)
+        recent = (now - timedelta(minutes=30)).isoformat()
+        old = (now - timedelta(hours=5)).isoformat()
+
+        fake_vms = [
+            {"id": 1, "hostname": "tf-acc-recent", "service_status": "active",
+             "date_created": recent, "package": "dev"},
+            {"id": 2, "hostname": "tf-acc-old", "service_status": "active",
+             "date_created": old, "package": "dev"},
+        ]
+        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(max_age_hours=2.0, dry_run=True)
+            hostnames = [o["hostname"] for o in orphans]
+            assert "tf-acc-old" in hostnames
+            assert "tf-acc-recent" not in hostnames
+
+    def test_reap_skips_canceled_vms(self):
+        """reap_orphans skips already-canceled VMs."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        fake_vms = [
+            {"id": 1, "hostname": "tf-acc-dead", "service_status": "canceled",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+        ]
+        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
+            assert len(orphans) == 0
+
+    def test_reap_custom_exclusions(self):
+        """reap_orphans respects custom exclude_hostnames."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        fake_vms = [
+            {"id": 1, "hostname": "tf-acc-keep", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+        ]
+        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(
+                max_age_hours=0.0,
+                dry_run=True,
+                exclude_hostnames=["tf-acc-keep"],
+            )
+            assert len(orphans) == 0

@@ -169,9 +169,15 @@ class SHCClient:
         5-minute TTL. Use cache_ttl=0 to disable or call invalidate_cache().
     """
 
-    def __init__(self, api_key: str | None = None, base_url: str = BASE_URL,
-                 cache_ttl: int = _CACHE_TTL, max_retries: int = 3,
-                 backoff_base: float = 1.0, backoff_cap: float = 60.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str = BASE_URL,
+        cache_ttl: int = _CACHE_TTL,
+        max_retries: int = 3,
+        backoff_base: float = 1.0,
+        backoff_cap: float = 60.0,
+    ):
         self.api_key = api_key or os.environ.get("SHC_API_KEY", "")
         if not self.api_key:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
@@ -186,6 +192,7 @@ class SHCClient:
         self._raw_client: Any = None
 
         from .cost_audit import CostTracker
+
         self.cost_tracker = CostTracker(self)
 
     @property
@@ -241,7 +248,9 @@ class SHCClient:
         if prefix is None:
             self._cache.clear()
         else:
-            self._cache = {k: v for k, v in self._cache.items() if not k.startswith(prefix)}
+            self._cache = {
+                k: v for k, v in self._cache.items() if not k.startswith(prefix)
+            }
 
     # ── Credit ──────────────────────────────────────────────
 
@@ -272,7 +281,9 @@ class SHCClient:
             return cached
         for pkg in self.get_catalog():
             if pkg.get("package_id") == package_id:
-                daily: dict = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
+                daily: dict = next(
+                    (p for p in pkg.get("pricing", []) if p.get("period") == "day"), {}
+                )
                 price = float(daily.get("price", 0))
                 return self._cache_set(cache_key, price)
         return 0.0
@@ -328,16 +339,16 @@ class SHCClient:
             exc = cls(code, message, request_id, details, error_code, retry_after)
             conf = body.get("confirmation", {})
             if conf:
-                exc.confirmation_id = (
-                    conf.get("confirmation_id")
-                    or conf.get("structuredContent", {}).get("confirmation_id")
-                )
+                exc.confirmation_id = conf.get("confirmation_id") or conf.get(
+                    "structuredContent", {}
+                ).get("confirmation_id")
             raise exc
         return body.get("data", body)
 
     def _backoff_delay(self, attempt: int) -> float:
         import random
-        delay = min(self._backoff_cap, self._backoff_base * (2 ** attempt))
+
+        delay = min(self._backoff_cap, self._backoff_base * (2**attempt))
         jitter = delay * 0.2 * random.uniform(-1, 1)
         return min(self._backoff_cap, max(0, delay + jitter))
 
@@ -351,7 +362,7 @@ class SHCClient:
                 pass
         text = resp.text
         try:
-            body = _json.loads(text[text.find("{"):]) if "{" in text else {}
+            body = _json.loads(text[text.find("{") :]) if "{" in text else {}
             err = body.get("error", {})
             seconds = err.get("retry_after_seconds")
             if seconds:
@@ -432,7 +443,9 @@ class SHCClient:
         return self._patch("/account/contact", kwargs)
 
     def change_password(self, current: str, new: str) -> dict:
-        return self._post("/account/password", {"current_password": current, "new_password": new})
+        return self._post(
+            "/account/password", {"current_password": current, "new_password": new}
+        )
 
     def get_2fa_status(self) -> dict:
         return self._get("/account/2fa")
@@ -455,14 +468,20 @@ class SHCClient:
     def set_credit_handling(self, **kwargs) -> dict:
         return self._put("/account/credit-handling", kwargs)
 
-    def add_credit(self, amount: str, currency: str = "USD", idempotency_key: str | None = None) -> dict:
+    def add_credit(
+        self, amount: str, currency: str = "USD", idempotency_key: str | None = None
+    ) -> dict:
         import uuid
+
         idem = idempotency_key or f"credit-{uuid.uuid4().hex[:24]}"
-        return self._post("/account/credit", {
-            "amount": amount,
-            "currency": currency,
-            "idempotency_key": idem,
-        })
+        return self._post(
+            "/account/credit",
+            {
+                "amount": amount,
+                "currency": currency,
+                "idempotency_key": idem,
+            },
+        )
 
     def get_account_balance(self) -> dict:
         return self._get("/account/balance")
@@ -472,8 +491,13 @@ class SHCClient:
     def list_api_keys(self) -> list[dict]:
         return self._get_items("/account/api-keys")
 
-    def create_api_key(self, method_scope: str = "full", area_subset: list[str] | None = None,
-                       expires_in_days: int | None = None, label: str = "") -> dict:
+    def create_api_key(
+        self,
+        method_scope: str = "full",
+        area_subset: list[str] | None = None,
+        expires_in_days: int | None = None,
+        label: str = "",
+    ) -> dict:
         data: dict[str, Any] = {"method_scope": method_scope, "label": label}
         if area_subset:
             data["area_subset"] = area_subset
@@ -507,8 +531,12 @@ class SHCClient:
                 by design), 422 (malformed code), or 429 (rate limited).
         """
         url = f"{base_url or BASE_URL}/agent-keys/claim"
-        resp = requests.post(url, json={"code": code}, timeout=30,
-                             headers={"Content-Type": "application/json"})
+        resp = requests.post(
+            url,
+            json={"code": code},
+            timeout=30,
+            headers={"Content-Type": "application/json"},
+        )
         text = resp.text
         json_start = text.find("{")
         if json_start > 0:
@@ -552,11 +580,21 @@ class SHCClient:
     def get_support_ticket(self, ticket_id: int) -> dict:
         return self._get(f"/support/tickets/{ticket_id}")
 
-    def create_support_ticket(self, subject: str, message: str, department_id: int,
-                              priority: str = "medium", service_id: int | None = None,
-                              **kwargs) -> dict:
-        data: dict[str, Any] = {"subject": subject, "message": message,
-                                "department_id": department_id, "priority": priority}
+    def create_support_ticket(
+        self,
+        subject: str,
+        message: str,
+        department_id: int,
+        priority: str = "medium",
+        service_id: int | None = None,
+        **kwargs,
+    ) -> dict:
+        data: dict[str, Any] = {
+            "subject": subject,
+            "message": message,
+            "department_id": department_id,
+            "priority": priority,
+        }
         if service_id:
             data["service_id"] = service_id
         data.update(kwargs)
@@ -665,7 +703,9 @@ class SHCClient:
         return self._get_items("/affiliate/payouts")
 
     def request_affiliate_payout(self, amount: str, currency: str = "BTC") -> dict:
-        return self._post("/affiliate/payouts", {"amount": amount, "currency": currency})
+        return self._post(
+            "/affiliate/payouts", {"amount": amount, "currency": currency}
+        )
 
     def list_affiliate_referrals(self) -> list[dict]:
         return self._get_items("/affiliate/referrals")
@@ -703,9 +743,7 @@ class SHCClient:
                     opts[opt["name"]] = {
                         "option_id": opt["option_id"],
                         "label": opt.get("label", opt["name"]),
-                        "values": [
-                            v["value"] for v in opt.get("values", [])
-                        ],
+                        "values": [v["value"] for v in opt.get("values", [])],
                     }
             return opts
         return {}
@@ -736,9 +774,7 @@ class SHCClient:
         """
         opts = self.get_config_options(package_id)
         if not opts:
-            raise ValueError(
-                f"package_id {package_id} not found in catalog"
-            )
+            raise ValueError(f"package_id {package_id} not found in catalog")
         out: dict[str, str] = {}
 
         spec_map = [
@@ -821,16 +857,21 @@ class SHCClient:
 
         if config_options is None:
             addon_kwargs = {
-                k: v for k, v in [
-                    ("ram_mb", ram_mb), ("cpu", cpu),
-                    ("disk_gb", disk_gb), ("template", template),
-                ] if v is not None
+                k: v
+                for k, v in [
+                    ("ram_mb", ram_mb),
+                    ("cpu", cpu),
+                    ("disk_gb", disk_gb),
+                    ("template", template),
+                ]
+                if v is not None
             }
             if addon_kwargs:
                 config_options = self.resolve_addons(package_id, **addon_kwargs)  # type: ignore[arg-type]
 
         if ssh_key:
             from pathlib import Path
+
             p = Path(ssh_key).expanduser()
             if p.exists():
                 kwargs.setdefault("ssh_key", p.read_text().strip())
@@ -845,7 +886,7 @@ class SHCClient:
         if config_options:
             order_kwargs["config_options"] = config_options
 
-        credit_before = self._safe_credit()
+        _ = self._safe_credit()
         result = self.submit_order(
             check_credit=check_credit,
             include_dev_vps_options=not config_options,
@@ -877,6 +918,7 @@ class SHCClient:
         already supplied order_form_id/options, injects the Dev VPS defaults.
         """
         import uuid
+
         kwargs.pop("pay", None)
 
         if check_credit:
@@ -888,11 +930,15 @@ class SHCClient:
 
         if "config_options" in kwargs and not kwargs["config_options"]:
             del kwargs["config_options"]
-        if include_dev_vps_options and "config_options" not in kwargs and "options" not in kwargs:
+        if (
+            include_dev_vps_options
+            and "config_options" not in kwargs
+            and "options" not in kwargs
+        ):
             kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
-        credit_before = self._safe_credit()
+        _ = self._safe_credit()
         result = self._confirmed_request(
             "POST", "/ordering/submit", json=kwargs, headers=headers
         )
@@ -935,7 +981,9 @@ class SHCClient:
 
     def standby_vm(self, service_id: int, *, confirm: bool = True) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/standby", confirm=confirm,
+            "POST",
+            f"/vm/{service_id}/standby",
+            confirm=confirm,
         )
 
     def preview_standby(self, service_id: int) -> dict:
@@ -944,9 +992,13 @@ class SHCClient:
     def resume_vm(self, service_id: int) -> dict:
         return self._post(f"/vm/{service_id}/resume")
 
-    def cancel_vm(self, service_id: int, *, immediate: bool = True, confirm: bool = True) -> dict:
+    def cancel_vm(
+        self, service_id: int, *, immediate: bool = True, confirm: bool = True
+    ) -> dict:
         result = self._confirmed_request(
-            "POST", f"/vm/{service_id}/cancel", confirm=confirm,
+            "POST",
+            f"/vm/{service_id}/cancel",
+            confirm=confirm,
             json={"immediate": True} if immediate else {},
         )
         self.invalidate_cache("credit")
@@ -1021,12 +1073,16 @@ class SHCClient:
                 if created.tzinfo is None:
                     created = created.replace(tzinfo=timezone.utc)
             except (ValueError, TypeError):
-                log.warning(f"reap: cannot parse date_created='{created_str}' for VM {vm_id}")
+                log.warning(
+                    f"reap: cannot parse date_created='{created_str}' for VM {vm_id}"
+                )
                 continue
 
             age_hours = (now - created).total_seconds() / 3600
             if age_hours < max_age_hours:
-                log.debug(f"reap: {hostname} is {age_hours:.1f}h old (< {max_age_hours}h threshold)")
+                log.debug(
+                    f"reap: {hostname} is {age_hours:.1f}h old (< {max_age_hours}h threshold)"
+                )
                 continue
 
             orphan = {
@@ -1039,11 +1095,15 @@ class SHCClient:
             orphans.append(orphan)
 
             if dry_run:
-                log.info(f"reap [dry-run]: would destroy {hostname} (ID={vm_id}, {age_hours:.1f}h old)")
+                log.info(
+                    f"reap [dry-run]: would destroy {hostname} (ID={vm_id}, {age_hours:.1f}h old)"
+                )
             else:
                 try:
                     self.cancel_vm(vm_id, immediate=True)
-                    log.info(f"reap: destroyed {hostname} (ID={vm_id}, {age_hours:.1f}h old)")
+                    log.info(
+                        f"reap: destroyed {hostname} (ID={vm_id}, {age_hours:.1f}h old)"
+                    )
                 except Exception as e:
                     log.error(f"reap: failed to destroy {hostname} (ID={vm_id}): {e}")
                     orphan["error"] = str(e)
@@ -1103,13 +1163,23 @@ class SHCClient:
         return result.get("upgradable", result.get("items", []))
 
     def preview_upgrade(self, service_id: int, pricing_ref: int) -> dict:
-        return self._post(f"/vm/{service_id}/upgrade/preview", {"pricing_ref": pricing_ref})
+        return self._post(
+            f"/vm/{service_id}/upgrade/preview", {"pricing_ref": pricing_ref}
+        )
 
-    def upgrade_vm(self, service_id: int, pricing_ref: int, *, confirm: bool = True) -> dict:
+    def upgrade_vm(
+        self, service_id: int, pricing_ref: int, *, confirm: bool = True
+    ) -> dict:
         import uuid
+
         return self._confirmed_request(
-            "PATCH", f"/vm/{service_id}/upgrade", confirm=confirm,
-            json={"pricing_ref": pricing_ref, "idempotency_key": f"upgrade-{uuid.uuid4().hex[:24]}"},
+            "PATCH",
+            f"/vm/{service_id}/upgrade",
+            confirm=confirm,
+            json={
+                "pricing_ref": pricing_ref,
+                "idempotency_key": f"upgrade-{uuid.uuid4().hex[:24]}",
+            },
         )
 
     def get_vm_payments(self, service_id: int) -> list[dict]:
@@ -1126,9 +1196,14 @@ class SHCClient:
     def get_vm_addon_options(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/addons/options")
 
-    def create_vm_addon(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
+    def create_vm_addon(
+        self, service_id: int, *, confirm: bool = True, **kwargs
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/addons", confirm=confirm, json=kwargs,
+            "POST",
+            f"/vm/{service_id}/addons",
+            confirm=confirm,
+            json=kwargs,
         )
 
     def preview_vm_addon(self, service_id: int, **kwargs) -> dict:
@@ -1137,9 +1212,14 @@ class SHCClient:
     def get_vm_term_options(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/term-options")
 
-    def change_vm_term(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
+    def change_vm_term(
+        self, service_id: int, *, confirm: bool = True, **kwargs
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/term", confirm=confirm, json=kwargs,
+            "POST",
+            f"/vm/{service_id}/term",
+            confirm=confirm,
+            json=kwargs,
         )
 
     def preview_vm_term_change(self, service_id: int, **kwargs) -> dict:
@@ -1155,7 +1235,9 @@ class SHCClient:
 
     def cancel_pending_order(self, order_id: int, *, confirm: bool = True) -> dict:
         return self._confirmed_request(
-            "POST", f"/orders/{order_id}/cancel", confirm=confirm,
+            "POST",
+            f"/orders/{order_id}/cancel",
+            confirm=confirm,
         )
 
     # ── Agent sessions + events (v2.4.6) ─────────────────────
@@ -1189,23 +1271,38 @@ class SHCClient:
             data["name"] = name
         return self._post(f"/vm/{service_id}/snapshots", data)
 
-    def restore_snapshot(self, service_id: int, snapshot_id: str, *, confirm: bool = True) -> dict:
+    def restore_snapshot(
+        self, service_id: int, snapshot_id: str, *, confirm: bool = True
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/snapshots/restore",
-            confirm=confirm, json={"snapshot_id": snapshot_id},
+            "POST",
+            f"/vm/{service_id}/snapshots/restore",
+            confirm=confirm,
+            json={"snapshot_id": snapshot_id},
         )
 
-    def delete_snapshot(self, service_id: int, snapshot_id: str, *, confirm: bool = True) -> dict:
+    def delete_snapshot(
+        self, service_id: int, snapshot_id: str, *, confirm: bool = True
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/snapshots/delete",
-            confirm=confirm, json={"snapshot_id": snapshot_id},
+            "POST",
+            f"/vm/{service_id}/snapshots/delete",
+            confirm=confirm,
+            json={"snapshot_id": snapshot_id},
         )
 
     def verify_snapshot(self, service_id: int, snapshot_id: str) -> dict:
-        return self._post(f"/vm/{service_id}/snapshots/verify", {"snapshot_id": snapshot_id})
+        return self._post(
+            f"/vm/{service_id}/snapshots/verify", {"snapshot_id": snapshot_id}
+        )
 
-    def set_snapshot_protection(self, service_id: int, snapshot_id: str, protected: bool) -> dict:
-        return self._patch(f"/vm/{service_id}/snapshots/protection", {"snapshot_id": snapshot_id, "protected": protected})
+    def set_snapshot_protection(
+        self, service_id: int, snapshot_id: str, protected: bool
+    ) -> dict:
+        return self._patch(
+            f"/vm/{service_id}/snapshots/protection",
+            {"snapshot_id": snapshot_id, "protected": protected},
+        )
 
     def get_snapshot_restore_hints(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/snapshots/restore-hints")
@@ -1221,20 +1318,33 @@ class SHCClient:
             data["name"] = name
         return self._post(f"/vm/{service_id}/backups", data)
 
-    def restore_backup(self, service_id: int, backup_id: str, *, confirm: bool = True) -> dict:
+    def restore_backup(
+        self, service_id: int, backup_id: str, *, confirm: bool = True
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/backups/restore",
-            confirm=confirm, json={"backup_id": backup_id},
+            "POST",
+            f"/vm/{service_id}/backups/restore",
+            confirm=confirm,
+            json={"backup_id": backup_id},
         )
 
-    def delete_backup(self, service_id: int, backup_id: str, *, confirm: bool = True) -> dict:
+    def delete_backup(
+        self, service_id: int, backup_id: str, *, confirm: bool = True
+    ) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/backups/delete",
-            confirm=confirm, json={"backup_id": backup_id},
+            "POST",
+            f"/vm/{service_id}/backups/delete",
+            confirm=confirm,
+            json={"backup_id": backup_id},
         )
 
-    def set_backup_protection(self, service_id: int, backup_id: str, protected: bool) -> dict:
-        return self._patch(f"/vm/{service_id}/backups/protection", {"backup_id": backup_id, "protected": protected})
+    def set_backup_protection(
+        self, service_id: int, backup_id: str, protected: bool
+    ) -> dict:
+        return self._patch(
+            f"/vm/{service_id}/backups/protection",
+            {"backup_id": backup_id, "protected": protected},
+        )
 
     def verify_backup(self, service_id: int, backup_id: str) -> dict:
         return self._post(f"/vm/{service_id}/backups/verify", {"backup_id": backup_id})
@@ -1245,8 +1355,13 @@ class SHCClient:
     def list_file_restore_sources(self, service_id: int) -> list[dict]:
         return self._get_items(f"/vm/{service_id}/file-restore/sources")
 
-    def browse_file_restore(self, service_id: int, source: str, path: str = "/") -> list[dict]:
-        return self._get(f"/vm/{service_id}/file-restore/list", params={"source": source, "path": path}).get("items", [])
+    def browse_file_restore(
+        self, service_id: int, source: str, path: str = "/"
+    ) -> list[dict]:
+        return self._get(
+            f"/vm/{service_id}/file-restore/list",
+            params={"source": source, "path": path},
+        ).get("items", [])
 
     def get_data_preferences(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/data-preferences")
@@ -1272,19 +1387,24 @@ class SHCClient:
         )
 
     def set_stored_ssh_key(self, service_id: int, public_key: str) -> dict:
-        return self._post("/ssh-key", {"service_id": service_id, "public_key": public_key})
+        return self._post(
+            "/ssh-key", {"service_id": service_id, "public_key": public_key}
+        )
 
     def delete_stored_ssh_key(self, service_id: int) -> dict:
         return self._delete("/ssh-key", params={"service_id": service_id})
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
         return self._confirmed_request(
-            "POST", f"/vm/{service_id}/ssh-keys/apply-live",
+            "POST",
+            f"/vm/{service_id}/ssh-keys/apply-live",
             json={"ssh_key": public_key},
         )
 
     def remove_ssh_key_live(self, service_id: int, public_key: str) -> dict:
-        return self._delete(f"/vm/{service_id}/ssh-keys/live", params={"public_key": public_key})
+        return self._delete(
+            f"/vm/{service_id}/ssh-keys/live", params={"public_key": public_key}
+        )
 
     # ── Firewall ─────────────────────────────────────────────
 
@@ -1292,7 +1412,9 @@ class SHCClient:
         return self._get(f"/vm/{service_id}/firewall")
 
     def set_firewall_policy(self, service_id: int, policy: str) -> dict:
-        return self._patch(f"/vm/{service_id}/firewall/policy", {"default_policy": policy})
+        return self._patch(
+            f"/vm/{service_id}/firewall/policy", {"default_policy": policy}
+        )
 
     def create_firewall_rule(self, service_id: int, **kwargs) -> dict:
         return self._post(f"/vm/{service_id}/firewall/rules", kwargs)
@@ -1301,7 +1423,9 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/firewall/rules/{position}", kwargs)
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
-        return self._confirmed_request("DELETE", f"/vm/{service_id}/firewall/rules/{position}")
+        return self._confirmed_request(
+            "DELETE", f"/vm/{service_id}/firewall/rules/{position}"
+        )
 
     # ── ISO ──────────────────────────────────────────────────
 
@@ -1330,7 +1454,9 @@ class SHCClient:
     def get_console_availability(self, service_id: int) -> dict:
         return self._get(f"/vm/{service_id}/console")
 
-    def create_console_session(self, service_id: int, *, ttl: int | None = None) -> dict:
+    def create_console_session(
+        self, service_id: int, *, ttl: int | None = None
+    ) -> dict:
         body: dict[str, Any] = {}
         if ttl is not None:
             body["ttl"] = ttl
@@ -1399,11 +1525,13 @@ class SHCClient:
 
     # ── VM Health ───────────────────────────────────────────
 
-    _TERMINAL_DIAGNOSES = frozenset({
-        "CLOUD_INIT_DISABLED_DEADLOCK",
-        "NETWORK_UNREACHABLE",
-        "EMPTY_ACTIVITY_LOG",
-    })
+    _TERMINAL_DIAGNOSES = frozenset(
+        {
+            "CLOUD_INIT_DISABLED_DEADLOCK",
+            "NETWORK_UNREACHABLE",
+            "EMPTY_ACTIVITY_LOG",
+        }
+    )
 
     def check_vm_health(self, service_id: int) -> dict:
         """Return a structured health report diagnosing common failure patterns.
@@ -1424,7 +1552,9 @@ class SHCClient:
         bootstrap_completed_at = vm.get("bootstrap_completed_at")
 
         rt = summary.get("runtime") or {}
-        runtime_status = rt.get("raw_status") or rt.get("state") or summary.get("runtime_status")
+        runtime_status = (
+            rt.get("raw_status") or rt.get("state") or summary.get("runtime_status")
+        )
 
         ips = vm.get("ips", [])
         ip_assigned = ips[0]["ip"] if ips else None
@@ -1518,11 +1648,7 @@ class SHCClient:
                 "VM stuck in provisioning; cloud-init likely disabled or "
                 "failed. Bootstrap signal never fired.",
             )
-        if (
-            ip_assigned
-            and not port_22_reachable
-            and runtime_status == "running"
-        ):
+        if ip_assigned and not port_22_reachable and runtime_status == "running":
             return (
                 "NETWORK_UNREACHABLE",
                 "VM is running and has an IP assigned, but port 22 is "
@@ -1577,8 +1703,7 @@ class SHCClient:
                 if probe_port_22 and not health["port_22_reachable"]:
                     raise ProvisioningStuckError(
                         "provisioning_stuck",
-                        f"VM {service_id} provisioned but port 22 "
-                        f"unreachable.",
+                        f"VM {service_id} provisioned but port 22 unreachable.",
                         details=health,
                     )
                 return self.get_vm(service_id)

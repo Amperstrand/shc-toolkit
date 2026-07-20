@@ -19,7 +19,7 @@ T = TypeVar("T", bound="CancelPendingOrderResponse200")
 class CancelPendingOrderResponse200:
     """
     Attributes:
-        data (CancelPendingOrderResponse200Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (CancelPendingOrderResponse200Data):
     """
 
     data: CancelPendingOrderResponse200Data

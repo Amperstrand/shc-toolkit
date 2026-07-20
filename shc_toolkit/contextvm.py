@@ -124,7 +124,7 @@ def generate_echo_server() -> str:
     This is a placeholder MCP server that echoes messages.
     Replace with your actual tools/capabilities.
     """
-    return '''import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+    return """import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
@@ -156,7 +156,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-'''
+"""
 
 
 def generate_systemd_service(user: str = "debian") -> str:
@@ -229,7 +229,7 @@ def install_contextvm(
     ssh_cmd(
         host,
         "cd {REMOTE_DIR} && "
-        f'/home/{user}/.bun/bin/bun init -y && '
+        f"/home/{user}/.bun/bin/bun init -y && "
         "/home/{user}/.bun/bin/bun add @contextvm/sdk nostr-tools "
         "@modelcontextprotocol/sdk",
         user=user,
@@ -243,42 +243,72 @@ def install_contextvm(
     systemd_unit = generate_systemd_service(user=user)
 
     import subprocess
+
     for filename, content in [
         ("gateway.ts", gateway_script),
         ("echo-server.ts", echo_script),
     ]:
         subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-             "-o", "LogLevel=ERROR",
-             f"{user}@{host}", "cat > {REMOTE_DIR}/{filename}"],
-            input=content, text=True, timeout=30,
+            [
+                "ssh",
+                "-o",
+                "StrictHostKeyChecking=no",
+                "-o",
+                "UserKnownHostsFile=/dev/null",
+                "-o",
+                "LogLevel=ERROR",
+                f"{user}@{host}",
+                "cat > {REMOTE_DIR}/{filename}",
+            ],
+            input=content,
+            text=True,
+            timeout=30,
         )
 
     # 6. Install systemd service
     log.info("Setting up systemd service...")
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR",
-         f"{user}@{host}", "sudo tee /etc/systemd/system/contextvm.service"],
-        input=systemd_unit, text=True, timeout=30,
+        [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "LogLevel=ERROR",
+            f"{user}@{host}",
+            "sudo tee /etc/systemd/system/contextvm.service",
+        ],
+        input=systemd_unit,
+        text=True,
+        timeout=30,
     )
-    ssh_cmd(host, "sudo systemctl daemon-reload && "
-            "sudo systemctl enable contextvm && "
-            "sudo systemctl start contextvm", user=user, timeout=30)
+    ssh_cmd(
+        host,
+        "sudo systemctl daemon-reload && "
+        "sudo systemctl enable contextvm && "
+        "sudo systemctl start contextvm",
+        user=user,
+        timeout=30,
+    )
 
     # 7. Wait and check status
     import time
+
     time.sleep(3)
     try:
-        status = ssh_cmd(host, "sudo systemctl is-active contextvm", user=user, timeout=10)
+        status = ssh_cmd(
+            host, "sudo systemctl is-active contextvm", user=user, timeout=10
+        )
         result["service_active"] = "active" in status
     except Exception:
         result["service_active"] = False
 
     # 8. Try to get the pubkey from logs
     try:
-        logs = ssh_cmd(host, "sudo journalctl -u contextvm --no-pager -n 10",
-                       user=user, timeout=10)
+        logs = ssh_cmd(
+            host, "sudo journalctl -u contextvm --no-pager -n 10", user=user, timeout=10
+        )
         for line in logs.split("\n"):
             if "pubkey:" in line.lower():
                 pk = line.split("pubkey:")[-1].strip()
@@ -291,9 +321,14 @@ def install_contextvm(
     result["discoverable"] = result.get("service_active", False)
 
     if result.get("service_active"):
-        log.info("ContextVM running on %s. Pubkey: %s", host, result.get("pubkey", "unknown"))
+        log.info(
+            "ContextVM running on %s. Pubkey: %s", host, result.get("pubkey", "unknown")
+        )
     else:
-        log.warning("ContextVM service may not have started. Check: ssh %s@%s journalctl -u contextvm",
-                    user, host)
+        log.warning(
+            "ContextVM service may not have started. Check: ssh %s@%s journalctl -u contextvm",
+            user,
+            host,
+        )
 
     return result

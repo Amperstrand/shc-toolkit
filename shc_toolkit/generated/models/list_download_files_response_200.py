@@ -19,7 +19,7 @@ T = TypeVar("T", bound="ListDownloadFilesResponse200")
 class ListDownloadFilesResponse200:
     """
     Attributes:
-        data (ListDownloadFilesResponse200Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (ListDownloadFilesResponse200Data):
     """
 
     data: ListDownloadFilesResponse200Data

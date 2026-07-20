@@ -21,13 +21,26 @@ import subprocess
 log = logging.getLogger(__name__)
 
 
-def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port: int = 22) -> str:
+def ssh_cmd(
+    host: str, cmd: str, user: str = "debian", timeout: int = 120, port: int = 22
+) -> str:
     """Run a command on the VM via SSH."""
     result = subprocess.run(
-        ["ssh", "-p", str(port),
-         "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR", "-o", "ConnectTimeout={min(timeout, 15)}",
-         f"{user}@{host}", cmd],
+        [
+            "ssh",
+            "-p",
+            str(port),
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "LogLevel=ERROR",
+            "-o",
+            "ConnectTimeout={min(timeout, 15)}",
+            f"{user}@{host}",
+            cmd,
+        ],
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -40,12 +53,23 @@ def ssh_cmd(host: str, cmd: str, user: str = "debian", timeout: int = 120, port:
     return result.stdout.strip()
 
 
-def scp_to_vm(host: str, local: str, remote: str, user: str = "debian", port: int = 22) -> str:
+def scp_to_vm(
+    host: str, local: str, remote: str, user: str = "debian", port: int = 22
+) -> str:
     """Copy file to VM via scp."""
     result = subprocess.run(
-        ["scp", "-P", str(port), "-o", "StrictHostKeyChecking=no",
-         "-o", "UserKnownHostsFile=/dev/null", "-O",
-         local, f"{user}@{host}:{remote}"],
+        [
+            "scp",
+            "-P",
+            str(port),
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-O",
+            local,
+            f"{user}@{host}:{remote}",
+        ],
         capture_output=True,
         text=True,
         timeout=60,
@@ -58,7 +82,9 @@ def scp_to_vm(host: str, local: str, remote: str, user: str = "debian", port: in
 def install_caddy(host: str, user: str = "debian") -> str:
     """Install Caddy on Debian VM."""
     log.info("Installing Caddy on {host}...")
-    return ssh_cmd(host, """
+    return ssh_cmd(
+        host,
+        """
         sudo apt-get update -qq
         sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl
         curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg 2>/dev/null
@@ -66,16 +92,24 @@ def install_caddy(host: str, user: str = "debian") -> str:
         sudo apt-get update -qq
         sudo apt-get install -y -qq caddy
         caddy version
-    """, user=user, timeout=180)
+    """,
+        user=user,
+        timeout=180,
+    )
 
 
 def install_certbot(host: str, user: str = "debian") -> str:
     """Install certbot on Debian VM."""
     log.info("Installing certbot on {host}...")
-    return ssh_cmd(host, """
+    return ssh_cmd(
+        host,
+        """
         sudo apt-get install -y -qq certbot
         certbot --version
-    """, user=user, timeout=120)
+    """,
+        user=user,
+        timeout=120,
+    )
 
 
 def generate_caddyfile(fqdn: str, backend_port: int = 8080) -> str:
@@ -96,17 +130,31 @@ def setup_caddy(host: str, fqdn: str, user: str = "debian") -> str:
     ssh_cmd(host, "sudo mkdir -p /etc/caddy")
     # Write Caddyfile via stdin to avoid quoting issues
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR", f"{user}@{host}",
-         "sudo tee /etc/caddy/Caddyfile > /dev/null"],
+        [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "LogLevel=ERROR",
+            f"{user}@{host}",
+            "sudo tee /etc/caddy/Caddyfile > /dev/null",
+        ],
         input=caddyfile,
         text=True,
         timeout=30,
     )
-    return ssh_cmd(host, "sudo systemctl restart caddy && sudo systemctl status caddy --no-pager -l | head -5")
+    return ssh_cmd(
+        host,
+        "sudo systemctl restart caddy && sudo systemctl status caddy --no-pager -l | head -5",
+    )
 
 
-def generate_certbot_auth_hook(venv_path: str = "/home/debian/shc-toolkit", keypair_path: str = "/tmp/nodns-keypair.json") -> str:
+def generate_certbot_auth_hook(
+    venv_path: str = "/home/debian/shc-toolkit",
+    keypair_path: str = "/tmp/nodns-keypair.json",
+) -> str:
     """Generate a certbot manual auth hook script.
 
     The hook reads CERTBOT_DOMAIN and CERTBOT_VALIDATION from the environment,
@@ -161,9 +209,17 @@ def get_cert_dns01(
     hook_remote = "/tmp/certbot-auth-hook.sh"  # noqa: F841
 
     subprocess.run(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR", f"{user}@{host}",
-         "sudo tee {hook_remote} > /dev/null"],
+        [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "LogLevel=ERROR",
+            f"{user}@{host}",
+            "sudo tee {hook_remote} > /dev/null",
+        ],
         input=hook_script,
         text=True,
         timeout=30,
@@ -197,8 +253,7 @@ def verify_https(fqdn: str, timeout: int = 30) -> dict:
     """Verify HTTPS is working by curling the domain."""
     try:
         result = subprocess.run(
-            ["curl", "-sS", "--max-time", str(timeout),
-             "https://{fqdn}/health"],
+            ["curl", "-sS", "--max-time", str(timeout), "https://{fqdn}/health"],
             capture_output=True,
             text=True,
             timeout=timeout + 10,

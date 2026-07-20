@@ -17,7 +17,7 @@ T = TypeVar("T", bound="UpdateNip05Response200")
 class UpdateNip05Response200:
     """
     Attributes:
-        data (UpdateNip05Response200Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (UpdateNip05Response200Data):
     """
 
     data: UpdateNip05Response200Data

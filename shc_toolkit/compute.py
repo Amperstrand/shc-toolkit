@@ -42,13 +42,26 @@ from .client import SHCClient, SHCError
 
 def _create_client(api_key: str | None = None):
     from shc_toolkit import create_client
+
     return create_client(api_key=api_key)
 
 
 MACHINE_TYPE_MAP = {
-    "n1-standard-2": {"package_id": 81, "pricing_id": 245, "name": "Dev VPS - Standard"},
-    "n1-standard-4": {"package_id": 82, "pricing_id": 249, "name": "Dev VPS - Professional"},
-    "n1-standard-8": {"package_id": 83, "pricing_id": 253, "name": "Dev VPS - Business"},
+    "n1-standard-2": {
+        "package_id": 81,
+        "pricing_id": 245,
+        "name": "Dev VPS - Standard",
+    },
+    "n1-standard-4": {
+        "package_id": 82,
+        "pricing_id": 249,
+        "name": "Dev VPS - Professional",
+    },
+    "n1-standard-8": {
+        "package_id": 83,
+        "pricing_id": 253,
+        "name": "Dev VPS - Business",
+    },
 }
 
 DEV_VPS_ORDER_FORM = 11
@@ -83,7 +96,9 @@ def _vm_to_gcloud_format(vm: dict, metadata: dict | None = None) -> dict:
     hostname = vm.get("hostname", "")
     ip = vm.get("ipv4") or vm.get("ip") or vm.get("primary_ip", "")
     status_raw = str(vm.get("status", "")).lower()
-    status = "RUNNING" if "active" in status_raw or "running" in status_raw else "TERMINATED"
+    status = (
+        "RUNNING" if "active" in status_raw or "running" in status_raw else "TERMINATED"
+    )
 
     md = metadata or _load_metadata()
     vm_meta = md.get(hostname, {})
@@ -99,14 +114,22 @@ def _vm_to_gcloud_format(vm: dict, metadata: dict | None = None) -> dict:
             "fingerprint": "",
             "items": [{"key": k, "value": v} for k, v in vm_meta.items()],
         },
-        "networkInterfaces": [{
-            "network": "default",
-            "subnetwork": "default",
-            "networkIP": ip,
-            "accessConfigs": [{"natIP": ip, "type": "ONE_TO_ONE_NAT"}],
-        }],
-        "tags": {"items": vm_meta.get("tags", "").split(",") if vm_meta.get("tags") else []},
-        "labels": {k.replace("-", "_"): v for k, v in vm_meta.items() if k.startswith("tollgate")},
+        "networkInterfaces": [
+            {
+                "network": "default",
+                "subnetwork": "default",
+                "networkIP": ip,
+                "accessConfigs": [{"natIP": ip, "type": "ONE_TO_ONE_NAT"}],
+            }
+        ],
+        "tags": {
+            "items": vm_meta.get("tags", "").split(",") if vm_meta.get("tags") else []
+        },
+        "labels": {
+            k.replace("-", "_"): v
+            for k, v in vm_meta.items()
+            if k.startswith("tollgate")
+        },
     }
 
 
@@ -167,13 +190,13 @@ def _parse_filter(filter_str: str) -> dict:
 def _vm_matches_filters(vm_gcloud: dict, filters: dict) -> bool:
     for key, val in filters.items():
         if key.startswith("metadata."):
-            mk = key[len("metadata."):]
+            mk = key[len("metadata.") :]
             items = vm_gcloud.get("metadata", {}).get("items", [])
             found = any(i.get("key") == mk and i.get("value") == val for i in items)
             if not found:
                 return False
         elif key.startswith("labels."):
-            lk = key[len("labels."):]
+            lk = key[len("labels.") :]
             if vm_gcloud.get("labels", {}).get(lk) != val:
                 return False
         elif key == "name":
@@ -189,16 +212,22 @@ def _firewall_rules_to_gcloud(fw: dict, instance_name: str = "") -> list[dict]:
         ports = [str(dport)] if str(dport) and str(dport) != "*" else []
         action_raw = str(rule.get("action", "pass")).lower()
         direction_raw = str(rule.get("direction", rule.get("type", "in"))).lower()
-        rules_out.append({
-            "name": rule.get("comment") or "rule-{rule.get('pos', '?')}",
-            "network": "default",
-            "direction": "EGRESS" if direction_raw.startswith("out") else "INGRESS",
-            "action": "ALLOW" if action_raw in ("pass", "accept", "allow") else "DENY",
-            "sourceRanges": [rule["source"]] if rule.get("source") else ["0.0.0.0/0"],
-            "allowed": [{"IPProtocol": rule.get("proto", "tcp"), "ports": ports}],
-            "instance": instance_name,
-            "position": rule.get("pos", ""),
-        })
+        rules_out.append(
+            {
+                "name": rule.get("comment") or "rule-{rule.get('pos', '?')}",
+                "network": "default",
+                "direction": "EGRESS" if direction_raw.startswith("out") else "INGRESS",
+                "action": "ALLOW"
+                if action_raw in ("pass", "accept", "allow")
+                else "DENY",
+                "sourceRanges": [rule["source"]]
+                if rule.get("source")
+                else ["0.0.0.0/0"],
+                "allowed": [{"IPProtocol": rule.get("proto", "tcp"), "ports": ports}],
+                "instance": instance_name,
+                "position": rule.get("pos", ""),
+            }
+        )
     return rules_out
 
 
@@ -333,7 +362,10 @@ def cmd_instances(args):
             instance = _vm_to_gcloud_format(vm, md)
             _output(instance, fmt)
         else:
-            print("Created {name} (service_id={service_id}) but IP not ready yet", file=sys.stderr)
+            print(
+                "Created {name} (service_id={service_id}) but IP not ready yet",
+                file=sys.stderr,
+            )
 
     elif sub == "delete":
         quiet = "--quiet" in args or "-q" in args
@@ -391,7 +423,10 @@ def cmd_instances(args):
         mt = MACHINE_TYPE_MAP.get(machine_type)
         if not mt:
             available = ", ".join(sorted(MACHINE_TYPE_MAP))  # noqa: F841
-            print("Unknown machine type '{machine_type}'. Available: {available}", file=sys.stderr)
+            print(
+                "Unknown machine type '{machine_type}'. Available: {available}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         client.upgrade_vm(sid, mt["package_id"])
         print("Machine type changed for [{name}] -> {machine_type} ({mt['name']})")
@@ -489,13 +524,15 @@ def cmd_snapshots(args):
                 try:
                     snaps = client.list_snapshots(int(sid))
                     for s in snaps:
-                        all_snapshots.append({
-                            "name": s.get("name", s.get("id", "")),
-                            "id": str(s.get("id", "")),
-                            "status": "READY",
-                            "sourceDisk": hostname,
-                            "creationTimestamp": s.get("created_at", ""),
-                        })
+                        all_snapshots.append(
+                            {
+                                "name": s.get("name", s.get("id", "")),
+                                "id": str(s.get("id", "")),
+                                "status": "READY",
+                                "sourceDisk": hostname,
+                                "creationTimestamp": s.get("created_at", ""),
+                            }
+                        )
                 except Exception:
                     pass
         _output(all_snapshots, fmt)
@@ -515,10 +552,15 @@ def cmd_snapshots(args):
         if vm:
             sid = vm.get("id") or vm.get("service_id")
             result = client.create_snapshot(int(sid), name=snapshot_name)
-            print(json.dumps({
-                "name": snapshot_name or result.get("name", ""),
-                "status": "READY",
-            }, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "name": snapshot_name or result.get("name", ""),
+                        "status": "READY",
+                    },
+                    indent=2,
+                )
+            )
         else:
             print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
@@ -535,9 +577,14 @@ def cmd_snapshots(args):
                     snaps = client.list_snapshots(int(sid))
                     for s in snaps:
                         sname = s.get("name", s.get("id", ""))
-                        if sname == snapshot_name or str(s.get("id", "")) == snapshot_name:
-                            client._post("/vm/{sid}/snapshots/delete",
-                                         {"backup_id": s.get("id", sname)})
+                        if (
+                            sname == snapshot_name
+                            or str(s.get("id", "")) == snapshot_name
+                        ):
+                            client._post(
+                                "/vm/{sid}/snapshots/delete",
+                                {"backup_id": s.get("id", sname)},
+                            )
                             if not quiet:
                                 print("Deleted [{snapshot_name}]")
                             deleted = True
@@ -560,7 +607,10 @@ def cmd_snapshots(args):
                     snaps = client.list_snapshots(int(sid))
                     for s in snaps:
                         sname = s.get("name", s.get("id", ""))
-                        if sname == snapshot_name or str(s.get("id", "")) == snapshot_name:
+                        if (
+                            sname == snapshot_name
+                            or str(s.get("id", "")) == snapshot_name
+                        ):
                             found = {
                                 "name": sname,
                                 "id": str(s.get("id", "")),
@@ -568,7 +618,9 @@ def cmd_snapshots(args):
                                 "sourceDisk": hostname,
                                 "sourceDiskId": str(sid),
                                 "creationTimestamp": s.get("created_at", ""),
-                                "diskSizeGb": str(s.get("size", s.get("disk_size", ""))),
+                                "diskSizeGb": str(
+                                    s.get("size", s.get("disk_size", ""))
+                                ),
                                 "storageBytes": str(s.get("storage_bytes", "")),
                                 "description": s.get("description", ""),
                             }
@@ -608,8 +660,16 @@ def cmd_ssh(args):
         print("No IP for {name}", file=sys.stderr)
         sys.exit(1)
 
-    ssh_cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-               "-o", "LogLevel=ERROR", "root@{ip}"]
+    ssh_cmd = [
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "LogLevel=ERROR",
+        "root@{ip}",
+    ]
     if command:
         ssh_cmd.extend(["--", command])
     os.execvp("ssh", ssh_cmd)
@@ -651,8 +711,17 @@ def cmd_firewall_rules(args):
         rules = _firewall_rules_to_gcloud(fw, vm_name)
         if rule_pos:
             pos_int = int(rule_pos) if rule_pos.lstrip("-").isdigit() else -1
-            matched = [r for r in rules if str(r.get("position")) == rule_pos or r.get("position") == pos_int]
-            _output(matched[0] if matched else {"error": "Rule {rule_pos} not found on {vm_name}"}, fmt)
+            matched = [
+                r
+                for r in rules
+                if str(r.get("position")) == rule_pos or r.get("position") == pos_int
+            ]
+            _output(
+                matched[0]
+                if matched
+                else {"error": "Rule {rule_pos} not found on {vm_name}"},
+                fmt,
+            )
         else:
             _output(rules[0] if rules else {"error": "No rules found"}, fmt)
 
@@ -678,15 +747,20 @@ def cmd_firewall_rules(args):
         vm = _find_vm_by_name(client, vm_name)
         if vm:
             sid = vm.get("id") or vm.get("service_id")
-            client.create_firewall_rule(int(sid), {
-                "action": action,
-                "direction": "in",
-                "name": rule_name or "rule-{ports}",
-                "source": source,
-                "dest_port": ports,
-                "protocol": protocol,
-            })
-            print("Firewall rule created for [{vm_name}]: {protocol}:{ports} from {source}")
+            client.create_firewall_rule(
+                int(sid),
+                {
+                    "action": action,
+                    "direction": "in",
+                    "name": rule_name or "rule-{ports}",
+                    "source": source,
+                    "dest_port": ports,
+                    "protocol": protocol,
+                },
+            )
+            print(
+                "Firewall rule created for [{vm_name}]: {protocol}:{ports} from {source}"
+            )
         else:
             print("Instance {vm_name} not found", file=sys.stderr)
             sys.exit(1)
@@ -757,12 +831,14 @@ def cmd_images(args):
             templates = client.list_templates()
             images = []
             for t in templates:
-                images.append({
-                    "name": t.get("name", t.get("id", "")),
-                    "family": t.get("family", ""),
-                    "status": "READY",
-                    "arch": "x86_64",
-                })
+                images.append(
+                    {
+                        "name": t.get("name", t.get("id", "")),
+                        "family": t.get("family", ""),
+                        "status": "READY",
+                        "arch": "x86_64",
+                    }
+                )
             _output(images, fmt)
         except Exception:
             _output([], fmt)
@@ -801,8 +877,18 @@ def cmd_config(args):
 
 
 SHC_ZONES = [
-    {"name": "us-central1-a", "region": "us-central1", "status": "UP", "description": "Katy, Texas"},
-    {"name": "us-central1-b", "region": "us-central1", "status": "UP", "description": "Cherryvale, Kansas"},
+    {
+        "name": "us-central1-a",
+        "region": "us-central1",
+        "status": "UP",
+        "description": "Katy, Texas",
+    },
+    {
+        "name": "us-central1-b",
+        "region": "us-central1",
+        "status": "UP",
+        "description": "Cherryvale, Kansas",
+    },
 ]
 
 SHC_REGIONS = [
@@ -837,15 +923,17 @@ def _cmd_machine_types(args):
         for item in catalog:
             pkg_id = item.get("id") or item.get("package_id")
             if pkg_id and not any(m["id"] == str(pkg_id) for m in machine_types):
-                machine_types.append({
-                    "name": item.get("name", "pkg-{pkg_id}"),
-                    "id": str(pkg_id),
-                    "zone": "us-central1-a",
-                    "guestCpus": item.get("cpu", ""),
-                    "memoryMb": item.get("ram", ""),
-                    "description": item.get("description", ""),
-                    "selfLink": "projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
-                })
+                machine_types.append(
+                    {
+                        "name": item.get("name", "pkg-{pkg_id}"),
+                        "id": str(pkg_id),
+                        "zone": "us-central1-a",
+                        "guestCpus": item.get("cpu", ""),
+                        "memoryMb": item.get("ram", ""),
+                        "description": item.get("description", ""),
+                        "selfLink": "projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
+                    }
+                )
     except Exception:
         pass
     _output(machine_types, fmt)
@@ -888,7 +976,9 @@ def _cmd_regions(args):
     elif sub == "describe":
         region_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         matched = [r for r in SHC_REGIONS if r["name"] == region_name]
-        _output(matched[0] if matched else {"error": "Region {region_name} not found"}, fmt)
+        _output(
+            matched[0] if matched else {"error": "Region {region_name} not found"}, fmt
+        )
 
 
 def _cmd_operations(args):

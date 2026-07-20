@@ -229,12 +229,14 @@ class SHCMCPClient:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
         self.endpoint = endpoint
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
-            "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
-        })
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+            }
+        )
         self._request_id = 0
         self._initialized = False
         self._cache_ttl = 300
@@ -247,6 +249,7 @@ class SHCMCPClient:
         if entry is None:
             return None
         import time
+
         ts, data = entry
         if time.time() - ts > self._cache_ttl:
             del self._cache[key]
@@ -256,6 +259,7 @@ class SHCMCPClient:
     def _cache_set(self, key, data):
         if self._cache_ttl > 0:
             import time
+
             self._cache[key] = (time.time(), data)
         return data
 
@@ -263,7 +267,9 @@ class SHCMCPClient:
         if prefix is None:
             self._cache.clear()
         else:
-            self._cache = {k: v for k, v in self._cache.items() if not k.startswith(prefix)}
+            self._cache = {
+                k: v for k, v in self._cache.items() if not k.startswith(prefix)
+            }
 
     # ── MCP Protocol ─────────────────────────────────────────
 
@@ -275,14 +281,17 @@ class SHCMCPClient:
         """Send MCP initialize handshake once."""
         if self._initialized:
             return
-        resp = self._send_jsonrpc("initialize", {
-            "protocolVersion": MCP_PROTOCOL_VERSION,
-            "capabilities": {},
-            "clientInfo": {
-                "name": "shc-toolkit",
-                "version": "0.4.0",
+        resp = self._send_jsonrpc(
+            "initialize",
+            {
+                "protocolVersion": MCP_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {
+                    "name": "shc-toolkit",
+                    "version": "0.4.0",
+                },
             },
-        })
+        )
         log.debug("MCP initialized: %s", resp.get("result", {}).get("serverInfo"))
         try:
             self._send_jsonrpc("notifications/initialized", _notification=True)
@@ -341,8 +350,12 @@ class SHCMCPClient:
                 -32603: "internal_error",
             }
             numeric_code = err.get("code", -1)
-            err_code = JSONRPC_ERROR_CODES.get(numeric_code, f"mcp_error_{numeric_code}")
-            exc = SHCError(err_code, err.get("message", str(err)), None, err.get("data"))
+            err_code = JSONRPC_ERROR_CODES.get(
+                numeric_code, f"mcp_error_{numeric_code}"
+            )
+            exc = SHCError(
+                err_code, err.get("message", str(err)), None, err.get("data")
+            )
             # Capture confirmation_id from error data
             if isinstance(exc.details, dict):
                 conf = exc.details.get("confirmation", {})
@@ -391,10 +404,13 @@ class SHCMCPClient:
         args = arguments or {}
 
         for attempt in range(2):
-            resp = self._send_jsonrpc("tools/call", {
-                "name": name,
-                "arguments": args,
-            })
+            resp = self._send_jsonrpc(
+                "tools/call",
+                {
+                    "name": name,
+                    "arguments": args,
+                },
+            )
 
             result = resp.get("result", {})
             sc = result.get("structuredContent", {})
@@ -536,6 +552,7 @@ class SHCMCPClient:
         available = self.get_available_credit()
         if available < required:
             from .client import InsufficientCreditError
+
             raise InsufficientCreditError(required, available)
 
     def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict:
@@ -579,16 +596,24 @@ class SHCMCPClient:
         self, service_id: int, *, immediate: bool = True, confirm: bool = True
     ) -> dict:
         body: dict[str, Any] = {"immediate": True} if immediate else {}
-        result = self.call_tool("cancelVirtualMachine", {
-            "serviceId": service_id, "body": body,
-        })
+        result = self.call_tool(
+            "cancelVirtualMachine",
+            {
+                "serviceId": service_id,
+                "body": body,
+            },
+        )
         self.invalidate_cache("credit")
         return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
-        return self.call_tool("reinstallVirtualMachine", {
-            "serviceId": service_id, "body": self._convert_args(kwargs),
-        })
+        return self.call_tool(
+            "reinstallVirtualMachine",
+            {
+                "serviceId": service_id,
+                "body": self._convert_args(kwargs),
+            },
+        )
 
     # Jobs
     def list_jobs(self, service_id: int) -> list[dict]:
@@ -607,86 +632,142 @@ class SHCMCPClient:
         body: dict[str, Any] = {}
         if name:
             body["name"] = name
-        return self.call_tool("createVirtualMachineBackup", {
-            "serviceId": service_id, "body": body,
-        })
+        return self.call_tool(
+            "createVirtualMachineBackup",
+            {
+                "serviceId": service_id,
+                "body": body,
+            },
+        )
 
     def restore_backup(
         self, service_id: int, backup_id: str, *, confirm: bool = True
     ) -> dict:
-        return self.call_tool("restoreVirtualMachineBackup", {
-            "serviceId": service_id, "backupId": backup_id,
-        })
+        return self.call_tool(
+            "restoreVirtualMachineBackup",
+            {
+                "serviceId": service_id,
+                "backupId": backup_id,
+            },
+        )
 
     def delete_backup(
         self, service_id: int, backup_id: str, *, confirm: bool = True
     ) -> dict:
-        return self.call_tool("deleteVirtualMachineBackup", {
-            "serviceId": service_id, "body": {"backup_id": backup_id},
-        })
+        return self.call_tool(
+            "deleteVirtualMachineBackup",
+            {
+                "serviceId": service_id,
+                "body": {"backup_id": backup_id},
+            },
+        )
 
     def verify_backup(self, service_id: int, backup_id: str) -> dict:
-        return self.call_tool("verifyVirtualMachineBackup", {
-            "serviceId": service_id, "body": {"backup_id": backup_id},
-        })
+        return self.call_tool(
+            "verifyVirtualMachineBackup",
+            {
+                "serviceId": service_id,
+                "body": {"backup_id": backup_id},
+            },
+        )
 
-    def set_backup_protection(self, service_id: int, backup_id: str, protected: bool) -> dict:
-        return self.call_tool("setVirtualMachineBackupProtection", {
-            "serviceId": service_id, "body": {"backup_id": backup_id, "protected": protected},
-        })
+    def set_backup_protection(
+        self, service_id: int, backup_id: str, protected: bool
+    ) -> dict:
+        return self.call_tool(
+            "setVirtualMachineBackupProtection",
+            {
+                "serviceId": service_id,
+                "body": {"backup_id": backup_id, "protected": protected},
+            },
+        )
 
     def get_backup_restore_hints(self, service_id: int) -> dict:
-        return self.call_tool("getVirtualMachineBackupRestoreHints", {"serviceId": service_id})
+        return self.call_tool(
+            "getVirtualMachineBackupRestoreHints", {"serviceId": service_id}
+        )
 
     # Snapshots
     def list_snapshots(self, service_id: int) -> list[dict]:
-        result = self.call_tool("listVirtualMachineSnapshots", {"serviceId": service_id})
+        result = self.call_tool(
+            "listVirtualMachineSnapshots", {"serviceId": service_id}
+        )
         return self._extract_items(result)
 
     def create_snapshot(self, service_id: int, name: str | None = None) -> dict:
         body: dict[str, Any] = {}
         if name:
             body["name"] = name
-        return self.call_tool("createVirtualMachineSnapshot", {
-            "serviceId": service_id, "body": body,
-        })
+        return self.call_tool(
+            "createVirtualMachineSnapshot",
+            {
+                "serviceId": service_id,
+                "body": body,
+            },
+        )
 
     def restore_snapshot(
         self, service_id: int, snapshot_id: str, *, confirm: bool = True
     ) -> dict:
-        return self.call_tool("restoreVirtualMachineSnapshot", {
-            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
-        })
+        return self.call_tool(
+            "restoreVirtualMachineSnapshot",
+            {
+                "serviceId": service_id,
+                "body": {"snapshot_id": snapshot_id},
+            },
+        )
 
     def delete_snapshot(
         self, service_id: int, snapshot_id: str, *, confirm: bool = True
     ) -> dict:
-        return self.call_tool("deleteVirtualMachineSnapshot", {
-            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
-        })
+        return self.call_tool(
+            "deleteVirtualMachineSnapshot",
+            {
+                "serviceId": service_id,
+                "body": {"snapshot_id": snapshot_id},
+            },
+        )
 
     def verify_snapshot(self, service_id: int, snapshot_id: str) -> dict:
-        return self.call_tool("verifyVirtualMachineSnapshot", {
-            "serviceId": service_id, "body": {"snapshot_id": snapshot_id},
-        })
+        return self.call_tool(
+            "verifyVirtualMachineSnapshot",
+            {
+                "serviceId": service_id,
+                "body": {"snapshot_id": snapshot_id},
+            },
+        )
 
-    def set_snapshot_protection(self, service_id: int, snapshot_id: str, protected: bool) -> dict:
-        return self.call_tool("setVirtualMachineSnapshotProtection", {
-            "serviceId": service_id, "body": {"snapshot_id": snapshot_id, "protected": protected},
-        })
+    def set_snapshot_protection(
+        self, service_id: int, snapshot_id: str, protected: bool
+    ) -> dict:
+        return self.call_tool(
+            "setVirtualMachineSnapshotProtection",
+            {
+                "serviceId": service_id,
+                "body": {"snapshot_id": snapshot_id, "protected": protected},
+            },
+        )
 
     def get_snapshot_restore_hints(self, service_id: int) -> dict:
-        return self.call_tool("getVirtualMachineSnapshotRestoreHints", {"serviceId": service_id})
+        return self.call_tool(
+            "getVirtualMachineSnapshotRestoreHints", {"serviceId": service_id}
+        )
 
     # File Restore
     def list_file_restore_sources(self, service_id: int) -> list[dict]:
         result = self.call_tool("listVmFileRestoreSources", {"serviceId": service_id})
         return self._extract_items(result)
 
-    def browse_file_restore(self, service_id: int, source: str, path: str = "/") -> list[dict]:
-        result = self.call_tool("listVmFileRestoreEntries", {
-            "serviceId": service_id, "body": {"source": source, "path": path},
-        })
+    def browse_file_restore(
+        self, service_id: int, source: str, path: str = "/"
+    ) -> list[dict]:
+        result = self.call_tool(
+            "listVmFileRestoreEntries",
+            {
+                "serviceId": service_id,
+                "body": {"source": source, "path": path},
+            },
+        )
         return self._extract_items(result)
 
     # Data Preferences
@@ -694,9 +775,13 @@ class SHCMCPClient:
         return self.call_tool("getVmDataPreferences", {"serviceId": service_id})
 
     def set_data_preferences(self, service_id: int, **kwargs) -> dict:
-        return self.call_tool("updateVmDataPreferences", {
-            "serviceId": service_id, "body": kwargs,
-        })
+        return self.call_tool(
+            "updateVmDataPreferences",
+            {
+                "serviceId": service_id,
+                "body": kwargs,
+            },
+        )
 
     # Ordering
     def get_catalog(self, **kwargs) -> list[dict]:
@@ -725,7 +810,9 @@ class SHCMCPClient:
         return self._extract_items(result)
 
     def preview_upgrade(self, service_id: int, package_id: int) -> dict:
-        return self._call("preview_upgrade", service_id=service_id, package_id=package_id)
+        return self._call(
+            "preview_upgrade", service_id=service_id, package_id=package_id
+        )
 
     def upgrade_vm(self, service_id: int, package_id: int) -> dict:
         return self._call("upgrade_vm", service_id=service_id, package_id=package_id)
@@ -738,19 +825,27 @@ class SHCMCPClient:
         return self._call("get_vm_addon_options", service_id=service_id)
 
     def create_vm_addon(self, service_id: int, **body) -> dict:
-        return self.call_tool("createServiceAddon", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "createServiceAddon", {"serviceId": service_id, "body": body}
+        )
 
     def preview_vm_addon(self, service_id: int, **body) -> dict:
-        return self.call_tool("previewServiceAddon", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "previewServiceAddon", {"serviceId": service_id, "body": body}
+        )
 
     def get_vm_term_options(self, service_id: int) -> dict:
         return self._call("get_vm_term_options", service_id=service_id)
 
     def change_vm_term(self, service_id: int, **body) -> dict:
-        return self.call_tool("changeVirtualMachineTerm", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "changeVirtualMachineTerm", {"serviceId": service_id, "body": body}
+        )
 
     def preview_vm_term_change(self, service_id: int, **body) -> dict:
-        return self.call_tool("previewVirtualMachineTermChange", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "previewVirtualMachineTermChange", {"serviceId": service_id, "body": body}
+        )
 
     # Orders (v2.4.3)
     def list_orders(self, **params) -> list[dict]:
@@ -773,7 +868,9 @@ class SHCMCPClient:
         return self.call_tool("approveQuotation", {"quotationId": quotation_id})
 
     def list_quotation_invoices(self, quotation_id: int) -> list[dict]:
-        return self._extract_items(self._call("list_quotation_invoices", quotation_id=quotation_id))
+        return self._extract_items(
+            self._call("list_quotation_invoices", quotation_id=quotation_id)
+        )
 
     # Nostr account linking (v2.4.3)
     # Documents + Downloads (v2.4.3)
@@ -791,13 +888,20 @@ class SHCMCPClient:
 
     # Support extras (v2.4.3)
     def get_support_ticket_attachment(self, ticket_id: int, attachment_id: int) -> dict:
-        return self.call_tool("getSupportTicketAttachment", {"ticketId": ticket_id, "attachmentId": attachment_id})
+        return self.call_tool(
+            "getSupportTicketAttachment",
+            {"ticketId": ticket_id, "attachmentId": attachment_id},
+        )
 
-    def submit_support_ticket_feedback(self, ticket_id: int, rating: int, comment: str | None = None) -> dict:
+    def submit_support_ticket_feedback(
+        self, ticket_id: int, rating: int, comment: str | None = None
+    ) -> dict:
         body: dict[str, Any] = {"rating": rating}
         if comment:
             body["comment"] = comment
-        return self.call_tool("submitSupportTicketFeedback", {"ticketId": ticket_id, "body": body})
+        return self.call_tool(
+            "submitSupportTicketFeedback", {"ticketId": ticket_id, "body": body}
+        )
 
     # Invoice electronic (v2.4.3)
     def get_invoice_electronic(self, invoice_id: int) -> dict:
@@ -811,9 +915,13 @@ class SHCMCPClient:
         return self._call("get_invoice", invoice_id=invoice_id)
 
     def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict:
-        return self.call_tool("submitPaymentCheckout", {
-            "invoiceId": invoice_id, "idempotencyKey": idempotency_key,
-        })
+        return self.call_tool(
+            "submitPaymentCheckout",
+            {
+                "invoiceId": invoice_id,
+                "idempotencyKey": idempotency_key,
+            },
+        )
 
     def list_transactions(self, limit: int = 20, offset: int = 0) -> dict:
         return self.call_tool("listTransactions", {"limit": limit, "offset": offset})
@@ -828,7 +936,11 @@ class SHCMCPClient:
         return self._call("get_transaction", transaction_id=transaction_id)
 
     def add_credit(self, amount: str, idempotency_key: str, **kwargs) -> dict:
-        body: dict[str, Any] = {"amount": amount, "idempotency_key": idempotency_key, **kwargs}
+        body: dict[str, Any] = {
+            "amount": amount,
+            "idempotency_key": idempotency_key,
+            **kwargs,
+        }
         return self.call_tool("submitCreditTopup", {"body": body})
 
     # Account
@@ -871,7 +983,9 @@ class SHCMCPClient:
 
     # SSH Keys (extended)
     def set_stored_ssh_key(self, service_id: int, ssh_key: str) -> dict:
-        return self.call_tool("setServiceSshKey", {"body": {"service_id": service_id, "ssh_key": ssh_key}})
+        return self.call_tool(
+            "setServiceSshKey", {"body": {"service_id": service_id, "ssh_key": ssh_key}}
+        )
 
     def delete_stored_ssh_key(self, service_id: int) -> dict:
         return self.call_tool("deleteServiceSshKey", {"serviceId": service_id})
@@ -890,7 +1004,9 @@ class SHCMCPClient:
         return self.call_tool("createSupportTicket", {"body": body})
 
     def reply_support_ticket(self, ticket_id: int, **body) -> dict:
-        return self.call_tool("replySupportTicket", {"ticketId": ticket_id, "body": body})
+        return self.call_tool(
+            "replySupportTicket", {"ticketId": ticket_id, "body": body}
+        )
 
     def close_support_ticket(self, ticket_id: int) -> dict:
         return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
@@ -953,10 +1069,14 @@ class SHCMCPClient:
         return self._extract_items(self._call("list_isos", service_id=service_id))
 
     def rekey_zk_backup(self, service_id: int, **body) -> dict:
-        return self.call_tool("rekeyVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "rekeyVirtualMachineZkBackup", {"serviceId": service_id, "body": body}
+        )
 
     def submit_vm_renewal(self, service_id: int, **body) -> dict:
-        return self.call_tool("submitVirtualMachineRenewal", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "submitVirtualMachineRenewal", {"serviceId": service_id, "body": body}
+        )
 
     def standby_vm(self, service_id: int) -> dict:
         return self.call_tool("standbyVirtualMachine", {"serviceId": service_id})
@@ -981,13 +1101,19 @@ class SHCMCPClient:
         return self._extract_items(self._call("list_images"))
 
     def update_vm_cloud_init(self, vm_id: str, **body) -> dict:
-        return self.call_tool("updateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body})
+        return self.call_tool(
+            "updateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body}
+        )
 
     def delete_vm_cloud_init(self, vm_id: str) -> dict:
-        return self.call_tool("deleteVirtualMachineCloudInit", {"virtualMachineId": vm_id})
+        return self.call_tool(
+            "deleteVirtualMachineCloudInit", {"virtualMachineId": vm_id}
+        )
 
     def validate_vm_cloud_init(self, vm_id: str, **body) -> dict:
-        return self.call_tool("validateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body})
+        return self.call_tool(
+            "validateVirtualMachineCloudInit", {"virtualMachineId": vm_id, "body": body}
+        )
 
     def create_event_subscription(self, **body) -> dict:
         return self.call_tool("createEventSubscription", {"body": body})
@@ -999,7 +1125,9 @@ class SHCMCPClient:
         return self._call("get_event_subscription", eventSubscriptionId=subscription_id)
 
     def delete_event_subscription(self, subscription_id: str) -> dict:
-        return self.call_tool("deleteEventSubscription", {"eventSubscriptionId": subscription_id})
+        return self.call_tool(
+            "deleteEventSubscription", {"eventSubscriptionId": subscription_id}
+        )
 
     def submit_batch(self, **body) -> dict:
         return self.call_tool("submitBatch", {"body": body})
@@ -1008,19 +1136,31 @@ class SHCMCPClient:
         return self._call("get_zk_backup_status", service_id=service_id)
 
     def list_zk_backup_recipients(self, service_id: int) -> list[dict]:
-        return self._extract_items(self._call("list_zk_backup_recipients", service_id=service_id))
+        return self._extract_items(
+            self._call("list_zk_backup_recipients", service_id=service_id)
+        )
 
     def register_zk_backup(self, service_id: int, **body) -> dict:
-        return self.call_tool("registerVirtualMachineZkBackup", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "registerVirtualMachineZkBackup", {"serviceId": service_id, "body": body}
+        )
 
     def rekey_zk_backup_retain(self, service_id: int, **body) -> dict:
-        return self.call_tool("rekeyVirtualMachineZkBackupWithRetention", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "rekeyVirtualMachineZkBackupWithRetention",
+            {"serviceId": service_id, "body": body},
+        )
 
     def revoke_zk_backup_recipient(self, service_id: int, **body) -> dict:
-        return self.call_tool("revokeVirtualMachineZkBackupRecipient", {"serviceId": service_id, "body": body})
+        return self.call_tool(
+            "revokeVirtualMachineZkBackupRecipient",
+            {"serviceId": service_id, "body": body},
+        )
 
     def switch_managed_account(self, managed_client_id: str) -> dict:
-        return self.call_tool("switchManagedAccount", {"managedClientId": managed_client_id})
+        return self.call_tool(
+            "switchManagedAccount", {"managedClientId": managed_client_id}
+        )
 
     def relinquish_managed_account(self, **body) -> dict:
         return self.call_tool("relinquishManagedAccount", {"body": body})
@@ -1060,69 +1200,105 @@ class SHCMCPClient:
         result = self.call_tool("listServiceSshKeys", {})
         return self._extract_items(result)
 
-    def add_ssh_key(
-        self, service_id: int, public_key: str, label: str = ""
-    ) -> dict:
-        return self.call_tool("setServiceSshKey", {
-            "body": {
-                "service_id": service_id,
-                "public_key": public_key,
-                "label": label,
+    def add_ssh_key(self, service_id: int, public_key: str, label: str = "") -> dict:
+        return self.call_tool(
+            "setServiceSshKey",
+            {
+                "body": {
+                    "service_id": service_id,
+                    "public_key": public_key,
+                    "label": label,
+                },
             },
-        })
+        )
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
-        return self.call_tool("applyLiveServiceSshKey", {
-            "serviceId": service_id, "publicKey": public_key,
-        })
+        return self.call_tool(
+            "applyLiveServiceSshKey",
+            {
+                "serviceId": service_id,
+                "publicKey": public_key,
+            },
+        )
 
     # Firewall
     def get_firewall(self, service_id: int) -> dict:
         return self.call_tool("getVirtualMachineFirewall", {"serviceId": service_id})
 
     def set_firewall_policy(self, service_id: int, policy: str) -> dict:
-        return self.call_tool("updateVirtualMachineFirewallPolicy", {
-            "serviceId": service_id, "body": {"policy": policy},
-        })
+        return self.call_tool(
+            "updateVirtualMachineFirewallPolicy",
+            {
+                "serviceId": service_id,
+                "body": {"policy": policy},
+            },
+        )
 
     def create_firewall_rule(self, service_id: int, **kwargs) -> dict:
-        return self.call_tool("addVirtualMachineFirewallRule", {
-            "serviceId": service_id, "body": kwargs,
-        })
+        return self.call_tool(
+            "addVirtualMachineFirewallRule",
+            {
+                "serviceId": service_id,
+                "body": kwargs,
+            },
+        )
 
     def edit_firewall_rule(self, service_id: int, position: int, **kwargs) -> dict:
-        return self.call_tool("updateVirtualMachineFirewallRule", {
-            "serviceId": service_id, "body": {"position": position, **kwargs},
-        })
+        return self.call_tool(
+            "updateVirtualMachineFirewallRule",
+            {
+                "serviceId": service_id,
+                "body": {"position": position, **kwargs},
+            },
+        )
 
     def delete_firewall_rule(self, service_id: int, position: int) -> dict:
-        return self.call_tool("deleteVirtualMachineFirewallRule", {
-            "serviceId": service_id, "body": {"position": position},
-        })
+        return self.call_tool(
+            "deleteVirtualMachineFirewallRule",
+            {
+                "serviceId": service_id,
+                "body": {"position": position},
+            },
+        )
 
     # ISO
     def mount_iso(self, service_id: int, iso_id: str) -> dict:
-        return self.call_tool("mountVirtualMachineIso", {
-            "serviceId": service_id, "isoId": iso_id,
-        })
+        return self.call_tool(
+            "mountVirtualMachineIso",
+            {
+                "serviceId": service_id,
+                "isoId": iso_id,
+            },
+        )
 
     def unmount_iso(self, service_id: int) -> dict:
         return self.call_tool("unmountVirtualMachineIso", {"serviceId": service_id})
 
     # Reverse DNS
     def list_rdns(self, service_id: int) -> list[dict]:
-        result = self.call_tool("getVirtualMachineReverseDns", {"serviceId": service_id})
+        result = self.call_tool(
+            "getVirtualMachineReverseDns", {"serviceId": service_id}
+        )
         return self._extract_items(result)
 
     def set_rdns(self, service_id: int, ip: str, ptr: str) -> dict:
-        return self.call_tool("setVirtualMachineReverseDns", {
-            "serviceId": service_id, "ip": ip, "hostname": ptr,
-        })
+        return self.call_tool(
+            "setVirtualMachineReverseDns",
+            {
+                "serviceId": service_id,
+                "ip": ip,
+                "hostname": ptr,
+            },
+        )
 
     def clear_rdns(self, service_id: int, ip: str) -> dict:
-        return self.call_tool("deleteVirtualMachineReverseDns", {
-            "serviceId": service_id, "ip": ip,
-        })
+        return self.call_tool(
+            "deleteVirtualMachineReverseDns",
+            {
+                "serviceId": service_id,
+                "ip": ip,
+            },
+        )
 
     # Console
     def get_console_availability(self, service_id: int) -> dict:
@@ -1159,9 +1335,7 @@ class SHCMCPClient:
             vm = self.get_vm(service_id)
             svc = vm.get("service_status", "unknown")
             ips = vm.get("ips", [])
-            log.info(
-                "VM %s: service=%s, ips=%d", service_id, svc, len(ips)
-            )
+            log.info("VM %s: service=%s, ips=%d", service_id, svc, len(ips))
             if svc == "active" and ips:
                 return vm
             time.sleep(interval)
@@ -1199,7 +1373,7 @@ class SHCMCPClient:
             "ip_assigned": vm.get("ips", [{}])[0].get("ip") if vm.get("ips") else None,
             "has_active_job": summary.get("has_active_job", False),
             "note": "MCP transport — limited health detail. Use REST for "
-                    "port-22 probing and full diagnostics.",
+            "port-22 probing and full diagnostics.",
         }
 
     # ── Escape hatch ─────────────────────────────────────────

@@ -44,9 +44,9 @@ GITHUB_API = "https://api.github.com"
 GITHUB_API_VERSION = "2022-11-28"
 
 # Polling defaults
-DEFAULT_ORDER_TIMEOUT_S = 600       # VM provisioning
+DEFAULT_ORDER_TIMEOUT_S = 600  # VM provisioning
 DEFAULT_ORDER_INTERVAL_S = 10
-DEFAULT_SSH_TIMEOUT_S = 300         # SSH to come up after VM ready
+DEFAULT_SSH_TIMEOUT_S = 300  # SSH to come up after VM ready
 DEFAULT_SSH_INTERVAL_S = 5
 DEFAULT_RUNNER_ONLINE_TIMEOUT_S = 180  # runner to register after install
 DEFAULT_RUNNER_ONLINE_INTERVAL_S = 5
@@ -57,15 +57,14 @@ SUPPORTED_BACKENDS: frozenset[str] = frozenset({"shc-vps", "firecracker"})
 
 DEFAULT_FC_POOL_PATH = "/opt/fc-pool"
 DEFAULT_FC_SSH_USER = "root"
-DEFAULT_FC_SPAWN_TIMEOUT_S = 180    # pool spawn blocks until runner online
+DEFAULT_FC_SPAWN_TIMEOUT_S = 180  # pool spawn blocks until runner online
 
 _FC_BACKEND_NOTE = (
     "Firecracker microVM spawned via pool orchestrator "
     "(scripts/firecracker_pool.py). Cold-start ~22s vs ~135s for full VPS."
 )
 _SHC_VPS_BACKEND_NOTE = (
-    "Full SHC VPS. Future backend may use Firecracker microVM "
-    "to reduce cold-start."
+    "Full SHC VPS. Future backend may use Firecracker microVM to reduce cold-start."
 )
 
 # Cancellation idempotency: messages that mean "already gone, treat as success"
@@ -86,20 +85,20 @@ IDEMPOTENT_CANCEL_SUBSTRINGS = (
 class ProvisionRequest:
     """Inputs for a single ephemeral runner provision call."""
 
-    repo: str                          # "owner/repo"
-    github_token: str                  # PAT with repo admin / runners:write
+    repo: str  # "owner/repo"
+    github_token: str  # PAT with repo admin / runners:write
     size: str = "dev-4c-16gb"
     template: str = "ubuntu2404-cloud"
     labels: list[str] = field(default_factory=list)
     runner_name: str | None = None
     ssh_public_key: str | None = None  # path or raw key
     ssh_private_key: str | None = None  # path (optional escape hatch)
-    ssh_user: str | None = None        # auto-detected from VM if None
+    ssh_user: str | None = None  # auto-detected from VM if None
     max_wait_seconds: int = DEFAULT_ORDER_TIMEOUT_S
     install_docker: bool = True
     install_go: bool = False
     dry_run: bool = False
-    backend: str = "shc-vps"           # one of SUPPORTED_BACKENDS
+    backend: str = "shc-vps"  # one of SUPPORTED_BACKENDS
     firecracker_host: str | None = None  # SSH target for the host VM
     firecracker_pool_path: str = DEFAULT_FC_POOL_PATH
 
@@ -181,9 +180,15 @@ def _mark(timings: dict[str, Any], key: str) -> None:
 
 def _finalize_durations(timings: dict[str, Any]) -> None:
     """Compute ``durations`` (seconds) between consecutive t# markers."""
-    keys = ["t0_started", "t1_order_submitted", "t2_vm_ready",
-            "t3_ssh_reachable", "t4_runner_configured", "t5_runner_online",
-            "t6_finished"]
+    keys = [
+        "t0_started",
+        "t1_order_submitted",
+        "t2_vm_ready",
+        "t3_ssh_reachable",
+        "t4_runner_configured",
+        "t5_runner_online",
+        "t6_finished",
+    ]
     durations: dict[str, float] = {}
     for a, b in zip(keys, keys[1:]):
         if a in timings and b in timings:
@@ -230,6 +235,7 @@ def _ssl_context() -> "ssl.SSLContext":
     """
     try:
         import certifi
+
         return ssl.create_default_context(cafile=certifi.where())
     except ImportError:
         return ssl.create_default_context()
@@ -303,9 +309,7 @@ def fetch_runners(repo: str, github_token: str) -> list[dict[str, Any]]:
     import urllib.request
 
     url = f"{GITHUB_API}/repos/{repo}/actions/runners"
-    req = urllib.request.Request(
-        url, headers=_github_headers(github_token)
-    )
+    req = urllib.request.Request(url, headers=_github_headers(github_token))
     with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
         return json.loads(resp.read().decode()).get("runners", [])
 
@@ -353,19 +357,24 @@ def _ssh(
 ) -> str:
     """Run a command on the VM via SSH using an optional identity file."""
     argv = [
-        "ssh", "-p", str(port),
-        "-o", "StrictHostKeyChecking=no",
-        "-o", "UserKnownHostsFile=/dev/null",
-        "-o", "LogLevel=ERROR",
-        "-o", "BatchMode=yes",
-        "-o", f"ConnectTimeout={min(timeout, 15)}",
+        "ssh",
+        "-p",
+        str(port),
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "LogLevel=ERROR",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        f"ConnectTimeout={min(timeout, 15)}",
     ]
     if identity:
         argv += ["-i", identity]
     argv += [f"{user}@{host}", cmd]
-    result = subprocess.run(
-        argv, capture_output=True, text=True, timeout=timeout
-    )
+    result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
     if result.returncode != 0:
         raise RuntimeError(
             f"SSH command failed (rc={result.returncode}): {cmd}\n"
@@ -375,15 +384,17 @@ def _ssh(
 
 
 def wait_ssh(
-    host: str, *, user: str, identity: str | None,
+    host: str,
+    *,
+    user: str,
+    identity: str | None,
     timeout: int = DEFAULT_SSH_TIMEOUT_S,
     interval: int = DEFAULT_SSH_INTERVAL_S,
 ) -> bool:
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            out = _ssh(host, "echo SSH_READY", user=user, identity=identity,
-                       timeout=15)
+            out = _ssh(host, "echo SSH_READY", user=user, identity=identity, timeout=15)
             if "SSH_READY" in out:
                 return True
         except Exception:  # noqa: BLE001
@@ -413,22 +424,22 @@ def _bootstrap_script(
     label_arg = ",".join(labels)
     docker_block = ""
     if install_docker:
-        docker_block = '''if ! command -v docker >/dev/null 2>&1; then
+        docker_block = """if ! command -v docker >/dev/null 2>&1; then
   echo "[$(date -u +%FT%TZ)] installing docker"
   curl -fsSL https://get.docker.com | sudo sh || echo "warn: docker install failed (non-fatal)"
   sudo usermod -aG docker runner 2>/dev/null || true
 fi
-'''
+"""
     go_block = ""
     if install_go:
-        go_block = '''if ! command -v go >/dev/null 2>&1; then
+        go_block = """if ! command -v go >/dev/null 2>&1; then
   echo "[$(date -u +%FT%TZ)] installing go"
   GO_VERSION=1.24.2
   curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \\
     | sudo tar -C /usr/local -xz
   sudo ln -sf /usr/local/go/bin/go /usr/local/bin/go
 fi
-'''
+"""
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
@@ -504,7 +515,9 @@ echo "SHC_BOOTSTRAP_DONE_OK"
 # ── Top-level entry points ─────────────────────────────────────
 
 
-def provision(req: ProvisionRequest, client: SHCClient | None = None) -> ProvisionResult:
+def provision(
+    req: ProvisionRequest, client: SHCClient | None = None
+) -> ProvisionResult:
     """Provision an ephemeral GitHub Actions runner.
 
     Dispatches to ``_provision_shc_vps`` or ``_provision_firecracker``
@@ -514,8 +527,7 @@ def provision(req: ProvisionRequest, client: SHCClient | None = None) -> Provisi
     """
     if req.backend not in SUPPORTED_BACKENDS:
         raise ValueError(
-            f"unknown backend: {req.backend!r}; "
-            f"supported: {sorted(SUPPORTED_BACKENDS)}"
+            f"unknown backend: {req.backend!r}; supported: {sorted(SUPPORTED_BACKENDS)}"
         )
     if req.backend == "firecracker":
         return _provision_firecracker(req)
@@ -535,9 +547,7 @@ def _provision_shc_vps(
     runner_label = req.labels[0] if req.labels else f"shc-{uuid.uuid4().hex[:8]}"
     # Default labels are ALWAYS present (benchmark job's runs-on depends on them).
     # Caller-provided labels are appended and de-duplicated.
-    all_labels = parse_labels(
-        default_labels(runner_label) + parse_labels(req.labels)
-    )
+    all_labels = parse_labels(default_labels(runner_label) + parse_labels(req.labels))
     runner_name = req.runner_name or f"shc-{uuid.uuid4().hex[:8]}"
     # service_id is tracked outside the try/except so the error path can still
     # report it for orphan cleanup when provisioning fails mid-flow.
@@ -602,8 +612,9 @@ def _provision_shc_vps(
         try:
             client.apply_ssh_key_live(service_id, pub_key_str)
         except Exception as e:  # noqa: BLE001
-            print(f"  warn: apply_ssh_key_live failed (continuing): {e}",
-                  file=sys.stderr)
+            print(
+                f"  warn: apply_ssh_key_live failed (continuing): {e}", file=sys.stderr
+            )
 
         # ── 4. Wait for SSH ──
         if not wait_ssh(ip, user=ssh_user, identity=identity_path):
@@ -623,19 +634,23 @@ def _provision_shc_vps(
             install_go=req.install_go,
         )
         out = _ssh(
-            ip, script, user=ssh_user, identity=identity_path,
+            ip,
+            script,
+            user=ssh_user,
+            identity=identity_path,
             timeout=600,
         )
         if "SHC_BOOTSTRAP_DONE_OK" not in out:
             raise RuntimeError(
-                f"bootstrap script did not signal completion. output tail: "
-                f"{out[-500:]}"
+                f"bootstrap script did not signal completion. output tail: {out[-500:]}"
             )
         _mark(timings, "t4_runner_configured")
 
         # ── 6. Wait for runner to show online in GitHub ──
         online = wait_runner_online(
-            req.repo, req.github_token, runner_name,
+            req.repo,
+            req.github_token,
+            runner_name,
             timeout=DEFAULT_RUNNER_ONLINE_TIMEOUT_S,
         )
         if not online:
@@ -699,8 +714,7 @@ def destroy(
     """
     if backend not in SUPPORTED_BACKENDS:
         raise ValueError(
-            f"unknown backend: {backend!r}; "
-            f"supported: {sorted(SUPPORTED_BACKENDS)}"
+            f"unknown backend: {backend!r}; supported: {sorted(SUPPORTED_BACKENDS)}"
         )
     if backend == "firecracker":
         return _destroy_firecracker(
@@ -781,7 +795,7 @@ def _parse_fc_spawn_output(stdout: str) -> dict[str, Any]:
     while end != -1:
         start = s.rfind("{", 0, end + 1)
         while start != -1:
-            candidate = s[start:end + 1]
+            candidate = s[start : end + 1]
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
@@ -830,9 +844,7 @@ def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
     _mark(timings, "t0_started")
 
     runner_label = req.labels[0] if req.labels else f"fc-{uuid.uuid4().hex[:8]}"
-    all_labels = parse_labels(
-        default_labels(runner_label) + parse_labels(req.labels)
-    )
+    all_labels = parse_labels(default_labels(runner_label) + parse_labels(req.labels))
     runner_name = req.runner_name or f"fc-{uuid.uuid4().hex[:8]}"
 
     if req.dry_run:
@@ -883,8 +895,10 @@ def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
 
         _mark(timings, "t1_order_submitted")
         raw = _ssh(
-            req.firecracker_host, spawn_cmd,
-            user=fc_user, identity=req.ssh_private_key,
+            req.firecracker_host,
+            spawn_cmd,
+            user=fc_user,
+            identity=req.ssh_private_key,
             timeout=DEFAULT_FC_SPAWN_TIMEOUT_S,
         )
         # The pool blocks on --poll-github, so a successful return means
@@ -894,9 +908,7 @@ def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
 
         vm_info = _parse_fc_spawn_output(raw)
         if vm_info.get("error"):
-            raise RuntimeError(
-                f"pool spawn returned error: {vm_info['error']}"
-            )
+            raise RuntimeError(f"pool spawn returned error: {vm_info['error']}")
 
         _finalize_durations(timings)
 
@@ -958,13 +970,11 @@ def _destroy_firecracker(
             ),
         }
     script = f"{firecracker_pool_path.rstrip('/')}/firecracker_pool.py"
-    cmd = (
-        f"sudo python3 {shlex.quote(script)} kill "
-        f"--name {shlex.quote(runner_name)}"
-    )
+    cmd = f"sudo python3 {shlex.quote(script)} kill --name {shlex.quote(runner_name)}"
     try:
         raw = _ssh(
-            firecracker_host, cmd,
+            firecracker_host,
+            cmd,
             user=ssh_user or DEFAULT_FC_SSH_USER,
             identity=None,
             timeout=60,
@@ -1019,13 +1029,25 @@ def _resolve_ssh_keys(
 
     # Generate ephemeral keypair
     import tempfile
+
     ephemeral_dir = Path(tempfile.mkdtemp(prefix="shc-runner-key-"))
     ephemeral_dir.chmod(0o700)
     key_path = ephemeral_dir / "shc_runner_key"
     subprocess.run(
-        ["ssh-keygen", "-q", "-t", "ed25519", "-N", "",
-         "-f", str(key_path), "-C", "shc-ephemeral-runner"],
-        check=True, capture_output=True,
+        [
+            "ssh-keygen",
+            "-q",
+            "-t",
+            "ed25519",
+            "-N",
+            "",
+            "-f",
+            str(key_path),
+            "-C",
+            "shc-ephemeral-runner",
+        ],
+        check=True,
+        capture_output=True,
     )
     pub_str = (key_path.with_suffix(".pub")).read_text().strip()
     # Restrictive perms on the private key (ssh refuses world-readable keys)

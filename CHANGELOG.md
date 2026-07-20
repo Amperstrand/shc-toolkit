@@ -5,6 +5,157 @@ All notable changes to shc-toolkit are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.24.0] — 2026-07-20
+
+Spec-sync release. SHC shipped API v2.4.24 on 2026-07-19 (consolidating nine
+same-day iterations, v2.4.16 → v2.4.24). The drift was detected by
+`shc-tests.yml` and tracked in issue #21. All changes are additive / editorial
+on SHC's side; no `operationId`, path, request body, response shape, auth
+requirement, or enforcement behaviour changed (per SHC's contract stability
+rule). This release closes #20 and closes #21.
+
+### Added
+- `.omo/llms.txt` baseline (40 lines). `api-drift.yml` references this file but
+  it was missing from the repo; the workflow's first-run self-baseline path was
+  silently no-op'ing the llms.txt drift check. Future llms.txt drift will now
+  open an issue.
+- `ConfirmationChallenge` typed model in the regenerated client (Pydantic v2).
+  Documents the 409 `confirmation_required` re-call flow that the hand-written
+  `SHCClient` already implements via `_confirmed_request`.
+- `Error.confirmation` optional field in the regenerated client (the hand-written
+  client already reads `confirmation.confirmation_id`).
+
+### Changed
+- OpenAPI spec refreshed to v2.4.24 (148 paths, 197 schemas). Path count and
+  `x-shc-core` count (35) are unchanged from v2.4.15; the drift is entirely
+  response-shape specifications + one new schema.
+- Regenerated typed client: **727 Pydantic models** (was 543) across **932
+  Python files** (was 906). The new response schemas are now typed end-to-end
+  for anyone using `shc_toolkit.generated`.
+- 14 operations that previously returned a `"Staged contract stub"` placeholder
+  now carry their real response schema. Affected: `linkNostrIdentity`,
+  `unlinkNostrIdentity`, `updateNip05`, `getNostrLinkChallenge`,
+  `updateContact`, `listDownloadFiles`, `updateAccountManager`, `getOrder`,
+  `cancelPendingOrder`, `approveQuotation`, `submitSupportTicketFeedback`,
+  `getVirtualMachineTermOptions`, `previewVirtualMachineTermChange`.
+  (`changeVirtualMachineTerm` keeps its placeholder per upstream — its prorated
+  invoice shape could not be verified against a live response.)
+- 14 confirmation-gated operations that omitted a 409 now declare one with the
+  `Error` schema. Affected: `revokeApiKey`, `updateCreditHandling`,
+  `updateAccountPreferences`, `updateAffiliatePayoutDestination`,
+  `createContact`, `deleteServiceSshKey`, `setServiceSshKey`,
+  `closeSupportTicket`, `deleteVirtualMachineBackup`,
+  `setVirtualMachineBackupProtection`, `getVirtualMachineCredentials`,
+  `unmountVirtualMachineIso`, `deleteVirtualMachineSnapshot`,
+  `setVirtualMachineSnapshotProtection`. The hand-written client already
+  handled these via the confirmation flow; no behaviour change.
+- `x-shc-mcp-exposure` annotation now present on every operation (157 `exposed`,
+  20 `hidden`). `serverInfo.catalog.tool_count` now reports 157 (the actual
+  tool count), not 177 (the operation count). `TOOL_MAP` stays at 124 entries;
+  the curated 35 `x-shc-core` set is unchanged; live MCP server tool count
+  matches our drift CI baseline.
+- `claimAgentKey` and `mintVmConsoleSession` moved to their correct tags
+  (`Account` and `Virtual Machines`) by upstream — generated client stops
+  producing near-empty extra classes.
+- `pyproject.toml` version bumped 2.4.15.1 → 2.4.24.0. The `.0` patch signals
+  a clean spec-sync release with no hand-written code behaviour change.
+- Documentation audit: `ROADMAP.md` and `README.md` updated to v2.4.24.
+
+### Fixed
+- **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
+  value (`cloud-init-policy-violation` collided with `cloud_init_policy_violation`
+  after normalisation). Verified post-fix: enum now has 77 values (was 78), zero
+  normalised-key collisions. The `openapi-python-client` regeneration that this
+  blocked since 2026-07-16 now runs clean.
+- **Closes #21.** API drift issue auto-created by `shc-tests.yml` on 2026-07-20.
+  Resolved by this release.
+
+### Decision: hand-written client keeps returning raw dicts
+
+The hand-written `SHCClient` / `SHCMCPClient` continue to return raw `dict` /
+`list[dict]` from JSON responses. We did **not** add dataclass / Pydantic
+typed wrappers in the hand-written layer. The regenerated client
+(`shc_toolkit.generated`, +727 Pydantic v2 models) is the typed surface.
+
+This follows the 2026 maintainer consensus: avoid duplicate typed surfaces
+when an OpenAPI-generated Pydantic layer already exists (cf. Slothbox SDK
+ADR-0001, Katana ADR-0002, Boto3's botocore/boto3 split). The hand-written
+layer's value is ergonomics — retry with jitter, cost tracking, confirmation
+flow, cache, MCP transport — not type safety. Re-exporting generated models
+into the hand-written namespace is a future option (WorkOS-style) if users ask.
+
+References:
+- https://github.com/sloth-box/sdk-python/blob/main/docs/adr/0001-generator-choice.md
+- https://github.com/dougborg/katana-openapi-client/blob/main/katana_public_api_client/docs/adr/0002-openapi-code-generation.md
+
+---
+
+## [2.4.15.1] — 2026-07-16
+
+Backfilled entry. The `2.4.3.1` CHANGELOG section below was the last documented
+release; this section covers everything that shipped between `v2.4.3.1` and
+`v2.4.15.1` (the version in `pyproject.toml` immediately before the v2.4.24.0
+bump above). The gap was a documentation miss, not a release miss.
+
+### Added
+- Adopted SHC API **v2.4.6** — agent sessions (`createAgentSession`,
+  `listAgentSessions`, `getAgentSession`, `revokeAgentSession`,
+  `listAgentSessionAudit`) with Nostr proof-of-possession binding.
+- Adopted SHC API **v2.4.15** and wrapped **14 new MCP tools** in `TOOL_MAP` /
+  `SHCMCPClient` / `SHCClient`. New upstream surfaces include:
+  - **2FA enrollment** (`beginTwoFactorEnrollment`, `enableTwoFactor`,
+    `disableTwoFactor`) — Basic+OTP identity ops, not API-key callable.
+  - **Webhooks** (`/event-subscriptions` CRUD) with HMAC-SHA256 signed
+    CloudEvents delivery.
+  - **Events feed** (`GET /events`, cursor-paginated CloudEvents).
+  - **Batch** (`POST /batch`, up to 25 sub-requests).
+  - **VM standby/resume** (`standbyVirtualMachine`, `resumeVirtualMachine`,
+    `previewVirtualMachineStandby`).
+  - **Customer cloud-init** (`validateVirtualMachineCloudInit`,
+    `updateVirtualMachineCloudInit`, `deleteVirtualMachineCloudInit`).
+  - **ZK backup** registration / rekey / recipient management.
+  - **Managed-account switch** (`switchManagedAccount`).
+- **`reap_orphans()`** on `SHCClient` + `shc reap` CLI command + hourly
+  `reaper.yml` workflow. Identifies VMs older than a configurable age threshold
+  and cancels them, with dry-run mode, hostname-prefix filters, and exclusions.
+- **`raw` property** on `SHCClient` — WorkOS-pattern POC that exposes the
+  generated client (`shc_toolkit.generated.Client`) for type-safe raw API
+  access without losing the hand-written ergonomics layer.
+- **AGENTS.md** — maintenance guide for the three-repo SHC IaC ecosystem
+  (shc-toolkit, terraform-provider-shc, shc-pulumi). Covers the drift-update
+  runbook, codegen quirks, CHANGELOG discipline, CI map, known limitations.
+- **Exception hierarchy** (`SHCError`, `SHCNotFoundError`, `SHCAuthError`,
+  `SHCRateLimitError`, `SHCConfirmationRequiredError`, etc.) + pre-commit
+  hooks (flake8, mypy).
+
+### Changed
+- **HTTP transport swap**: `SHCClient` moved from `requests` to `httpx` for the
+  REST transport. `SHCMCPClient` still uses `requests` (MCP Streamable HTTP
+  client requirement). The network-blocking test fixture
+  (`tests/conftest.py`) patches both.
+- **Cost audit redesign**: single authoritative balance-diff check at cancel
+  time (was scattered across multiple points). Per-VM ledger disambiguation
+  for concurrent activity. Refund tracking now first-class.
+- Regenerated typed client brought up to v2.4.15: **906 Python files**, 543
+  Pydantic models, 148 endpoints (was 129 paths / 718 files at v2.4.3).
+- `Idempotency-Key` moved to `_confirmed_request` (fixes the confirmation flow
+  when callers supply their own key). Caller-provided keys are no longer
+  overwritten.
+- Drift-detection CI: `confirmation_id` is now read from the correct JSON path
+  (`confirmation.confirmation_id`, not the legacy nested `structuredContent`
+  copy which may be absent).
+
+### Fixed
+- Removed 3 broken Nostr MCP tools (`linkNostrIdentity`, `unlinkNostrIdentity`,
+  `updateNip05`) from `TOOL_MAP` — upstream v2.4.13 clarified these are
+  Basic+OTP identity operations, not API-key callable. `getNostrLinkChallenge`
+  stays (it is read-only).
+- Confirmation flow: extract `confirmation_id` from the correct JSON path
+  (was reading a legacy nested location that may be absent).
+- Flake8: fixed all F-issues across the codebase. Autopep8 structural fixes.
+
+---
+
 ## [2.4.3.1] — 2026-07-11
 
 First release aligned with the SHC API version. Format: `<SHC_API_VERSION>.<toolkit_patch>`.

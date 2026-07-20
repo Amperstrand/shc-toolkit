@@ -19,7 +19,7 @@ T = TypeVar("T", bound="LinkNostrIdentityResponse200")
 class LinkNostrIdentityResponse200:
     """
     Attributes:
-        data (LinkNostrIdentityResponse200Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (LinkNostrIdentityResponse200Data):
     """
 
     data: LinkNostrIdentityResponse200Data

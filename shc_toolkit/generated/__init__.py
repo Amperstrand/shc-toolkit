@@ -7,8 +7,9 @@ Usage:
     pip install shc-toolkit[generated]
     from shc_toolkit.generated import Client
 """
+
 try:
-    from .client import Client
+    from .client import Client  # noqa: F401
 except ImportError as e:
     raise ImportError(
         "The generated client requires httpx and attrs. "

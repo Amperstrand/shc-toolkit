@@ -86,16 +86,12 @@ class NoDNSKeyPair:
         }
 
 
-def build_record_tag(
-    rtype: str, name: str, rdata: str, ttl: int = 300
-) -> Tag:
+def build_record_tag(rtype: str, name: str, rdata: str, ttl: int = 300) -> Tag:
     """Build a record tag per NoDNS spec.
 
     Uses 11-element format for maximum compatibility with deployed nodns bots.
     """
-    return Tag.parse(
-        ["record", rtype, name, rdata, "", "", "", "", "", "", str(ttl)]
-    )
+    return Tag.parse(["record", rtype, name, rdata, "", "", "", "", "", "", str(ttl)])
 
 
 async def _publish_async(

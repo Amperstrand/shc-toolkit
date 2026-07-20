@@ -16,9 +16,15 @@ Dual-transport client for SHC: REST v2 (default) or MCP Streamable HTTP.
 """
 
 from .client import (
-    SHCClient, SHCError, ProvisioningStuckError, InsufficientCreditError,
-    SHCNotFoundError, SHCAuthError, SHCRateLimitError,
-    SHCConfirmationRequiredError, SHCServerError,
+    SHCClient,
+    SHCError,
+    ProvisioningStuckError,
+    InsufficientCreditError,
+    SHCNotFoundError,
+    SHCAuthError,
+    SHCRateLimitError,
+    SHCConfirmationRequiredError,
+    SHCServerError,
 )
 from .transport import resolve_transport
 from .sizes import SIZE_MAP, resolve_size, resolve_specs, list_sizes
@@ -93,11 +99,14 @@ def create_client(
 def __getattr__(name):
     if name in ("ConsoleSession", "ConsoleError"):
         from .console import ConsoleSession, ConsoleError  # noqa: F401
+
         return locals()[name]
     if name in ("VMBootstrap",):
         from .bootstrap import VMBootstrap
+
         return VMBootstrap
     if name == "SHCMCPClient":
         from .mcp_client import SHCMCPClient
+
         return SHCMCPClient
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

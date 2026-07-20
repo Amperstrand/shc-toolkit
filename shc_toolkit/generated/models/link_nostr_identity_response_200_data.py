@@ -1,47 +1,76 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+
+from ..models.link_nostr_identity_response_200_data_status import (
+    LinkNostrIdentityResponse200DataStatus,
+)
 
 T = TypeVar("T", bound="LinkNostrIdentityResponse200Data")
 
 
 @_attrs_define
 class LinkNostrIdentityResponse200Data:
-    """Staged contract stub -- field shape finalizes when the handler lands."""
+    """
+    Attributes:
+        status (LinkNostrIdentityResponse200DataStatus): Nostr link outcome.
+        rotated (bool): True when an existing linked key was replaced.
+        npub (str): Linked Nostr public key in npub form.
+        nip05_name (None | str): Current NIP-05 local name for the linked key, or null when absent.
+    """
 
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+    status: LinkNostrIdentityResponse200DataStatus
+    rotated: bool
+    npub: str
+    nip05_name: None | str
 
     def to_dict(self) -> dict[str, Any]:
+        status = self.status.value
+
+        rotated = self.rotated
+
+        npub = self.npub
+
+        nip05_name: None | str
+        nip05_name = self.nip05_name
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+
+        field_dict.update(
+            {
+                "status": status,
+                "rotated": rotated,
+                "npub": npub,
+                "nip05_name": nip05_name,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        link_nostr_identity_response_200_data = cls()
+        status = LinkNostrIdentityResponse200DataStatus(d.pop("status"))
 
-        link_nostr_identity_response_200_data.additional_properties = d
+        rotated = d.pop("rotated")
+
+        npub = d.pop("npub")
+
+        def _parse_nip05_name(data: object) -> None | str:
+            if data is None:
+                return data
+            return cast(None | str, data)
+
+        nip05_name = _parse_nip05_name(d.pop("nip05_name"))
+
+        link_nostr_identity_response_200_data = cls(
+            status=status,
+            rotated=rotated,
+            npub=npub,
+            nip05_name=nip05_name,
+        )
+
         return link_nostr_identity_response_200_data
-
-    @property
-    def additional_keys(self) -> list[str]:
-        return list(self.additional_properties.keys())
-
-    def __getitem__(self, key: str) -> Any:
-        return self.additional_properties[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.additional_properties[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.additional_properties[key]
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.additional_properties

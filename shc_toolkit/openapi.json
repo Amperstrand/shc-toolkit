@@ -2,8 +2,8 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Sovereign Hybrid Compute User API",
-        "version": "2.4.15",
-        "description": "Phase 4 adds hygiene artifacts: seal-master rotation runbook, PGP weak-key warning, prove-recovery telemetry shape, and downgraded his-spec RCCPP gates. His-spec C.3/C.4 claims remain warning-level until production constant-time ML-KEM and real two-server XOR-PIR are deployed.\n\nPhase 3 adds both-leg recipient binding for pq-hybrid recipients: pubkey_x25519_hex, pubkey_mlkem_hex, and reader_id=SHA256(x25519_pub||mlkem_pub) are folded into recipientSetHash and active seal digest. It also publishes derivation and KAT contract artifacts and documents the PQ seal AAD transcript binding.\n\nPhase 2 adds an explicit coherent ZK backup recipient API: register, status, full recipient list, revoke, and retention-aware rekey. SHC ZK backup is genuine self-custody, the same model as Bitcoin: your keys, your data. Backups already sealed to a recovery key stay openable by that key until you rotate forward and re-upload the backups you care about; that is the sovereignty property. If a recovery key is exposed, register a fresh recipient set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC cannot re-seal, claw back, or reach into existing backup data; that inability is the guarantee. Operator sign-off is required before deploying this self-custody rotation design fork.\n\nv2.4.14 is an intentional security hardening release: getVirtualMachineCredentials is again classified as x-shc-secret-read and x-shc-confirm-required, reversing the 2026-06-24 un-gate because it returns a reusable decrypted VM password. First ZK backup registration now requires X-User-Api-Confirm before the initial customer recipient set is written; ZK rekey is confirm-gated rotate-forward self-custody with chosen-rung retention and preserved historical openability. Flag this release note for Amperstrand contract consumers.\n\nv2.4.11 adds the Blesta-native switchManagedAccount operation for same-company managed-account acting-as, with dual-identity audit and confirm-gated activation.\n\nv2.4.9 adds native batch submission: POST /batch accepts up to 25 live /user-api/v2 sub-requests, preserves response order and correlation ids, reports partial failures per item, requires batch-level idempotency, rejects nested batch recursion, and dispatches each sub-request through the same native guard, confirmation, ownership, rate, and idempotency chain as a standalone call. A batch consumes one rate unit per sub-request and does not roll back successful siblings.\n\nv2.4.8 adds native event webhook push subscriptions: create, list, get, and delete customer-owned HTTPS subscriptions for the existing CloudEvents feed. Delivery is asynchronous, signed with HMAC-SHA256, re-validates public HTTPS egress at delivery time, retries with bounded backoff, and records exhausted attempts in a dead-letter store. The signing secret is returned once on create and is never returned by list, get, delete, or idempotent replay.\n\nCustomer-facing VM API for authenticated SHC Blesta customers. Use it to read account data, compare storefront-backed VM plans, preview and submit a new VM order, inspect owned VM inventory, manage power, reinstall, backup, snapshot, and restore workflows, review invoices, and manage stored SSH keys. `GET /ordering/catalog` is the primary authenticated buy catalog, `POST /ordering/preview` validates a request, and `POST /ordering/submit` or `POST /vm/buy` creates the order through Blesta's canonical order engine. Backup, snapshot, and restore routes queue background jobs, and `GET /vm/{serviceId}/jobs` or `GET /vm/{serviceId}/jobs/{jobId}` exposes job progress. `GET /vm/templates` remains a descriptive plan and image endpoint for the customer's eligible VM scope and owned-service workflows. The `/user-api/v2` REST is a deprecated legacy transport, kept for backward compatibility; the flagship MCP (see the MCP note below) is the supported, go-forward agent surface. The wrapper handles authentication, rate limiting, routing, and response formatting, while an internal Blesta plugin model backs the business logic. Direct native `/api/UserApi.UserApiApi/...` access is intentionally disabled for customer-scoped methods. HTTP Basic uses your Blesta login username and password. For many accounts the username is the email address, but that is not guaranteed for every account type. If the account has 2FA enabled, send the current code in the `X-User-Api-OTP` header. Missing credentials return `401 Authentication required`. Missing OTP returns `401 Two-factor code required` and sets `X-User-Api-OTP-Required: 1`. Invalid password and invalid OTP also return `401` with endpoint-specific error messages. JSON request bodies are capped at 16 KiB. VM IDs in this API are Blesta service IDs, not Proxmox VMIDs. MCP note: this API exposes account, catalog, order, invoice, service, storage, and job state. It does not provide ambient screen or browser context by itself. The eligible authenticated operations (169 MCP tools with X-MCP-Tools: all; the default tools/list returns 30 curated tools; binary-response operations are REST-only) are exposed as MCP tools at the flagship server https://mcp.sovereignhybridcompute.com/ (Model Context Protocol over Streamable HTTP), the preferred agent transport, with single-use confirmation_id gating on every spend and destructive operation; authenticate with your shc_live_ operate key as a Bearer token. v1.8.0 documents the previously-undocumented Tier-2 write endpoints: VM shutdown/reset, ISO mount/unmount, firewall rule/policy management, live SSH key inject/remove, backup/snapshot verify acknowledgement, data-preferences update, support ticket create/reply/close, account preferences and credit-handling updates, contact deletion, and manager / managed-account management. Reinstall now returns 202 with a pollable job_id. v1.10.0 adds the Tier-2 service upgrade / package-change endpoints: GET /vm/{serviceId}/upgrade-options (read-only catalog of same-group plans + settable config options), POST /vm/{serviceId}/upgrade/preview (read-only prorated quote), and PATCH /vm/{serviceId}/upgrade (the money-moving change). The PATCH is QUEUED-ONLY: it always creates a prorated invoice and a queued change and returns 202; the VM is resized by Blesta's standard cron after the invoice is paid. pricing_ref is the raw package_pricing id. A disk-reducing change is always rejected (422) because the module would destroy and recreate the VM. The PATCH requires a body idempotency_key. v1.12.0 documents two shipped features: native AREA-scoped customer API keys and the enriched account activity report. Customer API keys (`Authorization: Bearer shc_live_...`, created/listed/revoked at /account/api-keys with Basic+OTP) now carry TWO ANDed authorization axes - a METHOD scope (read / operate / full) and an OPTIONAL area subset of Blesta's native contact-permission areas; each operation declares its governing area via `x-required-area`, a key created with no `areas` is materialized to the account's full permitted-area set (never stored unrestricted), and a key created with an `areas` array may only reach operations whose area is in the set (see the customerApiKey security scheme). GET /account/activity now merges sign-ins, failed sign-ins, account contact-detail changes, account-setting changes, and payment/transaction activity into one most-recent-first paginated feed (ActivityItem); it never exposes internal placement, staff identity, or the old/new values of changed fields. v1.14.0 expands the orderable OS/desktop catalog: Linux templates devuan5-cloud (Devuan 5) and openbsd79-cloud (OpenBSD 7.9), desktop environments kde (KDE Plasma) and mate (MATE) for AlmaLinux 9, and windows2022-byol (Windows Server 2022, Bring Your Own License). windows2022-byol is a dedicated Windows product with a 50 GB disk / 2 vCPU / 4 GB RAM minimum (the order form clamps to these), a BYOL acknowledgment, and standard linear compute pricing; it ships as Microsoft's 180-day evaluation and the customer applies their own Windows Server 2022 license (slmgr /ipk then /ato). os_template and gui_choice remain free-form strings resolved against the customer's eligible plan. v1.15.0 brings the documented OS/desktop catalog fully in line with the live, DB-driven /ordering/catalog: the orderable `template` option is debian13-cloud (default), debian12-cloud, ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud, openbsd79-cloud, and windows2022-byol; the `gui_choice` desktop option (AlmaLinux 9) is none/gnome/kde/xfce/cinnamon/mate. The catalog is authoritative and auto-reflects, so always read GET /ordering/catalog for the exact live set rather than relying on this prose. Additional images (ubuntu2604-cloud, freebsd14-cloud, openwrt-cloud, the NixOS 26.05 refresh, and Windows Server Core / Windows 11 desktop variants) are staged and will appear in the catalog as they are released.\n\n## What's new in 2.4.6 (2026-07-13, non-breaking)\n\n**Added**\n- Customer-driven cloud-init operations are live: validate, confirm-gated apply, and confirm-gated revert via a pure-PHP NoCloud CD-ROM ISO seed. Apply creates a server-managed NoCloud seed, attaches it as the single CIDATA source, and keeps storage details hidden.\n- Native agent session identity operations are live: create, list, get, confirm-gated revoke, and session audit.\n- Agent sessions are customer-owned `shc_agent_` bearer tokens backed by server-side session records, bound to a Nostr public key, and require `X-User-Api-Agent-Proof` on every bearer request.\n- Session scope is `read` or `operate`; read sessions are GET-only, operate sessions still cannot manage keys, password, 2FA, account identity, billing money movement, contacts, managers, or session material.\n- Agent session audit records are customer-readable, attributed by sessionId and agentId, traceparent-aware, and carry tamper-evident event hashes under `data.tamperEvidence`.\n\n## What's new in 2.4.4 (2026-07-13, non-breaking)\n\n**Added**\n- `GET /vm/{serviceId}/standby/preview` returns a read-only keep-IP vs release-IP standby quote from the standby quote contract.\n- `POST /vm/{serviceId}/standby` parks an owned active VM through the standby contract with the requested `keep_ip` option. It is confirm-gated, requires `Idempotency-Key`, and returns state, `standby_recurring`, `park_credit`, and `ip_disposition`.\n- `POST /vm/{serviceId}/resume` resumes an owned parked VM through the resume contract. It is confirm-gated, requires `Idempotency-Key`, and returns active state plus `resume_charge`.\n- Standby/resume idempotency uses the header key and strict body replay. Same key plus same body replays the cached result; same key plus a different body returns 422 `idempotency_key_conflict`.\n\n\n## What's new in 2.4.0 (2026-07-02, non-breaking)\n\n**Fixed**\n- Missing-VM lookups on `GET /vm/{service_id}/detail` and `POST /vm/{service_id}/ssh-keys/apply-live` now return **404** with `error_code: not_found` (previously 500).\n- `GET /vm/{service_id}/summary` includes the live `runtime` object (state, lock, cpu_percent, mem_percent) \u2014 no second call to `/detail` needed for power state. If the hypervisor read fails, `runtime` is `null` and the summary still returns.\n- All timestamps are now true UTC. Date fields such as `date_created` / `date_renews` were previously emitted 5 hours ahead; formats are unchanged (ISO-8601, `+00:00`).\n- `GET /vm/{service_id}/activity` now shows a VM's own provisioning tasks (freshly created VMs no longer return an empty feed).\n- Orders that cannot resolve an OS template are rejected up front with **422** `template_required`, and the message lists the package's valid template values. `config_options` with option ids that belong to a different package are rejected with **422** and the valid option ids are listed.\n- API responses now begin with `{` \u2014 the stray plaintext banner line is gone. You can remove any strip-prefix workaround.\n\n**Added**\n- `error.error_code` on every error \u2014 a stable machine code (registry below) so clients no longer match on message text. Transient conditions also carry `error.retry_after_seconds`.\n- 409 confirmation challenges mirror the id flat at `confirmation.confirmation_id` (all nested copies kept).\n- Field aliases (dual-emitted, both accepted where written): `balances`/`credit` on the two balance endpoints, `items` alongside `upgradable` on upgrade-options, singular `service_id` on the order response, `id` (+ `snapshot_id` on snapshots) alongside `backup_id` on snapshot/backup items, `pricing_id` alongside `pricing_ref` on upgrades. Snapshot/backup write bodies accept `backup_id` | `snapshot_id` | `id` | `volid`.\n- Cancel responses include top-level `expected_refund` and `transaction_id` (see the refund formula below).\n- Firewall `action` is case-insensitive on input (always UPPERCASE in responses). `GET /ssh-key` accepts `?service_id=`. `POST /vm/{service_id}/console/session` accepts an optional `ttl` (seconds, clamped 5-300; default 30).\n- `POST /agent-keys/claim` is documented: exchange a single-use claim code for an agent API key.\n- MCP: `structuredContent.result` on every tool result (the unwrapped payload \u2014 uniform for reads and writes; the nested `data` shape is kept), a `listApiKeys` tool (full-scope keys may list key METADATA; creating and revoking keys stays Basic-auth-only), legacy tool-name aliases, and a `serverInfo.catalog` stamp (`spec_version`, `tool_count`).\n\n### Machine error-code registry (`error.error_code`)\n\n| error_code | Meaning | Retry |\n|---|---|---|\n| `not_found` | The addressed resource does not exist or is not owned by this account (404). | no |\n| `invalid_token` | The API key was rejected (expired / revoked / unknown) \u2014 rotate or re-mint it. Missing credentials stay plain `unauthorized`. | after re-auth |\n| `vm_locked` | The VM is transiently locked by another operation (for example a running backup). | yes \u2014 honor `retry_after_seconds` (default 15) |\n| `insufficient_credit` | The requested amount exceeds the available balance (currently: payout requests; VM orders never hard-fail on credit \u2014 they invoice). | after top-up |\n| `upstream_failure` | The hypervisor / storage backend could not service the request. | yes \u2014 honor `retry_after_seconds` (default 30) |\n| `rate_limited` | Too many requests (429). | yes \u2014 honor `retry_after_seconds` |\n\nEvery other specific `error.code` value is mirrored into `error_code` verbatim. Sample error body:\n\n```json\n{\"error\": {\"code\": \"conflict\", \"message\": \"Cancellation failed: ... VM is locked (backup) ...\",\n  \"request_id\": \"1f0c...\", \"details\": [], \"error_code\": \"vm_locked\", \"retry_after_seconds\": 15}}\n```\n\n### Cancellation refund formula\n\n`expected_refund` / `cancel_credit.amount` come from ONE shared credit model (identical to the customer portal): for each paid invoice line covering the current term, credit = the line's cent-rounded amount x (unused seconds / covered seconds), summed in integer cents. A minimum charge of max(the term's 6-minute value, $0.01) is retained, already-issued this-term downgrade credits are subtracted, and the result is clamped to [0, amount paid]. End-of-term cancellations yield 0 (the term is fully used). The credit is issued as in-house account credit; `transaction_id` references it. Sample (1-day $0.24 term, canceled minutes after provisioning):\n\n```json\n{\"data\": {\"id\": 817, \"service_status\": \"canceled\", \"expected_refund\": 0.23, \"transaction_id\": 454,\n  \"cancel_credit\": {\"amount\": 0.23, \"currency\": \"USD\", \"transaction_id\": 454, \"issued\": true}}}\n```\n\n\n## Request-body contracts & the MCP argument convention\nEvery operation that accepts a request body documents its exact fields (with a realistic example) in this spec's requestBody schema. How those fields map onto an MCP tool call (path/query params at the top level; the whole body under a single `body` object; the one `Idempotency-Key` header exception) is stated in the root `x-mcp-argument-convention` extension and in the docs page at `/user-api/docs/mcp-argument-convention.md`. Contracts are additive-only within a minor version; integrators may pin them. See `/user-api/CHANGELOG.md`.",
+        "version": "2.4.24",
+        "description": "Customer-facing VM API for authenticated SHC Blesta customers. Use it to read account data, compare storefront-backed VM plans, preview and submit a new VM order, inspect owned VM inventory, manage power, reinstall, backup, snapshot, and restore workflows, review invoices, and manage stored SSH keys. `GET /ordering/catalog` is the primary authenticated buy catalog, `POST /ordering/preview` validates a request, and `POST /ordering/submit` or `POST /vm/buy` creates the order through Blesta's canonical order engine. Backup, snapshot, and restore routes queue background jobs, and `GET /vm/{serviceId}/jobs` or `GET /vm/{serviceId}/jobs/{jobId}` exposes job progress. `GET /vm/templates` remains a descriptive plan and image endpoint for the customer's eligible VM scope and owned-service workflows. The `/user-api/v2` REST is a deprecated legacy transport, kept for backward compatibility; the flagship MCP (see the MCP note below) is the supported, go-forward agent surface. The wrapper handles authentication, rate limiting, routing, and response formatting, while an internal Blesta plugin model backs the business logic. Direct native `/api/UserApi.UserApiApi/...` access is intentionally disabled for customer-scoped methods. HTTP Basic uses your Blesta login username and password. For many accounts the username is the email address, but that is not guaranteed for every account type. If the account has 2FA enabled, send the current code in the `X-User-Api-OTP` header. Missing credentials return `401 Authentication required`. Missing OTP returns `401 Two-factor code required` and sets `X-User-Api-OTP-Required: 1`. Invalid password and invalid OTP also return `401` with endpoint-specific error messages. JSON request bodies are capped at 16 KiB. VM IDs in this API are Blesta service IDs, not Proxmox VMIDs. MCP note: this API exposes account, catalog, order, invoice, service, storage, and job state. It does not provide ambient screen or browser context by itself. The eligible authenticated operations (the MCP catalog exposes every operation except the identity and credential class - two-factor, password, API keys, agent sessions, Nostr identity linking, registration and account-contact updates - which stay REST-only and Basic+OTP-only by design; each operation declares its status in x-shc-mcp-exposure, and the curated everyday subset is annotated x-shc-core) are exposed as MCP tools at the flagship server https://mcp.sovereignhybridcompute.com/ (Model Context Protocol over Streamable HTTP), the preferred agent transport, with single-use confirmation_id gating on every spend and destructive operation; authenticate with your shc_live_ operate key as a Bearer token. v1.8.0 documents the previously-undocumented Tier-2 write endpoints: VM shutdown/reset, ISO mount/unmount, firewall rule/policy management, live SSH key inject/remove, backup/snapshot verify acknowledgement, data-preferences update, support ticket create/reply/close, account preferences and credit-handling updates, contact deletion, and manager / managed-account management. Reinstall now returns 202 with a pollable job_id. v1.10.0 adds the Tier-2 service upgrade / package-change endpoints: GET /vm/{serviceId}/upgrade-options (read-only catalog of same-group plans + settable config options), POST /vm/{serviceId}/upgrade/preview (read-only prorated quote), and PATCH /vm/{serviceId}/upgrade (the money-moving change). The PATCH is QUEUED-ONLY: it always creates a prorated invoice and a queued change and returns 202; the VM is resized by Blesta's standard cron after the invoice is paid. pricing_ref is the raw package_pricing id. A disk-reducing change is always rejected (422) because the module would destroy and recreate the VM. The PATCH requires a body idempotency_key. v1.12.0 documents two shipped features: native AREA-scoped customer API keys and the enriched account activity report. Customer API keys (`Authorization: Bearer shc_live_...`, created/listed/revoked at /account/api-keys with Basic+OTP) now carry TWO ANDed authorization axes - a METHOD scope (read / operate / full) and an OPTIONAL area subset of Blesta's native contact-permission areas; each operation declares its governing area via `x-required-area`, a key created with no `areas` is materialized to the account's full permitted-area set (never stored unrestricted), and a key created with an `areas` array may only reach operations whose area is in the set (see the customerApiKey security scheme). GET /account/activity now merges sign-ins, failed sign-ins, account contact-detail changes, account-setting changes, and payment/transaction activity into one most-recent-first paginated feed (ActivityItem); it never exposes internal placement, staff identity, or the old/new values of changed fields. v1.14.0 expands the orderable OS/desktop catalog: Linux templates devuan5-cloud (Devuan 5) and openbsd79-cloud (OpenBSD 7.9), desktop environments kde (KDE Plasma) and mate (MATE) for AlmaLinux 9, and windows2022-byol (Windows Server 2022, Bring Your Own License). windows2022-byol is a dedicated Windows product with a 50 GB disk / 2 vCPU / 4 GB RAM minimum (the order form clamps to these), a BYOL acknowledgment, and standard linear compute pricing; it ships as Microsoft's 180-day evaluation and the customer applies their own Windows Server 2022 license (slmgr /ipk then /ato). os_template and gui_choice remain free-form strings resolved against the customer's eligible plan. v1.15.0 brings the documented OS/desktop catalog fully in line with the live, DB-driven /ordering/catalog: the orderable `template` option is debian13-cloud (default), debian12-cloud, ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud, openbsd79-cloud, and windows2022-byol; the `gui_choice` desktop option (AlmaLinux 9) is none/gnome/kde/xfce/cinnamon/mate. The catalog is authoritative and auto-reflects, so always read GET /ordering/catalog for the exact live set rather than relying on this prose. Additional images (ubuntu2604-cloud, freebsd14-cloud, openwrt-cloud, the NixOS 26.05 refresh, and Windows Server Core / Windows 11 desktop variants) are staged and will appear in the catalog as they are released.\n\n### Machine error-code registry (`error.error_code`)\n\n| error_code | Meaning | Retry |\n|---|---|---|\n| `not_found` | The addressed resource does not exist or is not owned by this account (404). | no |\n| `invalid_token` | The API key was rejected (expired / revoked / unknown) \u2014 rotate or re-mint it. Missing credentials stay plain `unauthorized`. | after re-auth |\n| `vm_locked` | The VM is transiently locked by another operation (for example a running backup). | yes \u2014 honor `retry_after_seconds` (default 15) |\n| `insufficient_credit` | The requested amount exceeds the available balance (currently: payout requests; VM orders never hard-fail on credit \u2014 they invoice). | after top-up |\n| `upstream_failure` | The hypervisor / storage backend could not service the request. | yes \u2014 honor `retry_after_seconds` (default 30) |\n| `rate_limited` | Too many requests (429). | yes \u2014 honor `retry_after_seconds` |\n\nEvery other specific `error.code` value is mirrored into `error_code` verbatim. Sample error body:\n\n```json\n{\"error\": {\"code\": \"conflict\", \"message\": \"Cancellation failed: ... VM is locked (backup) ...\",\n  \"request_id\": \"1f0c...\", \"details\": [], \"error_code\": \"vm_locked\", \"retry_after_seconds\": 15}}\n```\n\n### Cancellation refund formula\n\n`expected_refund` / `cancel_credit.amount` come from ONE shared credit model (identical to the customer portal): for each paid invoice line covering the current term, credit = the line's cent-rounded amount x (unused seconds / covered seconds), summed in integer cents. A minimum charge of max(the term's 6-minute value, $0.01) is retained, already-issued this-term downgrade credits are subtracted, and the result is clamped to [0, amount paid]. End-of-term cancellations yield 0 (the term is fully used). The credit is issued as in-house account credit; `transaction_id` references it. Sample (1-day $0.24 term, canceled minutes after provisioning):\n\n```json\n{\"data\": {\"id\": 817, \"service_status\": \"canceled\", \"expected_refund\": 0.23, \"transaction_id\": 454,\n  \"cancel_credit\": {\"amount\": 0.23, \"currency\": \"USD\", \"transaction_id\": 454, \"issued\": true}}}\n```\n\n\n## Request-body contracts & the MCP argument convention\nEvery operation that accepts a request body documents its exact fields (with a realistic example) in this spec's requestBody schema. How those fields map onto an MCP tool call (path/query params at the top level; the whole body under a single `body` object; the one `Idempotency-Key` header exception) is stated in the root `x-mcp-argument-convention` extension and in the docs page at `/user-api/docs/mcp-argument-convention.md`. Contracts are additive-only within a minor version; integrators may pin them. See `/user-api/CHANGELOG.md`.",
         "x-agent-native": {
             "mcp": {
                 "endpoint": "https://mcp.sovereignhybridcompute.com/",
@@ -161,7 +161,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             },
             "patch": {
                 "tags": [
@@ -256,7 +257,8 @@
                     {
                         "internalToken": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/2fa": {
@@ -362,7 +364,8 @@
                     {
                         "basicAuth": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "hidden"
             },
             "post": {
                 "tags": [
@@ -470,7 +473,8 @@
                         }
                     }
                 },
-                "x-required-area": "__identity__"
+                "x-required-area": "__identity__",
+                "x-shc-mcp-exposure": "hidden"
             },
             "delete": {
                 "tags": [
@@ -566,7 +570,8 @@
                         }
                     }
                 },
-                "x-required-area": "__identity__"
+                "x-required-area": "__identity__",
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/activity": {
@@ -664,7 +669,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/api-keys": {
@@ -807,7 +813,8 @@
                 },
                 "x-shc-core": true,
                 "x-required-area": "__identity__",
-                "description": "v2.4.0: a FULL-scope customer API key may also call this LIST (key METADATA only \u2014 name, prefix, expiry, last_used; never the secret). Mint (POST) and revoke (DELETE) remain Basic+OTP only (anti-escalation)."
+                "description": "v2.4.0: a FULL-scope customer API key may also call this LIST (key METADATA only \u2014 name, prefix, expiry, last_used; never the secret). Mint (POST) and revoke (DELETE) remain Basic+OTP only (anti-escalation).",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "operationId": "createApiKey",
@@ -990,7 +997,8 @@
                     }
                 },
                 "x-required-area": "__identity__",
-                "description": "Create a customer-managed scoped API key. Returns the plaintext key once. Optionally pass 'areas' (array of native contact-permission area aliases) to scope the key to a subset of areas; omit to materialize it to the account's full permitted-area set (the key is never stored area-unrestricted). See the customerApiKey security scheme and each operation's x-required-area."
+                "description": "Create a customer-managed scoped API key. Returns the plaintext key once. Optionally pass 'areas' (array of native contact-permission area aliases) to scope the key to a subset of areas; omit to materialize it to the account's full permitted-area set (the key is never stored area-unrestricted). See the customerApiKey security scheme and each operation's x-required-area.",
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/api-keys/{keyId}": {
@@ -1113,10 +1121,21 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "__identity__",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/autodebit": {
@@ -1239,7 +1258,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/balance": {
@@ -1423,7 +1443,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/contact": {
@@ -1581,7 +1602,8 @@
                     {
                         "basicAuth": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/credit": {
@@ -1712,7 +1734,8 @@
                         "customerApiKey": []
                     }
                 ],
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/credit-handling": {
@@ -1840,7 +1863,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "put": {
                 "tags": [
@@ -1974,6 +1998,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "_credits",
@@ -1985,7 +2019,8 @@
                         "customerApiKey": []
                     }
                 ],
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/nostr/link": {
@@ -2170,7 +2205,38 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "status",
+                                                "rotated",
+                                                "npub",
+                                                "nip05_name"
+                                            ],
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Nostr link outcome.",
+                                                    "enum": [
+                                                        "linked",
+                                                        "already_linked"
+                                                    ]
+                                                },
+                                                "rotated": {
+                                                    "type": "boolean",
+                                                    "description": "True when an existing linked key was replaced."
+                                                },
+                                                "npub": {
+                                                    "type": "string",
+                                                    "description": "Linked Nostr public key in npub form."
+                                                },
+                                                "nip05_name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Current NIP-05 local name for the linked key, or null when absent."
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -2264,7 +2330,91 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "challenge",
+                                                "expires_in_seconds",
+                                                "single_use",
+                                                "linked",
+                                                "npub",
+                                                "nip98"
+                                            ],
+                                            "properties": {
+                                                "challenge": {
+                                                    "type": "string",
+                                                    "description": "One-time Nostr link/unlink challenge nonce."
+                                                },
+                                                "expires_in_seconds": {
+                                                    "type": "integer",
+                                                    "description": "Seconds until the challenge expires.",
+                                                    "enum": [
+                                                        300
+                                                    ]
+                                                },
+                                                "single_use": {
+                                                    "type": "boolean",
+                                                    "description": "Whether the challenge is consumed on redemption.",
+                                                    "enum": [
+                                                        true
+                                                    ]
+                                                },
+                                                "linked": {
+                                                    "type": "boolean",
+                                                    "description": "Whether this account currently has a linked Nostr identity."
+                                                },
+                                                "npub": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Currently linked npub, or null when no Nostr identity is linked."
+                                                },
+                                                "nip98": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "kind",
+                                                        "required_tags",
+                                                        "max_event_age_seconds",
+                                                        "note"
+                                                    ],
+                                                    "properties": {
+                                                        "kind": {
+                                                            "type": "integer",
+                                                            "description": "NIP-98 event kind required for redemption.",
+                                                            "enum": [
+                                                                27235
+                                                            ]
+                                                        },
+                                                        "required_tags": {
+                                                            "type": "array",
+                                                            "description": "Tags the signed NIP-98 event must carry.",
+                                                            "minItems": 3,
+                                                            "maxItems": 3,
+                                                            "items": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "u",
+                                                                    "method",
+                                                                    "challenge"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "max_event_age_seconds": {
+                                                            "type": "integer",
+                                                            "description": "Maximum accepted NIP-98 event age.",
+                                                            "enum": [
+                                                                600
+                                                            ]
+                                                        },
+                                                        "note": {
+                                                            "type": "string",
+                                                            "description": "Handler-provided signing instruction."
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -2387,7 +2537,31 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "status",
+                                                "nip05_name",
+                                                "npub"
+                                            ],
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "NIP-05 update outcome.",
+                                                    "enum": [
+                                                        "updated"
+                                                    ]
+                                                },
+                                                "nip05_name": {
+                                                    "type": "string",
+                                                    "description": "Stored NIP-05 local name.",
+                                                    "maxLength": 64,
+                                                    "pattern": "^[a-z0-9._-]+$"
+                                                },
+                                                "npub": {
+                                                    "type": "string",
+                                                    "description": "Linked Nostr public key in npub form."
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -2554,7 +2728,24 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "status",
+                                                "npub"
+                                            ],
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Nostr unlink outcome.",
+                                                    "enum": [
+                                                        "unlinked"
+                                                    ]
+                                                },
+                                                "npub": {
+                                                    "type": "string",
+                                                    "description": "Nostr npub that was unlinked."
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -2750,7 +2941,8 @@
                     {
                         "basicAuth": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/account/preferences": {
@@ -2926,7 +3118,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "patch": {
                 "tags": [
@@ -3108,6 +3301,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_accounts",
@@ -3119,7 +3322,8 @@
                         "customerApiKey": []
                     }
                 ],
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/affiliate": {
@@ -3206,7 +3410,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/affiliate/enroll": {
@@ -3296,7 +3501,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/affiliate/payout-destination": {
@@ -3383,7 +3589,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             },
             "put": {
                 "tags": [
@@ -3478,10 +3685,21 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_accounts",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/affiliate/payouts": {
@@ -3614,7 +3832,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -3720,7 +3939,8 @@
                     {
                         "$ref": "#/components/parameters/IdempotencyKeyHeader"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/affiliate/referrals": {
@@ -3853,7 +4073,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_accounts"
+                "x-required-area": "client_accounts",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/agent-keys/claim": {
@@ -3862,7 +4083,7 @@
                 "summary": "Claim a single-use agent API key by claim code",
                 "description": "Public (unauthenticated) claim endpoint for operator-issued agent keys. The customer (or SHC on their behalf) mints a key and hands the AGENT only a single-use claim code; the agent exchanges the code here exactly once and receives the plaintext key (never recoverable again). Anti-enumeration: every existence-type miss (unknown / expired / already-claimed / raced) returns one uniform 404 body on a uniform response-time floor. Malformed requests are 422. Rate limited per source IP (30/10min) and per code (10/10min). NOT exposed as an MCP tool (public credential bootstrap; the MCP surface is authenticated).",
                 "tags": [
-                    "account"
+                    "Account"
                 ],
                 "security": [],
                 "requestBody": {
@@ -4152,7 +4373,8 @@
                         }
                     }
                 },
-                "x-required-area": "__public__"
+                "x-required-area": "__public__",
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/agent-sessions": {
@@ -4835,7 +5057,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_invoices"
+                "x-required-area": "client_invoices",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/contacts": {
@@ -5038,7 +5261,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -5130,6 +5354,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_contacts",
@@ -5141,7 +5375,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/contacts/permission-options": {
@@ -5228,7 +5463,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/contacts/{contactId}": {
@@ -5513,7 +5749,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "delete": {
                 "tags": [
@@ -5613,7 +5850,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "patch": {
                 "tags": [
@@ -5796,7 +6034,41 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "id",
+                                                "contact_type",
+                                                "has_login",
+                                                "email_verification_pending",
+                                                "updated_at"
+                                            ],
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "description": "Updated contact id.",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "contact_type": {
+                                                    "type": "string",
+                                                    "description": "Existing non-primary contact type."
+                                                },
+                                                "has_login": {
+                                                    "type": "boolean",
+                                                    "description": "Whether the contact has a login after the update."
+                                                },
+                                                "email_verification_pending": {
+                                                    "type": "boolean",
+                                                    "description": "True when the submitted email changed and verification is pending."
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "description": "Server timestamp when the update completed.",
+                                                    "format": "date-time",
+                                                    "maxLength": 64
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -6162,7 +6434,166 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "category",
+                                                "parent_category",
+                                                "categories",
+                                                "files",
+                                                "total_files"
+                                            ],
+                                            "properties": {
+                                                "category": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "description": "Selected category, or null when listing the root.",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "category_id",
+                                                        "name",
+                                                        "description",
+                                                        "parent_id"
+                                                    ],
+                                                    "properties": {
+                                                        "category_id": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        },
+                                                        "parent_id": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                },
+                                                "parent_category": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "description": "Parent category of the selected category, or null when absent.",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "category_id",
+                                                        "name",
+                                                        "description",
+                                                        "parent_id"
+                                                    ],
+                                                    "properties": {
+                                                        "category_id": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        },
+                                                        "parent_id": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                },
+                                                "categories": {
+                                                    "type": "array",
+                                                    "description": "Child categories visible at this level.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                            "category_id",
+                                                            "name",
+                                                            "description"
+                                                        ],
+                                                        "properties": {
+                                                            "category_id": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 2147483647,
+                                                                "format": "int32"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "description": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "maxProperties": 64
+                                                    }
+                                                },
+                                                "files": {
+                                                    "type": "array",
+                                                    "description": "Download files available to the authenticated client at this level.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                            "file_id",
+                                                            "name",
+                                                            "extension",
+                                                            "category_id"
+                                                        ],
+                                                        "properties": {
+                                                            "file_id": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 2147483647,
+                                                                "format": "int32"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "extension": {
+                                                                "type": "string",
+                                                                "description": "File extension string supplied by the download manager model, or an empty string."
+                                                            },
+                                                            "category_id": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ],
+                                                                "minimum": 1,
+                                                                "maximum": 2147483647,
+                                                                "format": "int32"
+                                                            }
+                                                        },
+                                                        "maxProperties": 64
+                                                    }
+                                                },
+                                                "total_files": {
+                                                    "type": "integer",
+                                                    "description": "Portal-parity total files in the category for the company, not entitlement-filtered.",
+                                                    "minimum": 0,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -6444,7 +6875,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_emails"
+                "x-required-area": "client_emails",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/emails/{emailId}": {
@@ -6543,7 +6975,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_emails"
+                "x-required-area": "client_emails",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/events": {
@@ -7245,7 +7678,8 @@
                         "$ref": "#/components/parameters/Offset"
                     }
                 ],
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/invoices": {
@@ -7442,7 +7876,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/invoices/{invoiceId}": {
@@ -7562,7 +7997,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/invoices/{invoiceId}/electronic": {
@@ -7759,7 +8195,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_invoices"
+                "x-required-area": "client_invoices",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/kb": {
@@ -8017,7 +8454,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/kb/search": {
@@ -8174,7 +8612,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/kb/{articleId}": {
@@ -8365,7 +8804,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managed-accounts": {
@@ -8555,7 +8995,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managed-accounts/invitations/{token}": {
@@ -8670,7 +9111,8 @@
                         "customerApiKey": []
                     }
                 ],
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managed-accounts/{managedClientId}": {
@@ -8774,7 +9216,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managers": {
@@ -8971,7 +9414,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -9077,7 +9521,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managers/permission-options": {
@@ -9164,7 +9609,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/managers/{ref}": {
@@ -9268,7 +9714,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "patch": {
                 "tags": [
@@ -9358,7 +9805,35 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "updated",
+                                                "contact_id",
+                                                "permissions"
+                                            ],
+                                            "properties": {
+                                                "updated": {
+                                                    "type": "boolean",
+                                                    "description": "Whether the active manager permissions were updated.",
+                                                    "enum": [
+                                                        true
+                                                    ]
+                                                },
+                                                "contact_id": {
+                                                    "type": "integer",
+                                                    "description": "Active manager contact id.",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "description": "Permission area keys stored after the update.",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -9484,7 +9959,8 @@
                     }
                 ],
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/ordering/preview": {
@@ -9708,7 +10184,8 @@
                         }
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/ordering/submit": {
@@ -9975,7 +10452,8 @@
                 ],
                 "x-shc-core": true,
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/orders": {
@@ -10184,7 +10662,169 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "order_id",
+                                                "order_number",
+                                                "status",
+                                                "date_added",
+                                                "order_form_id",
+                                                "order_form_label",
+                                                "invoice",
+                                                "services",
+                                                "cancelable",
+                                                "next"
+                                            ],
+                                            "properties": {
+                                                "order_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "order_number": {
+                                                    "type": "string",
+                                                    "maxLength": 128
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "accepted",
+                                                        "fraud",
+                                                        "canceled"
+                                                    ],
+                                                    "maxLength": 32
+                                                },
+                                                "date_added": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Raw Blesta order timestamp.",
+                                                    "maxLength": 19,
+                                                    "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+                                                },
+                                                "order_form_id": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "order_form_label": {
+                                                    "type": "string",
+                                                    "maxLength": 255
+                                                },
+                                                "invoice": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "invoice_id",
+                                                        "invoice_id_code",
+                                                        "currency",
+                                                        "total",
+                                                        "paid",
+                                                        "balance_due",
+                                                        "date_closed"
+                                                    ],
+                                                    "properties": {
+                                                        "invoice_id": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        },
+                                                        "invoice_id_code": {
+                                                            "type": "string",
+                                                            "maxLength": 128
+                                                        },
+                                                        "currency": {
+                                                            "type": "string",
+                                                            "maxLength": 8
+                                                        },
+                                                        "total": {
+                                                            "type": "string",
+                                                            "description": "Fixed two-decimal money string.",
+                                                            "pattern": "^-?\\d+\\.\\d{2}$"
+                                                        },
+                                                        "paid": {
+                                                            "type": "string",
+                                                            "description": "Fixed two-decimal money string.",
+                                                            "pattern": "^-?\\d+\\.\\d{2}$"
+                                                        },
+                                                        "balance_due": {
+                                                            "type": "string",
+                                                            "description": "Fixed two-decimal money string.",
+                                                            "pattern": "^-?\\d+\\.\\d{2}$"
+                                                        },
+                                                        "date_closed": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "description": "Raw Blesta invoice close timestamp.",
+                                                            "maxLength": 19,
+                                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                },
+                                                "services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                            "service_id",
+                                                            "status"
+                                                        ],
+                                                        "properties": {
+                                                            "service_id": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 2147483647,
+                                                                "format": "int32"
+                                                            },
+                                                            "status": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ],
+                                                                "description": "Current service status, or null when the service row has been deleted."
+                                                            }
+                                                        },
+                                                        "maxProperties": 64
+                                                    }
+                                                },
+                                                "cancelable": {
+                                                    "type": "boolean"
+                                                },
+                                                "next": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "payment_required",
+                                                        "checkout_url"
+                                                    ],
+                                                    "properties": {
+                                                        "payment_required": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "checkout_url": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "description": "Relative checkout URL when payment is still required.",
+                                                            "format": "uri-reference"
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -10302,7 +10942,59 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "order_id",
+                                                "order_number",
+                                                "status",
+                                                "invoice_id",
+                                                "invoice_status",
+                                                "deleted_service_ids"
+                                            ],
+                                            "properties": {
+                                                "order_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "order_number": {
+                                                    "type": "string",
+                                                    "maxLength": 128
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Verified final order status.",
+                                                    "enum": [
+                                                        "canceled"
+                                                    ],
+                                                    "maxLength": 32
+                                                },
+                                                "invoice_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "invoice_status": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Invoice status read back after cancellation, or null if unavailable.",
+                                                    "maxLength": 32
+                                                },
+                                                "deleted_service_ids": {
+                                                    "type": "array",
+                                                    "description": "Pending or in-review services deleted by the cancellation.",
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 2147483647,
+                                                        "format": "int32"
+                                                    }
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -10536,7 +11228,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/payment/{invoiceId}": {
@@ -10643,7 +11336,8 @@
                     }
                 },
                 "description": "Returns invoice detail for an owned invoice. The nested `line_items` collection uses the canonical pagination envelope and is paged with `line_items.limit` and `line_items.offset`.",
-                "x-required-area": "client_invoices"
+                "x-required-area": "client_invoices",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/payment/{invoiceId}/checkout": {
@@ -10825,7 +11519,8 @@
                     }
                 },
                 "x-required-area": "client_invoices",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/quotations": {
@@ -10966,7 +11661,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/quotations/{quotationId}": {
@@ -11129,7 +11825,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/quotations/{quotationId}/approve": {
@@ -11266,7 +11963,28 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "quotation_id",
+                                                "status"
+                                            ],
+                                            "properties": {
+                                                "quotation_id": {
+                                                    "type": "integer",
+                                                    "description": "Approved quotation id.",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Final quotation status.",
+                                                    "enum": [
+                                                        "approved"
+                                                    ],
+                                                    "maxLength": 32
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -11491,7 +12209,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/register": {
@@ -11717,7 +12436,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "__public__"
+                "x-required-area": "__public__",
+                "x-shc-mcp-exposure": "hidden"
             }
         },
         "/ssh-key": {
@@ -11817,7 +12537,8 @@
                         "description": "v2.4.0 (additive): return only the entry for this service id."
                     }
                 ],
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -11905,10 +12626,21 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             },
             "delete": {
                 "tags": [
@@ -12055,6 +12787,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
@@ -12069,7 +12811,8 @@
                         },
                         "description": "The legacy ?confirm=true query flag is NOT accepted (the v2-native dispatcher rejects it). Destructive/spend actions use a server-issued, single-use confirmation_id two-step. First call this operation WITHOUT a confirmation_id: it returns 409 confirmation_required carrying a non-secret confirmation_id (bound server-side to this exact call + your caller fingerprint, single-use, short-TTL) plus a how_to_proceed re-call shape. After a human has approved the data loss, re-send the IDENTICAL request adding header X-User-Api-Confirm: <that confirmation_id> to execute. The confirmation_id carries no secret -- it only names an already-bound pending action, so a leaked or parroted id is inert (it can only complete the identical call by the same principal). A confirmation_id is NOT permission -- only re-send it after the human's explicit yes to THIS action. Power actions (start/stop/restart/shutdown/reset) are not destructive and need no confirmation."
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/support/departments": {
@@ -12319,7 +13062,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/support/tickets": {
@@ -12595,7 +13339,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -12697,7 +13442,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/support/tickets/{ticketId}": {
@@ -12999,7 +13745,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/support/tickets/{ticketId}/attachments/{attachmentId}": {
@@ -13208,6 +13955,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "support",
@@ -13219,7 +13976,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/support/tickets/{ticketId}/feedback": {
@@ -13317,7 +14075,49 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "ticket_id",
+                                                "code",
+                                                "status",
+                                                "rating",
+                                                "rating_comment"
+                                            ],
+                                            "properties": {
+                                                "ticket_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "Customer-visible support ticket code.",
+                                                    "maxLength": 128
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Ticket status after feedback submission.",
+                                                    "enum": [
+                                                        "closed"
+                                                    ],
+                                                    "maxLength": 32
+                                                },
+                                                "rating": {
+                                                    "type": "integer",
+                                                    "description": "Stored ticket feedback rating.",
+                                                    "minimum": 1,
+                                                    "maximum": 5
+                                                },
+                                                "rating_comment": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Stored feedback comment, or null when omitted/cleared.",
+                                                    "maxLength": 65535
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -13478,7 +14278,8 @@
                     {
                         "customerApiKey": []
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/transactions": {
@@ -13682,7 +14483,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_transactions"
+                "x-required-area": "client_transactions",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/transactions/{transactionId}": {
@@ -13822,7 +14624,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_transactions"
+                "x-required-area": "client_transactions",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm": {
@@ -13912,7 +14715,8 @@
                     }
                 ],
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/buy": {
@@ -14186,7 +14990,8 @@
                         "source": "curl -sS -X POST https://blesta.sovereignhybridcompute.com/user-api/v2/vm/buy \\\n  -H \"Authorization: Bearer $SHC_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"pricing_id\": 42, \"hostname\": \"my-vps\", \"config_options\": {\"template\": \"debian13-cloud\"}}'\n# 201 -> data.next.checkout_url; pay it, then poll data.id summary.\n"
                     }
                 ],
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/templates": {
@@ -14275,7 +15080,8 @@
                         "$ref": "#/components/parameters/Offset"
                     }
                 ],
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}": {
@@ -14359,7 +15165,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/activity": {
@@ -14496,7 +15303,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/addons": {
@@ -14588,7 +15396,8 @@
                     {
                         "$ref": "#/components/parameters/ServiceId"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -14809,7 +15618,8 @@
                     {
                         "$ref": "#/components/parameters/ServiceId"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/addons/options": {
@@ -14901,7 +15711,8 @@
                     {
                         "$ref": "#/components/parameters/ServiceId"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/addons/preview": {
@@ -15042,7 +15853,8 @@
                     {
                         "$ref": "#/components/parameters/ServiceId"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups": {
@@ -15141,7 +15953,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -15251,7 +16064,8 @@
                         "label": "curl",
                         "source": "curl -sS -X POST https://blesta.sovereignhybridcompute.com/user-api/v2/vm/353/backups \\\n  -H \"Authorization: Bearer $SHC_API_KEY\" -H \"Content-Type: application/json\" -d '{}'\n# 202 -> {data:{job_id, next:{poll:\"/user-api/v2/vm/353/jobs/<job_id>\"}}}\n# Then GET data.next.poll until status in (completed, failed, canceled).\n"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups/delete": {
@@ -15364,6 +16178,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
@@ -15377,7 +16201,8 @@
                     ],
                     "location": "body",
                     "note": "Backup identifier is a BODY field (unlike firewall rules, which use a PATH id)."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups/protection": {
@@ -15481,6 +16306,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
@@ -15494,7 +16329,8 @@
                     "location": "body",
                     "note": "Backup identifier is a BODY field."
                 },
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups/restore": {
@@ -15630,7 +16466,8 @@
                     ],
                     "location": "body",
                     "note": "Backup identifier is a BODY field."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups/restore-hints": {
@@ -15826,7 +16663,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/backups/verify": {
@@ -15942,7 +16780,8 @@
                     ],
                     "location": "body",
                     "note": "Backup identifier is a BODY field."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/bandwidth": {
@@ -16096,7 +16935,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/cancel": {
@@ -16393,7 +17233,8 @@
                 },
                 "x-shc-core": true,
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/console": {
@@ -16504,7 +17345,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/console/session": {
@@ -16515,7 +17357,7 @@
             ],
             "post": {
                 "tags": [
-                    "VM"
+                    "Virtual Machines"
                 ],
                 "summary": "Mint a live console session",
                 "description": "Mints a single-use, short-TTL, VM-scoped noVNC console session for one owned, active VM whose node enables the console feature, and returns a ready-to-open console URL plus its expiry. STRICT PARITY with the portal console tab: it runs the same admin-side PVE flow (ephemeral per-VM PVE user limited to VM.Console, expiring in ~60s; vncproxy ticket) and routes through the same secure noVNC bridge. The URL carries a short-lived signed token in its fragment and is meant to be handed to a human to open in a browser. The response NEVER includes PVE admin credentials, the PVE auth ticket, the node name, or the underlying VM id.",
@@ -16621,7 +17463,8 @@
                         }
                     }
                 },
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/credentials": {
@@ -16722,13 +17565,24 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-shc-core": true,
                 "x-required-area": "client_services",
                 "x-shc-secret-read": true,
                 "x-shc-confirm-required": true,
-                "x-shc-confirm-reason": "Returns a reusable decrypted VM password; never allow unattended agent execution."
+                "x-shc-confirm-reason": "Returns a reusable decrypted VM password; never allow unattended agent execution.",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/data-preferences": {
@@ -16930,7 +17784,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "patch": {
                 "tags": [
@@ -17149,7 +18004,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required-when": "body.zk_backup first registration"
+                "x-shc-confirm-required-when": "body.zk_backup first registration",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/detail": {
@@ -17266,7 +18122,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/file-restore/list": {
@@ -17479,7 +18336,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/file-restore/sources": {
@@ -17706,7 +18564,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/firewall": {
@@ -17792,7 +18651,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/firewall/policy": {
@@ -17908,7 +18768,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/firewall/rules": {
@@ -18024,7 +18885,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/firewall/rules/{pos}": {
@@ -18149,7 +19011,8 @@
                     "location": "path",
                     "note": "Rule identifier is the {pos} PATH parameter; the request body carries only the edited rule fields."
                 },
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             },
             "delete": {
                 "tags": [
@@ -18253,7 +19116,8 @@
                     "id": "pos",
                     "location": "path",
                     "note": "Rule identifier is the {pos} PATH parameter; there is NO request body."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/iso": {
@@ -18339,7 +19203,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/iso/mount": {
@@ -18452,7 +19317,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/iso/unmount": {
@@ -18559,10 +19425,21 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/jobs": {
@@ -18667,7 +19544,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/jobs/{jobId}": {
@@ -18764,7 +19642,8 @@
                         "label": "curl",
                         "source": "curl -sS https://blesta.sovereignhybridcompute.com/user-api/v2/vm/353/jobs/912 \\\n  -H \"Authorization: Bearer $SHC_API_KEY\"\n# data.status in (pending, running, completed, failed, canceled); data.progress 0-100.\n"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/metrics": {
@@ -19030,7 +19909,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/network": {
@@ -19154,7 +20034,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/payments": {
@@ -19251,7 +20132,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/rdns": {
@@ -19386,7 +20268,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -19622,7 +20505,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             },
             "delete": {
                 "tags": [
@@ -19843,7 +20727,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/reinstall": {
@@ -19966,7 +20851,8 @@
                 },
                 "x-shc-core": true,
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/renew": {
@@ -20052,7 +20938,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -20201,7 +21088,8 @@
                     "429": {
                         "$ref": "#/components/responses/TooManyRequests"
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/reset": {
@@ -20248,7 +21136,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/restart": {
@@ -20295,7 +21184,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/resume": {
@@ -20525,7 +21415,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots": {
@@ -20623,7 +21514,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             },
             "post": {
                 "tags": [
@@ -20725,7 +21617,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots/delete": {
@@ -20838,6 +21731,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
@@ -20851,7 +21754,8 @@
                     ],
                     "location": "body",
                     "note": "Snapshot identifier is a BODY field (unlike firewall rules, which use a PATH id)."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots/protection": {
@@ -20955,6 +21859,16 @@
                     },
                     "503": {
                         "$ref": "#/components/responses/ServiceUnavailable"
+                    },
+                    "409": {
+                        "description": "Confirmation required - the action was NOT performed. Re-send the identical request with the X-User-Api-Confirm header. See ConfirmationChallenge.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
                 },
                 "x-required-area": "client_services",
@@ -20968,7 +21882,8 @@
                     "location": "body",
                     "note": "Snapshot identifier is a BODY field."
                 },
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots/restore": {
@@ -21097,7 +22012,8 @@
                     ],
                     "location": "body",
                     "note": "Snapshot identifier is a BODY field."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots/restore-hints": {
@@ -21293,7 +22209,8 @@
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
                 },
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/snapshots/verify": {
@@ -21409,7 +22326,8 @@
                     ],
                     "location": "body",
                     "note": "Snapshot identifier is a BODY field."
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/ssh-keys/apply-live": {
@@ -21519,7 +22437,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/ssh-keys/live": {
@@ -21638,7 +22557,8 @@
                     }
                 },
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/standby": {
@@ -22032,7 +22952,8 @@
                         "label": "curl",
                         "source": "curl -sS -X PATCH https://blesta.sovereignhybridcompute.com/user-api/v2/vm/353/start \\\n  -H \"Authorization: Bearer $SHC_API_KEY\"\n# 200 -> {data:{expected_runtime_status:\"running\", next:{verify:\"/user-api/v2/vm/353/summary\"}}}\n# Then GET data.next.verify until runtime_status == expected_runtime_status.\n"
                     }
-                ]
+                ],
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/stop": {
@@ -22079,7 +23000,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/summary": {
@@ -22245,7 +23167,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/term": {
@@ -22449,7 +23372,78 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "service_id",
+                                                "term_change_allowed",
+                                                "items"
+                                            ],
+                                            "properties": {
+                                                "service_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "term_change_allowed": {
+                                                    "type": "boolean",
+                                                    "description": "Whether this client is allowed to change service term."
+                                                },
+                                                "items": {
+                                                    "type": "array",
+                                                    "description": "Available recurring terms for the service package.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                            "pricing_id",
+                                                            "term",
+                                                            "period",
+                                                            "price",
+                                                            "price_renews",
+                                                            "currency",
+                                                            "is_current"
+                                                        ],
+                                                        "properties": {
+                                                            "pricing_id": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 2147483647,
+                                                                "format": "int32"
+                                                            },
+                                                            "term": {
+                                                                "type": "integer",
+                                                                "format": "int32"
+                                                            },
+                                                            "period": {
+                                                                "type": "string"
+                                                            },
+                                                            "price": {
+                                                                "type": "string",
+                                                                "description": "Fixed two-decimal money string.",
+                                                                "pattern": "^-?\\d+\\.\\d{2}$"
+                                                            },
+                                                            "price_renews": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ],
+                                                                "description": "Fixed two-decimal renewal money string, or null when no renewal override exists.",
+                                                                "pattern": "^-?\\d+\\.\\d{2}$"
+                                                            },
+                                                            "currency": {
+                                                                "type": "string",
+                                                                "maxLength": 8
+                                                            },
+                                                            "is_current": {
+                                                                "type": "boolean",
+                                                                "description": "Whether this term is the service's current pricing."
+                                                            }
+                                                        },
+                                                        "maxProperties": 64
+                                                    }
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -22621,7 +23615,98 @@
                                     "properties": {
                                         "data": {
                                             "type": "object",
-                                            "description": "Staged contract stub -- field shape finalizes when the handler lands.",
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "service_id",
+                                                "current",
+                                                "target",
+                                                "due_on_change",
+                                                "term_change_allowed"
+                                            ],
+                                            "properties": {
+                                                "service_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2147483647,
+                                                    "format": "int32"
+                                                },
+                                                "current": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "pricing_id",
+                                                        "term",
+                                                        "period",
+                                                        "price"
+                                                    ],
+                                                    "properties": {
+                                                        "pricing_id": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        },
+                                                        "term": {
+                                                            "type": "integer",
+                                                            "format": "int32"
+                                                        },
+                                                        "period": {
+                                                            "type": "string"
+                                                        },
+                                                        "price": {
+                                                            "type": "string",
+                                                            "description": "Current renewal amount as a fixed two-decimal money string.",
+                                                            "pattern": "^-?\\d+\\.\\d{2}$"
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                },
+                                                "target": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "pricing_id",
+                                                        "term",
+                                                        "period",
+                                                        "price",
+                                                        "currency"
+                                                    ],
+                                                    "properties": {
+                                                        "pricing_id": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 2147483647,
+                                                            "format": "int32"
+                                                        },
+                                                        "term": {
+                                                            "type": "integer",
+                                                            "format": "int32"
+                                                        },
+                                                        "period": {
+                                                            "type": "string"
+                                                        },
+                                                        "price": {
+                                                            "type": "string",
+                                                            "description": "Target renewal amount as a fixed two-decimal money string.",
+                                                            "pattern": "^-?\\d+\\.\\d{2}$"
+                                                        },
+                                                        "currency": {
+                                                            "type": "string",
+                                                            "maxLength": 8
+                                                        }
+                                                    },
+                                                    "maxProperties": 64
+                                                },
+                                                "due_on_change": {
+                                                    "type": "string",
+                                                    "description": "Amount due to change term, as a fixed two-decimal money string.",
+                                                    "pattern": "^-?\\d+\\.\\d{2}$"
+                                                },
+                                                "term_change_allowed": {
+                                                    "type": "boolean",
+                                                    "description": "Whether this client is allowed to change service term."
+                                                }
+                                            },
                                             "maxProperties": 64
                                         }
                                     },
@@ -22945,7 +24030,8 @@
                 },
                 "x-shc-core": true,
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/upgrade-options": {
@@ -23035,7 +24121,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/upgrade/preview": {
@@ -23154,7 +24241,8 @@
                     }
                 },
                 "x-shc-core": true,
-                "x-required-area": "client_services"
+                "x-required-area": "client_services",
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/zk-backup/rekey": {
@@ -23436,7 +24524,8 @@
                 },
                 "x-shc-core": true,
                 "x-required-area": "client_services",
-                "x-shc-confirm-required": true
+                "x-shc-confirm-required": true,
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/virtual-machines/{virtualMachineId}/cloud-init/validate": {
@@ -25594,7 +26683,8 @@
                             }
                         }
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/zk-backup/status": {
@@ -25657,7 +26747,8 @@
                     "500": {
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/zk-backup/recipients": {
@@ -25720,7 +26811,8 @@
                     "500": {
                         "$ref": "#/components/responses/ServiceUnavailable"
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/zk-backup/revoke": {
@@ -25794,7 +26886,8 @@
                             }
                         }
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/vm/{serviceId}/zk-backup/rekey-retain": {
@@ -25868,7 +26961,8 @@
                             }
                         }
                     }
-                }
+                },
+                "x-shc-mcp-exposure": "exposed"
             }
         },
         "/account/2fa/enrollment": {
@@ -25952,7 +27046,8 @@
                         }
                     }
                 },
-                "x-required-area": "__identity__"
+                "x-required-area": "__identity__",
+                "x-shc-mcp-exposure": "hidden"
             }
         }
     },
@@ -27707,6 +28802,10 @@
                         ],
                         "additionalProperties": false,
                         "maxProperties": 64
+                    },
+                    "confirmation": {
+                        "$ref": "#/components/schemas/ConfirmationChallenge",
+                        "description": "Present ONLY when error.code is `confirmation_required`. Absent on all other 409s."
                     }
                 },
                 "required": [
@@ -38282,7 +39381,6 @@
                             "checkout_in_progress",
                             "client_limit",
                             "cloud-init-policy-violation",
-                            "cloud_init_policy_violation",
                             "confirmation_required",
                             "conflict",
                             "continuity_required",
@@ -40210,6 +41308,108 @@
                 "additionalProperties": false,
                 "maxProperties": 64,
                 "description": "Rotate-forward ZK backup rekey request. Future backups use the submitted recipient set; existing backups stay openable by their sealed recovery keys until the customer re-uploads the backups they care about."
+            },
+            "ConfirmationChallenge": {
+                "type": "object",
+                "description": "Present on a 409 whose error.code is `confirmation_required`. The action was NOT performed. Re-send the IDENTICAL request (same path, query, body and Idempotency-Key) with header `X-User-Api-Confirm: <confirmation_id>`. A confirmation_id is NOT permission: obtain an explicit human yes to THIS specific action first. The id is non-secret, single-use, and names an already-bound pending action.",
+                "required": [
+                    "confirmation_id"
+                ],
+                "properties": {
+                    "confirmation_id": {
+                        "type": "string",
+                        "maxLength": 128,
+                        "description": "STABLE PATH - read this. Mirrored flat at `confirmation.confirmation_id` since v2.4.0 and always present. The nested copies under `structuredContent` are legacy and may be absent; do not depend on them.",
+                        "example": "cnf_9f2c1ab4d7e34c02"
+                    },
+                    "isError": {
+                        "type": "boolean",
+                        "description": "Legacy MCP-envelope remnant. Always false here."
+                    },
+                    "content": {
+                        "type": "array",
+                        "description": "Legacy MCP-envelope remnant: the human-facing prompt text.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "example": "text"
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "maxLength": 8192
+                                }
+                            }
+                        }
+                    },
+                    "structuredContent": {
+                        "type": "object",
+                        "description": "LEGACY nested copy, kept verbatim for existing clients. May be absent.",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "example": "confirmation_required"
+                            },
+                            "tool": {
+                                "type": "string",
+                                "description": "The operationId requiring confirmation."
+                            },
+                            "spends_money": {
+                                "type": "boolean"
+                            },
+                            "destructive": {
+                                "type": "boolean"
+                            },
+                            "money_credential_write": {
+                                "type": "boolean"
+                            },
+                            "scope": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "Method scope required for the operation."
+                            },
+                            "confirmation_id": {
+                                "type": "string",
+                                "maxLength": 128
+                            },
+                            "idempotency_key": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 255,
+                                "description": "The idempotency key bound to this pending action; re-send it unchanged."
+                            },
+                            "how_to_proceed": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "transport": {
+                                        "type": "string",
+                                        "example": "header"
+                                    },
+                                    "header": {
+                                        "type": "string",
+                                        "example": "X-User-Api-Confirm"
+                                    },
+                                    "confirmation_id": {
+                                        "type": "string",
+                                        "maxLength": 128
+                                    },
+                                    "arguments": {
+                                        "type": "object",
+                                        "additionalProperties": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "headers": {
@@ -40450,13 +41650,13 @@
         }
     },
     "x-shc-release": {
-        "version": "2.4.15",
+        "version": "2.4.24",
         "op_fingerprint": "183a4a0282542d671d799f08044f6717182932f9fa1ef5205dfca45a030cefaa",
         "op_count": 177,
-        "contractFingerprint": "e8f7ccc12336fb4925893ce3582b03782b182638dc460d952d046a36c1c20e14"
+        "contractFingerprint": "2a279c934c85de3025221ddb75962c732ceb6c153f987246509fb8fcf33e7cdc"
     },
     "x-shc-contract": {
-        "contractFingerprint": "e8f7ccc12336fb4925893ce3582b03782b182638dc460d952d046a36c1c20e14"
+        "contractFingerprint": "2a279c934c85de3025221ddb75962c732ceb6c153f987246509fb8fcf33e7cdc"
     },
     "x-shc-zk-derivation": {
         "x-shc-zk-derivation": {
@@ -40627,7 +41827,7 @@
         "derivation_spec": "/user-api/contracts/shc-zk-derivation-spec.json",
         "rung_kats": "/user-api/contracts/shc-zk-test-vectors.json",
         "pq_hybrid_kats": "/user-api/contracts/shc-pq-test-vectors.json",
-        "notes": "Contract artifacts are generated from zk-tools sources and copied by the lockstep phase script before manifest restamp."
+        "notes": "Contract artifacts are generated from the zero-knowledge tooling sources and published alongside each release."
     },
     "x-shc-zk-pqseal": {
         "combiner": "SHA256(ECDH_X25519 || MLKEM_1024_shared_secret)",
@@ -40654,7 +41854,7 @@
         "seal_master_rotation_runbook": "/user-api/docs/zk/seal-master-rotation.md",
         "recovery_guide_hardening": "/user-api/docs/zk/recovery-guide-hardening.md",
         "prove_recovery_event": "zk.recovery.proved",
-        "rccpp_gate_downgrade": "his-spec correct/robust/privacy gates are warning-level until production constant-time ML-KEM and real two-server XOR-PIR ship."
+        "rccpp_gate_downgrade": "Correctness, robustness and privacy claims for the post-quantum path are advisory until production constant-time ML-KEM and real two-server XOR-PIR ship."
     },
     "x-shc-build-phase": "phase-4"
 }

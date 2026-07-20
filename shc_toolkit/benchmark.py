@@ -17,9 +17,11 @@ import os
 import time
 import urllib.error
 import urllib.request
+
 try:
     import certifi
     import ssl
+
     _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 except ImportError:
     _SSL_CTX = None
@@ -31,7 +33,9 @@ from .provision import ssh_cmd
 log = logging.getLogger(__name__)
 
 # Directory for saving benchmark results (gitignored)
-RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "benchmark_results")
+RESULTS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "benchmark_results"
+)
 
 
 def _ensure_results_dir() -> str:
@@ -42,7 +46,9 @@ def _ensure_results_dir() -> str:
 def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
     """Install benchmark dependencies (sysbench, fio) if missing."""
     log.info("Installing benchmark dependencies...")
-    ssh_cmd(host, """
+    ssh_cmd(
+        host,
+        """
         export DEBIAN_FRONTEND=noninteractive
         need_install=""
         command -v sysbench >/dev/null 2>&1 || need_install="sysbench $need_install"
@@ -52,18 +58,26 @@ def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
             sudo apt-get install -y -qq $need_install
         fi
         echo "deps ready: sysbench=$(command -v sysbench), fio=$(command -v fio)"
-    """, user=user, port=port, timeout=180)
+    """,
+        user=user,
+        port=port,
+        timeout=180,
+    )
 
 
 # ── Pricing ───────────────────────────────────────────────────
 
 
-SHC_CATALOG_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
+SHC_CATALOG_URL = (
+    "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
+)
 HETZNER_PRICING_URL = "https://api.hetzner.cloud/v1/pricing"
 SHC_DAILY_PRICE = "0.49"  # fallback when API is unreachable
 
 
-def _http_get_json(url: str, headers: dict[str, str] | None = None, timeout: int = 15) -> Any:
+def _http_get_json(
+    url: str, headers: dict[str, str] | None = None, timeout: int = 15
+) -> Any:
     """GET a URL and return parsed JSON. Raises on HTTP/parse error."""
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -101,7 +115,12 @@ def _collect_pricing_shc() -> dict[str, Any]:
             "source_api": SHC_CATALOG_URL,
             "fetched_at": fetched_at,
         }
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError) as e:
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as e:
         log.warning(f"SHC pricing API unreachable: {e}")
         return {
             "provider": "shc",
@@ -138,6 +157,7 @@ def _extract_shc_daily_price(catalog: Any) -> str:
                 if found:
                     return found
         return None
+
     return _walk(catalog) or SHC_DAILY_PRICE
 
 
@@ -189,7 +209,9 @@ def collect_pricing(host: str, provider: str = "shc") -> dict[str, Any]:
 def collect_sysinfo(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
     """Collect basic system information."""
     log.info("Collecting system info...")
-    raw = ssh_cmd(host, """
+    raw = ssh_cmd(
+        host,
+        """
         echo "=== uname ==="
         uname -a
         echo "=== cpu ==="
@@ -204,7 +226,10 @@ def collect_sysinfo(host: str, user: str = "debian", port: int = 22) -> dict[str
         uptime
         echo "=== kernel_modules ==="
         grep -c 'vmx\\|svm' /proc/cpuinfo 2>/dev/null || echo "0"
-    """, user=user, port=port)
+    """,
+        user=user,
+        port=port,
+    )
 
     info: dict[str, Any] = {"raw": raw}
 
@@ -237,34 +262,60 @@ def bench_cpu(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]
     log.info("Running CPU benchmarks...")
 
     # sysbench CPU — single-threaded prime calculation
-    sb_out = ssh_cmd(host, """
+    sb_out = ssh_cmd(
+        host,
+        """
         sysbench cpu --cpu-max-prime=20000 --threads=1 run 2>&1
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
-    sb_multi = ssh_cmd(host, """
+    sb_multi = ssh_cmd(
+        host,
+        """
         sysbench cpu --cpu-max-prime=20000 --threads=$(nproc) run 2>&1
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     # openssl speed — RSA and AES
-    ssl_out = ssh_cmd(host, """
+    ssl_out = ssh_cmd(
+        host,
+        """
         openssl speed -seconds 3 rsa2048 aes-256-cbc 2>&1
-    """, user=user, port=port, timeout=60)
+    """,
+        user=user,
+        port=port,
+        timeout=60,
+    )
 
     result: dict[str, Any] = {}
 
     # Parse sysbench single-thread
     for line in sb_out.splitlines():
         if "total time:" in line.lower():
-            result["sysbench_st_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
+            result["sysbench_st_time_s"] = float(
+                line.split(":")[1].strip().rstrip("s").rstrip("m")
+            )
         elif "events per second:" in line.lower():
-            result["sysbench_st_eps"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
+            result["sysbench_st_eps"] = float(
+                line.split(":")[1].strip().rstrip("s").rstrip("m")
+            )
 
     # Parse sysbench multi-thread
     for line in sb_multi.splitlines():
         if "total time:" in line.lower():
-            result["sysbench_mt_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
+            result["sysbench_mt_time_s"] = float(
+                line.split(":")[1].strip().rstrip("s").rstrip("m")
+            )
         elif "events per second:" in line.lower():
-            result["sysbench_mt_eps"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
+            result["sysbench_mt_eps"] = float(
+                line.split(":")[1].strip().rstrip("s").rstrip("m")
+            )
 
     # Parse openssl
     for line in ssl_out.splitlines():
@@ -297,7 +348,9 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
     log.info("Running disk benchmarks (fio)...")
 
     # Sequential read
-    seq_read = ssh_cmd(host, r"""
+    seq_read = ssh_cmd(
+        host,
+        r"""
         fio --name=seq-read \
             --rw=read --bs=1M --size=1G --numjobs=1 \
             --ioengine=libaio --iodepth=32 \
@@ -305,10 +358,16 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     # Sequential write
-    seq_write = ssh_cmd(host, r"""
+    seq_write = ssh_cmd(
+        host,
+        r"""
         fio --name=seq-write \
             --rw=write --bs=1M --size=1G --numjobs=1 \
             --ioengine=libaio --iodepth=32 \
@@ -316,10 +375,16 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     # Random 4K read
-    rand_read = ssh_cmd(host, r"""
+    rand_read = ssh_cmd(
+        host,
+        r"""
         fio --name=rand-read \
             --rw=randread --bs=4K --size=1G --numjobs=1 \
             --ioengine=libaio --iodepth=32 \
@@ -327,10 +392,16 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     # Random 4K write
-    rand_write = ssh_cmd(host, r"""
+    rand_write = ssh_cmd(
+        host,
+        r"""
         fio --name=rand-write \
             --rw=randwrite --bs=4K --size=1G --numjobs=1 \
             --ioengine=libaio --iodepth=32 \
@@ -338,7 +409,11 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
             --runtime=30 --time_based \
             --group_reporting \
             --output-format=json 2>/dev/null
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     result: dict[str, Any] = {}
 
@@ -379,7 +454,9 @@ def bench_disk_yabs(host: str, user: str = "debian", port: int = 22) -> dict[str
     log.info("Running YABS-compatible disk benchmarks (fio randrw)...")
 
     # Single SSH call runs all 4 blocksizes and emits a delimited stream of JSON blobs.
-    raw = ssh_cmd(host, r"""
+    raw = ssh_cmd(
+        host,
+        r"""
         for BS in 4k 64k 512k 1m; do
             echo "===FIO_START_${BS}==="
             fio --name=rand_rw \
@@ -397,7 +474,11 @@ def bench_disk_yabs(host: str, user: str = "debian", port: int = 22) -> dict[str
                 --output-format=json 2>/dev/null
             echo "===FIO_END_${BS}==="
         done
-    """, user=user, port=port, timeout=300)
+    """,
+        user=user,
+        port=port,
+        timeout=300,
+    )
 
     results: dict[str, Any] = {}
 
@@ -427,7 +508,7 @@ def bench_disk_yabs(host: str, user: str = "debian", port: int = 22) -> dict[str
         if si == -1 or ei == -1 or ei <= si:
             results[bs] = {"error": f"markers not found for {bs}"}
             continue
-        blob = raw[si + len(start_marker):ei].strip()
+        blob = raw[si + len(start_marker) : ei].strip()
         _parse_one(bs, blob)
 
     return results
@@ -440,10 +521,16 @@ def bench_memory(host: str, user: str = "debian", port: int = 22) -> dict[str, A
     """Run memory benchmark: sysbench memory test."""
     log.info("Running memory benchmark...")
 
-    out = ssh_cmd(host, """
+    out = ssh_cmd(
+        host,
+        """
         sysbench memory --memory-block-size=1K --memory-total-size=10G \
             --memory-oper=read --threads=1 run 2>&1
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     result: dict[str, Any] = {}
     for line in out.splitlines():
@@ -458,7 +545,10 @@ def bench_memory(host: str, user: str = "debian", port: int = 22) -> dict[str, A
                     pass
         elif "total time:" in line.lower():
             result["time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
-        elif "operations per second" in line.lower() or "events per second" in line.lower():
+        elif (
+            "operations per second" in line.lower()
+            or "events per second" in line.lower()
+        ):
             parts = line.split(":")
             if len(parts) == 2:
                 try:
@@ -478,7 +568,9 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
     log.info("Running network benchmark...")
 
     # Download speed test from public CDN test files
-    out = ssh_cmd(host, """
+    out = ssh_cmd(
+        host,
+        """
         echo "=== download_speedtest ==="
         # Test download from Cloudflare (100MB)
         curl -o /dev/null -s -w "cf_100mb_download_speed_bytes_per_s:%{speed_download}\\ncf_100mb_total_time_s:%{time_total}\\n" \
@@ -489,7 +581,11 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
         echo ""
         echo "=== hostname ==="
         hostname
-    """, user=user, port=port, timeout=60)
+    """,
+        user=user,
+        port=port,
+        timeout=60,
+    )
 
     result: dict[str, Any] = {"raw": out}
 
@@ -503,7 +599,9 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
                 pass
         elif line.startswith("cf_100mb_total_time_s:"):
             try:
-                result["download_time_s"] = float(line.split(":")[1].strip().rstrip("s").rstrip("m"))
+                result["download_time_s"] = float(
+                    line.split(":")[1].strip().rstrip("s").rstrip("m")
+                )
             except (ValueError, IndexError):
                 pass
 
@@ -526,7 +624,9 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
     return result
 
 
-def bench_network_iperf3(host: str, user: str = "debian", port: int = 22) -> dict[str, Any]:
+def bench_network_iperf3(
+    host: str, user: str = "debian", port: int = 22
+) -> dict[str, Any]:
     """Run iperf3 against 3 public servers (Paris, Fremont, Amsterdam)."""
     log.info("Running iperf3 network benchmarks...")
 
@@ -536,21 +636,33 @@ def bench_network_iperf3(host: str, user: str = "debian", port: int = 22) -> dic
         "speedtest.wtnet.de": "Amsterdam",
     }
 
-    ssh_cmd(host, """
+    ssh_cmd(
+        host,
+        """
         command -v iperf3 >/dev/null 2>&1 || {
             export DEBIAN_FRONTEND=noninteractive
             sudo apt-get update -qq && sudo apt-get install -y -qq iperf3
         }
         echo "iperf3 ready: $(command -v iperf3 || echo MISSING)"
-    """, user=user, port=port, timeout=120)
+    """,
+        user=user,
+        port=port,
+        timeout=120,
+    )
 
     results: dict[str, Any] = {}
 
     for server, location in servers.items():
         # || true keeps ssh_cmd from raising when a server is unreachable
-        raw = ssh_cmd(host, f"""
+        raw = ssh_cmd(
+            host,
+            f"""
             iperf3 -c {server} -P 8 -t 10 -J 2>/dev/null || echo "IPERF3_FAILED_{server}"
-        """, user=user, port=port, timeout=30)
+        """,
+            user=user,
+            port=port,
+            timeout=30,
+        )
 
         if f"IPERF3_FAILED_{server}" in raw:
             results[server] = {"location": location, "available": False}
@@ -571,7 +683,11 @@ def bench_network_iperf3(host: str, user: str = "debian", port: int = 22) -> dic
                 "retransmits": retransmits,
             }
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            results[server] = {"location": location, "available": False, "error": str(e)}
+            results[server] = {
+                "location": location,
+                "available": False,
+                "error": str(e),
+            }
 
     return results
 
@@ -586,7 +702,9 @@ def bench_geekbench(host: str, user: str = "debian", port: int = 22) -> dict[str
     """Download, run Geekbench 6, parse single/multi-core scores. Optional."""
     log.info("Running Geekbench 6 (optional)...")
 
-    raw = ssh_cmd(host, f"""
+    raw = ssh_cmd(
+        host,
+        f"""
         set -e
         cd /tmp
         curl -fsSL -o geekbench6.tar.gz {GEEKBENCH_URL} || {{
@@ -607,7 +725,11 @@ def bench_geekbench(host: str, user: str = "debian", port: int = 22) -> dict[str
         echo "===GB_START==="
         cat /tmp/gb_result.json
         echo "===GB_END==="
-    """, user=user, port=port, timeout=600)
+    """,
+        user=user,
+        port=port,
+        timeout=600,
+    )
 
     if "GB_DOWNLOAD_FAILED" in raw:
         return {"available": False, "reason": "download failed"}
@@ -622,12 +744,16 @@ def bench_geekbench(host: str, user: str = "debian", port: int = 22) -> dict[str
         return {"available": False, "reason": "no output markers", "raw": raw[:500]}
 
     try:
-        data = json.loads(raw[si + len("===GB_START==="):ei].strip())
+        data = json.loads(raw[si + len("===GB_START===") : ei].strip())
         scores = data.get("scores", {})
         return {
             "available": True,
-            "single_core": scores.get("singleCore", scores.get("single_core", {})).get("score"),
-            "multi_core": scores.get("multiCore", scores.get("multi_core", {})).get("score"),
+            "single_core": scores.get("singleCore", scores.get("single_core", {})).get(
+                "score"
+            ),
+            "multi_core": scores.get("multiCore", scores.get("multi_core", {})).get(
+                "score"
+            ),
             "version": data.get("version", "?"),
         }
     except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -753,8 +879,10 @@ def print_results(results: dict[str, Any]) -> None:
             model = pricing.get("billing_model", "?")
             min_hrs = pricing.get("minimum_charge_hours", "?")
             src = "SHC catalog API" if pprov == "shc" else f"{pprov} API"
-            print(f"\n  Price: ${hourly}/hr (${daily}/day, {model} {min_hrs}hr min)"
-                  f"  — source: {src}")
+            print(
+                f"\n  Price: ${hourly}/hr (${daily}/day, {model} {min_hrs}hr min)"
+                f"  — source: {src}"
+            )
         elif pprov != "unknown":
             print(f"\n  Price: ({pprov} pricing unavailable)")
 
@@ -771,15 +899,23 @@ def print_results(results: dict[str, Any]) -> None:
         print("  CPU BENCHMARKS")
         print(f"{'─' * 60}")
         if "sysbench_st_eps" in cpu:
-            print(f"  sysbench single-thread:  {cpu['sysbench_st_eps']:.0f} events/s "
-                  f"({cpu.get('sysbench_st_time_s', '?')}s)")
+            print(
+                f"  sysbench single-thread:  {cpu['sysbench_st_eps']:.0f} events/s "
+                f"({cpu.get('sysbench_st_time_s', '?')}s)"
+            )
         if "sysbench_mt_eps" in cpu:
-            print(f"  sysbench multi-thread:   {cpu['sysbench_mt_eps']:.0f} events/s "
-                  f"({cpu.get('sysbench_mt_time_s', '?')}s)")
+            print(
+                f"  sysbench multi-thread:   {cpu['sysbench_mt_eps']:.0f} events/s "
+                f"({cpu.get('sysbench_mt_time_s', '?')}s)"
+            )
         if "openssl_rsa2048_sign_per_s" in cpu:
-            print(f"  OpenSSL RSA2048 sign:    {cpu['openssl_rsa2048_sign_per_s']:.0f} ops/s")
+            print(
+                f"  OpenSSL RSA2048 sign:    {cpu['openssl_rsa2048_sign_per_s']:.0f} ops/s"
+            )
         if "openssl_rsa2048_verify_per_s" in cpu:
-            print(f"  OpenSSL RSA2048 verify:  {cpu['openssl_rsa2048_verify_per_s']:.0f} ops/s")
+            print(
+                f"  OpenSSL RSA2048 verify:  {cpu['openssl_rsa2048_verify_per_s']:.0f} ops/s"
+            )
 
     # Geekbench (optional, show early near CPU)
     gb = bench.get("geekbench", {})
@@ -819,9 +955,11 @@ def print_results(results: dict[str, Any]) -> None:
         ]:
             d = disk.get(key, {})
             if isinstance(d, dict) and "bw_mb_per_s" in d:
-                print(f"  {label:22s}  {d['bw_mb_per_s']:>8.1f} MB/s  "
-                      f"{d['iops']:>10.0f} IOPS  "
-                      f"lat={d['lat_mean_us']:.1f}µs")
+                print(
+                    f"  {label:22s}  {d['bw_mb_per_s']:>8.1f} MB/s  "
+                    f"{d['iops']:>10.0f} IOPS  "
+                    f"lat={d['lat_mean_us']:.1f}µs"
+                )
 
     # YABS-compatible disk tests
     yabs = bench.get("disk_yabs", {})
@@ -829,13 +967,17 @@ def print_results(results: dict[str, Any]) -> None:
         print(f"\n{'─' * 60}")
         print("  DISK BENCHMARKS — YABS (fio randrw)")
         print(f"{'─' * 60}")
-        print(f"  {'BS':>5s}  {'R IOPS':>10s} {'W IOPS':>10s}  "
-              f"{'R MB/s':>8s} {'W MB/s':>8s}")
+        print(
+            f"  {'BS':>5s}  {'R IOPS':>10s} {'W IOPS':>10s}  "
+            f"{'R MB/s':>8s} {'W MB/s':>8s}"
+        )
         for bs in ("4k", "64k", "512k", "1m"):
             d = yabs.get(bs, {})
             if isinstance(d, dict) and "read_iops" in d:
-                print(f"  {bs:>5s}  {d['read_iops']:>10.0f} {d['write_iops']:>10.0f}  "
-                      f"{d['read_mb_s']:>8.1f} {d['write_mb_s']:>8.1f}")
+                print(
+                    f"  {bs:>5s}  {d['read_iops']:>10.0f} {d['write_iops']:>10.0f}  "
+                    f"{d['read_mb_s']:>8.1f} {d['write_mb_s']:>8.1f}"
+                )
 
     # Network
     net = bench.get("network", {})

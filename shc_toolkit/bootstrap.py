@@ -88,9 +88,7 @@ class VMBootstrap:
 
         # Try SSH first
         try:
-            return self._deploy_ssh(
-                ip, user, port, script, verify, timeout, background
-            )
+            return self._deploy_ssh(ip, user, port, script, verify, timeout, background)
         except Exception as e:
             log.warning("SSH transport failed for %s: %s", ip, e)
             if self.console is None:

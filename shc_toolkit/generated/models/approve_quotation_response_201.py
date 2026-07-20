@@ -19,7 +19,7 @@ T = TypeVar("T", bound="ApproveQuotationResponse201")
 class ApproveQuotationResponse201:
     """
     Attributes:
-        data (ApproveQuotationResponse201Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (ApproveQuotationResponse201Data):
     """
 
     data: ApproveQuotationResponse201Data

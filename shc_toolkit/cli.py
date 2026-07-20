@@ -15,7 +15,13 @@ from .client import SHCClient, SHCError
 from .benchmark import run_full_suite, print_results as print_bench_results
 
 try:
-    from .nodns import NoDNSKeyPair, provision_dns_for_vm, publish_dns_records, publish_acme_challenge, verify_dns  # noqa: F401
+    from .nodns import (
+        NoDNSKeyPair,
+        provision_dns_for_vm,
+        publish_dns_records,  # noqa: F401
+        publish_acme_challenge,  # noqa: F401
+        verify_dns,
+    )  # noqa: F401
 except ImportError:
     NoDNSKeyPair = None  # type: ignore
     provision_dns_for_vm = None  # type: ignore
@@ -49,18 +55,23 @@ def _resolve_api_key(args) -> str:
         contexts = _load_contexts()
         if args.context in contexts:
             return contexts[args.context]
-        print(f"Error: context '{args.context}' not found. Run 'shc context list' to see available.", file=sys.stderr)
+        print(
+            f"Error: context '{args.context}' not found. Run 'shc context list' to see available.",
+            file=sys.stderr,
+        )
         sys.exit(1)
     return os.environ.get("SHC_API_KEY", "")
 
 
 def _client(args) -> SHCClient:
     from shc_toolkit import create_client
+
     key = _resolve_api_key(args)
     return create_client(api_key=key or None)
 
 
 # ── Output Formatting ─────────────────────────────────────
+
 
 def _print(data, fmt: str = "json"):
     if fmt == "json":
@@ -68,6 +79,7 @@ def _print(data, fmt: str = "json"):
     elif fmt == "yaml":
         try:
             import yaml
+
             print(yaml.dump(data, default_flow_style=False, sort_keys=False))
         except ImportError:
             print(json.dumps(data, indent=2, default=str))
@@ -100,6 +112,7 @@ def _get_fmt(args) -> str:
 
 # ── VM Lifecycle ──────────────────────────────────────────
 
+
 def cmd_list(args):
     c = _client(args)
     vms = c.list_vms()
@@ -112,7 +125,9 @@ def cmd_list(args):
         return
     for vm in vms:
         ip = vm.get("ips", [{}])[0].get("ip", "no-ip") if vm.get("ips") else "no-ip"
-        print(f"  id={vm['id']:>5}  {vm['hostname']:30s}  {vm['service_status']:10s}  {vm.get('runtime_status', '?'):10s}  {ip}")
+        print(
+            f"  id={vm['id']:>5}  {vm['hostname']:30s}  {vm['service_status']:10s}  {vm.get('runtime_status', '?'):10s}  {ip}"
+        )
 
 
 def cmd_info(args):
@@ -163,6 +178,7 @@ def cmd_restart(args):
 def cmd_health(args):
     c = _client(args)
     import json as _json
+
     health = c.check_vm_health(args.service_id)
     print(_json.dumps(health, indent=2, default=str))
 
@@ -178,6 +194,7 @@ def cmd_cancel(args):
 
 
 # ── Ordering ──────────────────────────────────────────────
+
 
 def cmd_order(args):
     c = _client(args)
@@ -199,7 +216,10 @@ def cmd_order(args):
     elif args.package_id and args.pricing_id:
         package_id, pricing_id = args.package_id, args.pricing_id
     else:
-        print("Error: provide --size, --cpu/--ram/--disk, or --package-id + --pricing-id", file=sys.stderr)
+        print(
+            "Error: provide --size, --cpu/--ram/--disk, or --package-id + --pricing-id",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     kwargs: dict[str, Any] = {
@@ -232,7 +252,8 @@ def cmd_order(args):
 
         # Trigger BTCPay checkout
         pay_result = c._confirmed_request(
-            "POST", f"/payment/{invoice_id}/checkout",
+            "POST",
+            f"/payment/{invoice_id}/checkout",
             confirm=True,
             json={"gateway": "btcpay_server", "idempotency_key": f"pay-{idem}"},
         )
@@ -244,6 +265,7 @@ def cmd_order(args):
             print(f"Invoice #{invoice_id} already paid.")
         elif args.pay_qr and checkout_url:
             from .jit_pay import jit_pay
+
             paid = jit_pay(c, invoice_id, checkout_url, btcpay_id)
             if not paid:
                 print(f"\nPayment not received. Pay manually: {checkout_url}")
@@ -272,7 +294,10 @@ def cmd_order(args):
                     print(f"\n  Publishing NoDNS record ({args.zone})...")
                     try:
                         from .nodns import provision_dns_for_vm
-                        dns_result = provision_dns_for_vm(ip=ip, zone=getattr(args, "zone", "nodns.shop"))
+
+                        dns_result = provision_dns_for_vm(
+                            ip=ip, zone=getattr(args, "zone", "nodns.shop")
+                        )
                         if dns_result.get("success"):
                             print(f"  FQDN: {dns_result['fqdn']}")
                             print(f"  nsec: {dns_result['keypair']['nsec']}")
@@ -294,9 +319,13 @@ def cmd_catalog(args):
         cpu = pkg.get("cpu", "?")
         mem = pkg.get("memory_mb", "?")
         disk = pkg.get("disk_gb", "?")
-        daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), None)
+        daily = next(
+            (p for p in pkg.get("pricing", []) if p.get("period") == "day"), None
+        )
         price = daily["price"] if daily else "?"
-        print(f"  pkg={pkg['package_id']:>3}  {pkg['name']:35s}  {cpu}C/{mem}MB/{disk}GB  ${price}/day")
+        print(
+            f"  pkg={pkg['package_id']:>3}  {pkg['name']:35s}  {cpu}C/{mem}MB/{disk}GB  ${price}/day"
+        )
 
 
 def cmd_pricing(args):
@@ -304,13 +333,22 @@ def cmd_pricing(args):
     catalog = c.get_catalog()
     for pkg in catalog:
         name = pkg.get("name", "?")
-        daily = next((p for p in pkg.get("pricing", []) if p.get("period") == "day"), {})
-        weekly = next((p for p in pkg.get("pricing", []) if p.get("period") == "week"), {})
-        monthly = next((p for p in pkg.get("pricing", []) if p.get("period") == "month"), {})
-        print(f"  pkg={pkg['package_id']:>3}  {name:35s}  ${daily.get('price','?')}/day  ${weekly.get('price','?')}/wk  ${monthly.get('price','?')}/mo")
+        daily = next(
+            (p for p in pkg.get("pricing", []) if p.get("period") == "day"), {}
+        )
+        weekly = next(
+            (p for p in pkg.get("pricing", []) if p.get("period") == "week"), {}
+        )
+        monthly = next(
+            (p for p in pkg.get("pricing", []) if p.get("period") == "month"), {}
+        )
+        print(
+            f"  pkg={pkg['package_id']:>3}  {name:35s}  ${daily.get('price', '?')}/day  ${weekly.get('price', '?')}/wk  ${monthly.get('price', '?')}/mo"
+        )
 
 
 # ── Support Tickets ───────────────────────────────────────
+
 
 def cmd_tickets(args):
     c = _client(args)
@@ -321,7 +359,9 @@ def cmd_tickets(args):
             print("No tickets.")
             return
         for t in items:
-            print(f"  #{t.get('id','?'):>5}  [{t.get('status','?'):10s}]  {t.get('subject','?')[:60]}")
+            print(
+                f"  #{t.get('id', '?'):>5}  [{t.get('status', '?'):10s}]  {t.get('subject', '?')[:60]}"
+            )
     elif args.subcommand == "get":
         _print(c.get_support_ticket(args.ticket_id), _get_fmt(args))
     elif args.subcommand == "create":
@@ -344,13 +384,14 @@ def cmd_tickets(args):
         _print(c.close_support_ticket(args.ticket_id), _get_fmt(args))
     elif args.subcommand == "departments":
         for d in c.list_support_departments():
-            print(f"  id={d.get('id','?')}  {d.get('name','?')}")
+            print(f"  id={d.get('id', '?')}  {d.get('name', '?')}")
     else:
         print("Usage: shc tickets {list|get|create|reply|close|departments}")
         sys.exit(1)
 
 
 # ── Billing ───────────────────────────────────────────────
+
 
 def cmd_balance(args):
     c = _client(args)
@@ -368,7 +409,9 @@ def cmd_invoices(args):
             print("No invoices.")
             return
         for inv in items:
-            print(f"  #{inv.get('id','?'):>5}  ${inv.get('total','?'):>8s}  {inv.get('status','?'):10s}  {inv.get('date_created','?')[:10]}")
+            print(
+                f"  #{inv.get('id', '?'):>5}  ${inv.get('total', '?'):>8s}  {inv.get('status', '?'):10s}  {inv.get('date_created', '?')[:10]}"
+            )
 
 
 def cmd_transactions(args):
@@ -379,7 +422,9 @@ def cmd_transactions(args):
         print("No transactions.")
         return
     for t in items:
-        print(f"  {t.get('date','?')[:10]}  ${t.get('amount','?'):>8s}  {t.get('type','?'):15s}  {t.get('description','')[:40]}")
+        print(
+            f"  {t.get('date', '?')[:10]}  ${t.get('amount', '?'):>8s}  {t.get('type', '?'):15s}  {t.get('description', '')[:40]}"
+        )
 
 
 def cmd_activity(args):
@@ -390,7 +435,9 @@ def cmd_activity(args):
     result = c.get_account_activity(limit=args.limit or 20)
     items = result.get("items", result) if isinstance(result, dict) else result
     for a in items:
-        print(f"  {str(a.get('created_at','?'))[:19]}  {a.get('type','?'):15s}  {str(a.get('description', a.get('summary','')))[:60]}")
+        print(
+            f"  {str(a.get('created_at', '?'))[:19]}  {a.get('type', '?'):15s}  {str(a.get('description', a.get('summary', '')))[:60]}"
+        )
 
 
 def cmd_emails(args):
@@ -398,7 +445,7 @@ def cmd_emails(args):
     result = c.list_emails()
     items = result.get("items", result) if isinstance(result, dict) else result
     for e in items:
-        print(f"  {str(e.get('date','?'))[:10]}  {e.get('subject','?')[:60]}")
+        print(f"  {str(e.get('date', '?'))[:10]}  {e.get('subject', '?')[:60]}")
 
 
 def cmd_pay(args):
@@ -408,10 +455,13 @@ def cmd_pay(args):
 
 # ── Snapshots ─────────────────────────────────────────────
 
+
 def cmd_snapshots(args):
     c = _client(args)
     for s in c.list_snapshots(args.service_id):
-        print(f"  {s.get('id', '?'):20s}  {s.get('name', '(unnamed)'):30s}  {s.get('created_at', '?')}")
+        print(
+            f"  {s.get('id', '?'):20s}  {s.get('name', '(unnamed)'):30s}  {s.get('created_at', '?')}"
+        )
 
 
 def cmd_create_snapshot(args):
@@ -430,6 +480,7 @@ def cmd_delete_snapshot(args):
 
 
 # ── Backups ───────────────────────────────────────────────
+
 
 def cmd_backup_list(args):
     c = _client(args)
@@ -464,10 +515,14 @@ def cmd_backup_delete(args):
 def cmd_backup_protect(args):
     c = _client(args)
     protected = not args.off
-    _print(c.set_backup_protection(args.service_id, args.backup_id, protected), _get_fmt(args))
+    _print(
+        c.set_backup_protection(args.service_id, args.backup_id, protected),
+        _get_fmt(args),
+    )
 
 
 # ── Bench ─────────────────────────────────────────────────
+
 
 def cmd_bench(args):
     c = _client(args)
@@ -479,17 +534,23 @@ def cmd_bench(args):
     host = ips[0]["ip"]
     user = vm.get("os_user", "debian")
     print(f"Benchmarking VM {args.service_id} ({host})...\n")
-    results = run_full_suite(host, user=user, skip_disk=args.skip_disk, skip_network=args.skip_network)
+    results = run_full_suite(
+        host, user=user, skip_disk=args.skip_disk, skip_network=args.skip_network
+    )
     print_bench_results(results)
 
 
 # ── NoDNS ─────────────────────────────────────────────────
 
+
 def cmd_nodns(args):
     keypair = NoDNSKeyPair.from_nsec(args.nsec, zone=args.zone) if args.nsec else None
     result = provision_dns_for_vm(
-        ip=args.ip, subdomain=args.subdomain, wait_seconds=args.wait,
-        keypair=keypair, zone=args.zone,
+        ip=args.ip,
+        subdomain=args.subdomain,
+        wait_seconds=args.wait,
+        keypair=keypair,
+        zone=args.zone,
     )
     _print(result, _get_fmt(args))
     if result["success"]:
@@ -502,6 +563,7 @@ def cmd_dns_verify(args):
 
 
 # ── Firewall ──────────────────────────────────────────────
+
 
 def cmd_firewall(args):
     c = _client(args)
@@ -529,12 +591,14 @@ def cmd_firewall(args):
 
 # ── Account ───────────────────────────────────────────────
 
+
 def cmd_account(args):
     c = _client(args)
     _print(c.get_account())
 
 
 # ── VM Lifecycle extras ───────────────────────────────────
+
 
 def cmd_vm_activity(args):
     c = _client(args)
@@ -553,6 +617,7 @@ def cmd_payments(args):
 
 # ── Upgrades ──────────────────────────────────────────────
 
+
 def cmd_upgrade_options(args):
     c = _client(args)
     _print(c.list_upgrade_options(args.service_id), _get_fmt(args))
@@ -570,10 +635,13 @@ def cmd_upgrade(args):
 
 # ── Jobs ──────────────────────────────────────────────────
 
+
 def cmd_jobs(args):
     c = _client(args)
     for j in c.list_jobs(args.service_id):
-        print(f"  id={j.get('id','?'):>10}  {j.get('status','?'):12s}  {str(j.get('created_at','?'))[:19]}")
+        print(
+            f"  id={j.get('id', '?'):>10}  {j.get('status', '?'):12s}  {str(j.get('created_at', '?'))[:19]}"
+        )
 
 
 def cmd_job(args):
@@ -582,6 +650,7 @@ def cmd_job(args):
 
 
 # ── SSH Keys ──────────────────────────────────────────────
+
 
 def cmd_ssh_keys(args):
     c = _client(args)
@@ -604,6 +673,7 @@ def cmd_ssh_key_live(args):
 
 # ── ISO ───────────────────────────────────────────────────
 
+
 def cmd_iso(args):
     c = _client(args)
     _print(c.list_isos(args.service_id), _get_fmt(args))
@@ -620,6 +690,7 @@ def cmd_iso_unmount(args):
 
 
 # ── Reverse DNS ───────────────────────────────────────────
+
 
 def cmd_rdns(args):
     c = _client(args)
@@ -638,6 +709,7 @@ def cmd_rdns_clear(args):
 
 # ── Console ───────────────────────────────────────────────
 
+
 def cmd_console(args):
     c = _client(args)
     _print(c.get_console_availability(args.service_id), _get_fmt(args))
@@ -650,6 +722,7 @@ def cmd_console_session(args):
 
 # ── Templates ─────────────────────────────────────────────
 
+
 def cmd_templates(args):
     c = _client(args)
     _print(c.list_templates())
@@ -657,23 +730,30 @@ def cmd_templates(args):
 
 def cmd_sizes(args):
     from .sizes import list_sizes
+
     for s in list_sizes():
-        print(f"  {s['size']:20s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB  ${s.get('name',''):30s}  pkg={s['package_id']}")
+        print(
+            f"  {s['size']:20s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB  ${s.get('name', ''):30s}  pkg={s['package_id']}"
+        )
 
 
 # ── GitHub ephemeral runner ───────────────────────────────
 
+
 def cmd_github_runner_provision(args):
     from .github_runner import (
-        ProvisionRequest, provision as do_provision,
+        ProvisionRequest,
+        provision as do_provision,
         SUPPORTED_BACKENDS,
     )
     import os as _os
 
     github_token = args.github_token or _os.environ.get("SHC_GITHUB_ADMIN_TOKEN", "")
     if not args.dry_run and not github_token:
-        print("Error: --github-token or SHC_GITHUB_ADMIN_TOKEN is required",
-              file=sys.stderr)
+        print(
+            "Error: --github-token or SHC_GITHUB_ADMIN_TOKEN is required",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     backend = args.backend
@@ -686,8 +766,10 @@ def cmd_github_runner_provision(args):
         sys.exit(2)
 
     if backend == "firecracker" and not args.firecracker_host and not args.dry_run:
-        print("Error: --firecracker-host is required for the firecracker backend",
-              file=sys.stderr)
+        print(
+            "Error: --firecracker-host is required for the firecracker backend",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     req = ProvisionRequest(
@@ -716,6 +798,7 @@ def cmd_github_runner_provision(args):
 
 def cmd_github_runner_destroy(args):
     from .github_runner import destroy as do_destroy, SUPPORTED_BACKENDS
+
     backend = args.backend
     if backend not in SUPPORTED_BACKENDS:
         print(
@@ -747,6 +830,7 @@ def cmd_github_runner_destroy(args):
 
 # ── Main ──────────────────────────────────────────────────
 
+
 def cmd_context(args):
     contexts = _load_contexts()
     if args.ctx_command == "list":
@@ -758,6 +842,7 @@ def cmd_context(args):
             print(f"  {name:20s}  {masked}")
     elif args.ctx_command == "add":
         import getpass
+
         key = os.environ.get("SHC_API_KEY") or getpass.getpass("API key: ")
         if not key:
             print("No key provided.", file=sys.stderr)
@@ -781,7 +866,7 @@ def cmd_context(args):
         print(f"Switched to context '{args.name}' (set SHC_API_KEY for this process)")
 
 
-_BASH_COMPLETION = r'''#!/bin/bash
+_BASH_COMPLETION = r"""#!/bin/bash
 _shc_completion() {
     local cur prev opts
     COMPREPLY=()
@@ -792,16 +877,16 @@ _shc_completion() {
     fi
 }
 complete -F _shc_completion shc
-'''
+"""
 
-_ZSH_COMPLETION = r'''#compdef shc
+_ZSH_COMPLETION = r"""#compdef shc
 _shc() {
     local -a commands
     commands=('list:List VMs' 'info:VM summary' 'detail:VM detail' 'metrics:VM metrics' 'order:Order VM' 'cancel:Cancel VM' 'snapshot:Manage snapshots' 'backup:Manage backups' 'support:Support tickets' 'billing:Billing info' 'context:Manage API key contexts' 'completion:Shell completion')
     _describe 'command' commands
 }
 compdef _shc shc
-'''
+"""
 
 
 def cmd_completion(args):
@@ -810,16 +895,28 @@ def cmd_completion(args):
     elif args.shell == "zsh":
         print(_ZSH_COMPLETION)
     else:
-        print(f"# {args.shell} completion not yet supported. Use bash or zsh.", file=sys.stderr)
+        print(
+            f"# {args.shell} completion not yet supported. Use bash or zsh.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="shc", description="Sovereign Hybrid Compute CLI")
+    parser = argparse.ArgumentParser(
+        prog="shc", description="Sovereign Hybrid Compute CLI"
+    )
     parser.add_argument("--api-key", help="SHC API key (or set SHC_API_KEY)")
-    parser.add_argument("--context", "-C", help="Auth context name (see 'shc context list')")
-    parser.add_argument("--format", "-o", choices=["json", "yaml", "table"],
-                        default="json", help="Output format (default: json)")
+    parser.add_argument(
+        "--context", "-C", help="Auth context name (see 'shc context list')"
+    )
+    parser.add_argument(
+        "--format",
+        "-o",
+        choices=["json", "yaml", "table"],
+        default="json",
+        help="Output format (default: json)",
+    )
     sub = parser.add_subparsers(dest="command")
 
     p = sub.add_parser("list", help="List VMs")
@@ -857,19 +954,33 @@ def main():
     p.add_argument("--hostname", required=True)
     p.add_argument("--package-id", type=int, help="SHC package ID (or use --size)")
     p.add_argument("--pricing-id", type=int, help="SHC pricing ID (or use --size)")
-    p.add_argument("--size", help="Named size: starter, standard, professional, business, enterprise, dev-*")
+    p.add_argument(
+        "--size",
+        help="Named size: starter, standard, professional, business, enterprise, dev-*",
+    )
     p.add_argument("--cpu", type=int, help="Min CPU cores (finds cheapest match)")
     p.add_argument("--ram", type=int, help="Min RAM in MB (finds cheapest match)")
     p.add_argument("--disk", type=int, help="Min disk in GB (finds cheapest match)")
-    p.add_argument("--nodns", action="store_true", help="Auto-publish NoDNS record after VM creation")
-    p.add_argument("--zone", default="nodns.shop", help="NoDNS zone: nodns.shop or dns4sats.xyz")
+    p.add_argument(
+        "--nodns",
+        action="store_true",
+        help="Auto-publish NoDNS record after VM creation",
+    )
+    p.add_argument(
+        "--zone", default="nodns.shop", help="NoDNS zone: nodns.shop or dns4sats.xyz"
+    )
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")
-    p.add_argument("--pay", action="store_true", help="Auto-pay and wait for provisioning")
-    p.add_argument("--pay-qr", action="store_true",
-                   help="Show Lightning QR code for just-in-time payment (no balance needed)")
+    p.add_argument(
+        "--pay", action="store_true", help="Auto-pay and wait for provisioning"
+    )
+    p.add_argument(
+        "--pay-qr",
+        action="store_true",
+        help="Show Lightning QR code for just-in-time payment (no balance needed)",
+    )
     p.set_defaults(func=cmd_order)
 
     p = sub.add_parser("pay", help="Pay an invoice")
@@ -877,12 +988,21 @@ def main():
     p.add_argument("--idempotency-key")
     p.set_defaults(func=cmd_pay)
 
-    for name, func in [("start", cmd_start), ("stop", cmd_stop), ("shutdown", cmd_shutdown), ("restart", cmd_restart), ("reset", cmd_reset), ("cancel", cmd_cancel)]:
+    for name, func in [
+        ("start", cmd_start),
+        ("stop", cmd_stop),
+        ("shutdown", cmd_shutdown),
+        ("restart", cmd_restart),
+        ("reset", cmd_reset),
+        ("cancel", cmd_cancel),
+    ]:
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
         p.set_defaults(func=func)
 
-    p = sub.add_parser("health", help="VM health diagnostics (provisioning, network, runtime)")
+    p = sub.add_parser(
+        "health", help="VM health diagnostics (provisioning, network, runtime)"
+    )
     p.add_argument("service_id", type=int)
     p.set_defaults(func=cmd_health)
 
@@ -932,11 +1052,15 @@ def main():
     p = sub.add_parser("backup-protect", help="Toggle backup protection")
     p.add_argument("service_id", type=int)
     p.add_argument("backup_id")
-    p.add_argument("--off", action="store_true", help="Remove protection (default: add)")
+    p.add_argument(
+        "--off", action="store_true", help="Remove protection (default: add)"
+    )
     p.set_defaults(func=cmd_backup_protect)
 
     p = sub.add_parser("tickets", help="Support tickets")
-    p.add_argument("subcommand", choices=["list", "get", "create", "reply", "close", "departments"])
+    p.add_argument(
+        "subcommand", choices=["list", "get", "create", "reply", "close", "departments"]
+    )
     p.add_argument("--ticket-id", type=int)
     p.add_argument("--subject")
     p.add_argument("--body")
@@ -957,7 +1081,9 @@ def main():
     p = sub.add_parser("transactions", help="List transactions")
     p.set_defaults(func=cmd_transactions)
 
-    p = sub.add_parser("activity", help="Account activity log, or VM activity with service_id")
+    p = sub.add_parser(
+        "activity", help="Account activity log, or VM activity with service_id"
+    )
     p.add_argument("service_id", type=int, nargs="?", default=None)
     p.add_argument("--limit", type=int)
     p.set_defaults(func=cmd_activity)
@@ -983,7 +1109,9 @@ def main():
     p.add_argument("--ip", required=True)
     p.add_argument("--nsec")
     p.add_argument("--subdomain")
-    p.add_argument("--zone", default="nodns.shop", help="DNS zone: nodns.shop or dns4sats.xyz")
+    p.add_argument(
+        "--zone", default="nodns.shop", help="DNS zone: nodns.shop or dns4sats.xyz"
+    )
     p.add_argument("--wait", type=int, default=15)
     p.add_argument("--verify", action="store_true")
     p.set_defaults(func=cmd_nodns)
@@ -1031,7 +1159,9 @@ def main():
 
     p = sub.add_parser("ssh-key-add", help="Add an SSH key to a VM")
     p.add_argument("service_id", type=int)
-    p.add_argument("--key", required=True, help="Public key string or path to pubkey file")
+    p.add_argument(
+        "--key", required=True, help="Public key string or path to pubkey file"
+    )
     p.add_argument("--label")
     p.set_defaults(func=cmd_ssh_key_add)
 
@@ -1087,11 +1217,15 @@ def main():
     p.add_argument("--user", default="debian")
     p.add_argument("--name", default="shc-vm", help="Server name for discovery")
     p.add_argument("--relay", default="wss://relay.contextvm.org")
-    p.set_defaults(func=lambda a: _print(
-        __import__("shc_toolkit.contextvm", fromlist=["install_contextvm"]).install_contextvm(
-            host=a.host, user=a.user, server_name=a.name, relay=a.relay
+    p.set_defaults(
+        func=lambda a: _print(
+            __import__(
+                "shc_toolkit.contextvm", fromlist=["install_contextvm"]
+            ).install_contextvm(
+                host=a.host, user=a.user, server_name=a.name, relay=a.relay
+            )
         )
-    ))
+    )
 
     # ── github-runner: ephemeral self-hosted runners on SHC VPSs ──
     p_gr = sub.add_parser(
@@ -1101,68 +1235,115 @@ def main():
     gr_sub = p_gr.add_subparsers(dest="gr_command")
 
     p_prov = gr_sub.add_parser("provision", help="Provision one ephemeral SHC runner")
-    p_prov.add_argument("--repo", required=True,
-                        help="owner/repo, e.g. Amperstrand/tollgate-module-basic-go")
-    p_prov.add_argument("--github-token",
-                        help="PAT with repo admin / runners:write "
-                             "(or set SHC_GITHUB_ADMIN_TOKEN)")
-    p_prov.add_argument("--size", default="dev-4c-16gb",
-                        help="SHC size name (default dev-4c-16gb)")
-    p_prov.add_argument("--template", default="ubuntu2404-cloud",
-                        help="SHC OS template slug (default ubuntu2404-cloud)")
-    p_prov.add_argument("--labels",
-                        help="Comma-separated labels; first becomes the unique "
-                             "per-run label. If omitted, 'self-hosted,linux,x64,"
-                             "shc,<auto>' is used.")
+    p_prov.add_argument(
+        "--repo",
+        required=True,
+        help="owner/repo, e.g. Amperstrand/tollgate-module-basic-go",
+    )
+    p_prov.add_argument(
+        "--github-token",
+        help="PAT with repo admin / runners:write (or set SHC_GITHUB_ADMIN_TOKEN)",
+    )
+    p_prov.add_argument(
+        "--size", default="dev-4c-16gb", help="SHC size name (default dev-4c-16gb)"
+    )
+    p_prov.add_argument(
+        "--template",
+        default="ubuntu2404-cloud",
+        help="SHC OS template slug (default ubuntu2404-cloud)",
+    )
+    p_prov.add_argument(
+        "--labels",
+        help="Comma-separated labels; first becomes the unique "
+        "per-run label. If omitted, 'self-hosted,linux,x64,"
+        "shc,<auto>' is used.",
+    )
     p_prov.add_argument("--runner-name", help="Runner name (default auto)")
-    p_prov.add_argument("--ssh-public-key",
-                        help="Path to public key (or raw). If omitted, an "
-                             "ephemeral keypair is generated per run.")
-    p_prov.add_argument("--ssh-private-key",
-                        help="Path to matching private key (only needed with "
-                             "--ssh-public-key for bootstrap)")
-    p_prov.add_argument("--ssh-user", help="SSH user (auto-detected if omitted; "
-                                           "root for firecracker host)")
-    p_prov.add_argument("--max-wait-seconds", type=int, default=600,
-                        help="Max seconds to wait for VM provisioning")
-    p_prov.add_argument("--no-docker", action="store_true",
-                        help="Skip Docker install (installed by default)")
-    p_prov.add_argument("--install-go", action="store_true",
-                        help="Install Go 1.24.2 (off by default)")
-    p_prov.add_argument("--dry-run", action="store_true",
-                        help="Print planned labels/repo/size/template without "
-                             "creating a VM or calling GitHub")
-    p_prov.add_argument("--backend", default="shc-vps",
-                        choices=["shc-vps", "firecracker"],
-                        help="Provisioning backend (default shc-vps)")
-    p_prov.add_argument("--firecracker-host",
-                        help="SSH target for the host VM running the pool "
-                             "orchestrator (required for --backend firecracker)")
-    p_prov.add_argument("--firecracker-pool-path",
-                        default="/opt/fc-pool",
-                        help="Path on the host VM where firecracker_pool.py "
-                             "lives (default /opt/fc-pool)")
-    p_prov.add_argument("--output-json", action="store_true",
-                        help="Always-on for this subcommand (JSON is the contract)")
+    p_prov.add_argument(
+        "--ssh-public-key",
+        help="Path to public key (or raw). If omitted, an "
+        "ephemeral keypair is generated per run.",
+    )
+    p_prov.add_argument(
+        "--ssh-private-key",
+        help="Path to matching private key (only needed with "
+        "--ssh-public-key for bootstrap)",
+    )
+    p_prov.add_argument(
+        "--ssh-user",
+        help="SSH user (auto-detected if omitted; root for firecracker host)",
+    )
+    p_prov.add_argument(
+        "--max-wait-seconds",
+        type=int,
+        default=600,
+        help="Max seconds to wait for VM provisioning",
+    )
+    p_prov.add_argument(
+        "--no-docker",
+        action="store_true",
+        help="Skip Docker install (installed by default)",
+    )
+    p_prov.add_argument(
+        "--install-go", action="store_true", help="Install Go 1.24.2 (off by default)"
+    )
+    p_prov.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned labels/repo/size/template without "
+        "creating a VM or calling GitHub",
+    )
+    p_prov.add_argument(
+        "--backend",
+        default="shc-vps",
+        choices=["shc-vps", "firecracker"],
+        help="Provisioning backend (default shc-vps)",
+    )
+    p_prov.add_argument(
+        "--firecracker-host",
+        help="SSH target for the host VM running the pool "
+        "orchestrator (required for --backend firecracker)",
+    )
+    p_prov.add_argument(
+        "--firecracker-pool-path",
+        default="/opt/fc-pool",
+        help="Path on the host VM where firecracker_pool.py "
+        "lives (default /opt/fc-pool)",
+    )
+    p_prov.add_argument(
+        "--output-json",
+        action="store_true",
+        help="Always-on for this subcommand (JSON is the contract)",
+    )
     p_prov.set_defaults(func=cmd_github_runner_provision)
 
     p_dest = gr_sub.add_parser("destroy", help="Cancel/destroy a runner by id or name")
-    p_dest.add_argument("--service-id",
-                        help="SHC service_id to cancel (shc-vps backend)")
-    p_dest.add_argument("--backend", default="shc-vps",
-                        choices=["shc-vps", "firecracker"],
-                        help="Backend the runner was provisioned with "
-                             "(default shc-vps)")
-    p_dest.add_argument("--runner-name",
-                        help="μVM name to kill (required for firecracker backend)")
-    p_dest.add_argument("--firecracker-host",
-                        help="SSH target for the host VM running the pool "
-                             "orchestrator (required for firecracker backend)")
-    p_dest.add_argument("--firecracker-pool-path", default="/opt/fc-pool",
-                        help="Path on the host VM where firecracker_pool.py lives "
-                             "(default /opt/fc-pool)")
-    p_dest.add_argument("--ssh-user", help="SSH user for the firecracker host "
-                                           "(default root)")
+    p_dest.add_argument(
+        "--service-id", help="SHC service_id to cancel (shc-vps backend)"
+    )
+    p_dest.add_argument(
+        "--backend",
+        default="shc-vps",
+        choices=["shc-vps", "firecracker"],
+        help="Backend the runner was provisioned with (default shc-vps)",
+    )
+    p_dest.add_argument(
+        "--runner-name", help="μVM name to kill (required for firecracker backend)"
+    )
+    p_dest.add_argument(
+        "--firecracker-host",
+        help="SSH target for the host VM running the pool "
+        "orchestrator (required for firecracker backend)",
+    )
+    p_dest.add_argument(
+        "--firecracker-pool-path",
+        default="/opt/fc-pool",
+        help="Path on the host VM where firecracker_pool.py lives "
+        "(default /opt/fc-pool)",
+    )
+    p_dest.add_argument(
+        "--ssh-user", help="SSH user for the firecracker host (default root)"
+    )
     p_dest.set_defaults(func=cmd_github_runner_destroy)
 
     # ── Shell completion ──
@@ -1190,6 +1371,7 @@ def main():
             dry_run=args.dry_run,
         )
         import json as _json
+
         if orphans:
             print(_json.dumps(orphans, indent=2))
             if not args.dry_run:
@@ -1200,10 +1382,17 @@ def main():
             print("No orphaned VMs found", file=sys.stderr)
 
     p_reap = sub.add_parser("reap", help="Destroy orphaned test VMs")
-    p_reap.add_argument("--max-age-hours", type=float, default=2.0,
-                          help="Destroy VMs older than this (default: 2h)")
-    p_reap.add_argument("--dry-run", action="store_true",
-                          help="Report what would be destroyed without cancelling")
+    p_reap.add_argument(
+        "--max-age-hours",
+        type=float,
+        default=2.0,
+        help="Destroy VMs older than this (default: 2h)",
+    )
+    p_reap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would be destroyed without cancelling",
+    )
     p_reap.set_defaults(func=cmd_reap)
 
     args = parser.parse_args()

@@ -155,7 +155,7 @@ class ConsoleSession:
         if paste_btn.count() == 0:
             raise ConsoleError("Paste to VM button not found — console not ready?")
         paste_btn.click()
-        textarea = frame.locator('textarea')
+        textarea = frame.locator("textarea")
         textarea.fill(text)
         frame.locator('button:has-text("Type into VM")').click()
         self._page.wait_for_timeout(min(len(text) * 15, 10000))  # type: ignore[attr-defined]

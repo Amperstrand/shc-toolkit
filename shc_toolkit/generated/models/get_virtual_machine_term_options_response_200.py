@@ -19,8 +19,7 @@ T = TypeVar("T", bound="GetVirtualMachineTermOptionsResponse200")
 class GetVirtualMachineTermOptionsResponse200:
     """
     Attributes:
-        data (GetVirtualMachineTermOptionsResponse200Data): Staged contract stub -- field shape finalizes when the
-            handler lands.
+        data (GetVirtualMachineTermOptionsResponse200Data):
     """
 
     data: GetVirtualMachineTermOptionsResponse200Data

@@ -120,7 +120,8 @@ class CostTracker:
         self._sessions[service_id] = session
         log.info(
             "Cost audit: tracking svc %s — $%.2f/day",
-            service_id, daily_price,
+            service_id,
+            daily_price,
         )
         return session
 
@@ -155,10 +156,7 @@ class CostTracker:
         expected_cost = _truncate(charged_hours * hourly_rate, 2)
 
         actual_net_cost = None
-        if (
-            session.credit_before_order is not None
-            and credit_after_cancel is not None
-        ):
+        if session.credit_before_order is not None and credit_after_cancel is not None:
             actual_net_cost = round(
                 session.credit_before_order - credit_after_cancel, 2
             )
@@ -183,14 +181,17 @@ class CostTracker:
                 if refund_diff <= PRICE_TOLERANCE_USD:
                     log.info(
                         "Cost audit: svc %s — refund $%.2f matches expected $%.2f",
-                        service_id, actual_refund, report.expected_refund,
+                        service_id,
+                        actual_refund,
+                        report.expected_refund,
                     )
                 else:
                     ledger_refund = self._ledger_refund(service_id)
                     report.ledger_refund = ledger_refund
                     if (
                         ledger_refund is not None
-                        and abs(ledger_refund - report.expected_refund) <= PRICE_TOLERANCE_USD
+                        and abs(ledger_refund - report.expected_refund)
+                        <= PRICE_TOLERANCE_USD
                     ):
                         report.mismatch = False
                         report.notes.append("balance_diff_noisy_concurrent_activity")
@@ -208,36 +209,56 @@ class CostTracker:
             if diff <= PRICE_TOLERANCE_USD:
                 log.info(
                     "Cost audit: svc %s — %.1f hrs, net $%.2f, expected $%.2f — OK",
-                    service_id, hours, actual_net_cost, expected_cost,
+                    service_id,
+                    hours,
+                    actual_net_cost,
+                    expected_cost,
                 )
             else:
                 report.mismatch = True
-                report.notes.append(f"net_cost_diff_${actual_net_cost - expected_cost:+.2f}")
+                report.notes.append(
+                    f"net_cost_diff_${actual_net_cost - expected_cost:+.2f}"
+                )
                 ledger_cost = self._ledger_cost(service_id)
-                if ledger_cost is not None and abs(ledger_cost - expected_cost) <= PRICE_TOLERANCE_USD:
+                if (
+                    ledger_cost is not None
+                    and abs(ledger_cost - expected_cost) <= PRICE_TOLERANCE_USD
+                ):
                     report.mismatch = False
-                    report.notes.append("ledger_confirms_expected_concurrent_balance_noise")
+                    report.notes.append(
+                        "ledger_confirms_expected_concurrent_balance_noise"
+                    )
                     log.info(
                         "Cost audit: svc %s — balance diff $%.2f ≠ expected $%.2f, "
                         "but ledger confirms $%.2f — concurrent activity, OK",
-                        service_id, actual_net_cost, expected_cost, ledger_cost,
+                        service_id,
+                        actual_net_cost,
+                        expected_cost,
+                        ledger_cost,
                     )
                 elif ledger_cost is not None:
                     log.warning(
                         "Cost audit: svc %s — MISMATCH: net $%.2f, ledger $%.2f, expected $%.2f",
-                        service_id, actual_net_cost, ledger_cost, expected_cost,
+                        service_id,
+                        actual_net_cost,
+                        ledger_cost,
+                        expected_cost,
                     )
                 else:
                     log.warning(
                         "Cost audit: svc %s — MISMATCH: net $%.2f, expected $%.2f (diff $%+.2f)",
-                        service_id, actual_net_cost, expected_cost,
+                        service_id,
+                        actual_net_cost,
+                        expected_cost,
                         actual_net_cost - expected_cost,
                     )
         else:
             report.notes.append("balance_diff_unavailable")
             log.info(
                 "Cost audit: svc %s — %.1f hrs, expected $%.2f (balance diff unavailable)",
-                service_id, hours, expected_cost,
+                service_id,
+                hours,
+                expected_cost,
             )
 
         return report
@@ -321,13 +342,9 @@ class CostTracker:
 
     def all_sessions(self) -> list[dict]:
         """Cost reports for all tracked sessions."""
-        return [
-            self.session_report(sid)
-            for sid in self._sessions
-            if sid is not None
-        ]
+        return [self.session_report(sid) for sid in self._sessions if sid is not None]
 
 
 def _truncate(amount: float, decimals: int) -> float:
-    factor = 10 ** decimals
+    factor = 10**decimals
     return float(int(amount * factor)) / factor

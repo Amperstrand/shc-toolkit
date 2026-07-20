@@ -23,11 +23,13 @@ def fetch_bolt11(checkout_url: str) -> str | None:
     """
     result = subprocess.run(
         ["curl", "-s", "--connect-timeout", "10", checkout_url],
-        capture_output=True, text=True, timeout=20,
+        capture_output=True,
+        text=True,
+        timeout=20,
     )
     if result.returncode != 0 or not result.stdout:
         return None
-    matches = re.findall(r'ln(?:bc|tb|bcrt)[a-z0-9]+', result.stdout)
+    matches = re.findall(r"ln(?:bc|tb|bcrt)[a-z0-9]+", result.stdout)
     return matches[0] if matches else None
 
 
@@ -40,7 +42,9 @@ def render_qr(data: str) -> bool:
     # Option 1: qrencode CLI (cleanest terminal output)
     result = subprocess.run(
         ["qrencode", "-t", "ANSIUTF8", "-o", "-", data],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     if result.returncode == 0 and result.stdout:
         print(result.stdout)
@@ -49,6 +53,7 @@ def render_qr(data: str) -> bool:
     # Option 2: Python qrcode library
     try:
         import qrcode
+
         qr = qrcode.QRCode(border=1)
         qr.add_data(data)
         qr.make(fit=True)
@@ -74,24 +79,37 @@ def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
     while time.time() < deadline:
         result = subprocess.run(
             ["curl", "-s", "--connect-timeout", "10", checkout_url],
-            capture_output=True, text=True, timeout=20,
+            capture_output=True,
+            text=True,
+            timeout=20,
         )
         if result.returncode == 0 and result.stdout:
             html = result.stdout.lower()
             # BTCPay shows different content when paid
-            if any(k in html for k in ['invoice settled', 'invoice paid',
-                                       'payment received', '"status":"settled"',
-                                       '"status":"paid"',
-                                       'class="paid"']):
+            if any(
+                k in html
+                for k in [
+                    "invoice settled",
+                    "invoice paid",
+                    "payment received",
+                    '"status":"settled"',
+                    '"status":"paid"',
+                    'class="paid"',
+                ]
+            ):
                 return True
             # Check if invoice expired
-            if 'invoice expired' in html or '"status":"expired"' in html:
+            if "invoice expired" in html or '"status":"expired"' in html:
                 print("\n  Invoice expired!")
                 return False
 
         remaining = int(deadline - time.time())
         mins, secs = divmod(max(remaining, 0), 60)
-        print("\r  Waiting for payment... {mins}:{secs:02d} remaining  ", end="", flush=True)
+        print(
+            "\r  Waiting for payment... {mins}:{secs:02d} remaining  ",
+            end="",
+            flush=True,
+        )
         time.sleep(check_interval)
 
     return False
@@ -113,8 +131,12 @@ def poll_shc_invoice(shc_client, invoice_id: int, timeout: int = 900) -> bool:
                 return True
             remaining = int(deadline - time.time())
             mins, secs = divmod(max(remaining, 0), 60)
-            print("\r  Invoice #{invoice_id} status: {status}  "
-                  "({mins}:{secs:02d} remaining)  ", end="", flush=True)
+            print(
+                "\r  Invoice #{invoice_id} status: {status}  "
+                "({mins}:{secs:02d} remaining)  ",
+                end="",
+                flush=True,
+            )
         except Exception as e:  # noqa: F841
             print("\r  Polling error: {e}  ", end="", flush=True)
         time.sleep(5)

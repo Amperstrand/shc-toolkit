@@ -12,6 +12,7 @@ Example:
     >>> vms[0].ip
     '66.92.204.236'
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

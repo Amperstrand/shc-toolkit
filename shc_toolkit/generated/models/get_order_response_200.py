@@ -17,7 +17,7 @@ T = TypeVar("T", bound="GetOrderResponse200")
 class GetOrderResponse200:
     """
     Attributes:
-        data (GetOrderResponse200Data): Staged contract stub -- field shape finalizes when the handler lands.
+        data (GetOrderResponse200Data):
     """
 
     data: GetOrderResponse200Data

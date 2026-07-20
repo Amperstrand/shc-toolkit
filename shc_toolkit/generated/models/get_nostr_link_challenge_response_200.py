@@ -19,8 +19,7 @@ T = TypeVar("T", bound="GetNostrLinkChallengeResponse200")
 class GetNostrLinkChallengeResponse200:
     """
     Attributes:
-        data (GetNostrLinkChallengeResponse200Data): Staged contract stub -- field shape finalizes when the handler
-            lands.
+        data (GetNostrLinkChallengeResponse200Data):
     """
 
     data: GetNostrLinkChallengeResponse200Data
