@@ -17,9 +17,11 @@ Usage:
     c.start_vm(123)
 
 The MCP server exposes 157 tools (35 marked x-shc-core in the spec). This
-client maps 124 of them into TOOL_MAP — see ROADMAP.md for the coverage
-breakdown.
-to method names matching SHCClient. Non-core tools are callable via
+client's `TOOL_MAP` wraps 125 of them — 35/35 (100%) of the `x-shc-core`
+curated subset and 125/157 (80%) of all MCP-exposed ops. The remaining 32
+exposed ops are largely low-level siblings of wrapped parent ops (e.g.
+`getVirtualMachineBandwidth` is unwrapped because `getVirtualMachineSummary`
+already returns bandwidth). Non-core tools are callable via
 ``call_tool(name, arguments)``.
 """
 
@@ -42,7 +44,7 @@ MCP_PROTOCOL_VERSION = "2025-06-18"
 
 # ── MCP tool name → method mapping ─────────────────────────────
 # Maps SHCClient method names to MCP tool names (camelCase).
-# Core 23 tools are guaranteed on the MCP server.
+# Live server exposes 157 tools; 35 of those are x-shc-core.
 TOOL_MAP: dict[str, str] = {
     # Account
     "get_account": "getAccount",
@@ -80,6 +82,8 @@ TOOL_MAP: dict[str, str] = {
     "get_vm_term_options": "getVirtualMachineTermOptions",
     "change_vm_term": "changeVirtualMachineTerm",
     "preview_vm_term_change": "previewVirtualMachineTermChange",
+    # VM data (v2.4.24 added: was the only unwrapped x-shc-core op)
+    "get_vm_credentials": "getVirtualMachineCredentials",
     # Orders (v2.4.3)
     "list_orders": "listOrders",
     "get_order": "getOrder",

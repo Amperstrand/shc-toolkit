@@ -7,7 +7,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 | Repo | Tests | CI | Key Features |
 |------|-------|----|-------------|
-| shc-toolkit | 231 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (157 server tools, 124 TOOL_MAP entries, 99% of curated 35 x-shc-core wrapped), v2.4.24, catalog generator, auto-generated client (932 files, 727 attrs models, 148 endpoints), cloud-init REST wrappers, full confirmation-flow coverage, close_support_ticket confirmation fix, idempotency keys, 408 retry, confirmation flow |
+| shc-toolkit | 231 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (157 server tools, 125 TOOL_MAP entries, 100% of curated 35 x-shc-core wrapped), v2.4.24, catalog generator, auto-generated client (932 files, 729 attrs models, 148 endpoints), cloud-init REST wrappers, full confirmation-flow coverage, close_support_ticket confirmation fix, idempotency keys, 408 retry, confirmation flow |
 | shc-pulumi | 95 unit | Push + CI | Spec-encoding sizes, config options, snapshots, backups, firewall, rDNS, NoDNS. TF Bridge migration guide published. |
 | terraform-provider-shc | 57 unit | Push + CI + integration | Spec-encoding sizes, config options, cost audit, snapshots, backups, firewall, rDNS, VM term attribute |
 
@@ -18,13 +18,13 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 ### v2.4.24.0 Release (2026-07-20)
 - **Spec sync**: SHC API v2.4.15 → v2.4.24. All changes additive / editorial on SHC's side; no path, operationId, request body, response shape, auth, or enforcement change. Closes #20 (duplicate enum fix upstream) and #21 (auto-created drift issue).
-- **Regenerated typed client**: 727 attrs models (was 543) across 932 files (was 906). Brings the typed surface up to v2.4.24; the v2.4.3 → v2.4.15 codegen blocker (duplicate enum) is resolved upstream. (openapi-python-client v0.29 generates `attrs` classes, not Pydantic — correcting a doc inaccuracy that dated back to v2.4.3.1.)
+- **Regenerated typed client**: 729 attrs models (was 543) across 932 files (was 906). Brings the typed surface up to v2.4.24; the v2.4.3 → v2.4.15 codegen blocker (duplicate enum) is resolved upstream. (openapi-python-client v0.29 generates `attrs` classes, not Pydantic — correcting a doc inaccuracy that dated back to v2.4.3.1.)
 - **New typed models**: `ConfirmationChallenge` (formalises the 409 / confirmation_id re-call flow) + 14 newly-specified response schemas (Nostr link/unlink/NIP-05, contact update, downloads, account manager, order fetch, pending-order cancel, quotation approve, ticket feedback, VM term options/preview).
 - **Drift CI fix**: added missing `.omo/llms.txt` baseline (40 lines). The `api-drift.yml` workflow was silently no-op'ing llms.txt drift detection without it.
 - **No hand-written code change**: `SHCClient` / `SHCMCPClient` / `transport.py` are byte-identical. `TOOL_MAP` stays at 124 entries. Decision: keep hand-written layer returning raw dicts (per 2026 maintainer consensus — avoid duplicate typed surfaces when an OpenAPI-generated Pydantic layer already exists).
 
 ### v2.4.15.1 Release (2026-07-16)
-- **MCP coverage**: `TOOL_MAP` 124 entries wrapping 124/157 (79%) of MCP-exposed ops and 34/35 (97%) of the curated `x-shc-core` subset
+- **MCP coverage**: `TOOL_MAP` 125 entries wrapping 125/157 (80%) of MCP-exposed ops and 35/35 (100%) of the curated `x-shc-core` subset
 - **Auto-generated Python client**: 718 files from OpenAPI spec (149 endpoints, 543 Pydantic models)
 - **API resilience**: 408 retry, auto-idempotency keys on confirmed requests, ±20% jitter
 - **Package maturity**: CHANGELOG.md, pyproject.toml v2.4.15.1, mypy CI (0 errors), PyPI publish workflow
@@ -89,8 +89,8 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 | Orders | list/get/cancel (v2.4.3) | list/get/cancel | N/A |
 | Catalog generator | --format go\|pulumi\|python | regenerate_sizes.sh | regenerate_sizes.sh |
 | Drift detection CI | OpenAPI + MCP + size-map + cross-repo | size-map | size-map |
-| MCP transport | 124 TOOL_MAP entries, 99% of curated 35 x-shc-core wrapped (157 server tools total) | N/A | N/A |
-| Auto-generated client | 932 files, 148 endpoints, 727 models | N/A | N/A |
+| MCP transport | 125 TOOL_MAP entries, 100% of curated 35 x-shc-core wrapped (157 server tools total) | N/A | N/A |
+| Auto-generated client | 932 files, 148 endpoints, 729 models | N/A | N/A |
 | API resilience | 408 retry + jitter + idempotency | N/A | N/A |
 | Type checking | mypy 0 errors | go vet | N/A |
 

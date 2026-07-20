@@ -258,7 +258,7 @@ MIT
 ## Auto-Generated Client
 
 The toolkit includes an auto-generated Python client (`shc_toolkit.generated`)
-with **100% API endpoint coverage** (148 endpoint modules, 727 attrs models)
+with **100% API endpoint coverage** (148 endpoint modules, 729 attrs models)
 generated from the OpenAPI spec via `openapi-python-client`.
 
 ```bash
@@ -312,7 +312,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
 - **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 124 entries
 - **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
-- **Generated typed client**: 932 files, 148 endpoint modules, 727 attrs models
+- **Generated typed client**: 932 files, 148 endpoint modules, 729 attrs models
 - **CI**: 7 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity, typecheck, ansible, publish) + auto-issue-creation on drift
 - **Ansible**: 13 unit tests + ansible-lint CI + molecule caddy scenario + weekly live E2E
 

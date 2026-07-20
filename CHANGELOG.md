@@ -66,9 +66,11 @@ fully wrapped in the toolkit's REST surface).
   handled these via the confirmation flow; no behaviour change.
 - `x-shc-mcp-exposure` annotation now present on every operation (157 `exposed`,
   20 `hidden`). `serverInfo.catalog.tool_count` now reports 157 (the actual
-  tool count), not 177 (the operation count). `TOOL_MAP` stays at 124 entries;
-  the curated 35 `x-shc-core` set is unchanged; live MCP server tool count
-  matches our drift CI baseline.
+  tool count), not 177 (the operation count). `TOOL_MAP` grows 124 → 125
+  entries (added `get_vm_credentials` → `getVirtualMachineCredentials`,
+  closing the last unwrapped `x-shc-core` gap; coverage is now 35/35 = 100%
+  of the curated core subset and 125/157 = 80% of all MCP-exposed ops).
+  Live MCP server tool count matches our drift CI baseline.
 - `claimAgentKey` and `mintVmConsoleSession` moved to their correct tags
   (`Account` and `Virtual Machines`) by upstream — generated client stops
   producing near-empty extra classes.
@@ -140,7 +142,7 @@ fully wrapped in the toolkit's REST surface).
 The hand-written `SHCClient` / `SHCMCPClient` continue to return raw `dict` /
 `list[dict]` from JSON responses. We did **not** add dataclass / Pydantic
 typed wrappers in the hand-written layer. The regenerated client
-(`shc_toolkit.generated`, +727 attrs models) is the typed surface.
+(`shc_toolkit.generated`, +729 attrs models) is the typed surface.
 
 This follows the 2026 maintainer consensus: avoid duplicate typed surfaces
 when an OpenAPI-generated Pydantic layer already exists (cf. Slothbox SDK
