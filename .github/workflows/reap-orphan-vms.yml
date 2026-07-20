@@ -28,6 +28,7 @@ jobs:
       - name: Reap orphaned VMs
         env:
           SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+          SHC_REAPER_EXTRA_KEEP_PATTERNS: ${{ vars.SHC_REAPER_EXTRA_KEEP_PATTERNS }}
         run: |
           echo "Scanning for orphaned VMs (max_age=2h)..."
           python3 -c "
