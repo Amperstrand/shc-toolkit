@@ -7,7 +7,7 @@ Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
 | Repo | Tests | CI | Key Features |
 |------|-------|----|-------------|
-| shc-toolkit | 231 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (157 server tools, 125 TOOL_MAP entries, 99% of curated 35 x-shc-core wrapped), v2.4.24, catalog generator, auto-generated client (932 files, 727 attrs models, 148 endpoints), cloud-init REST wrappers, full confirmation-flow coverage, close_support_ticket confirmation fix, idempotency keys, 408 retry, confirmation flow |
+| shc-toolkit | 231 unit + mypy | Push + daily (REST+MCP) + OpenAPI drift + MCP drift + cross-repo parity + typecheck + ansible + publish | Spec-encoding sizes, config options, cost audit, MCP transport (157 server tools, 124 TOOL_MAP entries, 99% of curated 35 x-shc-core wrapped), v2.4.24, catalog generator, auto-generated client (932 files, 727 attrs models, 148 endpoints), cloud-init REST wrappers, full confirmation-flow coverage, close_support_ticket confirmation fix, idempotency keys, 408 retry, confirmation flow |
 | shc-pulumi | 95 unit | Push + CI | Spec-encoding sizes, config options, snapshots, backups, firewall, rDNS, NoDNS. TF Bridge migration guide published. |
 | terraform-provider-shc | 57 unit | Push + CI + integration | Spec-encoding sizes, config options, cost audit, snapshots, backups, firewall, rDNS, VM term attribute |
 

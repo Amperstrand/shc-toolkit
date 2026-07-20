@@ -66,9 +66,9 @@ fully wrapped in the toolkit's REST surface).
   handled these via the confirmation flow; no behaviour change.
 - `x-shc-mcp-exposure` annotation now present on every operation (157 `exposed`,
   20 `hidden`). `serverInfo.catalog.tool_count` now reports 157 (the actual
-  tool count), not 177 (the operation count). `TOOL_MAP` grows from 124 → 125
-  entries (added `revoke_api_key` → `revokeApiKey`); the curated 35 `x-shc-core`
-  set is unchanged; live MCP server tool count matches our drift CI baseline.
+  tool count), not 177 (the operation count). `TOOL_MAP` stays at 124 entries;
+  the curated 35 `x-shc-core` set is unchanged; live MCP server tool count
+  matches our drift CI baseline.
 - `claimAgentKey` and `mintVmConsoleSession` moved to their correct tags
   (`Account` and `Virtual Machines`) by upstream — generated client stops
   producing near-empty extra classes.
@@ -109,11 +109,14 @@ fully wrapped in the toolkit's REST surface).
   Live-verified on VM 1077: `get_vm_credentials(sid, confirm=False)` correctly
   surfaces the 409 with `confirmation_id` attached; `get_vm_credentials(sid)`
   (default `confirm=True`) auto-completes the re-send and returns credentials.
-  The `SHCTransport` Protocol gains matching signatures for all 11, plus
-  `revoke_api_key` (which `SHCMCPClient` was missing entirely — added with a
-  new `TOOL_MAP` entry, count 124 → 125, `test_core_tool_count` bumped to
-  match). `SHCMCPClient` variants accept `*, confirm: bool = True` as a no-op
-  for symmetry (MCP handles confirmation via `call_tool`).
+  The `SHCTransport` Protocol gains matching signatures for the 10
+  MCP-reachable ops; `revoke_api_key` stays REST-only (it is identity-class
+  per SHC v2.4.13: not exposed by the MCP server, verified against
+  `mcp.sovereignhybridcompute.com` tool list — `revokeApiKey` absent,
+  `listApiKeys` present). All `SHCMCPClient` variants accept
+  `*, confirm: bool = True` as a no-op for symmetry (MCP handles confirmation
+  via `call_tool`). Closes #23 (MCP drift auto-issue from an earlier draft
+  that briefly added `revokeApiKey` to `TOOL_MAP`).
 - **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
   value. Previously both `cloud-init-policy-violation` and
   `cloud_init_policy_violation` were present and normalised to the same

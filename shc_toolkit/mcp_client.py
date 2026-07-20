@@ -47,7 +47,6 @@ TOOL_MAP: dict[str, str] = {
     "get_billing_balance": "getBillingBalance",
     # API Keys
     "list_api_keys": "listApiKeys",
-    "revoke_api_key": "revokeApiKey",
     # VM lifecycle
     "list_vms": "listVirtualMachines",
     "get_vm": "getVirtualMachine",
@@ -561,9 +560,6 @@ class SHCMCPClient:
     def list_api_keys(self) -> list[dict]:
         result = self._call("list_api_keys")
         return self._extract_items(result)
-
-    def revoke_api_key(self, key_id: str, *, confirm: bool = True) -> dict:
-        return self.call_tool("revokeApiKey", {"keyId": key_id})
 
     # VM Lifecycle
     def list_vms(self) -> list[dict]:

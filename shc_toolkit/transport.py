@@ -45,7 +45,6 @@ class SHCTransport(Protocol):
     # ── API Keys ─────────────────────────────────────────────
 
     def list_api_keys(self) -> list[dict]: ...
-    def revoke_api_key(self, key_id: str, *, confirm: bool = True) -> dict: ...
 
     # ── VM Lifecycle (core) ──────────────────────────────────
 
