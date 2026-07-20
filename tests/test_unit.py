@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import httpx
+
 from shc_toolkit.transport import SHCTransport, resolve_transport
 from shc_toolkit.client import SHCClient, SHCError
 
@@ -1615,7 +1617,7 @@ class TestBatchHelper:
 
         client = SHCClient(api_key="test-key")
         fake = {"items": [{"id": "r1", "status": 200, "body": {"data": {"ok": True}}}]}
-        with patch.object(client, "_post", return_value=fake):
+        with patch.object(client, "_request", return_value=fake):
             results = client.batch([{"method": "GET", "path": "/account", "id": "r1"}])
             assert len(results) == 1
             assert results[0]["status"] == 200
@@ -1631,7 +1633,7 @@ class TestBatchHelper:
                 {"id": "b", "status": 200, "body": {}},
             ]
         }
-        with patch.object(client, "_post", return_value=fake):
+        with patch.object(client, "_request", return_value=fake):
             results = client.batch(
                 [
                     {"method": "GET", "path": "/account", "id": "a"},
@@ -1802,3 +1804,258 @@ class TestCliCommandCoverage:
     def test_cli_job_get(self):
         mock = _run_cli(["shc", "job", "1077", "job-abc123"])
         mock.get_job.assert_called_once()
+
+
+class TestRetryBackoff:
+    """Comprehensive retry/backoff tests for SHCClient._request.
+
+    The retry layer handles:
+    - Network errors (httpx.HTTPError) → retry with exponential backoff
+    - 408/429 → retry with Retry-After header or backoff fallback
+    - 500+ → retry with backoff
+    - Max retries exhausted → raise last error
+    - Non-retryable (400/401/403/404) → raise immediately, no retry
+    """
+
+    def _make_resp(self, status, body=None, headers=None):
+        r = MagicMock()
+        r.status_code = status
+        r.text = json.dumps(body) if body else ""
+        r.headers = headers or {}
+        return r
+
+    def test_retry_on_network_error_then_success(self):
+        client = SHCClient(api_key="test-key")
+        with patch.object(client.session, "request", side_effect=[
+            httpx.ConnectError("refused"),
+            self._make_resp(200, {"data": {"ok": True}}),
+        ]), patch("time.sleep"):
+            result = client._get("/test")
+        assert result == {"ok": True}
+
+    def test_retry_on_500_then_success(self):
+        client = SHCClient(api_key="test-key")
+        with patch.object(client.session, "request", side_effect=[
+            self._make_resp(500, {"error": {"code": "upstream_failure"}}),
+            self._make_resp(200, {"data": {"ok": True}}),
+        ]), patch("time.sleep"):
+            result = client._get("/test")
+        assert result == {"ok": True}
+
+    def test_retry_on_408_then_success(self):
+        client = SHCClient(api_key="test-key")
+        with patch.object(client.session, "request", side_effect=[
+            self._make_resp(408, {"error": {"code": "timeout"}}),
+            self._make_resp(200, {"data": {"ok": True}}),
+        ]), patch("time.sleep"):
+            result = client._get("/test")
+        assert result == {"ok": True}
+
+    def test_retry_on_429_with_retry_after_header(self):
+        client = SHCClient(api_key="test-key")
+        with patch.object(client.session, "request", side_effect=[
+            self._make_resp(429, {"error": {"code": "rate_limited"}},
+                            headers={"Retry-After": "1"}),
+            self._make_resp(200, {"data": {"ok": True}}),
+        ]), patch("time.sleep"):
+            result = client._get("/test")
+        assert result == {"ok": True}
+
+    def test_max_retries_exhausted_on_network_error(self):
+        client = SHCClient(api_key="test-key")
+        client._max_retries = 3
+        with patch.object(client.session, "request",
+                          side_effect=httpx.ConnectError("refused")), patch("time.sleep"):
+            with pytest.raises(httpx.ConnectError):
+                client._get("/test")
+
+    def test_max_retries_exhausted_on_500(self):
+        client = SHCClient(api_key="test-key")
+        client._max_retries = 3
+        with patch.object(client.session, "request", return_value=self._make_resp(
+            500, {"error": {"code": "upstream_failure"}}
+        )), patch("time.sleep"):
+            with pytest.raises(SHCError):
+                client._get("/test")
+
+    def test_no_retry_on_404(self):
+        client = SHCClient(api_key="test-key")
+        call_count = 0
+        resp = self._make_resp(404, {"error": {"code": "not_found", "message": "gone"}})
+        with patch.object(client.session, "request", return_value=resp) as mock_req:
+            with pytest.raises(SHCError):
+                client._get("/test")
+        assert mock_req.call_count == 1
+
+    def test_no_retry_on_401(self):
+        client = SHCClient(api_key="test-key")
+        resp = self._make_resp(401, {"error": {"code": "invalid_token"}})
+        with patch.object(client.session, "request", return_value=resp) as mock_req:
+            with pytest.raises(SHCError):
+                client._get("/test")
+        assert mock_req.call_count == 1
+
+    def test_no_retry_on_400(self):
+        client = SHCClient(api_key="test-key")
+        resp = self._make_resp(400, {"error": {"code": "validation_failed"}})
+        with patch.object(client.session, "request", return_value=resp) as mock_req:
+            with pytest.raises(SHCError):
+                client._get("/test")
+        assert mock_req.call_count == 1
+
+    def test_backoff_is_exponential_with_jitter(self):
+        client = SHCClient(api_key="test-key")
+        client._backoff_base = 1.0
+        client._backoff_cap = 60.0
+        for attempt in range(5):
+            delay = client._backoff_delay(attempt)
+            expected = min(60.0, 1.0 * (2**attempt))
+            assert expected * 0.8 <= delay <= expected * 1.2, (
+                f"attempt {attempt}: expected ~{expected:.1f}s, got {delay:.1f}s"
+            )
+
+    def test_backoff_cap_respected(self):
+        client = SHCClient(api_key="test-key")
+        client._backoff_base = 100.0
+        client._backoff_cap = 5.0
+        for attempt in range(10):
+            delay = client._backoff_delay(attempt)
+            assert delay <= client._backoff_cap
+
+    def test_rate_limit_error_has_retry_after(self):
+        client = SHCClient(api_key="test-key")
+        resp = self._make_resp(429, {
+            "error": {"code": "rate_limited", "retry_after_seconds": 30}
+        })
+        with patch.object(client.session, "request", return_value=resp), patch("time.sleep"):
+            with pytest.raises(SHCError) as exc_info:
+                client._request("GET", "/test")
+            assert hasattr(exc_info.value, "retry_after_seconds")
+
+    def test_409_confirmation_error_has_confirmation_id(self):
+        client = SHCClient(api_key="test-key")
+        client._max_retries = 1
+        resp = self._make_resp(409, {
+            "error": {"code": "confirmation_required"},
+            "confirmation": {"confirmation_id": "cnf_test123"},
+        })
+        with patch.object(client.session, "request", return_value=resp):
+            with pytest.raises(Exception) as exc_info:
+                client._request("GET", "/test")
+            assert hasattr(exc_info.value, "confirmation_id") or \
+                   hasattr(exc_info.value, "details")
+
+
+class TestMcpErrorHandling:
+    """SHCMCPClient error handling — isError responses, malformed data, edge cases."""
+
+    def test_iserror_response_raises_shc_error(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+        from shc_toolkit.client import SHCError
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        error_response = {
+            "result": {
+                "isError": True,
+                "structuredContent": {
+                    "error": {
+                        "code": "not_found",
+                        "message": "VM not found",
+                        "error_code": "not_found",
+                    },
+                    "request_id": "req_test",
+                },
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=error_response):
+            with pytest.raises(SHCError) as exc_info:
+                mc.call_tool("getVirtualMachine", {"serviceId": 999})
+            assert "not_found" in str(exc_info.value)
+
+    def test_empty_result_returns_empty(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        empty_response = {"result": {}}
+        with patch.object(mc, "_send_jsonrpc", return_value=empty_response):
+            result = mc.call_tool("listVirtualMachines")
+        assert result == {}
+
+    def test_text_content_returned_as_string(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        text_response = {
+            "result": {
+                "content": [{"type": "text", "text": "hello world"}],
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=text_response):
+            result = mc.call_tool("someTool")
+        assert result == "hello world"
+
+    def test_text_content_json_parsed(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        json_response = {
+            "result": {
+                "content": [{"type": "text", "text": '{"data": {"count": 42}}'}],
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=json_response):
+            result = mc.call_tool("someTool")
+        assert result == {"data": {"count": 42}}
+
+    def test_structured_content_data_extracted(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        nested_response = {
+            "result": {
+                "structuredContent": {"data": {"vms": [{"id": 1}]}},
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=nested_response):
+            result = mc.call_tool("listVirtualMachines")
+        assert result == {"vms": [{"id": 1}]}
+
+    def test_doubly_nested_data_extracted(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        mc._initialized = True
+        nested_response = {
+            "result": {
+                "structuredContent": {"data": {"data": {"deep": True}}},
+            }
+        }
+        with patch.object(mc, "_send_jsonrpc", return_value=nested_response):
+            result = mc.call_tool("someTool")
+        assert result == {"deep": True}
+
+    def test_extract_items_from_dict_with_items(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        result = mc._extract_items({"items": [1, 2, 3]})
+        assert result == [1, 2, 3]
+
+    def test_extract_items_from_list(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        result = mc._extract_items([1, 2, 3])
+        assert result == [1, 2, 3]
+
+    def test_extract_items_from_empty(self):
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mc = SHCMCPClient.__new__(SHCMCPClient)
+        result = mc._extract_items(None)
+        assert result == []

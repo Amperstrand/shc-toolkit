@@ -237,7 +237,7 @@ want pay-per-minute runners on machines they control.
 
 ## Known Limitations
 
-- **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo`.
+- **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. **Empirically verified 2026-07-20**: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `grep -c 'vmx|svm' /proc/cpuinfo` = 0, `/dev/kvm` absent. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo` or `shc kvm-check <service_id>`.
 - **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04.
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.

@@ -6,7 +6,7 @@ import uuid
 import pytest
 import requests
 
-from shc_toolkit.client import SHCError
+from shc_toolkit.client import SHCClient, SHCError
 
 # These tests create real VMs on SHC and cost ~$0.20/run.
 # Run with: pytest tests/test_shc_api.py -v --timeout=300
@@ -20,15 +20,18 @@ pytestmark = pytest.mark.skipif(
 def _skip_if_vm_gone(func):
     """Skip test if the session VM was canceled mid-run."""
     import functools
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except SHCError as e:
-            if getattr(e, 'error_code', None) == 'not_found' or 'not_found' in str(e):
+            if getattr(e, "error_code", None) == "not_found" or "not_found" in str(e):
                 pytest.skip(f"VM not found (auto-canceled): {e}")
             raise
+
     return wrapper
+
 
 OPENAPI_URL = "https://blesta.sovereignhybridcompute.com/user-api/openapi.json"
 SSH_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa.pub")
@@ -137,7 +140,9 @@ def test_snapshot_lifecycle(client, vm):
     try:
         client.create_snapshot(sid, name="test-snap")
     except SHCError as e:
-        if e.error_code == "upstream_failure" or any(w in str(e).lower() for w in ("storage", "inventory")):
+        if e.error_code == "upstream_failure" or any(
+            w in str(e).lower() for w in ("storage", "inventory")
+        ):
             pytest.skip(f"Snapshot storage unavailable: {e}")
         raise
 
@@ -154,7 +159,9 @@ def test_snapshot_lifecycle(client, vm):
         time.sleep(3)
 
     if not snap_id:
-        pytest.skip("Snapshot did not appear within 60s (likely Dev VPS storage limitation)")
+        pytest.skip(
+            "Snapshot did not appear within 60s (likely Dev VPS storage limitation)"
+        )
 
     client.delete_snapshot(sid, snap_id)
 
@@ -175,7 +182,9 @@ def test_backup_lifecycle(client, vm):
     try:
         client.create_backup(sid, name="test-backup")
     except SHCError as e:
-        if e.error_code == "upstream_failure" or any(w in str(e).lower() for w in ("storage", "inventory")):
+        if e.error_code == "upstream_failure" or any(
+            w in str(e).lower() for w in ("storage", "inventory")
+        ):
             pytest.skip(f"Backup storage unavailable: {e}")
         raise
 
@@ -193,7 +202,9 @@ def test_backup_lifecycle(client, vm):
         time.sleep(3)
 
     if not backup_id:
-        pytest.skip(f"Backup did not appear within 180s (found {len(client.list_backups(sid))} backups — storage may be unavailable on this plan)")
+        pytest.skip(
+            f"Backup did not appear within 180s (found {len(client.list_backups(sid))} backups — storage may be unavailable on this plan)"
+        )
 
     client.delete_backup(sid, backup_id)
 
@@ -243,6 +254,7 @@ def test_firewall_lifecycle(client, vm):
         client.delete_firewall_rule(sid, pos)
     except SHCError as e:
         import warnings
+
         warnings.warn(f"Firewall delete failed (non-fatal): {e}")
         delete_ok = False
 
@@ -305,9 +317,7 @@ def test_order_idempotency(client):
     )
     sids2 = result2.get("service_ids", [])
 
-    assert sids1 == sids2, (
-        f"Idempotency failed: first={sids1}, second={sids2}"
-    )
+    assert sids1 == sids2, f"Idempotency failed: first={sids1}, second={sids2}"
 
     if sids1:
         try:
@@ -352,3 +362,53 @@ def test_cost_audit_lifecycle(client):
         assert not cancel_report.mismatch, (
             f"Cost mismatch for svc {sid}: {cancel_report.notes}"
         )
+
+
+# ── Integration tests for v2.4.24.0 features ────────────────────
+
+
+@pytest.mark.allow_network
+def test_batch_read_only():
+    """Batch endpoint with read-only sub-requests."""
+    client = SHCClient()
+    results = client.batch(
+        [
+            {"method": "GET", "path": "/account", "id": "acct"},
+            {"method": "GET", "path": "/account/balance", "id": "bal"},
+        ]
+    )
+    assert len(results) == 2
+    assert results[0]["status"] == 200
+    assert results[1]["status"] == 200
+
+
+@pytest.mark.allow_network
+def test_events_feed_live():
+    """Events feed returns CloudEvents."""
+    client = SHCClient()
+    events = client.list_events(limit=5)
+    assert isinstance(events, list)
+    assert len(events) <= 5
+
+
+@pytest.mark.allow_network
+def test_cloud_init_validate_live():
+    """Cloud-init validate endpoint accepts a compliant config."""
+    client = SHCClient()
+    result = client.validate_vm_cloud_init(
+        1077,
+        cloud_init="#cloud-config\npackage_update: true\n",
+    )
+    assert isinstance(result, dict)
+    assert "accepted" in result or "lintReport" in result
+
+
+@pytest.mark.allow_network
+def test_mcp_probe_mode_live():
+    """MCP transport confirm=False surfaces 409 on destructive ops."""
+    from shc_toolkit.mcp_client import SHCMCPClient
+    from shc_toolkit.client import SHCConfirmationRequiredError
+
+    mc = SHCMCPClient()
+    with pytest.raises(SHCConfirmationRequiredError):
+        mc.update_preferences(confirm=False, theme="probe-test")

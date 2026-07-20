@@ -1354,7 +1354,14 @@ class SHCClient:
             )
         if not requests:
             return []
-        result = self._post("/batch", {"items": requests})
+        import uuid
+
+        result = self._request(
+            "POST",
+            "/batch",
+            json=requests,
+            headers={"Idempotency-Key": f"shc-batch-{uuid.uuid4().hex[:24]}"},
+        )
         return result.get("items", []) if isinstance(result, dict) else result
 
     # ── Snapshots ────────────────────────────────────────────
