@@ -456,8 +456,10 @@ class SHCClient:
     def get_preferences(self) -> dict:
         return self._get("/account/preferences")
 
-    def update_preferences(self, **kwargs) -> dict:
-        return self._patch("/account/preferences", kwargs)
+    def update_preferences(self, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "PATCH", "/account/preferences", confirm=confirm, json=kwargs
+        )
 
     def get_autodebit(self) -> dict:
         return self._get("/account/autodebit")
@@ -465,8 +467,10 @@ class SHCClient:
     def get_credit_handling(self) -> dict:
         return self._get("/account/credit-handling")
 
-    def set_credit_handling(self, **kwargs) -> dict:
-        return self._put("/account/credit-handling", kwargs)
+    def set_credit_handling(self, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "PUT", "/account/credit-handling", confirm=confirm, json=kwargs
+        )
 
     def add_credit(
         self, amount: str, currency: str = "USD", idempotency_key: str | None = None
@@ -505,8 +509,10 @@ class SHCClient:
             data["expires_in_days"] = expires_in_days
         return self._post("/account/api-keys", data)
 
-    def revoke_api_key(self, key_id: str) -> dict:
-        return self._delete(f"/account/api-keys/{key_id}")
+    def revoke_api_key(self, key_id: str, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "DELETE", f"/account/api-keys/{key_id}", confirm=confirm
+        )
 
     @staticmethod
     def claim_agent_key(code: str, *, base_url: str | None = None) -> dict:
@@ -557,8 +563,10 @@ class SHCClient:
     def list_contacts(self) -> list[dict]:
         return self._get_items("/contacts")
 
-    def create_contact(self, **kwargs) -> dict:
-        return self._post("/contacts", kwargs)
+    def create_contact(self, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "POST", "/contacts", confirm=confirm, json=kwargs
+        )
 
     def get_contact(self, contact_id: int) -> dict:
         return self._get(f"/contacts/{contact_id}")
@@ -700,8 +708,10 @@ class SHCClient:
     def get_affiliate_payout_destination(self) -> dict:
         return self._get("/affiliate/payout-destination")
 
-    def set_affiliate_payout_destination(self, **kwargs) -> dict:
-        return self._put("/affiliate/payout-destination", kwargs)
+    def set_affiliate_payout_destination(self, *, confirm: bool = True, **kwargs) -> dict:
+        return self._confirmed_request(
+            "PUT", "/affiliate/payout-destination", confirm=confirm, json=kwargs
+        )
 
     def list_affiliate_payouts(self) -> list[dict]:
         return self._get_items("/affiliate/payouts")
@@ -1329,11 +1339,13 @@ class SHCClient:
         )
 
     def set_snapshot_protection(
-        self, service_id: int, snapshot_id: str, protected: bool
+        self, service_id: int, snapshot_id: str, protected: bool, *, confirm: bool = True
     ) -> dict:
-        return self._patch(
+        return self._confirmed_request(
+            "PATCH",
             f"/vm/{service_id}/snapshots/protection",
-            {"snapshot_id": snapshot_id, "protected": protected},
+            confirm=confirm,
+            json={"snapshot_id": snapshot_id, "protected": protected},
         )
 
     def get_snapshot_restore_hints(self, service_id: int) -> dict:
@@ -1371,11 +1383,13 @@ class SHCClient:
         )
 
     def set_backup_protection(
-        self, service_id: int, backup_id: str, protected: bool
+        self, service_id: int, backup_id: str, protected: bool, *, confirm: bool = True
     ) -> dict:
-        return self._patch(
+        return self._confirmed_request(
+            "PATCH",
             f"/vm/{service_id}/backups/protection",
-            {"backup_id": backup_id, "protected": protected},
+            confirm=confirm,
+            json={"backup_id": backup_id, "protected": protected},
         )
 
     def verify_backup(self, service_id: int, backup_id: str) -> dict:
@@ -1401,8 +1415,10 @@ class SHCClient:
     def set_data_preferences(self, service_id: int, **kwargs) -> dict:
         return self._patch(f"/vm/{service_id}/data-preferences", kwargs)
 
-    def get_vm_credentials(self, service_id: int) -> dict:
-        return self._get(f"/vm/{service_id}/credentials")
+    def get_vm_credentials(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "GET", f"/vm/{service_id}/credentials", confirm=confirm
+        )
 
     # ── SSH Keys ─────────────────────────────────────────────
 
@@ -1418,13 +1434,23 @@ class SHCClient:
             {"public_key": public_key, "label": label},
         )
 
-    def set_stored_ssh_key(self, service_id: int, public_key: str) -> dict:
-        return self._post(
-            "/ssh-key", {"service_id": service_id, "public_key": public_key}
+    def set_stored_ssh_key(
+        self, service_id: int, public_key: str, *, confirm: bool = True
+    ) -> dict:
+        return self._confirmed_request(
+            "POST",
+            "/ssh-key",
+            confirm=confirm,
+            json={"service_id": service_id, "public_key": public_key},
         )
 
-    def delete_stored_ssh_key(self, service_id: int) -> dict:
-        return self._delete("/ssh-key", params={"service_id": service_id})
+    def delete_stored_ssh_key(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "DELETE",
+            "/ssh-key",
+            confirm=confirm,
+            params={"service_id": service_id},
+        )
 
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict:
         return self._confirmed_request(
@@ -1467,8 +1493,10 @@ class SHCClient:
     def mount_iso(self, service_id: int, iso_id: str) -> dict:
         return self._post(f"/vm/{service_id}/iso/mount", {"iso_id": iso_id})
 
-    def unmount_iso(self, service_id: int) -> dict:
-        return self._post(f"/vm/{service_id}/iso/unmount")
+    def unmount_iso(self, service_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/iso/unmount", confirm=confirm
+        )
 
     # ── Reverse DNS ──────────────────────────────────────────
 

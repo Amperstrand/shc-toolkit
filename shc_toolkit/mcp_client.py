@@ -46,8 +46,8 @@ TOOL_MAP: dict[str, str] = {
     "get_account": "getAccount",
     "get_billing_balance": "getBillingBalance",
     # API Keys
-    # API Keys
     "list_api_keys": "listApiKeys",
+    "revoke_api_key": "revokeApiKey",
     # VM lifecycle
     "list_vms": "listVirtualMachines",
     "get_vm": "getVirtualMachine",
@@ -562,6 +562,9 @@ class SHCMCPClient:
         result = self._call("list_api_keys")
         return self._extract_items(result)
 
+    def revoke_api_key(self, key_id: str, *, confirm: bool = True) -> dict:
+        return self.call_tool("revokeApiKey", {"keyId": key_id})
+
     # VM Lifecycle
     def list_vms(self) -> list[dict]:
         result = self._call("list_vms")
@@ -672,7 +675,7 @@ class SHCMCPClient:
         )
 
     def set_backup_protection(
-        self, service_id: int, backup_id: str, protected: bool
+        self, service_id: int, backup_id: str, protected: bool, *, confirm: bool = True
     ) -> dict:
         return self.call_tool(
             "setVirtualMachineBackupProtection",
@@ -738,7 +741,7 @@ class SHCMCPClient:
         )
 
     def set_snapshot_protection(
-        self, service_id: int, snapshot_id: str, protected: bool
+        self, service_id: int, snapshot_id: str, protected: bool, *, confirm: bool = True
     ) -> dict:
         return self.call_tool(
             "setVirtualMachineSnapshotProtection",
@@ -950,7 +953,7 @@ class SHCMCPClient:
     def get_preferences(self) -> dict:
         return self._call("get_preferences")
 
-    def update_preferences(self, **body) -> dict:
+    def update_preferences(self, *, confirm: bool = True, **body) -> dict:
         return self.call_tool("updateAccountPreferences", {"body": body})
 
     def get_autodebit(self) -> dict:
@@ -959,7 +962,7 @@ class SHCMCPClient:
     def get_credit_handling(self) -> dict:
         return self._call("get_credit_handling")
 
-    def set_credit_handling(self, **body) -> dict:
+    def set_credit_handling(self, *, confirm: bool = True, **body) -> dict:
         return self.call_tool("updateCreditHandling", {"body": body})
 
     # Contacts
@@ -969,7 +972,7 @@ class SHCMCPClient:
     def get_contact(self, contact_id: int) -> dict:
         return self._call("get_contact", contact_id=contact_id)
 
-    def create_contact(self, **body) -> dict:
+    def create_contact(self, *, confirm: bool = True, **body) -> dict:
         return self.call_tool("createContact", {"body": body})
 
     def update_contact(self, contact_id: int, **body) -> dict:
@@ -982,12 +985,14 @@ class SHCMCPClient:
         return self._call("list_contact_permissions")
 
     # SSH Keys (extended)
-    def set_stored_ssh_key(self, service_id: int, ssh_key: str) -> dict:
+    def set_stored_ssh_key(
+        self, service_id: int, ssh_key: str, *, confirm: bool = True
+    ) -> dict:
         return self.call_tool(
             "setServiceSshKey", {"body": {"service_id": service_id, "ssh_key": ssh_key}}
         )
 
-    def delete_stored_ssh_key(self, service_id: int) -> dict:
+    def delete_stored_ssh_key(self, service_id: int, *, confirm: bool = True) -> dict:
         return self.call_tool("deleteServiceSshKey", {"serviceId": service_id})
 
     def remove_ssh_key_live(self, service_id: int) -> dict:
@@ -1025,7 +1030,7 @@ class SHCMCPClient:
     def get_affiliate_payout_destination(self) -> dict:
         return self._call("get_affiliate_payout_destination")
 
-    def set_affiliate_payout_destination(self, **body) -> dict:
+    def set_affiliate_payout_destination(self, *, confirm: bool = True, **body) -> dict:
         return self.call_tool("updateAffiliatePayoutDestination", {"body": body})
 
     def request_affiliate_payout(self, **body) -> dict:
@@ -1182,7 +1187,7 @@ class SHCMCPClient:
     def get_vm_bandwidth(self, service_id: int) -> dict:
         return self.call_tool("getVirtualMachineBandwidth", {"serviceId": service_id})
 
-    def get_vm_credentials(self, service_id: int) -> dict:
+    def get_vm_credentials(self, service_id: int, *, confirm: bool = True) -> dict:
         return self.call_tool("getVirtualMachineCredentials", {"serviceId": service_id})
 
     def get_vm_network(self, service_id: int) -> dict:
@@ -1272,7 +1277,7 @@ class SHCMCPClient:
             },
         )
 
-    def unmount_iso(self, service_id: int) -> dict:
+    def unmount_iso(self, service_id: int, *, confirm: bool = True) -> dict:
         return self.call_tool("unmountVirtualMachineIso", {"serviceId": service_id})
 
     # Reverse DNS

@@ -39,10 +39,13 @@ class SHCTransport(Protocol):
     def get_account(self) -> dict: ...
     def get_account_balance(self) -> dict: ...
     def get_account_activity(self, limit: int = 20, offset: int = 0) -> dict: ...
+    def update_preferences(self, *, confirm: bool = True, **kwargs) -> dict: ...
+    def set_credit_handling(self, *, confirm: bool = True, **kwargs) -> dict: ...
 
     # ── API Keys ─────────────────────────────────────────────
 
     def list_api_keys(self) -> list[dict]: ...
+    def revoke_api_key(self, key_id: str, *, confirm: bool = True) -> dict: ...
 
     # ── VM Lifecycle (core) ──────────────────────────────────
 
@@ -67,6 +70,7 @@ class SHCTransport(Protocol):
 
     def get_vm_metrics(self, service_id: int) -> dict: ...
     def get_vm_bandwidth(self, service_id: int) -> dict: ...
+    def get_vm_credentials(self, service_id: int, *, confirm: bool = True) -> dict: ...
 
     # ── Backups ──────────────────────────────────────────────
 
@@ -81,6 +85,15 @@ class SHCTransport(Protocol):
         self, service_id: int, backup_id: str, *, confirm: bool = True
     ) -> dict: ...
 
+    def set_backup_protection(
+        self,
+        service_id: int,
+        backup_id: str,
+        protected: bool,
+        *,
+        confirm: bool = True,
+    ) -> dict: ...
+
     # ── Snapshots ────────────────────────────────────────────
 
     def list_snapshots(self, service_id: int) -> list[dict]: ...
@@ -92,6 +105,15 @@ class SHCTransport(Protocol):
 
     def delete_snapshot(
         self, service_id: int, snapshot_id: str, *, confirm: bool = True
+    ) -> dict: ...
+
+    def set_snapshot_protection(
+        self,
+        service_id: int,
+        snapshot_id: str,
+        protected: bool,
+        *,
+        confirm: bool = True,
     ) -> dict: ...
 
     # ── Jobs ─────────────────────────────────────────────────
@@ -154,6 +176,12 @@ class SHCTransport(Protocol):
         self, service_id: int, public_key: str, label: str = ""
     ) -> dict: ...
     def apply_ssh_key_live(self, service_id: int, public_key: str) -> dict: ...
+    def set_stored_ssh_key(
+        self, service_id: int, public_key: str, *, confirm: bool = True
+    ) -> dict: ...
+    def delete_stored_ssh_key(
+        self, service_id: int, *, confirm: bool = True
+    ) -> dict: ...
 
     # ── Firewall ─────────────────────────────────────────────
 
@@ -166,7 +194,17 @@ class SHCTransport(Protocol):
 
     def list_isos(self, service_id: int) -> list[dict]: ...
     def mount_iso(self, service_id: int, iso_id: str) -> dict: ...
-    def unmount_iso(self, service_id: int) -> dict: ...
+    def unmount_iso(self, service_id: int, *, confirm: bool = True) -> dict: ...
+
+    # ── Contacts (v2.4.24) ───────────────────────────────────
+
+    def create_contact(self, *, confirm: bool = True, **kwargs) -> dict: ...
+
+    # ── Affiliate (v2.4.24) ──────────────────────────────────
+
+    def set_affiliate_payout_destination(
+        self, *, confirm: bool = True, **kwargs
+    ) -> dict: ...
 
     # ── Reverse DNS ──────────────────────────────────────────
 

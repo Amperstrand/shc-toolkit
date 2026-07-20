@@ -241,7 +241,7 @@ class TestMcpConvertArgs:
 class TestMcpToolMap:
     def test_core_tool_count(self):
         from shc_toolkit.mcp_client import TOOL_MAP
-        assert len(TOOL_MAP) == 124
+        assert len(TOOL_MAP) == 125
 
     def test_key_mappings(self):
         from shc_toolkit.mcp_client import TOOL_MAP
@@ -1449,3 +1449,102 @@ class TestCloseSupportTicketConfirmationFlow:
             client.close_support_ticket(221, confirm=False)
             kwargs = mock.call_args.kwargs
             assert kwargs["confirm"] is False
+
+
+class TestIssue22ConfirmationFlowWiring:
+    """Regression coverage for issue #22: 11 ops that newly declare 409 in
+    v2.4.24 (and have always required confirmation server-side) must route
+    through _confirmed_request, not _post / _patch / _delete / _get / _put.
+    Each test pins one method's HTTP verb, path, and confirm default.
+    """
+
+    def _mock_and_call(self, method_name, *args, **kwargs):
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            getattr(client, method_name)(*args, **kwargs)
+            return mock
+
+    def test_update_preferences_uses_confirmed_request(self):
+        mock = self._mock_and_call("update_preferences", theme="dark")
+        assert mock.call_args.args[0] == "PATCH"
+        assert mock.call_args.args[1] == "/account/preferences"
+        assert mock.call_args.kwargs["json"] == {"theme": "dark"}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_set_credit_handling_uses_confirmed_request(self):
+        mock = self._mock_and_call("set_credit_handling", auto_top_up=True)
+        assert mock.call_args.args[0] == "PUT"
+        assert mock.call_args.args[1] == "/account/credit-handling"
+        assert mock.call_args.kwargs["json"] == {"auto_top_up": True}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_revoke_api_key_uses_confirmed_request(self):
+        mock = self._mock_and_call("revoke_api_key", "shc_live_abc")
+        assert mock.call_args.args[0] == "DELETE"
+        assert mock.call_args.args[1] == "/account/api-keys/shc_live_abc"
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_create_contact_uses_confirmed_request(self):
+        mock = self._mock_and_call("create_contact", email="x@y.com")
+        assert mock.call_args.args[0] == "POST"
+        assert mock.call_args.args[1] == "/contacts"
+        assert mock.call_args.kwargs["json"] == {"email": "x@y.com"}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_set_affiliate_payout_destination_uses_confirmed_request(self):
+        mock = self._mock_and_call("set_affiliate_payout_destination", method="btc")
+        assert mock.call_args.args[0] == "PUT"
+        assert mock.call_args.args[1] == "/affiliate/payout-destination"
+        assert mock.call_args.kwargs["json"] == {"method": "btc"}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_set_snapshot_protection_uses_confirmed_request(self):
+        mock = self._mock_and_call("set_snapshot_protection", 1077, "snap-1", True)
+        assert mock.call_args.args[0] == "PATCH"
+        assert mock.call_args.args[1] == "/vm/1077/snapshots/protection"
+        assert mock.call_args.kwargs["json"] == {"snapshot_id": "snap-1", "protected": True}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_set_backup_protection_uses_confirmed_request(self):
+        mock = self._mock_and_call("set_backup_protection", 1077, "bk-1", False)
+        assert mock.call_args.args[0] == "PATCH"
+        assert mock.call_args.args[1] == "/vm/1077/backups/protection"
+        assert mock.call_args.kwargs["json"] == {"backup_id": "bk-1", "protected": False}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_get_vm_credentials_uses_confirmed_request(self):
+        mock = self._mock_and_call("get_vm_credentials", 1077)
+        assert mock.call_args.args[0] == "GET"
+        assert mock.call_args.args[1] == "/vm/1077/credentials"
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_set_stored_ssh_key_uses_confirmed_request(self):
+        mock = self._mock_and_call("set_stored_ssh_key", 1077, "ssh-ed25519 AAAA...")
+        assert mock.call_args.args[0] == "POST"
+        assert mock.call_args.args[1] == "/ssh-key"
+        assert mock.call_args.kwargs["json"] == {"service_id": 1077, "public_key": "ssh-ed25519 AAAA..."}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_delete_stored_ssh_key_uses_confirmed_request(self):
+        mock = self._mock_and_call("delete_stored_ssh_key", 1077)
+        assert mock.call_args.args[0] == "DELETE"
+        assert mock.call_args.args[1] == "/ssh-key"
+        assert mock.call_args.kwargs["params"] == {"service_id": 1077}
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_unmount_iso_uses_confirmed_request(self):
+        mock = self._mock_and_call("unmount_iso", 1077)
+        assert mock.call_args.args[0] == "POST"
+        assert mock.call_args.args[1] == "/vm/1077/iso/unmount"
+        assert mock.call_args.kwargs["confirm"] is True
+
+    def test_probe_mode_surfaces_409_for_get_vm_credentials(self):
+        """confirm=False probes — the 409 propagates instead of auto-confirming."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            client.get_vm_credentials(1077, confirm=False)
+            assert mock.call_args.kwargs["confirm"] is False

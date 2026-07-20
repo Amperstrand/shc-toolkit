@@ -66,9 +66,9 @@ fully wrapped in the toolkit's REST surface).
   handled these via the confirmation flow; no behaviour change.
 - `x-shc-mcp-exposure` annotation now present on every operation (157 `exposed`,
   20 `hidden`). `serverInfo.catalog.tool_count` now reports 157 (the actual
-  tool count), not 177 (the operation count). `TOOL_MAP` stays at 124 entries;
-  the curated 35 `x-shc-core` set is unchanged; live MCP server tool count
-  matches our drift CI baseline.
+  tool count), not 177 (the operation count). `TOOL_MAP` grows from 124 → 125
+  entries (added `revoke_api_key` → `revokeApiKey`); the curated 35 `x-shc-core`
+  set is unchanged; live MCP server tool count matches our drift CI baseline.
 - `claimAgentKey` and `mintVmConsoleSession` moved to their correct tags
   (`Account` and `Virtual Machines`) by upstream — generated client stops
   producing near-empty extra classes.
@@ -98,6 +98,22 @@ fully wrapped in the toolkit's REST surface).
   more methods with the same confirmation-flow gap (e.g. `set_stored_ssh_key`,
   `set_backup_protection`, `revoke_api_key`). Tracked in issue #22 — fix is
   mechanical but voluminous and deserves its own focused PR.
+- **Closes #22.** All 11 confirmation-flow gaps fixed. Each method now routes
+  through `_confirmed_request` with `*, confirm: bool = True` default, matching
+  the pattern of `cancel_vm`, `delete_snapshot`, `delete_backup`,
+  `close_support_ticket`, etc. The 11 methods are: `update_preferences`,
+  `set_credit_handling`, `revoke_api_key`, `create_contact`,
+  `set_affiliate_payout_destination`, `set_snapshot_protection`,
+  `set_backup_protection`, `get_vm_credentials` (the only GET — secret-read
+  per v2.4.14), `set_stored_ssh_key`, `delete_stored_ssh_key`, `unmount_iso`.
+  Live-verified on VM 1077: `get_vm_credentials(sid, confirm=False)` correctly
+  surfaces the 409 with `confirmation_id` attached; `get_vm_credentials(sid)`
+  (default `confirm=True`) auto-completes the re-send and returns credentials.
+  The `SHCTransport` Protocol gains matching signatures for all 11, plus
+  `revoke_api_key` (which `SHCMCPClient` was missing entirely — added with a
+  new `TOOL_MAP` entry, count 124 → 125, `test_core_tool_count` bumped to
+  match). `SHCMCPClient` variants accept `*, confirm: bool = True` as a no-op
+  for symmetry (MCP handles confirmation via `call_tool`).
 - **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
   value. Previously both `cloud-init-policy-violation` and
   `cloud_init_policy_violation` were present and normalised to the same
