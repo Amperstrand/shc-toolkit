@@ -955,6 +955,101 @@ class SHCClient:
             self.cost_tracker.audit_cancel(service_id, credit_after)
         return result
 
+    def reap_orphans(
+        self,
+        *,
+        max_age_hours: float = 2.0,
+        hostname_prefixes: list[str] | None = None,
+        exclude_hostnames: list[str] | None = None,
+        dry_run: bool = False,
+    ) -> list[dict]:
+        """Destroy orphaned VMs that match test patterns and exceed max age.
+
+        Identifies VMs whose hostname starts with a known test prefix and
+        whose age exceeds max_age_hours, then cancels them immediately.
+
+        Args:
+            max_age_hours: Destroy VMs older than this (default: 2 hours).
+            hostname_prefixes: List of prefixes to match (default: test patterns).
+            exclude_hostnames: Never destroy these hostnames (default: production).
+            dry_run: If True, report what would be destroyed without cancelling.
+
+        Returns:
+            List of destroyed (or would-be-destroyed) VM dicts.
+        """
+        from datetime import datetime, timezone
+
+        if hostname_prefixes is None:
+            hostname_prefixes = [
+                "tf-acc-",
+                "tollgate-",
+                "test-",
+                "tmp-",
+                "ci-",
+            ]
+
+        if exclude_hostnames is None:
+            exclude_hostnames = [
+                "europa-vpn-vps",
+            ]
+
+        now = datetime.now(timezone.utc)
+        orphans = []
+
+        for vm in self.list_vms():
+            hostname = vm.get("hostname", "")
+            vm_id = vm.get("id")
+            status = vm.get("service_status", "")
+
+            if status in ("canceled", "suspended"):
+                continue
+
+            if hostname in exclude_hostnames:
+                log.debug(f"reap: skipping excluded hostname {hostname}")
+                continue
+
+            is_test_vm = any(hostname.startswith(p) for p in hostname_prefixes)
+            if not is_test_vm:
+                log.debug(f"reap: skipping non-test hostname {hostname}")
+                continue
+
+            created_str = vm.get("date_created", "")
+            try:
+                created = datetime.fromisoformat(
+                    created_str.replace("Z", "+00:00").replace(" ", "T")
+                )
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                log.warning(f"reap: cannot parse date_created='{created_str}' for VM {vm_id}")
+                continue
+
+            age_hours = (now - created).total_seconds() / 3600
+            if age_hours < max_age_hours:
+                log.debug(f"reap: {hostname} is {age_hours:.1f}h old (< {max_age_hours}h threshold)")
+                continue
+
+            orphan = {
+                "id": vm_id,
+                "hostname": hostname,
+                "age_hours": round(age_hours, 1),
+                "status": status,
+                "package": vm.get("package", "?"),
+            }
+            orphans.append(orphan)
+
+            if dry_run:
+                log.info(f"reap [dry-run]: would destroy {hostname} (ID={vm_id}, {age_hours:.1f}h old)")
+            else:
+                try:
+                    self.cancel_vm(vm_id, immediate=True)
+                    log.info(f"reap: destroyed {hostname} (ID={vm_id}, {age_hours:.1f}h old)")
+                except Exception as e:
+                    log.error(f"reap: failed to destroy {hostname} (ID={vm_id}): {e}")
+                    orphan["error"] = str(e)
+
+        return orphans
+
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
         return self._confirmed_request(
             "PATCH", f"/vm/{service_id}/reinstall", confirm=confirm, json=kwargs

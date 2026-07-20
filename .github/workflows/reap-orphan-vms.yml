@@ -1,0 +1,60 @@
+---
+# Scheduled reaper: destroys orphaned test VMs on SHC.
+#
+# Runs every hour. Destroys any VM older than 2 hours whose hostname
+# matches a test pattern (tf-acc-*, tollgate-*-test*, test-*, ci-*).
+# Never touches production VMs (europa-vpn-vps, etc.).
+
+name: Reap Orphan VMs
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:
+
+jobs:
+  reap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install shc-toolkit
+        run: pip install -e .
+
+      - name: Reap orphaned VMs
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        run: |
+          echo "Scanning for orphaned VMs (max_age=2h)..."
+          python3 -c "
+          import os, json
+          from shc_toolkit.client import SHCClient
+
+          client = SHCClient(api_key=os.environ['SHC_API_KEY'])
+          orphans = client.reap_orphans(max_age_hours=2.0, dry_run=False)
+
+          if orphans:
+              print(f'Destroyed {len(orphans)} orphaned VM(s):')
+              for o in orphans:
+                  print(f'  - {o[\"hostname\"]} (ID={o[\"id\"]}, {o[\"age_hours\"]}h old)')
+          else:
+              print('No orphaned VMs found.')
+          "
+
+      - name: List remaining VMs
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        run: |
+          python3 -c "
+          import os
+          from shc_toolkit.client import SHCClient
+          client = SHCClient(api_key=os.environ['SHC_API_KEY'])
+          vms = client.list_vms()
+          print(f'Remaining VMs: {len(vms)}')
+          for vm in vms:
+              print(f'  {vm[\"hostname\"]} (ID={vm[\"id\"]}, status={vm[\"service_status\"]})')
+          "

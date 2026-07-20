@@ -1182,6 +1182,30 @@ def main():
     p_ctx_use.add_argument("name", help="Context name to use")
     p_ctx.set_defaults(func=cmd_context)
 
+    # ── reap orphaned VMs ────────────────────────────────────
+    def cmd_reap(args):
+        c = _client(args)
+        orphans = c.reap_orphans(
+            max_age_hours=args.max_age_hours,
+            dry_run=args.dry_run,
+        )
+        import json as _json
+        if orphans:
+            print(_json.dumps(orphans, indent=2))
+            if not args.dry_run:
+                print(f"\nDestroyed {len(orphans)} orphaned VM(s)", file=sys.stderr)
+            else:
+                print(f"\nWould destroy {len(orphans)} orphaned VM(s)", file=sys.stderr)
+        else:
+            print("No orphaned VMs found", file=sys.stderr)
+
+    p_reap = sub.add_parser("reap", help="Destroy orphaned test VMs")
+    p_reap.add_argument("--max-age-hours", type=float, default=2.0,
+                          help="Destroy VMs older than this (default: 2h)")
+    p_reap.add_argument("--dry-run", action="store_true",
+                          help="Report what would be destroyed without cancelling")
+    p_reap.set_defaults(func=cmd_reap)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
