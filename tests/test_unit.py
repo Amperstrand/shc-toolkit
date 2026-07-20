@@ -1414,3 +1414,38 @@ class TestCloudInitRestWrappers:
             assert args[0] == "DELETE"
             assert args[1] == "/virtual-machines/1077/cloud-init"
             assert kwargs["confirm"] is True
+
+
+class TestCloseSupportTicketConfirmationFlow:
+    """Regression coverage: close_support_ticket must use the confirmation flow.
+
+    The v2.4.24 spec documented that closeSupportTicket returns 409
+    confirmation_required (it always did server-side; the spec just caught up).
+    The wrapper previously called _post directly and surfaced the 409 as
+    SHCConfirmationRequiredError instead of completing the confirmation
+    re-send automatically. This test pins the fix.
+    """
+
+    def test_close_support_ticket_uses_confirmation_flow(self):
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            client.close_support_ticket(221)
+            mock.assert_called_once()
+            args, kwargs = mock.call_args
+            assert args[0] == "POST"
+            assert args[1] == "/support/tickets/221/close"
+            assert kwargs["confirm"] is True
+
+    def test_close_support_ticket_probe_mode(self):
+        """confirm=False surfaces the 409 instead of auto-confirming."""
+        from unittest.mock import patch
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="test-key")
+        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+            client.close_support_ticket(221, confirm=False)
+            kwargs = mock.call_args.kwargs
+            assert kwargs["confirm"] is False

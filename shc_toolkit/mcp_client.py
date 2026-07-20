@@ -1008,7 +1008,8 @@ class SHCMCPClient:
             "replySupportTicket", {"ticketId": ticket_id, "body": body}
         )
 
-    def close_support_ticket(self, ticket_id: int) -> dict:
+    def close_support_ticket(self, ticket_id: int, *, confirm: bool = True) -> dict:
+        # `confirm` is a Protocol-symmetry no-op: MCP handles confirmation_id via call_tool.
         return self.call_tool("closeSupportTicket", {"ticketId": ticket_id})
 
     # Affiliate

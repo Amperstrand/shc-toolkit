@@ -8,6 +8,15 @@ import requests
 
 from shc_toolkit.client import SHCError
 
+# These tests create real VMs on SHC and cost ~$0.20/run.
+# Run with: pytest tests/test_shc_api.py -v --timeout=300
+# Skip automatically if no SHC_API_KEY.
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("SHC_API_KEY"),
+    reason="SHC_API_KEY not set — live API tests require credentials",
+)
+
+
 def _skip_if_vm_gone(func):
     """Skip test if the session VM was canceled mid-run."""
     import functools

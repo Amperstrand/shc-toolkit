@@ -603,8 +603,12 @@ class SHCClient:
     def reply_support_ticket(self, ticket_id: int, message: str) -> dict:
         return self._post(f"/support/tickets/{ticket_id}/replies", {"message": message})
 
-    def close_support_ticket(self, ticket_id: int) -> dict:
-        return self._post(f"/support/tickets/{ticket_id}/close")
+    def close_support_ticket(self, ticket_id: int, *, confirm: bool = True) -> dict:
+        return self._confirmed_request(
+            "POST",
+            f"/support/tickets/{ticket_id}/close",
+            confirm=confirm,
+        )
 
     # ── Knowledge Base ───────────────────────────────────────
 

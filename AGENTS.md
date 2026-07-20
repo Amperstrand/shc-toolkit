@@ -170,3 +170,49 @@ The hourly reaper workflow runs automatically. But after manual testing:
 shc reap  # destroys test VMs older than 2 hours
 shc reap --max-age-hours 0  # destroy ALL test VMs immediately
 ```
+
+## Lessons Learned (2026-07-20 Session)
+
+### 1. SHC provisioning_state NEVER becomes "ready"
+SHC VMs report `provisioning_state: "provisioning"` FOREVER — even the production europa-vpn-vps (running 17+ days) shows this. Never wait for `provisioning_state == "ready"`. Instead, check `service_status == "active"` AND `ips` array is non-empty.
+
+**Affected**: shc-pulumi `_wait_for_ready()`, any code polling SHC VM state.
+**Fix**: `if svc == "active" and ips: return vm`
+
+### 2. GitHub Actions timeout kills cleanup code
+When a workflow is cancelled (timeout), `terraform destroy` and other cleanup steps never run. Always use `if: always()` for cleanup steps.
+
+**Affected**: terraform-provider-shc acceptance tests, shc-pulumi integration tests.
+**Fix**: `if: always()` step that calls `reap_orphans()`.
+
+### 3. Test VMs leak credits when CI is cancelled
+Orphaned VMs (tf-acc-*, tollgate-*, ci-*) accumulate when CI runs are interrupted. The hourly reaper workflow destroys VMs older than 2 hours with test hostname prefixes.
+
+**Pattern**: `client.reap_orphans(max_age_hours=2.0, dry_run=False)`
+
+### 4. reqwest timeout breaks wiremock tests
+Setting `.timeout()` on reqwest::Client causes wiremock mock server requests to immediately fail with TimedOut. Keep `BlossomClient::new()` timeout-free for tests; use `BlossomClient::with_timeout()` for production.
+
+**Affected**: blossomfs HTTP timeout feature.
+**Fix**: Two constructors — `new()` (no timeout, for tests) and `with_timeout()` (for FUSE operations).
+
+### 5. FIPS config format changes between branches
+The BleConfig struct has `#[serde(deny_unknown_fields)]`. Old configs with fields like `send_rate_bps`, `conn_param_*`, `srtt_reconnect_threshold_ms` cause parse failures when the struct is simplified. Always update `/etc/fips/fips.yaml` when switching branches.
+
+**Affected**: fips production daemon restart after branch switch.
+**Fix**: Strip unknown fields from config, or remove `deny_unknown_fields`.
+
+### 6. ESP8266 has WiFi but NO Bluetooth
+The ESP8266 (L106 core) has 802.11 WiFi hardware but does NOT have BLE/BT. Only ESP32 (LX6 core) and later have BLE. A full microfips Rust port is impossible on ESP8266 (no Rust WiFi driver, no Embassy support, 50KB RAM). The ESP8266 works as a WiFi UDP relay.
+
+**Tested**: Full FIPS protocol stack through ESP8266 WiFi relay — 84 packets, 0% loss.
+
+### 7. Delegation headers need all symbols exported
+When a module delegates to tollgate_lab via try/except, ALL referenced symbols must be in the try block. Missing constants (like `HARDWARE_LOCK`) cause silent fallback to local code, which may have different paths.
+
+**Pattern**: Test with `function_from_lib is function_from_tollgate_lab` → must be `True`.
+
+### 8. `__future__` imports must be the first line
+Python requires `from __future__ import annotations` to be the very first statement. Delegation headers placed before it cause SyntaxError.
+
+**Fix**: Put `from __future__` at the very top, before docstrings and delegation headers.

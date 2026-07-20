@@ -204,6 +204,10 @@ class SHCTransport(Protocol):
         **kwargs,
     ) -> dict: ...
 
+    def close_support_ticket(
+        self, ticket_id: int, *, confirm: bool = True
+    ) -> dict: ...
+
     # ── Wait / Poll ──────────────────────────────────────────
 
     def wait_for_provisioning(
