@@ -1100,7 +1100,10 @@ class SHCClient:
             keep_patterns = ["tollgate-main-"]
         env_extra = os.environ.get("SHC_REAPER_EXTRA_KEEP_PATTERNS", "")
         if env_extra:
-            keep_patterns = [*keep_patterns, *(p.strip() for p in env_extra.split(",") if p.strip())]
+            keep_patterns = [
+                *keep_patterns,
+                *(p.strip() for p in env_extra.split(",") if p.strip()),
+            ]
 
         now = datetime.now(timezone.utc)
         orphans = []

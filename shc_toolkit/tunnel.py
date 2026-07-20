@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .mcp_client import SHCMCPClient
-    from .client import SHCClient
+    from .client import SHCClient  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -97,13 +97,16 @@ class ConsoleShell:
     def _ensure_mcp(self) -> SHCMCPClient:
         if self._mcp is None:
             from .mcp_client import SHCMCPClient
+
             self._mcp = SHCMCPClient()
         return self._mcp
 
     def _ocr(self, path: str) -> str:
-        return self._pytesseract.image_to_string(
-            self._Image.open(path), config="--psm 6"
-        ).strip().lower()
+        return (
+            self._pytesseract.image_to_string(self._Image.open(path), config="--psm 6")
+            .strip()
+            .lower()
+        )
 
     def _send_text(self, text: str) -> None:
         """Send text to the VM via noVNC textarea + Type button."""
@@ -253,7 +256,9 @@ class CloudflareTunnel:
             if "ix.io" in line and len(line) < 30:
                 r = subprocess.run(
                     ["curl", "-s", "-L", line],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 if "trycloudflare" in r.stdout:
                     return r.stdout.strip()
@@ -279,9 +284,17 @@ class CloudflareTunnel:
 
         log.info("Starting local cloudflared client (port %d)", self.local_port)
         self._local_proc = subprocess.Popen(
-            [cf_binary, "access", "tcp", "--hostname", hostname,
-             "--url", f"localhost:{self.local_port}"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [
+                cf_binary,
+                "access",
+                "tcp",
+                "--hostname",
+                hostname,
+                "--url",
+                f"localhost:{self.local_port}",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         time.sleep(8)
 
@@ -321,10 +334,26 @@ def _check_ssh(
     """Test SSH connectivity."""
     try:
         r = subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-             "-o", f"ConnectTimeout={timeout}", "-o", "LogLevel=ERROR",
-             "-i", os.path.expanduser(key), "-p", str(port), f"debian@{ip}", "echo OK"],
-            capture_output=True, text=True, timeout=timeout + 5,
+            [
+                "ssh",
+                "-o",
+                "StrictHostKeyChecking=no",
+                "-o",
+                "UserKnownHostsFile=/dev/null",
+                "-o",
+                f"ConnectTimeout={timeout}",
+                "-o",
+                "LogLevel=ERROR",
+                "-i",
+                os.path.expanduser(key),
+                "-p",
+                str(port),
+                f"debian@{ip}",
+                "echo OK",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout + 5,
         )
         return "OK" in r.stdout
     except Exception:
@@ -339,9 +368,15 @@ def _find_cloudflared() -> str:
     path = "/tmp/cf-binary"
     log.info("Downloading cloudflared binary...")
     subprocess.run(
-        ["wget", "-q", "-O", path,
-         "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"],
-        check=True, timeout=60,
+        [
+            "wget",
+            "-q",
+            "-O",
+            path,
+            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64",
+        ],
+        check=True,
+        timeout=60,
     )
     subprocess.run(["chmod", "+x", path], check=True)
     return path
@@ -369,7 +404,7 @@ def ensure_ssh_access(
     Raises:
         TunnelError: If neither direct SSH nor tunnel works.
     """
-    from .client import SHCClient
+    from .client import SHCClient  # noqa: F401
 
     c = SHCClient()
     detail = c.get_vm(service_id)
@@ -389,7 +424,9 @@ def ensure_ssh_access(
         print("  Direct SSH blocked — establishing Cloudflare tunnel...")
 
     tunnel = CloudflareTunnel(
-        service_id, local_port=local_port, ssh_key=key,
+        service_id,
+        local_port=local_port,
+        ssh_key=key,
     )
     tunnel.ensure_on_vm()
     tunnel.connect_local()
