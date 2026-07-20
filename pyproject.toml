@@ -30,6 +30,7 @@ classifiers = [
 [project.optional-dependencies]
 nodns = ["nostr-sdk>=0.44"]
 console = ["playwright>=1.40"]
+tunnel = ["playwright>=1.40", "pytesseract>=0.3", "Pillow>=10.0"]
 mcp = ["mcp>=1.0"]
 generated = ["httpx>=0.24", "attrs>=21.0", "python-dateutil>=2.8"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0"]

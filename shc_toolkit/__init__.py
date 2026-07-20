@@ -109,4 +109,9 @@ def __getattr__(name):
         from .mcp_client import SHCMCPClient
 
         return SHCMCPClient
+    if name in ("CloudflareTunnel", "ConsoleShell", "TunnelError", "ensure_ssh_access"):
+        from .tunnel import CloudflareTunnel, ConsoleShell, TunnelError, ensure_ssh_access
+
+        return {"CloudflareTunnel": CloudflareTunnel, "ConsoleShell": ConsoleShell,
+                "TunnelError": TunnelError, "ensure_ssh_access": ensure_ssh_access}[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
