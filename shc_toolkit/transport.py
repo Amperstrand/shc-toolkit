@@ -7,7 +7,7 @@ parameter.
 
 Transport selection:
     SHC_TRANSPORT=rest   → SHCClient    (default; ~165 hand-written methods)
-    SHC_TRANSPORT=mcp    → SHCMCPClient (125 TOOL_MAP entries; live MCP
+    SHC_TRANSPORT=mcp    → SHCMCPClient (156 TOOL_MAP entries; live MCP
                                          server exposes 157 tools total)
     SHC_TRANSPORT=auto   → try MCP, fall back to REST
 

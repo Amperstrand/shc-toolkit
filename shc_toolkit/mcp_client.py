@@ -17,12 +17,11 @@ Usage:
     c.start_vm(123)
 
 The MCP server exposes 157 tools (35 marked x-shc-core in the spec). This
-client's `TOOL_MAP` wraps 125 of them — 35/35 (100%) of the `x-shc-core`
-curated subset and 125/157 (80%) of all MCP-exposed ops. The remaining 32
-exposed ops are largely low-level siblings of wrapped parent ops (e.g.
-`getVirtualMachineBandwidth` is unwrapped because `getVirtualMachineSummary`
-already returns bandwidth). Non-core tools are callable via
-``call_tool(name, arguments)``.
+client's `TOOL_MAP` wraps 156 of them — 35/35 (100%) of the `x-shc-core`
+curated subset and 156/157 (99%) of all MCP-exposed ops. The single
+unwrapped op is `buyVirtualMachine` (a deprecated alias for
+`createVirtualMachineOrder`, which IS wrapped). Non-core tools that aren't
+in TOOL_MAP can still be called via ``call_tool(name, arguments)``.
 """
 
 from __future__ import annotations
@@ -206,6 +205,56 @@ TOOL_MAP: dict[str, str] = {
     "update_account_manager": "updateAccountManager",
     "get_invoice_pdf": "getInvoicePdf",
     "list_events": "listEvents",
+    # ── Coverage gap closure (v2.4.24.0 follow-up) ─────────────
+    # These SHCMCPClient methods already existed with direct call_tool()
+    # invocations; only the TOOL_MAP entry was missing, leaving them
+    # invisible to test_core_tool_count and the MCP-drift CI coverage
+    # report. Adding them takes TOOL_MAP 125 → 156 and unwrapped-ops
+    # 32 → 1 (only the deprecated buyVirtualMachine alias remains).
+    # VM power
+    "shutdown_vm": "shutdownVirtualMachine",
+    "reset_vm": "resetVirtualMachine",
+    # VM data
+    "get_vm_metrics": "getVirtualMachineMetrics",
+    "get_vm_bandwidth": "getVirtualMachineBandwidth",
+    "get_vm_network": "getVirtualMachineNetwork",
+    "get_vm_activity": "listVirtualMachineActivity",
+    "get_vm_payments": "listVirtualMachinePayments",
+    # Billing
+    "list_transactions": "listTransactions",
+    "pay_invoice": "submitPaymentCheckout",
+    # Support
+    "list_support_departments": "listSupportDepartments",
+    # Templates / catalog
+    "list_templates": "listTemplates",
+    # Ordering
+    "preview_order": "previewVirtualMachineOrder",
+    # SSH keys
+    "list_ssh_keys": "listServiceSshKeys",
+    "apply_ssh_key_live": "applyLiveServiceSshKey",
+    # Firewall (full CRUD — previously only edit_firewall_rule was mapped)
+    "get_firewall": "getVirtualMachineFirewall",
+    "create_firewall_rule": "addVirtualMachineFirewallRule",
+    "delete_firewall_rule": "deleteVirtualMachineFirewallRule",
+    "set_firewall_policy": "updateVirtualMachineFirewallPolicy",
+    # Reverse DNS (full CRUD)
+    "list_rdns": "getVirtualMachineReverseDns",
+    "set_rdns": "setVirtualMachineReverseDns",
+    "clear_rdns": "deleteVirtualMachineReverseDns",
+    # Console
+    "get_console_availability": "getVmConsoleAvailability",
+    "create_console_session": "mintVmConsoleSession",
+    # ISO
+    "mount_iso": "mountVirtualMachineIso",
+    "unmount_iso": "unmountVirtualMachineIso",
+    # Data preferences
+    "get_data_preferences": "getVmDataPreferences",
+    "set_data_preferences": "updateVmDataPreferences",
+    # Recovery / file restore
+    "get_backup_restore_hints": "getVirtualMachineBackupRestoreHints",
+    "get_snapshot_restore_hints": "getVirtualMachineSnapshotRestoreHints",
+    "list_file_restore_sources": "listVmFileRestoreSources",
+    "browse_file_restore": "listVmFileRestoreEntries",
 }
 
 # Reverse map for debugging

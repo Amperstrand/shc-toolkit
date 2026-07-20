@@ -37,6 +37,15 @@ fully wrapped in the toolkit's REST surface).
   already implements via `_confirmed_request`.
 - `Error.confirmation` optional field in the regenerated client (the hand-written
   client already reads `confirmation.confirmation_id`).
+- **MCP coverage gap closure**: `TOOL_MAP` extended from 125 → 156 entries,
+  wrapping 156/157 (99%) of all MCP-exposed ops. The 31 new entries cover VM
+  power (shutdown/reset), VM data (metrics/bandwidth/network/activity/payments),
+  billing (transactions/payment checkout), support departments, templates,
+  firewall full CRUD, reverse-DNS full CRUD, console, ISO mount/unmount, data
+  preferences, file-restore browsing, and more. The single remaining unwrapped
+  op is `buyVirtualMachine` (a deprecated alias for `createVirtualMachineOrder`,
+  which IS wrapped). The corresponding `SHCMCPClient` methods already existed
+  with direct `call_tool()` calls — only the TOOL_MAP audit surface was missing.
 
 ### Changed
 - OpenAPI spec refreshed to v2.4.24 (148 paths, 197 schemas). Path count and
@@ -69,8 +78,10 @@ fully wrapped in the toolkit's REST surface).
   tool count), not 177 (the operation count). `TOOL_MAP` grows 124 → 125
   entries (added `get_vm_credentials` → `getVirtualMachineCredentials`,
   closing the last unwrapped `x-shc-core` gap; coverage is now 35/35 = 100%
-  of the curated core subset and 125/157 = 80% of all MCP-exposed ops).
-  Live MCP server tool count matches our drift CI baseline.
+of the curated core subset and 156/157 = 99% of all MCP-exposed ops).
+The single unwrapped op is `buyVirtualMachine` — a deprecated alias for
+`createVirtualMachineOrder` (which IS wrapped). Live MCP server tool count
+matches our drift CI baseline.
 - `claimAgentKey` and `mintVmConsoleSession` moved to their correct tags
   (`Account` and `Virtual Machines`) by upstream — generated client stops
   producing near-empty extra classes.
