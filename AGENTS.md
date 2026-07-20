@@ -118,3 +118,55 @@ The SHC API key is stored in `SHC_API_KEY` environment variable. It is separate 
 - **Generated client**: May lag behind the spec if openapi-python-client hits spec bugs. SHCClient always covers the latest endpoints via hand-written methods.
 - **SHC "ready" fires before cloud-init finishes**: Wait ~120s after `provisioning_state: ready` before assuming full VM configuration.
 - **API key lifecycle**: Keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`.
+
+## Testing Protocol (MANDATORY)
+
+When ANY change is made to shc-toolkit, the following MUST be run:
+
+### 1. Unit Tests
+```bash
+python3 -m pytest tests/ -v --timeout=60
+```
+All tests must pass. Currently 213 tests (207 existing + 6 reap_orphans).
+
+### 2. Lint
+```bash
+ruff check shc_toolkit/
+ruff format --check shc_toolkit/
+```
+Both must be clean (zero errors).
+
+### 3. Live API Smoke Test (when SHC_API_KEY is available)
+```bash
+export SHC_API_KEY=<key>
+python3 -c "
+from shc_toolkit.client import SHCClient
+c = SHCClient(api_key=os.environ['SHC_API_KEY'])
+vms = c.list_vms()
+print(f'API OK: {len(vms)} VMs')
+orphans = c.reap_orphans(dry_run=True)
+print(f'Reap dry-run: {len(orphans)} orphans')
+"
+```
+
+### 4. Verify No VMs Are Leaking
+```bash
+shc reap --dry-run
+```
+Should report "No orphaned VMs found" in a clean state.
+
+### Downstream Projects
+
+Changes to shc-toolkit affect these projects — verify they still work:
+- **shc-pulumi**: `pip install -e . && python3 -m pytest tests/` (95 tests)
+- **terraform-provider-shc**: `make testacc` (needs SHC_API_KEY, creates real VMs)
+- **physical-router-test-automation**: depends on shc-toolkit via cloud_lab
+- **tollgate-lab**: depends on shc-toolkit via tollgate_lab.cloud.shc
+
+### When to Reap Orphaned VMs
+
+The hourly reaper workflow runs automatically. But after manual testing:
+```bash
+shc reap  # destroys test VMs older than 2 hours
+shc reap --max-age-hours 0  # destroy ALL test VMs immediately
+```
