@@ -1409,6 +1409,95 @@ def main():
     )
     p_reap.set_defaults(func=cmd_reap)
 
+    # ── events: CloudEvents feed (v2.4.5+) ──────────────────
+    def cmd_events(args):
+        c = _client(args)
+        result = c.list_events(limit=args.limit, cursor=args.cursor)
+        _print(result, _get_fmt(args))
+
+    p_events = sub.add_parser(
+        "events", help="List recent CloudEvents (lifecycle, billing, orders)"
+    )
+    p_events.add_argument("--limit", type=int, default=20)
+    p_events.add_argument("--cursor", help="Pagination cursor from a previous call")
+    p_events.set_defaults(func=cmd_events)
+
+    # ── kvm-check: probe nested KVM on a VM via SSH ─────────
+    def cmd_kvm_check(args):
+        import subprocess
+
+        c = _client(args)
+        vm = c.get_vm(args.service_id)
+        ips = [
+            i.get("ip")
+            for i in vm.get("ips", [])
+            if isinstance(i, dict) and i.get("ip")
+        ]
+        if not ips:
+            print("VM has no IPs assigned", file=sys.stderr)
+            sys.exit(1)
+        ip = ips[0]
+        user = vm.get("os_user", "debian")
+        hostname = vm.get("hostname", "?")
+        package = vm.get("package", "?")
+        print(f"VM {args.service_id} ({hostname}) — {package}")
+        print(f"  IP: {ip}  SSH user: {user}")
+        print("  Probing... (10s timeout)")
+        try:
+            result = subprocess.run(
+                [
+                    "ssh",
+                    "-o",
+                    "ConnectTimeout=10",
+                    "-o",
+                    "StrictHostKeyChecking=accept-new",
+                    f"{user}@{ip}",
+                    "grep -E -o '(vmx|svm)' /proc/cpuinfo | sort -u; "
+                    "echo '---'; "
+                    "test -c /dev/kvm && echo 'kvm: yes' || echo 'kvm: no'; "
+                    "echo '---'; "
+                    "grep 'model name' /proc/cpuinfo | head -1",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            output = result.stdout.strip()
+            sections = output.split("---")
+            cpu_flags = sections[0].strip() if len(sections) > 0 else ""
+            kvm_line = sections[1].strip() if len(sections) > 1 else ""
+            cpu_model = sections[2].strip() if len(sections) > 2 else ""
+            has_vmx = "vmx" in cpu_flags
+            has_svm = "svm" in cpu_flags
+            has_kvm = "yes" in kvm_line
+            nested = has_vmx or has_svm
+            tab = "\t"
+            cpu_name = cpu_model.replace(f"model name{tab}: ", "")
+            print(f"  CPU: {cpu_name}")
+            print(f"  vmx extensions: {'✅' if has_vmx else '❌'}")
+            print(f"  svm extensions: {'✅' if has_svm else '❌'}")
+            print(f"  /dev/kvm:       {'✅' if has_kvm else '❌'}")
+            if nested:
+                print("  Nested KVM: ✅ available — Firecracker/QEMU/KVM work")
+            else:
+                print(
+                    "  Nested KVM: ❌ not available — "
+                    "only Dev VPS plans (pkg 80-84) expose VMX/SVM"
+                )
+        except subprocess.TimeoutExpired:
+            print("  ❌ SSH timed out — VM unreachable or SSH not ready")
+            sys.exit(1)
+        except FileNotFoundError:
+            print("  ❌ ssh command not found — install openssh-client")
+            sys.exit(1)
+
+    p_kvm = sub.add_parser(
+        "kvm-check",
+        help="Check nested KVM (vmx/svm + /dev/kvm) on a VM via SSH",
+    )
+    p_kvm.add_argument("service_id", type=int)
+    p_kvm.set_defaults(func=cmd_kvm_check)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()

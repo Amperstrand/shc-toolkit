@@ -2,7 +2,7 @@
 
 Live-measured data validating the Firecracker backend for the ephemeral
 GitHub Actions runner wedge. All numbers taken on `dev-8c-32gb` host VM
-at SHC's US-Katy-Texas datacenter (2026-07-04).
+at SHC's Cherryvale, Kansas datacenter (2026-07-04).
 
 ## Headline
 

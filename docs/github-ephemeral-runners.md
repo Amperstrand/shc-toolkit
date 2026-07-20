@@ -23,7 +23,7 @@ few cents per job), and tear the runner down when the job ends.
   | **Total cold-start** | **135.8 s** | **~35 s** (target) |
 
   Numbers in column 2 are from live measurement on VM 1102 (2026-07-04,
-  `dev-4c-16gb`, `ubuntu2404-cloud`, US-Katy-Texas). Firecracker would
+  `dev-4c-16gb`, `ubuntu2404-cloud`, Cherryvale-Kansas). Firecracker would
   eliminate the first row and shrink the third by skipping apt/Go install
   (baked into the microVM image).
 

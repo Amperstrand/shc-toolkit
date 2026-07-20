@@ -255,6 +255,8 @@ TOOL_MAP: dict[str, str] = {
     "get_snapshot_restore_hints": "getVirtualMachineSnapshotRestoreHints",
     "list_file_restore_sources": "listVmFileRestoreSources",
     "browse_file_restore": "listVmFileRestoreEntries",
+    # Deprecated alias (wraps with DeprecationWarning in SHCMCPClient.buy_virtual_machine)
+    "buy_virtual_machine": "buyVirtualMachine",
 }
 
 # Reverse map for debugging
@@ -1151,6 +1153,16 @@ class SHCMCPClient:
 
     def list_events(self, **params) -> list[dict]:
         return self._extract_items(self._call("list_events", **params))
+
+    def buy_virtual_machine(self, **body) -> dict:
+        import warnings
+
+        warnings.warn(
+            "buyVirtualMachine is a deprecated alias; use createVirtualMachineOrder instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.call_tool("buyVirtualMachine", {"body": body})
 
     # Remaining niche tools
     def delete_manager(self, **body) -> dict:
