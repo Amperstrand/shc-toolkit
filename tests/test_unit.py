@@ -1648,3 +1648,157 @@ class TestBatchHelper:
         too_many = [{"method": "GET", "path": f"/x/{i}"} for i in range(26)]
         with pytest.raises(ValueError, match="25"):
             client.batch(too_many)
+
+
+def _run_cli(argv):
+    """Run a CLI command with a mocked client. Returns the mock."""
+    mock_client = MagicMock()
+    mock_client.reap_orphans.return_value = []
+    with patch("shc_toolkit.cli._client", return_value=mock_client), patch(
+        "shc_toolkit.cli._print"
+    ), patch("shc_toolkit.cli._get_fmt", return_value="json"), patch("builtins.print"):
+        with patch("sys.argv", argv):
+            try:
+                from shc_toolkit.cli import main
+                main()
+            except SystemExit:
+                pass
+    return mock_client
+
+
+class TestCliCommandCoverage:
+    """Comprehensive CLI command coverage — verifies each command dispatches
+    to the correct SHCClient/SHCMCPClient method. Uses a mocked client so no
+    real API calls are made."""
+
+    # ── No-arg read commands ─────────────────────────────────
+    @pytest.mark.parametrize("cmd,method", [
+        ("account", "get_account"),
+        ("balance", "get_billing_balance"),
+        ("catalog", "get_catalog"),
+        ("templates", "list_templates"),
+        ("sizes", None),
+        ("contacts", "list_contacts"),
+        ("quotations", "list_quotations"),
+        ("downloads", "list_downloads"),
+        ("transactions", "list_transactions"),
+        ("emails", "list_emails"),
+        ("events", "list_events"),
+    ])
+    def test_cli_no_arg_read(self, cmd, method):
+        mock = _run_cli(["shc", cmd])
+        if method:
+            getattr(mock, method).assert_called_once()
+
+    # ── VM-specific read commands (service_id) ───────────────
+    @pytest.mark.parametrize("cmd,method", [
+        ("info", "get_vm_summary"),
+        ("detail", "get_vm_detail"),
+        ("metrics", "get_vm_metrics"),
+        ("bandwidth", "get_vm_bandwidth"),
+        ("health", "check_vm_health"),
+        ("snapshots", "list_snapshots"),
+        ("backups", "list_backups"),
+        ("jobs", "list_jobs"),
+        ("network", "get_vm_network"),
+        ("payments", "get_vm_payments"),
+        ("console", "get_console_availability"),
+        ("iso", "list_isos"),
+        ("rdns", "list_rdns"),
+        ("ssh-keys", "list_ssh_keys"),
+        ("upgrade-options", "list_upgrade_options"),
+        ("addons", "list_vm_addons"),
+        ("term-options", "get_vm_term_options"),
+    ])
+    def test_cli_vm_read(self, cmd, method):
+        mock = _run_cli(["shc", cmd, "1077"])
+        getattr(mock, method).assert_called_once()
+
+    # ── VM action commands (service_id, confirm-gated) ───────
+    @pytest.mark.parametrize("cmd,method", [
+        ("start", "start_vm"),
+        ("stop", "stop_vm"),
+        ("shutdown", "shutdown_vm"),
+        ("reset", "reset_vm"),
+        ("restart", "restart_vm"),
+        ("cancel", "cancel_vm"),
+        ("reinstall", "reinstall_vm"),
+    ])
+    def test_cli_vm_action(self, cmd, method):
+        mock = _run_cli(["shc", cmd, "1077"])
+        getattr(mock, method).assert_called_once()
+
+    # ── Invoice/billing commands ─────────────────────────────
+    def test_cli_invoices_list(self):
+        mock = _run_cli(["shc", "invoices"])
+        mock.list_invoices.assert_called_once()
+
+    def test_cli_invoice_get(self):
+        mock = _run_cli(["shc", "invoices", "123"])
+        mock.get_invoice.assert_called_once()
+
+    def test_cli_activity_account(self):
+        mock = _run_cli(["shc", "activity"])
+        mock.get_account_activity.assert_called_once()
+
+    # ── Snapshot/backup action commands ──────────────────────
+    def test_cli_snapshot_create(self):
+        mock = _run_cli(["shc", "snapshot-create", "1077", "--name", "pre"])
+        mock.create_snapshot.assert_called_once()
+
+    def test_cli_backup_create(self):
+        mock = _run_cli(["shc", "backup-create", "1077", "--name", "bk"])
+        mock.create_backup.assert_called_once()
+
+    # ── Firewall commands ────────────────────────────────────
+    def test_cli_firewall_show(self):
+        mock = _run_cli(["shc", "firewall", "1077", "show"])
+        mock.get_firewall.assert_called_once()
+
+    # ── Tickets command ──────────────────────────────────────
+    def test_cli_tickets_list(self):
+        mock = _run_cli(["shc", "tickets", "list"])
+        mock.list_support_tickets.assert_called_once()
+
+    def test_cli_tickets_departments(self):
+        mock = _run_cli(["shc", "tickets", "departments"])
+        mock.list_support_departments.assert_called_once()
+
+    # ── Reap dry-run ─────────────────────────────────────────
+    def test_cli_reap_dry_run(self):
+        mock = _run_cli(["shc", "reap", "--dry-run"])
+        mock.reap_orphans.assert_called_once_with(max_age_hours=2.0, dry_run=True)
+
+    # ── Upgrade commands ─────────────────────────────────────
+    def test_cli_upgrade_preview(self):
+        mock = _run_cli(["shc", "upgrade-preview", "1077", "--package-id", "26"])
+        mock.preview_upgrade.assert_called_once()
+
+    # ── SSH key commands ─────────────────────────────────────
+    def test_cli_ssh_key_add(self):
+        mock = _run_cli(["shc", "ssh-key-add", "1077", "--key", "ssh-ed25519 AAAA"])
+        mock.add_ssh_key.assert_called_once()
+
+    # ── ISO mount/unmount ────────────────────────────────────
+    def test_cli_iso_mount(self):
+        mock = _run_cli(["shc", "iso-mount", "1077", "debian-13.iso"])
+        mock.mount_iso.assert_called_once()
+
+    # ── rDNS set/clear ───────────────────────────────────────
+    def test_cli_rdns_set(self):
+        mock = _run_cli(["shc", "rdns-set", "1077", "--ip", "1.2.3.4", "--ptr", "host.example.com"])
+        mock.set_rdns.assert_called_once()
+
+    def test_cli_rdns_clear(self):
+        mock = _run_cli(["shc", "rdns-clear", "1077", "--ip", "1.2.3.4"])
+        mock.clear_rdns.assert_called_once()
+
+    # ── Console session ──────────────────────────────────────
+    def test_cli_console_session(self):
+        mock = _run_cli(["shc", "console-session", "1077"])
+        mock.create_console_session.assert_called_once()
+
+    # ── Job detail ───────────────────────────────────────────
+    def test_cli_job_get(self):
+        mock = _run_cli(["shc", "job", "1077", "job-abc123"])
+        mock.get_job.assert_called_once()
