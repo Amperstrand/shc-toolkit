@@ -63,10 +63,20 @@ rule). This release closes #20 and closes #21.
 
 ### Fixed
 - **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
-  value (`cloud-init-policy-violation` collided with `cloud_init_policy_violation`
-  after normalisation). Verified post-fix: enum now has 77 values (was 78), zero
-  normalised-key collisions. The `openapi-python-client` regeneration that this
-  blocked since 2026-07-16 now runs clean.
+  value. Previously both `cloud-init-policy-violation` and
+  `cloud_init_policy_violation` were present and normalised to the same
+  `CLOUD_INIT_POLICY_VIOLATION` key, which aborted `openapi-python-client`.
+  Per upstream's v2.4.24 changelog: "the removed spelling was never emitted,
+  and the value the server actually returns is unchanged" — i.e. SHC kept the
+  hyphenated form (the one the server emits) and removed the underscore form.
+  Issue #20 had recommended the opposite (keep the underscore form to match
+  the convention of the other 76 values), but upstream's choice is more
+  contract-truthful: the spec now matches wire behaviour. Verified post-fix:
+  enum now has 77 values (was 78), zero normalised-key collisions. The
+  `openapi-python-client` regeneration that this blocked since 2026-07-16
+  now runs clean. The defensive dedup step in `scripts/generate_client.sh`
+  (lines 69-98) is retained as a belt-and-braces guard against future spec
+  bugs of the same shape.
 - **Closes #21.** API drift issue auto-created by `shc-tests.yml` on 2026-07-20.
   Resolved by this release.
 

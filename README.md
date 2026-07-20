@@ -304,7 +304,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 ## Testing Status
 
 ### v2.4.24.0 Release
-- **207 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
+- **213 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
 - **mypy type checking**: 0 errors (17 source files; generated/ excluded)
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
 - **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 124 entries
