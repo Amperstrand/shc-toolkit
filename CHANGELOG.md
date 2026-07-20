@@ -83,6 +83,21 @@ fully wrapped in the toolkit's REST surface).
   pydantic.BaseModel) == False`). Previous CHANGELOG / README / ROADMAP
   entries since v2.4.3.1 described these as "Pydantic models" — corrected
   across all three docs in this release.
+- **`close_support_ticket` confirmation flow.** The wrapper previously called
+  `_post` directly and surfaced SHC's 409 `confirmation_required` as
+  `SHCConfirmationRequiredError` instead of completing the confirmation
+  re-send automatically (which is the whole point of `_confirmed_request`).
+  Now uses `_confirmed_request` with `*, confirm: bool = True` default,
+  matching the pattern of `cancel_vm`, `delete_snapshot`, `delete_backup`,
+  `reinstall_vm`, etc. Live-verified by closing customer-support ticket
+  #2211883 via the fixed wrapper. The Protocol `SHCTransport.close_support_ticket`
+  gains the same signature; `SHCMCPClient.close_support_ticket` accepts
+  `*, confirm: bool = True` as a no-op for symmetry (MCP transport handles
+  confirmation via `call_tool`).
+- **Files #22 follow-up.** Audit during the same live-testing pass found 11
+  more methods with the same confirmation-flow gap (e.g. `set_stored_ssh_key`,
+  `set_backup_protection`, `revoke_api_key`). Tracked in issue #22 — fix is
+  mechanical but voluminous and deserves its own focused PR.
 - **Closes #20.** Upstream removed the duplicate `Problem.x-error-code` enum
   value. Previously both `cloud-init-policy-violation` and
   `cloud_init_policy_violation` were present and normalised to the same
