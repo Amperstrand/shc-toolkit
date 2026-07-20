@@ -1080,6 +1080,8 @@ class SHCClient:
                 "ci-",
                 "tg-",
                 "zone-test-",
+                "nutshell-",
+                "pytest-test-",
             ]
 
         if exclude_hostnames is None:
