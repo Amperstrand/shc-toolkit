@@ -1098,7 +1098,7 @@ class SHCClient:
         self, service_id: int, *, cloud_init: str, confirm: bool = True
     ) -> dict:
         return self._confirmed_request(
-            "PUT",
+            "PATCH",
             f"/virtual-machines/{service_id}/cloud-init",
             confirm=confirm,
             json={"cloudInit": cloud_init},
