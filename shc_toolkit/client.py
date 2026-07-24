@@ -916,6 +916,83 @@ class SHCClient:
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 
+    def check_stock(self, template: str = "debian13-cloud") -> list[dict]:
+        """Check VM availability across all catalog packages.
+
+        Uses preview_order as a non-binding probe to check stock without
+        placing an order. Returns only packages that are currently in stock.
+
+        Args:
+            template: OS template to check availability for.
+
+        Returns:
+            List of dicts with keys: package_id, name, specs, price_per_day,
+            pricing_id, available, reason.
+        """
+        catalog = self.get_catalog()
+        results = []
+        for pkg in catalog:
+            pid = pkg["package_id"]
+            daily = next(
+                (p for p in pkg.get("pricing", []) if p.get("period") == "day"),
+                None,
+            )
+            if not daily:
+                continue
+            try:
+                preview = self.preview_order(
+                    hostname="stock-probe",
+                    package_id=pid,
+                    pricing_id=daily["pricing_id"],
+                    template=template,
+                )
+                avail = preview.get("availability", {})
+                results.append(
+                    {
+                        "package_id": pid,
+                        "name": pkg["name"],
+                        "specs": f'{pkg["cpu"]}cpu/{pkg["memory_mb"] // 1024}GB/{pkg["disk_gb"]}GB',
+                        "price_per_day": daily["price"],
+                        "pricing_id": daily["pricing_id"],
+                        "available": avail.get("available", False),
+                        "reason": avail.get("reason", ""),
+                    }
+                )
+            except Exception as e:
+                results.append(
+                    {
+                        "package_id": pid,
+                        "name": pkg["name"],
+                        "available": False,
+                        "reason": str(e)[:100],
+                    }
+                )
+        return results
+
+    def find_cheapest_available(
+        self, template: str = "debian13-cloud", min_ram_mb: int = 0
+    ) -> dict | None:
+        """Find the cheapest in-stock VM package.
+
+        Args:
+            template: OS template to check.
+            min_ram_mb: Minimum RAM in MB (0 = any).
+
+        Returns:
+            Cheapest available package dict, or None if all out of stock.
+        """
+        stock = self.check_stock(template=template)
+        candidates = [
+            s
+            for s in stock
+            if s.get("available")
+            and int(s.get("specs", "0cpu/0GB/0GB").split("/")[1].rstrip("GB")) * 1024
+            >= min_ram_mb
+        ]
+        if not candidates:
+            return None
+        return min(candidates, key=lambda s: float(s["price_per_day"]))
+
     def submit_order(
         self,
         idempotency_key: str | None = None,
