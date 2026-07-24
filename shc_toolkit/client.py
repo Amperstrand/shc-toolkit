@@ -1111,6 +1111,29 @@ class SHCClient:
             confirm=confirm,
         )
 
+    def reinstall_with_cloud_init(
+        self,
+        service_id: int,
+        *,
+        cloud_init: str,
+        template: str = "debian13-cloud",
+        confirm: bool = True,
+    ) -> dict:
+        """Apply cloud-init user-data, stop the VM, then reinstall.
+
+        The reinstall triggers a fresh boot which re-runs cloud-init
+        with the supplied user-data. Use this when update_vm_cloud_init
+        alone is insufficient (cloud-init does not re-run on reboot
+        of an already-booted VM).
+
+        Returns the reinstall job result (contains job_id for polling).
+
+        Raises SHCError on any step failure.
+        """
+        self.update_vm_cloud_init(service_id, cloud_init=cloud_init, confirm=confirm)
+        self.stop_vm(service_id)
+        return self.reinstall_vm(service_id, template=template)
+
     def cancel_vm(
         self, service_id: int, *, immediate: bool = True, confirm: bool = True
     ) -> dict:
