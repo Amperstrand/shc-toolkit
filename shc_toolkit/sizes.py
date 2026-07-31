@@ -1,4 +1,3 @@
-# flake8: noqa: E501
 """VM size catalog for SHC, auto-generated from GET /ordering/catalog.
 
 Spec-encoding names follow the {line}-{cpu}c-{ram}gb convention:

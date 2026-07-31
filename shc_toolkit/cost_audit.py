@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -112,7 +112,7 @@ class CostTracker:
             service_id=service_id,
             package_id=package_id,
             daily_price=daily_price,
-            ordered_at=datetime.now(timezone.utc),
+            ordered_at=datetime.now(UTC),
             credit_before_order=credit_before,
             actual_charge=actual_charge,
             charge_verified=charge_verified,
@@ -148,7 +148,7 @@ class CostTracker:
             log.debug("Cost audit: no tracked session for svc %s", service_id)
             return None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         hours = (now - session.ordered_at).total_seconds() / 3600
 
         hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
@@ -313,7 +313,7 @@ class CostTracker:
         session = self._sessions.get(service_id)
         if not session:
             return 0.0
-        elapsed = datetime.now(timezone.utc) - session.ordered_at
+        elapsed = datetime.now(UTC) - session.ordered_at
         hours = elapsed.total_seconds() / 3600
         hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
         return _truncate(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 2)
@@ -324,7 +324,7 @@ class CostTracker:
         if not session:
             return None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         hours = (now - session.ordered_at).total_seconds() / 3600
         hourly_rate = round(session.daily_price / 24, HOURLY_PRECISION)
         expected_cost = _truncate(max(hours, MIN_CHARGE_HOURS) * hourly_rate, 2)

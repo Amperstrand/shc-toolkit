@@ -283,10 +283,10 @@ def cmd_instances(args):
     elif sub == "create":
         name = args[1] if len(args) > 1 else "shc-vm-{int(time.time())}"
         machine_type = "n1-standard-2"
-        snapshot_name = None  # noqa: F841
+        snapshot_name = None
         metadata = {}
         ssh_key = os.path.expanduser("~/.ssh/id_ed25519.pub")
-        disk_size = 16  # noqa: F841
+        disk_size = 16
 
         i = 2
         while i < len(args):
@@ -489,9 +489,7 @@ def cmd_instances(args):
         name = args[1] if len(args) > 1 else ""
         template = "debian13-cloud"
         for a in args[2:]:
-            if a.startswith("--template="):
-                template = a.split("=", 1)[1]
-            elif a.startswith("--image="):
+            if a.startswith("--template=") or a.startswith("--image="):
                 template = a.split("=", 1)[1]
         vm = _find_vm_by_name(client, name)
         if not vm:
@@ -538,12 +536,10 @@ def cmd_snapshots(args):
         _output(all_snapshots, fmt)
 
     elif sub == "create":
-        snapshot_name = None  # noqa: F841
+        snapshot_name = None
         for a in args[1:]:
-            if a.startswith("--snapshot-names="):
-                snapshot_name = a.split("=", 1)[1]  # noqa: F841
-            elif a.startswith("--name="):
-                snapshot_name = a.split("=", 1)[1]  # noqa: F841
+            if a.startswith("--snapshot-names=") or a.startswith("--name="):
+                snapshot_name = a.split("=", 1)[1]
 
         name_arg = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         vm_name = name_arg
@@ -566,7 +562,7 @@ def cmd_snapshots(args):
             sys.exit(1)
 
     elif sub == "delete":
-        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""  # noqa: F841
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         quiet = "--quiet" in args or "-q" in args
         md = _load_metadata()
         deleted = False
@@ -597,7 +593,7 @@ def cmd_snapshots(args):
             print("Snapshot {snapshot_name} not found", file=sys.stderr)
 
     elif sub == "describe":
-        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""  # noqa: F841
+        snapshot_name = args[1] if len(args) > 1 and not args[1].startswith("-") else ""
         md = _load_metadata()
         found = None
         for hostname, meta in md.items():
@@ -644,9 +640,7 @@ def cmd_ssh(args):
     for a in args[1:]:
         if a.startswith("--command="):
             command = a.split("=", 1)[1]
-        elif a.startswith("--zone="):
-            pass
-        elif a.startswith("--project="):
+        elif a.startswith("--zone=") or a.startswith("--project="):
             pass
 
     client = _get_client()
@@ -791,9 +785,7 @@ def cmd_firewall_rules(args):
                 rule_pos = a.split("=", 1)[1]
             elif a.startswith("--action="):
                 updates["action"] = "pass" if "allow" in a or "pass" in a else "drop"
-            elif a.startswith("--source-ranges="):
-                updates["source"] = a.split("=", 1)[1]
-            elif a.startswith("--source="):
+            elif a.startswith("--source-ranges=") or a.startswith("--source="):
                 updates["source"] = a.split("=", 1)[1]
             elif a.startswith("--rules="):
                 parts = a.split("=", 1)[1].split(":")

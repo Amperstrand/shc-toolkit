@@ -8,20 +8,20 @@ import os
 import sys
 import uuid
 from pathlib import Path
-
 from typing import Any
 
+from .benchmark import print_results as print_bench_results
+from .benchmark import run_full_suite
 from .client import SHCClient, SHCError
-from .benchmark import run_full_suite, print_results as print_bench_results
 
 try:
     from .nodns import (
         NoDNSKeyPair,
         provision_dns_for_vm,
-        publish_dns_records,  # noqa: F401
         publish_acme_challenge,  # noqa: F401
+        publish_dns_records,  # noqa: F401
         verify_dns,
-    )  # noqa: F401
+    )
 except ImportError:
     NoDNSKeyPair = None  # type: ignore
     provision_dns_for_vm = None  # type: ignore
@@ -96,9 +96,9 @@ def _print_table(data):
         print("  ".join("-" * 15 for _ in cols))
         for row in data:
             if isinstance(row, dict):
-                print("  ".join(f"{str(row.get(c, '')):>15s}" for c in cols))
+                print("  ".join(f"{row.get(c, '')!s:>15s}" for c in cols))
             else:
-                print(f"{str(row):>15s}")
+                print(f"{row!s:>15s}")
     elif isinstance(data, dict):
         for k, v in data.items():
             print(f"  {k:30s}  {v}")
@@ -507,7 +507,7 @@ def cmd_backup_list(args):
         name = b.get("name", "(unnamed)")
         protected = "🔒" if b.get("protected") else ""
         created = b.get("created_at", b.get("date_created", "?"))
-        print(f"  {str(bid):30s}  {name:25s}  {protected:2s}  {created}")
+        print(f"  {bid!s:30s}  {name:25s}  {protected:2s}  {created}")
 
 
 def cmd_backup_create(args):
@@ -755,12 +755,15 @@ def cmd_sizes(args):
 
 
 def cmd_github_runner_provision(args):
-    from .github_runner import (
-        ProvisionRequest,
-        provision as do_provision,
-        SUPPORTED_BACKENDS,
-    )
     import os as _os
+
+    from .github_runner import (
+        SUPPORTED_BACKENDS,
+        ProvisionRequest,
+    )
+    from .github_runner import (
+        provision as do_provision,
+    )
 
     github_token = args.github_token or _os.environ.get("SHC_GITHUB_ADMIN_TOKEN", "")
     if not args.dry_run and not github_token:
@@ -811,7 +814,8 @@ def cmd_github_runner_provision(args):
 
 
 def cmd_github_runner_destroy(args):
-    from .github_runner import destroy as do_destroy, SUPPORTED_BACKENDS
+    from .github_runner import SUPPORTED_BACKENDS
+    from .github_runner import destroy as do_destroy
 
     backend = args.backend
     if backend not in SUPPORTED_BACKENDS:

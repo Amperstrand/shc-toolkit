@@ -43,8 +43,10 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .mcp_client import SHCMCPClient
+    from playwright.sync_api import Browser, Page
+
     from .client import SHCClient  # noqa: F401
+    from .mcp_client import SHCMCPClient
 
 log = logging.getLogger(__name__)
 
@@ -75,9 +77,9 @@ class ConsoleShell:
         mcp_client: SHCMCPClient | None = None,
     ):
         try:
-            from playwright.sync_api import sync_playwright
             import pytesseract
             from PIL import Image
+            from playwright.sync_api import sync_playwright
         except ImportError as e:
             raise TunnelError(
                 "ConsoleShell requires playwright, pytesseract, Pillow. "
@@ -89,8 +91,8 @@ class ConsoleShell:
         self._Image = Image
         self.service_id = service_id
         self._mcp = mcp_client
-        self._browser = None
-        self._page = None
+        self._browser: Browser | None = None
+        self._page: Page | None = None
         self._username: str | None = None
         self._password: str | None = None
 
@@ -110,19 +112,24 @@ class ConsoleShell:
 
     def _send_text(self, text: str, max_wait: int = 15) -> None:
         """Send text via noVNC textarea + Type button. Polls status for completion."""
+        assert self._page is not None, "call connect() before _send_text()"
         self._page.evaluate(
             f"""() => {{
-                document.getElementById('clipboard-textarea').value = {repr(text)};
+                document.getElementById('clipboard-textarea').value = {text!r};
                 document.getElementById('btn-send').click();
             }}"""
         )
         for _ in range(30):
-            status = self._page.evaluate("() => document.getElementById('status').textContent")
+            status = self._page.evaluate(
+                "() => document.getElementById('status').textContent"
+            )
             if "typing" in status.lower():
                 break
             self._page.wait_for_timeout(100)
         for _ in range(max_wait * 10):
-            status = self._page.evaluate("() => document.getElementById('status').textContent")
+            status = self._page.evaluate(
+                "() => document.getElementById('status').textContent"
+            )
             if "connected" in status.lower():
                 return
             self._page.wait_for_timeout(100)
@@ -150,6 +157,7 @@ class ConsoleShell:
         self._username = username
         self._password = password
 
+        assert self._page is not None, "call connect() before login()"
         self._page.keyboard.press("Enter")
         self._page.wait_for_timeout(2000)
         self._send_text(f"{username}\n")
@@ -163,6 +171,7 @@ class ConsoleShell:
 
     def verify_shell(self) -> bool:
         """Check if we have an active shell prompt."""
+        assert self._page is not None, "call connect() before verify_shell()"
         self._send_text("echo 77777\n")
         self._page.wait_for_timeout(3000)
         path = f"/tmp/_console_verify_{self.service_id}.png"
@@ -171,6 +180,7 @@ class ConsoleShell:
 
     def run_cmd(self, cmd: str, wait: float = 5.0) -> str:
         """Run a command and return OCR'd output."""
+        assert self._page is not None, "call connect() before run_cmd()"
         self._send_text("clear\n")
         self._page.wait_for_timeout(1000)
         self._send_text(cmd + "\n")
@@ -270,12 +280,11 @@ class CloudflareTunnel:
         )
 
         import urllib.request
+
         for _ in range(10):
             _time.sleep(2)
             try:
-                req = urllib.request.Request(
-                    f"https://ntfy.sh/{topic}/json?poll=1"
-                )
+                req = urllib.request.Request(f"https://ntfy.sh/{topic}/json?poll=1")
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     for line in resp:
                         line = line.strip().decode()
@@ -424,7 +433,7 @@ def ensure_ssh_access(
     Raises:
         TunnelError: If neither direct SSH nor tunnel works.
     """
-    from .client import SHCClient  # noqa: F401
+    from .client import SHCClient
 
     c = SHCClient()
     detail = c.get_vm(service_id)

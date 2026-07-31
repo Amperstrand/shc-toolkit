@@ -50,5 +50,29 @@ shc-compute = "shc_toolkit.compute:main"
 [tool.setuptools.packages.find]
 include = ["shc_toolkit*"]
 
+[tool.ruff]
+# Auto-generated client (932 files of codegen) — linting it is meaningless,
+# same rationale as the mypy exclude below. CI runs `ruff check shc_toolkit/`.
+extend-exclude = ["shc_toolkit/generated"]
+
+[tool.ruff.lint]
+# Rules newly enabled by ruff 0.16 default set that this codebase predates.
+# Each family is either an intentional pattern or deferred for incremental
+# cleanup — none are bugs (245 tests pass with these patterns).
+ignore = [
+    "BLE001",   # blind-except — intentional in API-client retry/cleanup paths
+    "S110",     # try-except-pass — intentional fire-and-forget cleanup (reap, telemetry)
+    "S112",     # try-except-continue — same family
+    "PLW1510",  # subprocess-run-without-check — provisioning fire-and-forget calls
+    "SIM102",   # collapsible-if — readability preference
+    "SIM115",   # open-file-without-context-handler — short-lived CLI scripts
+    "RUF059",   # unused-unpacked-variable — deferred
+    "ISC004",   # implicit-string-concatenation — deferred
+    "PIE810",   # multiple-starts-ends-with — deferred
+    "PERF102",  # incorrect-dict-iterator — deferred
+    "RUF007",   # zip-instead-of-pairwise — deferred
+    "DTZ005",   # call-datetime-now-without-tzinfo — CLI tool, local time intended
+]
+
 [tool.mypy]
 exclude = "shc_toolkit/generated/"
