@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **`tunnel.py` — Cloudflare Quick Tunnel for SSH access when inbound traffic is blocked.** New module with `CloudflareTunnel`, `ConsoleShell`, and `ensure_ssh_access()` for establishing outbound-only SSH tunnels via Cloudflare Quick Tunnel (no account needed). Uses noVNC console automation to bootstrap cloudflared on the VM, then connects locally via `cloudflared access tcp`. Proven working during SHC inbound network outage (2026-07-20). Install: `pip install shc-toolkit[tunnel]`.
 
+### Fixed
+- **`test_update_vm_cloud_init_uses_confirmation_flow` stale assertion (PUT → PATCH).** Commit c3febee corrected `update_vm_cloud_init` to use `PATCH` per OpenAPI spec v2.4.24, but the unit test still asserted `"PUT"`. This broke every scheduled `shc-tests.yml` run (8+ consecutive failures since 2026-07-30). Test now asserts `"PATCH"`, matching the implementation and the spec's `updateVirtualMachineCloudInit` operation.
+
 ## [2.4.24.0] — 2026-07-20
 
 Spec-sync release. SHC shipped API v2.4.24 on 2026-07-19 (consolidating nine

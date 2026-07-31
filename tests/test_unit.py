@@ -1376,7 +1376,7 @@ class TestCloudInitRestWrappers:
             assert args[1] == {"cloudInit": "#cloud-config\npackages: [nginx]\n"}
 
     def test_update_vm_cloud_init_uses_confirmation_flow(self):
-        """update_vm_cloud_init is confirm-gated via _confirmed_request (PUT)."""
+        """update_vm_cloud_init is confirm-gated via _confirmed_request (PATCH)."""
         from unittest.mock import patch
         from shc_toolkit.client import SHCClient
 
@@ -1386,7 +1386,7 @@ class TestCloudInitRestWrappers:
             assert result == {"ok": True}
             mock.assert_called_once()
             args, kwargs = mock.call_args
-            assert args[0] == "PUT"
+            assert args[0] == "PATCH"
             assert args[1] == "/virtual-machines/1077/cloud-init"
             assert kwargs["json"] == {"cloudInit": "#cloud-config\nruncmd: []\n"}
             assert kwargs["confirm"] is True
