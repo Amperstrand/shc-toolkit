@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _CF_BINARY_PATHS = [
-    "/tmp/cf-binary",
+    "/tmp/cf-binary",  # nosec B108 — intentional cloudflared cache location
     "/usr/local/bin/cloudflared",
     os.path.expanduser("~/.local/bin/cloudflared"),
 ]
@@ -174,7 +174,7 @@ class ConsoleShell:
         assert self._page is not None, "call connect() before verify_shell()"
         self._send_text("echo 77777\n")
         self._page.wait_for_timeout(3000)
-        path = f"/tmp/_console_verify_{self.service_id}.png"
+        path = f"/tmp/_console_verify_{self.service_id}.png"  # nosec B108 — diagnostic screenshot
         self._page.screenshot(path=path)
         return "77777" in self._ocr(path)
 
@@ -185,7 +185,7 @@ class ConsoleShell:
         self._page.wait_for_timeout(1000)
         self._send_text(cmd + "\n")
         self._page.wait_for_timeout(int(wait * 1000))
-        path = f"/tmp/_console_cmd_{self.service_id}_{int(time.time())}.png"
+        path = f"/tmp/_console_cmd_{self.service_id}_{int(time.time())}.png"  # nosec B108 — diagnostic screenshot
         self._page.screenshot(path=path)
         return self._ocr(path)
 
@@ -285,7 +285,7 @@ class CloudflareTunnel:
             _time.sleep(2)
             try:
                 req = urllib.request.Request(f"https://ntfy.sh/{topic}/json?poll=1")
-                with urllib.request.urlopen(req, timeout=10) as resp:
+                with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — hardcoded HTTPS ntfy.sh URL
                     for line in resp:
                         line = line.strip().decode()
                         if not line:
@@ -394,7 +394,7 @@ def _find_cloudflared() -> str:
     for path in _CF_BINARY_PATHS:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
-    path = "/tmp/cf-binary"
+    path = "/tmp/cf-binary"  # nosec B108 — intentional cloudflared cache location
     log.info("Downloading cloudflared binary...")
     subprocess.run(
         [

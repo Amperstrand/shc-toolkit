@@ -33,7 +33,7 @@ from .provision import ssh_cmd
 
 log = logging.getLogger(__name__)
 
-REMOTE_PATH = "/tmp/shc-bootstrap.sh"
+REMOTE_PATH = "/tmp/shc-bootstrap.sh"  # nosec B108 — remote VM path (written to SHC VM via console)
 
 
 class VMBootstrap:
@@ -180,7 +180,7 @@ class VMBootstrap:
             local_sha = hashlib.sha256(script.encode()).hexdigest()  # noqa: F841
             console.type_text(f"sha256sum {REMOTE_PATH}\n")
             time.sleep(2)
-            console.screenshot(f"/tmp/shc-bootstrap-verify-{service_id}.png")
+            console.screenshot(f"/tmp/shc-bootstrap-verify-{service_id}.png")  # nosec B108 — diagnostic screenshot
             log.info("SHA256 verification screenshot saved")
 
         # Execute

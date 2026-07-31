@@ -41,4 +41,5 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install pip-audit -q
+      - run: pip install --upgrade "setuptools>=83.0.0" -q
       - run: pip-audit

@@ -81,7 +81,7 @@ def _http_get_json(
 ) -> Any:
     """GET a URL and return parsed JSON. Raises on HTTP/parse error."""
     req = urllib.request.Request(url, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — hardcoded HTTPS catalog URL
         return json.loads(resp.read().decode("utf-8"))
 
 

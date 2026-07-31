@@ -260,7 +260,7 @@ def fetch_registration_token(repo: str, github_token: str) -> dict[str, str]:
         headers=_github_headers(github_token),
     )
     try:
-        with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as resp:  # nosec B310 — hardcoded HTTPS GitHub API URL
             body = resp.read().decode()
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")
@@ -292,7 +292,7 @@ def fetch_runner_binary_url() -> str:
             "User-Agent": "shc-toolkit",
         },
     )
-    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
+    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:  # nosec B310 — hardcoded HTTPS GitHub API URL
         data = json.loads(resp.read().decode())
     for asset in data.get("assets", []):
         name = asset.get("name", "")
@@ -310,7 +310,7 @@ def fetch_runners(repo: str, github_token: str) -> list[dict[str, Any]]:
 
     url = f"{GITHUB_API}/repos/{repo}/actions/runners"
     req = urllib.request.Request(url, headers=_github_headers(github_token))
-    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
+    with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:  # nosec B310 — hardcoded HTTPS GitHub API URL
         return json.loads(resp.read().decode()).get("runners", [])
 
 
