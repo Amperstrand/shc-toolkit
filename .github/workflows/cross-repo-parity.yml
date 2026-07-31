@@ -40,7 +40,7 @@ jobs:
           git clone --depth=1 https://github.com/Amperstrand/terraform-provider-shc.git ../terraform-provider-shc
           git clone --depth=1 https://github.com/Amperstrand/shc-pulumi.git ../shc-pulumi
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
