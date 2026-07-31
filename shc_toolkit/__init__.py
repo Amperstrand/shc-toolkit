@@ -16,44 +16,44 @@ Dual-transport client for SHC: REST v2 (default) or MCP Streamable HTTP.
 """
 
 from .client import (
-    SHCClient,
-    SHCError,
-    ProvisioningStuckError,
     InsufficientCreditError,
-    SHCNotFoundError,
+    ProvisioningStuckError,
     SHCAuthError,
-    SHCRateLimitError,
+    SHCClient,
     SHCConfirmationRequiredError,
+    SHCError,
+    SHCNotFoundError,
+    SHCRateLimitError,
     SHCServerError,
 )
+from .sizes import SIZE_MAP, list_sizes, resolve_size, resolve_specs
 from .transport import resolve_transport
-from .sizes import SIZE_MAP, resolve_size, resolve_specs, list_sizes
 
 __all__ = [
-    "SHCClient",
-    "SHCError",
-    "SHCNotFoundError",
-    "SHCAuthError",
-    "SHCRateLimitError",
-    "SHCConfirmationRequiredError",
-    "SHCServerError",
-    "ProvisioningStuckError",
-    "InsufficientCreditError",
-    "SHCTransport",
-    "create_client",
     "SIZE_MAP",
-    "resolve_size",
-    "resolve_specs",
-    "list_sizes",
     "VM",
     "Balance",
     "CatalogPackage",
+    "InsufficientCreditError",
+    "ProvisioningStuckError",
+    "SHCAuthError",
+    "SHCClient",
+    "SHCConfirmationRequiredError",
+    "SHCError",
+    "SHCNotFoundError",
+    "SHCRateLimitError",
+    "SHCServerError",
+    "SHCTransport",
     "SupportTicket",
+    "create_client",
+    "list_sizes",
+    "resolve_size",
+    "resolve_specs",
 ]
 
 # Re-export Protocol for type checking
-from .transport import SHCTransport
 from .models import VM, Balance, CatalogPackage, SupportTicket
+from .transport import SHCTransport
 
 
 def create_client(
@@ -98,7 +98,7 @@ def create_client(
 # Import lazily so `pip install shc-toolkit` works without playwright.
 def __getattr__(name):
     if name in ("ConsoleSession", "ConsoleError"):
-        from .console import ConsoleSession, ConsoleError  # noqa: F401
+        from .console import ConsoleError, ConsoleSession  # noqa: F401
 
         return locals()[name]
     if name in ("VMBootstrap",):
