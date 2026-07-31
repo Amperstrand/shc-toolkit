@@ -5,32 +5,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.transaction_summary_status import TransactionSummaryStatus
-from ..models.transaction_summary_type import TransactionSummaryType
+from ..models.transaction_summary_status import (
+    TransactionSummaryStatus,
+    check_transaction_summary_status,
+)
+from ..models.transaction_summary_type import (
+    TransactionSummaryType,
+    check_transaction_summary_type,
+)
 
 T = TypeVar("T", bound="TransactionSummary")
 
 
 @_attrs_define
 class TransactionSummary:
-    """Customer-safe transaction row (staff/internal columns stripped).
-
-    Attributes:
-        id (int):  Example: 88.
-        amount (str):  Example: 11.99.
-        applied_amount (str):  Example: 11.99.
-        currency (str):  Example: USD.
-        type_ (TransactionSummaryType):  Example: other.
-        type_name (None | str):  Example: Bitcoin.
-        transaction_type_id (int | None):  Example: 4.
-        status (TransactionSummaryStatus):  Example: approved.
-        reference_id (None | str):
-        transaction_number (None | str):  Example: txn_abc123.
-        message (None | str):
-        gateway_name (None | str):  Example: Bitcoin.
-        date_added (datetime.datetime | None):
-    """
+    """Customer-safe transaction row (staff/internal columns stripped)."""
 
     id: int
     amount: str
@@ -55,7 +46,7 @@ class TransactionSummary:
 
         currency = self.currency
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         type_name: None | str
         type_name = self.type_name
@@ -63,7 +54,7 @@ class TransactionSummary:
         transaction_type_id: int | None
         transaction_type_id = self.transaction_type_id
 
-        status = self.status.value
+        status: str = self.status
 
         reference_id: None | str
         reference_id = self.reference_id
@@ -106,7 +97,7 @@ class TransactionSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -116,7 +107,7 @@ class TransactionSummary:
 
         currency = d.pop("currency")
 
-        type_ = TransactionSummaryType(d.pop("type"))
+        type_ = check_transaction_summary_type(d.pop("type"))
 
         def _parse_type_name(data: object) -> None | str:
             if data is None:
@@ -132,7 +123,7 @@ class TransactionSummary:
 
         transaction_type_id = _parse_transaction_type_id(d.pop("transaction_type_id"))
 
-        status = TransactionSummaryStatus(d.pop("status"))
+        status = check_transaction_summary_status(d.pop("status"))
 
         def _parse_reference_id(data: object) -> None | str:
             if data is None:

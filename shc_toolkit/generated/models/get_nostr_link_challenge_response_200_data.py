@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_nostr_link_challenge_response_200_data_expires_in_seconds import (
     GetNostrLinkChallengeResponse200DataExpiresInSeconds,
+    check_get_nostr_link_challenge_response_200_data_expires_in_seconds,
 )
 
 if TYPE_CHECKING:
@@ -20,27 +22,22 @@ T = TypeVar("T", bound="GetNostrLinkChallengeResponse200Data")
 
 @_attrs_define
 class GetNostrLinkChallengeResponse200Data:
-    """
-    Attributes:
-        challenge (str): One-time Nostr link/unlink challenge nonce.
-        expires_in_seconds (GetNostrLinkChallengeResponse200DataExpiresInSeconds): Seconds until the challenge expires.
-        single_use (bool): Whether the challenge is consumed on redemption.
-        linked (bool): Whether this account currently has a linked Nostr identity.
-        npub (None | str): Currently linked npub, or null when no Nostr identity is linked.
-        nip98 (GetNostrLinkChallengeResponse200DataNip98):
-    """
-
     challenge: str
+    """ One-time Nostr link/unlink challenge nonce. """
     expires_in_seconds: GetNostrLinkChallengeResponse200DataExpiresInSeconds
+    """ Seconds until the challenge expires. """
     single_use: bool
+    """ Whether the challenge is consumed on redemption. """
     linked: bool
+    """ Whether this account currently has a linked Nostr identity. """
     npub: None | str
+    """ Currently linked npub, or null when no Nostr identity is linked. """
     nip98: GetNostrLinkChallengeResponse200DataNip98
 
     def to_dict(self) -> dict[str, Any]:
         challenge = self.challenge
 
-        expires_in_seconds = self.expires_in_seconds.value
+        expires_in_seconds: int = self.expires_in_seconds
 
         single_use = self.single_use
 
@@ -67,7 +64,7 @@ class GetNostrLinkChallengeResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_nostr_link_challenge_response_200_data_nip_98 import (
             GetNostrLinkChallengeResponse200DataNip98,
         )
@@ -75,8 +72,10 @@ class GetNostrLinkChallengeResponse200Data:
         d = dict(src_dict)
         challenge = d.pop("challenge")
 
-        expires_in_seconds = GetNostrLinkChallengeResponse200DataExpiresInSeconds(
-            d.pop("expires_in_seconds")
+        expires_in_seconds = (
+            check_get_nostr_link_challenge_response_200_data_expires_in_seconds(
+                d.pop("expires_in_seconds")
+            )
         )
 
         single_use = d.pop("single_use")

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,23 +24,13 @@ class AffiliateAccount:
     """Affiliate account overview. When `enrolled` is false only `enrolled`, `status` (= "not_enrolled"), `eligible`, and
     `program` are present.
 
-        Attributes:
-            enrolled (bool):  Example: True.
-            status (str): active, inactive, or not_enrolled. Example: active.
-            eligible (bool | Unset): Only present when not enrolled: whether the active-service gate is met. Example: True.
-            referral_code (str | Unset):  Example: cost-chimney-churn.
-            referral_link (str | Unset):  Example: https://blesta.sovereignhybridcompute.com/order/forms/a/cost-chimney-
-                churn.
-            date_enrolled (datetime.datetime | None | Unset):
-            days_active (int | Unset):  Example: 12.
-            stats (AffiliateAccountStats | Unset):
-            balance (AffiliateBalance | Unset):
-            program (AffiliateProgramTerms | Unset): Company-level affiliate program terms (BTC-native).
     """
 
     enrolled: bool
     status: str
+    """ active, inactive, or not_enrolled. """
     eligible: bool | Unset = UNSET
+    """ Only present when not enrolled: whether the active-service gate is met. """
     referral_code: str | Unset = UNSET
     referral_link: str | Unset = UNSET
     date_enrolled: datetime.datetime | None | Unset = UNSET
@@ -47,6 +38,7 @@ class AffiliateAccount:
     stats: AffiliateAccountStats | Unset = UNSET
     balance: AffiliateBalance | Unset = UNSET
     program: AffiliateProgramTerms | Unset = UNSET
+    """ Company-level affiliate program terms (BTC-native). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -110,7 +102,7 @@ class AffiliateAccount:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.affiliate_account_stats import AffiliateAccountStats
         from ..models.affiliate_balance import AffiliateBalance
         from ..models.affiliate_program_terms import AffiliateProgramTerms

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.list_vm_file_restore_sources_response_200_items_item import (
@@ -20,12 +21,6 @@ T = TypeVar("T", bound="ListVmFileRestoreSourcesResponse200")
 
 @_attrs_define
 class ListVmFileRestoreSourcesResponse200:
-    """
-    Attributes:
-        items (list[ListVmFileRestoreSourcesResponse200ItemsItem]):
-        pagination (ListVmFileRestoreSourcesResponse200Pagination):
-    """
-
     items: list[ListVmFileRestoreSourcesResponse200ItemsItem]
     pagination: ListVmFileRestoreSourcesResponse200Pagination
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -50,7 +45,7 @@ class ListVmFileRestoreSourcesResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_vm_file_restore_sources_response_200_items_item import (
             ListVmFileRestoreSourcesResponse200ItemsItem,
         )

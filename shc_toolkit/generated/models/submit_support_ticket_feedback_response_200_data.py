@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.submit_support_ticket_feedback_response_200_data_status import (
     SubmitSupportTicketFeedbackResponse200DataStatus,
+    check_submit_support_ticket_feedback_response_200_data_status,
 )
 
 T = TypeVar("T", bound="SubmitSupportTicketFeedbackResponse200Data")
@@ -14,27 +16,22 @@ T = TypeVar("T", bound="SubmitSupportTicketFeedbackResponse200Data")
 
 @_attrs_define
 class SubmitSupportTicketFeedbackResponse200Data:
-    """
-    Attributes:
-        ticket_id (int):
-        code (str): Customer-visible support ticket code.
-        status (SubmitSupportTicketFeedbackResponse200DataStatus): Ticket status after feedback submission.
-        rating (int): Stored ticket feedback rating.
-        rating_comment (None | str): Stored feedback comment, or null when omitted/cleared.
-    """
-
     ticket_id: int
     code: str
+    """ Customer-visible support ticket code. """
     status: SubmitSupportTicketFeedbackResponse200DataStatus
+    """ Ticket status after feedback submission. """
     rating: int
+    """ Stored ticket feedback rating. """
     rating_comment: None | str
+    """ Stored feedback comment, or null when omitted/cleared. """
 
     def to_dict(self) -> dict[str, Any]:
         ticket_id = self.ticket_id
 
         code = self.code
 
-        status = self.status.value
+        status: str = self.status
 
         rating = self.rating
 
@@ -56,13 +53,15 @@ class SubmitSupportTicketFeedbackResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         ticket_id = d.pop("ticket_id")
 
         code = d.pop("code")
 
-        status = SubmitSupportTicketFeedbackResponse200DataStatus(d.pop("status"))
+        status = check_submit_support_ticket_feedback_response_200_data_status(
+            d.pop("status")
+        )
 
         rating = d.pop("rating")
 

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -16,17 +17,13 @@ class DeleteSshKeyResponse:
     Example:
         {'deleted': True, 'fingerprint': 'SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU'}
 
-    Attributes:
-        deleted (bool):  Example: True.
-        fingerprint (str | Unset): Present when a matching key was removed. Example:
-            SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU.
-        message (str | Unset): Present for idempotent no-op deletes when the fingerprint is not stored. Example: key not
-            present.
     """
 
     deleted: bool
     fingerprint: str | Unset = UNSET
+    """ Present when a matching key was removed. """
     message: str | Unset = UNSET
+    """ Present for idempotent no-op deletes when the fingerprint is not stored. """
 
     def to_dict(self) -> dict[str, Any]:
         deleted = self.deleted
@@ -50,7 +47,7 @@ class DeleteSshKeyResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         deleted = d.pop("deleted")
 

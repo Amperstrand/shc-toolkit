@@ -4,25 +4,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.error_error_links_item_rel import ErrorErrorLinksItemRel
+from ..models.error_error_links_item_rel import (
+    ErrorErrorLinksItemRel,
+    check_error_error_links_item_rel,
+)
 
 T = TypeVar("T", bound="ErrorErrorLinksItem")
 
 
 @_attrs_define
 class ErrorErrorLinksItem:
-    """
-    Attributes:
-        rel (ErrorErrorLinksItemRel):  Example: status.
-        href (str):  Example: /user-api/v2/vm/353/summary.
-    """
-
     rel: ErrorErrorLinksItemRel
     href: str
 
     def to_dict(self) -> dict[str, Any]:
-        rel = self.rel.value
+        rel: str = self.rel
 
         href = self.href
 
@@ -38,9 +36,9 @@ class ErrorErrorLinksItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        rel = ErrorErrorLinksItemRel(d.pop("rel"))
+        rel = check_error_error_links_item_rel(d.pop("rel"))
 
         href = d.pop("href")
 

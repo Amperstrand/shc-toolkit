@@ -5,12 +5,15 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_support_tickets_response_200_items_item_priority import (
     ListSupportTicketsResponse200ItemsItemPriority,
+    check_list_support_tickets_response_200_items_item_priority,
 )
 from ..models.list_support_tickets_response_200_items_item_status import (
     ListSupportTicketsResponse200ItemsItemStatus,
+    check_list_support_tickets_response_200_items_item_status,
 )
 from ..types import UNSET, Unset
 
@@ -19,20 +22,6 @@ T = TypeVar("T", bound="ListSupportTicketsResponse200ItemsItem")
 
 @_attrs_define
 class ListSupportTicketsResponse200ItemsItem:
-    """
-    Attributes:
-        id (int):  Example: 501.
-        code (str):  Example: ABC-123456.
-        department_id (int):  Example: 3.
-        summary (None | str):  Example: Cannot reach VM.
-        priority (ListSupportTicketsResponse200ItemsItemPriority):  Example: medium.
-        status (ListSupportTicketsResponse200ItemsItemStatus):  Example: open.
-        replies_count (int):  Example: 4.
-        last_reply_date (datetime.datetime | None | Unset):
-        date_added (datetime.datetime | None | Unset):
-        date_updated (datetime.datetime | None | Unset):
-    """
-
     id: int
     code: str
     department_id: int
@@ -54,9 +43,9 @@ class ListSupportTicketsResponse200ItemsItem:
         summary: None | str
         summary = self.summary
 
-        priority = self.priority.value
+        priority: str = self.priority
 
-        status = self.status.value
+        status: str = self.status
 
         replies_count = self.replies_count
 
@@ -107,7 +96,7 @@ class ListSupportTicketsResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -122,9 +111,13 @@ class ListSupportTicketsResponse200ItemsItem:
 
         summary = _parse_summary(d.pop("summary"))
 
-        priority = ListSupportTicketsResponse200ItemsItemPriority(d.pop("priority"))
+        priority = check_list_support_tickets_response_200_items_item_priority(
+            d.pop("priority")
+        )
 
-        status = ListSupportTicketsResponse200ItemsItemStatus(d.pop("status"))
+        status = check_list_support_tickets_response_200_items_item_status(
+            d.pop("status")
+        )
 
         replies_count = d.pop("replies_count")
 

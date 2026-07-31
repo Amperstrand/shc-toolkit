@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.event_subscription_created import EventSubscriptionCreated
@@ -14,13 +15,8 @@ T = TypeVar("T", bound="CreateEventSubscriptionResponse201")
 
 @_attrs_define
 class CreateEventSubscriptionResponse201:
-    """
-    Attributes:
-        data (EventSubscriptionCreated): Create response body for a new webhook subscription. Includes the one-time
-            signing secret.
-    """
-
     data: EventSubscriptionCreated
+    """ Create response body for a new webhook subscription. Includes the one-time signing secret. """
 
     def to_dict(self) -> dict[str, Any]:
         data = self.data.to_dict()
@@ -36,7 +32,7 @@ class CreateEventSubscriptionResponse201:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.event_subscription_created import EventSubscriptionCreated
 
         d = dict(src_dict)

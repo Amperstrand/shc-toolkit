@@ -4,19 +4,16 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="UpdateNip05Body")
 
 
 @_attrs_define
 class UpdateNip05Body:
-    """
-    Attributes:
-        nip05_name (float | str): Desired NIP-05 local name, lowercased by the handler and limited to a-z, 0-9, dot,
-            hyphen, and underscore.
-    """
-
     nip05_name: float | str
+    """ Desired NIP-05 local name, lowercased by the handler and limited to a-z, 0-9, dot, hyphen, and underscore.
+    """
 
     def to_dict(self) -> dict[str, Any]:
         nip05_name: float | str
@@ -33,7 +30,7 @@ class UpdateNip05Body:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_nip05_name(data: object) -> float | str:

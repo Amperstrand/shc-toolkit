@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,15 +13,11 @@ T = TypeVar("T", bound="SubmitVirtualMachineRenewalBody")
 
 @_attrs_define
 class SubmitVirtualMachineRenewalBody:
-    """
-    Attributes:
-        idempotency_key (str): Client-chosen idempotency key; replays return the original result.
-        pricing_id (int | Unset): Optional target term (package_pricing id) to renew into; requires the account to allow
-            term changes. Omit to renew the current term.
-    """
-
     idempotency_key: str
+    """ Client-chosen idempotency key; replays return the original result. """
     pricing_id: int | Unset = UNSET
+    """ Optional target term (package_pricing id) to renew into; requires the account to allow term changes. Omit to
+    renew the current term. """
 
     def to_dict(self) -> dict[str, Any]:
         idempotency_key = self.idempotency_key
@@ -40,7 +37,7 @@ class SubmitVirtualMachineRenewalBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         idempotency_key = d.pop("idempotency_key")
 

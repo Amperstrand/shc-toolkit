@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.checkout_redirect_response import CheckoutRedirectResponse
@@ -16,11 +17,6 @@ T = TypeVar("T", bound="SubmitPaymentCheckoutResponse200")
 
 @_attrs_define
 class SubmitPaymentCheckoutResponse200:
-    """
-    Attributes:
-        data (CheckoutRedirectResponse | PaidResponse):
-    """
-
     data: CheckoutRedirectResponse | PaidResponse
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -44,7 +40,7 @@ class SubmitPaymentCheckoutResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.checkout_redirect_response import CheckoutRedirectResponse
         from ..models.paid_response import PaidResponse
 

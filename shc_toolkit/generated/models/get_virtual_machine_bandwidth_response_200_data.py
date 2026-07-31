@@ -5,9 +5,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_virtual_machine_bandwidth_response_200_data_count_direction import (
     GetVirtualMachineBandwidthResponse200DataCountDirection,
+    check_get_virtual_machine_bandwidth_response_200_data_count_direction,
 )
 
 T = TypeVar("T", bound="GetVirtualMachineBandwidthResponse200Data")
@@ -15,17 +17,6 @@ T = TypeVar("T", bound="GetVirtualMachineBandwidthResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineBandwidthResponse200Data:
-    """
-    Attributes:
-        service_id (int):  Example: 451.
-        used_bytes (int):  Example: 15010866192.
-        used_gb (float):  Example: 13.98.
-        limit_gb (int):  Example: 1000.
-        count_direction (GetVirtualMachineBandwidthResponse200DataCountDirection):  Example: both.
-        as_of (datetime.datetime | None):  Example: 2026-06-03T20:22:00+00:00.
-        as_of_epoch (int | None): Unix seconds companion to as_of. Example: 1780544520.
-    """
-
     service_id: int
     used_bytes: int
     used_gb: float
@@ -33,6 +24,7 @@ class GetVirtualMachineBandwidthResponse200Data:
     count_direction: GetVirtualMachineBandwidthResponse200DataCountDirection
     as_of: datetime.datetime | None
     as_of_epoch: int | None
+    """ Unix seconds companion to as_of. """
 
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
@@ -43,7 +35,7 @@ class GetVirtualMachineBandwidthResponse200Data:
 
         limit_gb = self.limit_gb
 
-        count_direction = self.count_direction.value
+        count_direction: str = self.count_direction
 
         as_of: None | str
         if isinstance(self.as_of, datetime.datetime):
@@ -71,7 +63,7 @@ class GetVirtualMachineBandwidthResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
@@ -81,8 +73,10 @@ class GetVirtualMachineBandwidthResponse200Data:
 
         limit_gb = d.pop("limit_gb")
 
-        count_direction = GetVirtualMachineBandwidthResponse200DataCountDirection(
-            d.pop("count_direction")
+        count_direction = (
+            check_get_virtual_machine_bandwidth_response_200_data_count_direction(
+                d.pop("count_direction")
+            )
         )
 
         def _parse_as_of(data: object) -> datetime.datetime | None:

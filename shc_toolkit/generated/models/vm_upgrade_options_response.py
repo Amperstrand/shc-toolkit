@@ -5,15 +5,19 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.vm_upgrade_options_response_blocked_reason_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType1,
+    check_vm_upgrade_options_response_blocked_reason_type_1,
 )
 from ..models.vm_upgrade_options_response_blocked_reason_type_2_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType2Type1,
+    check_vm_upgrade_options_response_blocked_reason_type_2_type_1,
 )
 from ..models.vm_upgrade_options_response_blocked_reason_type_3_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType3Type1,
+    check_vm_upgrade_options_response_blocked_reason_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -32,17 +36,6 @@ class VmUpgradeOptionsResponse:
     """The current plan + the same-group plans the customer may move to, with a blocked_reason when a change cannot
     proceed. Placement is never exposed.
 
-        Attributes:
-            service_id (int):  Example: 456.
-            current (VmUpgradeOptionsResponseCurrent):
-            upgradable (list[VmUpgradablePlan]):
-            change_package_allowed (bool):  Example: True.
-            change_term_allowed (bool):
-            blocked_reason (None | VmUpgradeOptionsResponseBlockedReasonType1 |
-                VmUpgradeOptionsResponseBlockedReasonType2Type1 | VmUpgradeOptionsResponseBlockedReasonType3Type1): Why a change
-                cannot proceed right now, or null.
-            items (list[VmUpgradablePlan] | Unset): v2.4.0 alias (additive): identical to 'upgradable' (the generic list
-                key).
     """
 
     service_id: int
@@ -56,7 +49,9 @@ class VmUpgradeOptionsResponse:
         | VmUpgradeOptionsResponseBlockedReasonType2Type1
         | VmUpgradeOptionsResponseBlockedReasonType3Type1
     )
+    """ Why a change cannot proceed right now, or null. """
     items: list[VmUpgradablePlan] | Unset = UNSET
+    """ v2.4.0 alias (additive): identical to 'upgradable' (the generic list key). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,16 +69,12 @@ class VmUpgradeOptionsResponse:
         change_term_allowed = self.change_term_allowed
 
         blocked_reason: None | str
-        if isinstance(self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType1):
-            blocked_reason = self.blocked_reason.value
-        elif isinstance(
-            self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType2Type1
+        if (
+            isinstance(self.blocked_reason, str)
+            or isinstance(self.blocked_reason, str)
+            or isinstance(self.blocked_reason, str)
         ):
-            blocked_reason = self.blocked_reason.value
-        elif isinstance(
-            self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType3Type1
-        ):
-            blocked_reason = self.blocked_reason.value
+            blocked_reason = self.blocked_reason
         else:
             blocked_reason = self.blocked_reason
 
@@ -112,7 +103,7 @@ class VmUpgradeOptionsResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgradable_plan import VmUpgradablePlan
         from ..models.vm_upgrade_options_response_current import (
             VmUpgradeOptionsResponseCurrent,
@@ -147,7 +138,9 @@ class VmUpgradeOptionsResponse:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                blocked_reason_type_1 = VmUpgradeOptionsResponseBlockedReasonType1(data)
+                blocked_reason_type_1 = (
+                    check_vm_upgrade_options_response_blocked_reason_type_1(data)
+                )
 
                 return blocked_reason_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -156,7 +149,7 @@ class VmUpgradeOptionsResponse:
                 if not isinstance(data, str):
                     raise TypeError()
                 blocked_reason_type_2_type_1 = (
-                    VmUpgradeOptionsResponseBlockedReasonType2Type1(data)
+                    check_vm_upgrade_options_response_blocked_reason_type_2_type_1(data)
                 )
 
                 return blocked_reason_type_2_type_1
@@ -166,7 +159,7 @@ class VmUpgradeOptionsResponse:
                 if not isinstance(data, str):
                     raise TypeError()
                 blocked_reason_type_3_type_1 = (
-                    VmUpgradeOptionsResponseBlockedReasonType3Type1(data)
+                    check_vm_upgrade_options_response_blocked_reason_type_3_type_1(data)
                 )
 
                 return blocked_reason_type_3_type_1

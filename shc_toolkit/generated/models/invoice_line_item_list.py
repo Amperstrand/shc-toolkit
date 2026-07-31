@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.invoice_line_item_list_items_item import InvoiceLineItemListItemsItem
@@ -15,12 +16,6 @@ T = TypeVar("T", bound="InvoiceLineItemList")
 
 @_attrs_define
 class InvoiceLineItemList:
-    """
-    Attributes:
-        items (list[InvoiceLineItemListItemsItem]):
-        pagination (Pagination):  Example: {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}.
-    """
-
     items: list[InvoiceLineItemListItemsItem]
     pagination: Pagination
 
@@ -44,7 +39,7 @@ class InvoiceLineItemList:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.invoice_line_item_list_items_item import (
             InvoiceLineItemListItemsItem,
         )

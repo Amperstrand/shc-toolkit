@@ -5,26 +5,14 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="Account")
 
 
 @_attrs_define
 class Account:
-    """Primary contact profile for the authenticated customer account.
-
-    Attributes:
-        email (str):  Example: you@example.com.
-        first_name (str):  Example: Jane.
-        last_name (str):  Example: Doe.
-        company (None | str):  Example: Acme LLC.
-        address1 (None | str):  Example: 123 Main St.
-        address2 (None | str):  Example: Suite 400.
-        city (None | str):  Example: Austin.
-        state (None | str):  Example: TX.
-        zip_ (None | str):  Example: 78701.
-        country (None | str): ISO 3166-1 alpha-2 uppercase country code (e.g. `US`). Example: US.
-    """
+    """Primary contact profile for the authenticated customer account."""
 
     email: str
     first_name: str
@@ -36,6 +24,7 @@ class Account:
     state: None | str
     zip_: None | str
     country: None | str
+    """ ISO 3166-1 alpha-2 uppercase country code (e.g. `US`). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -86,7 +75,7 @@ class Account:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         email = d.pop("email")
 

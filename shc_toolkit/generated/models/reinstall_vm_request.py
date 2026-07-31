@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.reinstall_vm_request_additional_property_type_4 import (
@@ -21,14 +22,13 @@ class ReinstallVmRequest:
     Example:
         {'template': 'debian13-cloud'}
 
-    Attributes:
-        template (str): Machine-stable OS template identifier to reinstall onto the VM. Must be one the customer's plan
-            offers in the live /ordering/catalog `template` option (e.g. debian13-cloud, debian12-cloud, ubuntu2404-cloud,
-            ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud,
-            openbsd79-cloud, windows2022-byol). Example: debian13-cloud.
     """
 
     template: str
+    """ Machine-stable OS template identifier to reinstall onto the VM. Must be one the customer's plan offers in
+    the live /ordering/catalog `template` option (e.g. debian13-cloud, debian12-cloud, ubuntu2404-cloud,
+    ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud,
+    openbsd79-cloud, windows2022-byol). """
     additional_properties: dict[
         str,
         bool
@@ -66,7 +66,7 @@ class ReinstallVmRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.reinstall_vm_request_additional_property_type_4 import (
             ReinstallVmRequestAdditionalPropertyType4,
         )
@@ -152,7 +152,6 @@ class ReinstallVmRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | ReinstallVmRequestAdditionalPropertyType4

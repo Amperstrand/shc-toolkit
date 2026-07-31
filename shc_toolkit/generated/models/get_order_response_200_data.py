@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.get_order_response_200_data_status import GetOrderResponse200DataStatus
+from ..models.get_order_response_200_data_status import (
+    GetOrderResponse200DataStatus,
+    check_get_order_response_200_data_status,
+)
 
 if TYPE_CHECKING:
     from ..models.get_order_response_200_data_invoice import (
@@ -22,24 +26,11 @@ T = TypeVar("T", bound="GetOrderResponse200Data")
 
 @_attrs_define
 class GetOrderResponse200Data:
-    """
-    Attributes:
-        order_id (int):
-        order_number (str):
-        status (GetOrderResponse200DataStatus):
-        date_added (None | str): Raw Blesta order timestamp.
-        order_form_id (int | None):
-        order_form_label (str):
-        invoice (GetOrderResponse200DataInvoice):
-        services (list[GetOrderResponse200DataServicesItem]):
-        cancelable (bool):
-        next_ (GetOrderResponse200DataNext):
-    """
-
     order_id: int
     order_number: str
     status: GetOrderResponse200DataStatus
     date_added: None | str
+    """ Raw Blesta order timestamp. """
     order_form_id: int | None
     order_form_label: str
     invoice: GetOrderResponse200DataInvoice
@@ -52,7 +43,7 @@ class GetOrderResponse200Data:
 
         order_number = self.order_number
 
-        status = self.status.value
+        status: str = self.status
 
         date_added: None | str
         date_added = self.date_added
@@ -93,7 +84,7 @@ class GetOrderResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_order_response_200_data_invoice import (
             GetOrderResponse200DataInvoice,
         )
@@ -109,7 +100,7 @@ class GetOrderResponse200Data:
 
         order_number = d.pop("order_number")
 
-        status = GetOrderResponse200DataStatus(d.pop("status"))
+        status = check_get_order_response_200_data_status(d.pop("status"))
 
         def _parse_date_added(data: object) -> None | str:
             if data is None:

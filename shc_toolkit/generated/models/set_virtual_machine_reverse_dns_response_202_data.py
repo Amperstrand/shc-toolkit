@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,16 +14,6 @@ T = TypeVar("T", bound="SetVirtualMachineReverseDnsResponse202Data")
 
 @_attrs_define
 class SetVirtualMachineReverseDnsResponse202Data:
-    """
-    Attributes:
-        service_id (int | Unset):
-        ip (str | Unset):
-        hostname (str | Unset):
-        status (str | Unset):  Example: queued.
-        job_id (int | Unset):
-        pending_public (bool | Unset):
-    """
-
     service_id: int | Unset = UNSET
     ip: str | Unset = UNSET
     hostname: str | Unset = UNSET
@@ -63,7 +54,7 @@ class SetVirtualMachineReverseDnsResponse202Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id", UNSET)
 

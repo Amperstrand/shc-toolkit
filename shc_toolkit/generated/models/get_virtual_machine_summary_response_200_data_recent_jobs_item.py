@@ -6,6 +6,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -14,16 +15,6 @@ T = TypeVar("T", bound="GetVirtualMachineSummaryResponse200DataRecentJobsItem")
 
 @_attrs_define
 class GetVirtualMachineSummaryResponse200DataRecentJobsItem:
-    """
-    Attributes:
-        job_id (int | Unset):  Example: 4821.
-        type_ (str | Unset):  Example: backup.
-        status (str | Unset):  Example: completed.
-        progress (int | Unset):  Example: 100.
-        created_at (datetime.datetime | Unset):
-        completed_at (datetime.datetime | None | Unset):
-    """
-
     job_id: int | Unset = UNSET
     type_: str | Unset = UNSET
     status: str | Unset = UNSET
@@ -72,7 +63,7 @@ class GetVirtualMachineSummaryResponse200DataRecentJobsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         job_id = d.pop("job_id", UNSET)
 

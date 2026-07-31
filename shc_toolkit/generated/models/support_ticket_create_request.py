@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,25 +24,20 @@ class SupportTicketCreateRequest:
         {'department_id': 1, 'subject': 'Cannot reach my VM over SSH', 'message': 'My VM stopped responding to SSH
             around 14:00 UTC.', 'priority': 'medium'}
 
-    Attributes:
-        department_id (int): Target support department (must be visible to this client; see GET /support/departments).
-            Example: 1.
-        subject (str): Ticket subject/summary. Example: Cannot reach my VM over SSH.
-        message (str): Ticket body. Example: My VM stopped responding to SSH around 14:00 UTC..
-        priority (str | Unset): Priority key valid for the department. Defaults to the department's default priority.
-            Example: medium.
-        custom_fields (SupportTicketCustomFields | Unset): Department custom-field values keyed by numeric field id.
-            Values are scalar (string/number/boolean). Example: {'12': 'value', '15': True}.
-        attachments (list[SupportTicketAttachment] | Unset): Optional base64-encoded attachments (subject to a total-
-            size cap).
     """
 
     department_id: int
+    """ Target support department (must be visible to this client; see GET /support/departments). """
     subject: str
+    """ Ticket subject/summary. """
     message: str
+    """ Ticket body. """
     priority: str | Unset = UNSET
+    """ Priority key valid for the department. Defaults to the department's default priority. """
     custom_fields: SupportTicketCustomFields | Unset = UNSET
+    """ Department custom-field values keyed by numeric field id. Values are scalar (string/number/boolean). """
     attachments: list[SupportTicketAttachment] | Unset = UNSET
+    """ Optional base64-encoded attachments (subject to a total-size cap). """
 
     def to_dict(self) -> dict[str, Any]:
         department_id = self.department_id
@@ -82,7 +78,7 @@ class SupportTicketCreateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.support_ticket_attachment import SupportTicketAttachment
         from ..models.support_ticket_custom_fields import SupportTicketCustomFields
 

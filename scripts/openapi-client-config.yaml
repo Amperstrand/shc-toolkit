@@ -1,0 +1,24 @@
+# openapi-python-client config for the SHC generated client.
+#
+# Used by scripts/generate_client.sh. See:
+#   https://github.com/openapi-generators/openapi-python-client#configuration
+#
+# literal_enums: true
+#   Emits enums as `Literal["a", "b", ...]` instead of `class X(str, Enum)`.
+#   Required for the SHC spec because Problem.x-error-code contains both
+#   "cloud-init-policy-violation" and "cloud_init_policy_violation" — both
+#   normalize to the same Python enum key (CLOUD_INIT_POLICY_VIOLATION),
+#   which would collide under the default Enum strategy. Literal preserves
+#   both variants as legal values, so the client can deserialize whichever
+#   form the API returns. Tracked in GitHub issue #20.
+literal_enums: true
+
+# Keep model names readable. Matches the previous default behavior.
+use_path_prefixes_for_title_model_names: true
+
+# field_prefix defaults to field_ — keep it; SHC schemas occasionally start
+# property names with underscores or collide with Python keywords.
+field_prefix: field_
+
+# docstrings on attributes are nice for IDE hover.
+docstrings_on_attributes: true

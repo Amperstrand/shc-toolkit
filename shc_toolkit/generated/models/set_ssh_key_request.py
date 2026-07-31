@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.set_ssh_key_request_additional_property_type_4 import (
@@ -21,14 +22,11 @@ class SetSshKeyRequest:
     Example:
         {'service_id': 353, 'ssh_key': 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host'}
 
-    Attributes:
-        service_id (int):  Example: 353.
-        ssh_key (str): Single-line ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp256/384/521 public key. Example: ssh-ed25519
-            AAAAC3NzaC1lZDI1NTE5AAAA... user@host.
     """
 
     service_id: int
     ssh_key: str
+    """ Single-line ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp256/384/521 public key. """
     additional_properties: dict[
         str,
         bool
@@ -69,7 +67,7 @@ class SetSshKeyRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.set_ssh_key_request_additional_property_type_4 import (
             SetSshKeyRequestAdditionalPropertyType4,
         )
@@ -158,7 +156,6 @@ class SetSshKeyRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | SetSshKeyRequestAdditionalPropertyType4

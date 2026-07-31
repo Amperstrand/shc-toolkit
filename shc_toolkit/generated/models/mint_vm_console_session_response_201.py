@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.console_session_response import ConsoleSessionResponse
@@ -15,13 +16,8 @@ T = TypeVar("T", bound="MintVmConsoleSessionResponse201")
 
 @_attrs_define
 class MintVmConsoleSessionResponse201:
-    """
-    Attributes:
-        data (ConsoleSessionResponse): A freshly minted, single-use noVNC console session. Open console_url in a browser
-            before it expires.
-    """
-
     data: ConsoleSessionResponse
+    """ A freshly minted, single-use noVNC console session. Open console_url in a browser before it expires. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +34,7 @@ class MintVmConsoleSessionResponse201:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.console_session_response import ConsoleSessionResponse
 
         d = dict(src_dict)

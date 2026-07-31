@@ -5,8 +5,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.affiliate_referral_status import AffiliateReferralStatus
+from ..models.affiliate_referral_status import (
+    AffiliateReferralStatus,
+    check_affiliate_referral_status,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AffiliateReferral")
@@ -14,21 +18,12 @@ T = TypeVar("T", bound="AffiliateReferral")
 
 @_attrs_define
 class AffiliateReferral:
-    """
-    Attributes:
-        id (int):  Example: 17.
-        status (AffiliateReferralStatus):  Example: mature.
-        amount (str): Invoiced order amount, BTC (8 dp). Example: 0.05000000.
-        commission (str): Accrued commission, BTC (8 dp). Example: 0.00100000.
-        currency (str):  Example: BTC.
-        order_number (None | str | Unset):  Example: ORD-1042.
-        date_added (datetime.datetime | None | Unset):
-    """
-
     id: int
     status: AffiliateReferralStatus
     amount: str
+    """ Invoiced order amount, BTC (8 dp). """
     commission: str
+    """ Accrued commission, BTC (8 dp). """
     currency: str
     order_number: None | str | Unset = UNSET
     date_added: datetime.datetime | None | Unset = UNSET
@@ -36,7 +31,7 @@ class AffiliateReferral:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status = self.status.value
+        status: str = self.status
 
         amount = self.amount
 
@@ -77,11 +72,11 @@ class AffiliateReferral:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        status = AffiliateReferralStatus(d.pop("status"))
+        status = check_affiliate_referral_status(d.pop("status"))
 
         amount = d.pop("amount")
 

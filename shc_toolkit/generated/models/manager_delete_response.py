@@ -5,8 +5,12 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.manager_delete_response_status import ManagerDeleteResponseStatus
+from ..models.manager_delete_response_status import (
+    ManagerDeleteResponseStatus,
+    check_manager_delete_response_status,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ManagerDeleteResponse")
@@ -17,16 +21,13 @@ class ManagerDeleteResponse:
     """Result of revoking an active manager (returns contact_id) or declining a pending invitation (returns
     status=declined).
 
-        Attributes:
-            revoked (bool):  Example: True.
-            contact_id (int | Unset): Present when an active manager (numeric ref) was revoked. Example: 182.
-            status (ManagerDeleteResponseStatus | Unset): Present (value `declined`) when a pending invitation (token ref)
-                was cancelled. Example: declined.
     """
 
     revoked: bool
     contact_id: int | Unset = UNSET
+    """ Present when an active manager (numeric ref) was revoked. """
     status: ManagerDeleteResponseStatus | Unset = UNSET
+    """ Present (value `declined`) when a pending invitation (token ref) was cancelled. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,7 +37,7 @@ class ManagerDeleteResponse:
 
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
-            status = self.status.value
+            status = self.status
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -53,7 +54,7 @@ class ManagerDeleteResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         revoked = d.pop("revoked")
 
@@ -64,7 +65,7 @@ class ManagerDeleteResponse:
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = ManagerDeleteResponseStatus(_status)
+            status = check_manager_delete_response_status(_status)
 
         manager_delete_response = cls(
             revoked=revoked,

@@ -5,35 +5,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus
+from ..models.invoice_status import InvoiceStatus, check_invoice_status
 
 T = TypeVar("T", bound="AccountInvoiceSummary")
 
 
 @_attrs_define
 class AccountInvoiceSummary:
-    """Customer-safe account invoice list row.
-
-    Attributes:
-        id (int):  Example: 123.
-        id_code (str): Human invoice number. Example: 123.
-        invoice_status (InvoiceStatus): Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due
-            date has passed; clients that previously treated it as `open` can continue to do so but the API surfaces the
-            distinction. Example: open.
-        subtotal (str):  Example: 10.00.
-        total (str):  Example: 11.99.
-        paid (str):  Example: 0.00.
-        previous_due (str):  Example: 0.00.
-        currency (str):  Example: USD.
-        date_billed (datetime.datetime | None):
-        date_due (datetime.datetime | None):
-        date_closed (datetime.datetime | None):
-    """
+    """Customer-safe account invoice list row."""
 
     id: int
     id_code: str
+    """ Human invoice number. """
     invoice_status: InvoiceStatus
+    """ Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due date has passed; clients that
+    previously treated it as `open` can continue to do so but the API surfaces the distinction. """
     subtotal: str
     total: str
     paid: str
@@ -48,7 +36,7 @@ class AccountInvoiceSummary:
 
         id_code = self.id_code
 
-        invoice_status = self.invoice_status.value
+        invoice_status: str = self.invoice_status
 
         subtotal = self.subtotal
 
@@ -99,13 +87,13 @@ class AccountInvoiceSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
         id_code = d.pop("id_code")
 
-        invoice_status = InvoiceStatus(d.pop("invoice_status"))
+        invoice_status = check_invoice_status(d.pop("invoice_status"))
 
         subtotal = d.pop("subtotal")
 

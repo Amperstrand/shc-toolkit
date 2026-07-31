@@ -5,9 +5,11 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_contact_response_200_data_contact_type import (
     GetContactResponse200DataContactType,
+    check_get_contact_response_200_data_contact_type,
 )
 from ..types import UNSET, Unset
 
@@ -22,27 +24,6 @@ T = TypeVar("T", bound="GetContactResponse200Data")
 
 @_attrs_define
 class GetContactResponse200Data:
-    """
-    Attributes:
-        id (int):  Example: 88.
-        contact_type (GetContactResponse200DataContactType):
-        first_name (None | str):
-        last_name (None | str):
-        email (None | str):
-        has_login (bool):
-        numbers (list[GetContactResponse200DataNumbersItem]):
-        permissions (list[str]):  Example: ['client_invoices', 'client_services'].
-        company (None | str | Unset):
-        title (None | str | Unset):
-        address1 (None | str | Unset):
-        address2 (None | str | Unset):
-        city (None | str | Unset):
-        state (None | str | Unset):
-        zip_ (None | str | Unset):
-        country (None | str | Unset):
-        date_added (datetime.datetime | None | Unset):
-    """
-
     id: int
     contact_type: GetContactResponse200DataContactType
     first_name: None | str
@@ -64,7 +45,7 @@ class GetContactResponse200Data:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type = self.contact_type.value
+        contact_type: str = self.contact_type
 
         first_name: None | str
         first_name = self.first_name
@@ -176,7 +157,7 @@ class GetContactResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_contact_response_200_data_numbers_item import (
             GetContactResponse200DataNumbersItem,
         )
@@ -184,7 +165,9 @@ class GetContactResponse200Data:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = GetContactResponse200DataContactType(d.pop("contact_type"))
+        contact_type = check_get_contact_response_200_data_contact_type(
+            d.pop("contact_type")
+        )
 
         def _parse_first_name(data: object) -> None | str:
             if data is None:

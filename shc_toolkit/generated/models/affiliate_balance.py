@@ -4,25 +4,20 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="AffiliateBalance")
 
 
 @_attrs_define
 class AffiliateBalance:
-    """
-    Attributes:
-        currency (str):  Example: BTC.
-        available (str): Available to withdraw now, BTC (8 dp) = total_available - total_withdrawn, floored at 0.
-            Example: 0.00000000.
-        total_available (str): Lifetime matured commission, BTC (8 dp). Example: 0.00000000.
-        total_withdrawn (str): Lifetime withdrawn, BTC (8 dp). Example: 0.00000000.
-    """
-
     currency: str
     available: str
+    """ Available to withdraw now, BTC (8 dp) = total_available - total_withdrawn, floored at 0. """
     total_available: str
+    """ Lifetime matured commission, BTC (8 dp). """
     total_withdrawn: str
+    """ Lifetime withdrawn, BTC (8 dp). """
 
     def to_dict(self) -> dict[str, Any]:
         currency = self.currency
@@ -47,7 +42,7 @@ class AffiliateBalance:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         currency = d.pop("currency")
 

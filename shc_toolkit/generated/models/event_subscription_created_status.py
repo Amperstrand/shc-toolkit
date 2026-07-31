@@ -1,10 +1,19 @@
-from enum import Enum
+from typing import Literal
+
+EventSubscriptionCreatedStatus = Literal["active", "deadLettered", "paused"]
+
+EVENT_SUBSCRIPTION_CREATED_STATUS_VALUES: set[EventSubscriptionCreatedStatus] = {
+    "active",
+    "deadLettered",
+    "paused",
+}
 
 
-class EventSubscriptionCreatedStatus(str, Enum):
-    ACTIVE = "active"
-    DEADLETTERED = "deadLettered"
-    PAUSED = "paused"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_event_subscription_created_status(
+    value: str,
+) -> EventSubscriptionCreatedStatus:
+    if value in EVENT_SUBSCRIPTION_CREATED_STATUS_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {EVENT_SUBSCRIPTION_CREATED_STATUS_VALUES!r}"
+    )

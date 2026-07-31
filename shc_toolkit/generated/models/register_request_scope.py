@@ -1,9 +1,16 @@
-from enum import Enum
+from typing import Literal
+
+RegisterRequestScope = Literal["operate", "read"]
+
+REGISTER_REQUEST_SCOPE_VALUES: set[RegisterRequestScope] = {
+    "operate",
+    "read",
+}
 
 
-class RegisterRequestScope(str, Enum):
-    OPERATE = "operate"
-    READ = "read"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_register_request_scope(value: str) -> RegisterRequestScope:
+    if value in REGISTER_REQUEST_SCOPE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {REGISTER_REQUEST_SCOPE_VALUES!r}"
+    )

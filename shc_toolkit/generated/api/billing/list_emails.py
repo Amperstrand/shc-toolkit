@@ -14,8 +14,8 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    sort: ListEmailsSort | Unset = ListEmailsSort.DATE_SENT,
-    order: ListEmailsOrder | Unset = ListEmailsOrder.DESC,
+    sort: ListEmailsSort | Unset = "date_sent",
+    order: ListEmailsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -28,13 +28,13 @@ def _get_kwargs(
 
     json_sort: str | Unset = UNSET
     if not isinstance(sort, Unset):
-        json_sort = sort.value
+        json_sort = sort
 
     params["sort"] = json_sort
 
     json_order: str | Unset = UNSET
     if not isinstance(order, Unset):
-        json_order = order.value
+        json_order = order
 
     params["order"] = json_order
 
@@ -112,8 +112,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListEmailsSort | Unset = ListEmailsSort.DATE_SENT,
-    order: ListEmailsOrder | Unset = ListEmailsOrder.DESC,
+    sort: ListEmailsSort | Unset = "date_sent",
+    order: ListEmailsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -124,8 +124,8 @@ def sync_detailed(
     sent emails only). List items carry a `body_preview`; use the detail endpoint for the full body.
 
     Args:
-        sort (ListEmailsSort | Unset):  Default: ListEmailsSort.DATE_SENT.
-        order (ListEmailsOrder | Unset):  Default: ListEmailsOrder.DESC.
+        sort (ListEmailsSort | Unset):  Default: 'date_sent'.
+        order (ListEmailsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -156,8 +156,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListEmailsSort | Unset = ListEmailsSort.DATE_SENT,
-    order: ListEmailsOrder | Unset = ListEmailsOrder.DESC,
+    sort: ListEmailsSort | Unset = "date_sent",
+    order: ListEmailsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -168,8 +168,8 @@ def sync(
     sent emails only). List items carry a `body_preview`; use the detail endpoint for the full body.
 
     Args:
-        sort (ListEmailsSort | Unset):  Default: ListEmailsSort.DATE_SENT.
-        order (ListEmailsOrder | Unset):  Default: ListEmailsOrder.DESC.
+        sort (ListEmailsSort | Unset):  Default: 'date_sent'.
+        order (ListEmailsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -195,8 +195,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListEmailsSort | Unset = ListEmailsSort.DATE_SENT,
-    order: ListEmailsOrder | Unset = ListEmailsOrder.DESC,
+    sort: ListEmailsSort | Unset = "date_sent",
+    order: ListEmailsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -207,8 +207,8 @@ async def asyncio_detailed(
     sent emails only). List items carry a `body_preview`; use the detail endpoint for the full body.
 
     Args:
-        sort (ListEmailsSort | Unset):  Default: ListEmailsSort.DATE_SENT.
-        order (ListEmailsOrder | Unset):  Default: ListEmailsOrder.DESC.
+        sort (ListEmailsSort | Unset):  Default: 'date_sent'.
+        order (ListEmailsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -237,8 +237,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListEmailsSort | Unset = ListEmailsSort.DATE_SENT,
-    order: ListEmailsOrder | Unset = ListEmailsOrder.DESC,
+    sort: ListEmailsSort | Unset = "date_sent",
+    order: ListEmailsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -249,8 +249,8 @@ async def asyncio(
     sent emails only). List items carry a `body_preview`; use the detail endpoint for the full body.
 
     Args:
-        sort (ListEmailsSort | Unset):  Default: ListEmailsSort.DATE_SENT.
-        order (ListEmailsOrder | Unset):  Default: ListEmailsOrder.DESC.
+        sort (ListEmailsSort | Unset):  Default: 'date_sent'.
+        order (ListEmailsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):

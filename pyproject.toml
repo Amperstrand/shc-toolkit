@@ -76,3 +76,10 @@ ignore = [
 
 [tool.mypy]
 exclude = "shc_toolkit/generated/"
+
+# Generated client is codegen (excluded above) but mypy still follows imports
+# into it from hand-written code; skip those so codegen template quirks don't
+# surface as type errors in our CI.
+[[tool.mypy.overrides]]
+module = "shc_toolkit.generated.*"
+follow_imports = "skip"

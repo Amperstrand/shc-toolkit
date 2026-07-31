@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -19,28 +20,19 @@ T = TypeVar("T", bound="ConfirmationChallengeStructuredContent")
 
 @_attrs_define
 class ConfirmationChallengeStructuredContent:
-    """LEGACY nested copy, kept verbatim for existing clients. May be absent.
-
-    Attributes:
-        status (str | Unset):  Example: confirmation_required.
-        tool (str | Unset): The operationId requiring confirmation.
-        spends_money (bool | Unset):
-        destructive (bool | Unset):
-        money_credential_write (bool | Unset):
-        scope (None | str | Unset): Method scope required for the operation.
-        confirmation_id (str | Unset):
-        idempotency_key (None | str | Unset): The idempotency key bound to this pending action; re-send it unchanged.
-        how_to_proceed (ConfirmationChallengeStructuredContentHowToProceed | Unset):
-    """
+    """LEGACY nested copy, kept verbatim for existing clients. May be absent."""
 
     status: str | Unset = UNSET
     tool: str | Unset = UNSET
+    """ The operationId requiring confirmation. """
     spends_money: bool | Unset = UNSET
     destructive: bool | Unset = UNSET
     money_credential_write: bool | Unset = UNSET
     scope: None | str | Unset = UNSET
+    """ Method scope required for the operation. """
     confirmation_id: str | Unset = UNSET
     idempotency_key: None | str | Unset = UNSET
+    """ The idempotency key bound to this pending action; re-send it unchanged. """
     how_to_proceed: ConfirmationChallengeStructuredContentHowToProceed | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -98,7 +90,7 @@ class ConfirmationChallengeStructuredContent:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.confirmation_challenge_structured_content_how_to_proceed import (
             ConfirmationChallengeStructuredContentHowToProceed,
         )

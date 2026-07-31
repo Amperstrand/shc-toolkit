@@ -4,12 +4,15 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.vm_firewall_rule_update_request_action import (
     VmFirewallRuleUpdateRequestAction,
+    check_vm_firewall_rule_update_request_action,
 )
 from ..models.vm_firewall_rule_update_request_direction import (
     VmFirewallRuleUpdateRequestDirection,
+    check_vm_firewall_rule_update_request_direction,
 )
 from ..types import UNSET, Unset
 
@@ -24,50 +27,43 @@ class VmFirewallRuleUpdateRequest:
         Example:
             {'enabled': False, 'dest_port': '2222'}
 
-        Attributes:
-            action (VmFirewallRuleUpdateRequestAction | Unset): Rule action. v2.4.0: case-INSENSITIVE on input
-                (accept/Drop/REJECT all valid); always canonical UPPERCASE on output. Example: DROP.
-            direction (VmFirewallRuleUpdateRequestDirection | Unset): Rule direction. (Security-group rules cannot be
-                created/edited via the API.) Example: in.
-            name (None | str | Unset): Optional rule comment / name. Example: block-scanner.
-            source (None | str | Unset): Source address: IP, CIDR, or an IPSet/alias name (comma-separated tokens allowed).
-                Example: 203.0.113.99.
-            source_port (None | str | Unset): Source port: a port, a `lo:hi` range, a comma list, or a service name.
-                Example: 1024:65535.
-            dest (None | str | Unset): Destination address: IP, CIDR, or an IPSet/alias name. Example: 10.0.0.5.
-            dest_port (None | str | Unset): Destination port: a port, a `lo:hi` range, a comma list, or a service name.
-                Example: 22.
-            protocol (None | str | Unset): Protocol name (tcp, udp, icmp, ...) or a numeric protocol id 0-255. Example: tcp.
-            macro (None | str | Unset): A firewall macro name from GET /vm/{service_id}/firewall, or `none` for no macro.
-                Example: SSH.
-            interface (None | str | Unset): Bind to a VM network interface name (e.g. net0). Example: net0.
-            icmp_type (None | str | Unset): ICMP type, from the firewall vocabulary (GET /vm/{service_id}/firewall
-                `icmp_types`). Example: echo-request.
-            enabled (bool | Unset): Whether the rule is enabled. Accepts a JSON boolean or on/off/true/false/1/0. Defaults
-                to true on create; on edit, omitting it keeps the current state. Example: True.
     """
 
     action: VmFirewallRuleUpdateRequestAction | Unset = UNSET
+    """ Rule action. v2.4.0: case-INSENSITIVE on input (accept/Drop/REJECT all valid); always canonical UPPERCASE on
+    output. """
     direction: VmFirewallRuleUpdateRequestDirection | Unset = UNSET
+    """ Rule direction. (Security-group rules cannot be created/edited via the API.) """
     name: None | str | Unset = UNSET
+    """ Optional rule comment / name. """
     source: None | str | Unset = UNSET
+    """ Source address: IP, CIDR, or an IPSet/alias name (comma-separated tokens allowed). """
     source_port: None | str | Unset = UNSET
+    """ Source port: a port, a `lo:hi` range, a comma list, or a service name. """
     dest: None | str | Unset = UNSET
+    """ Destination address: IP, CIDR, or an IPSet/alias name. """
     dest_port: None | str | Unset = UNSET
+    """ Destination port: a port, a `lo:hi` range, a comma list, or a service name. """
     protocol: None | str | Unset = UNSET
+    """ Protocol name (tcp, udp, icmp, ...) or a numeric protocol id 0-255. """
     macro: None | str | Unset = UNSET
+    """ A firewall macro name from GET /vm/{service_id}/firewall, or `none` for no macro. """
     interface: None | str | Unset = UNSET
+    """ Bind to a VM network interface name (e.g. net0). """
     icmp_type: None | str | Unset = UNSET
+    """ ICMP type, from the firewall vocabulary (GET /vm/{service_id}/firewall `icmp_types`). """
     enabled: bool | Unset = UNSET
+    """ Whether the rule is enabled. Accepts a JSON boolean or on/off/true/false/1/0. Defaults to true on create; on
+    edit, omitting it keeps the current state. """
 
     def to_dict(self) -> dict[str, Any]:
         action: str | Unset = UNSET
         if not isinstance(self.action, Unset):
-            action = self.action.value
+            action = self.action
 
         direction: str | Unset = UNSET
         if not isinstance(self.direction, Unset):
-            direction = self.direction.value
+            direction = self.direction
 
         name: None | str | Unset
         if isinstance(self.name, Unset):
@@ -156,21 +152,21 @@ class VmFirewallRuleUpdateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         _action = d.pop("action", UNSET)
         action: VmFirewallRuleUpdateRequestAction | Unset
         if isinstance(_action, Unset):
             action = UNSET
         else:
-            action = VmFirewallRuleUpdateRequestAction(_action)
+            action = check_vm_firewall_rule_update_request_action(_action)
 
         _direction = d.pop("direction", UNSET)
         direction: VmFirewallRuleUpdateRequestDirection | Unset
         if isinstance(_direction, Unset):
             direction = UNSET
         else:
-            direction = VmFirewallRuleUpdateRequestDirection(_direction)
+            direction = check_vm_firewall_rule_update_request_direction(_direction)
 
         def _parse_name(data: object) -> None | str | Unset:
             if data is None:

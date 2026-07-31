@@ -6,9 +6,16 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.transaction_summary_status import TransactionSummaryStatus
-from ..models.transaction_summary_type import TransactionSummaryType
+from ..models.transaction_summary_status import (
+    TransactionSummaryStatus,
+    check_transaction_summary_status,
+)
+from ..models.transaction_summary_type import (
+    TransactionSummaryType,
+    check_transaction_summary_type,
+)
 
 if TYPE_CHECKING:
     from ..models.transaction_applied_invoice_list import TransactionAppliedInvoiceList
@@ -19,24 +26,6 @@ T = TypeVar("T", bound="TransactionDetail")
 
 @_attrs_define
 class TransactionDetail:
-    """
-    Attributes:
-        id (int):  Example: 88.
-        amount (str):  Example: 11.99.
-        applied_amount (str):  Example: 11.99.
-        currency (str):  Example: USD.
-        type_ (TransactionSummaryType):  Example: other.
-        type_name (None | str):  Example: Bitcoin.
-        transaction_type_id (int | None):  Example: 4.
-        status (TransactionSummaryStatus):  Example: approved.
-        reference_id (None | str):
-        transaction_number (None | str):  Example: txn_abc123.
-        message (None | str):
-        gateway_name (None | str):  Example: Bitcoin.
-        date_added (datetime.datetime | None):
-        applied_invoices (TransactionAppliedInvoiceList):
-    """
-
     id: int
     amount: str
     applied_amount: str
@@ -62,7 +51,7 @@ class TransactionDetail:
 
         currency = self.currency
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         type_name: None | str
         type_name = self.type_name
@@ -70,7 +59,7 @@ class TransactionDetail:
         transaction_type_id: int | None
         transaction_type_id = self.transaction_type_id
 
-        status = self.status.value
+        status: str = self.status
 
         reference_id: None | str
         reference_id = self.reference_id
@@ -116,7 +105,7 @@ class TransactionDetail:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.transaction_applied_invoice_list import (
             TransactionAppliedInvoiceList,
         )
@@ -130,7 +119,7 @@ class TransactionDetail:
 
         currency = d.pop("currency")
 
-        type_ = TransactionSummaryType(d.pop("type"))
+        type_ = check_transaction_summary_type(d.pop("type"))
 
         def _parse_type_name(data: object) -> None | str:
             if data is None:
@@ -146,7 +135,7 @@ class TransactionDetail:
 
         transaction_type_id = _parse_transaction_type_id(d.pop("transaction_type_id"))
 
-        status = TransactionSummaryStatus(d.pop("status"))
+        status = check_transaction_summary_status(d.pop("status"))
 
         def _parse_reference_id(data: object) -> None | str:
             if data is None:

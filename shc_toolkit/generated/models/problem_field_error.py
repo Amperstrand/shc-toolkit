@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.problem_field_error_type import ProblemFieldErrorType
+from ..models.problem_field_error_type import (
+    ProblemFieldErrorType,
+    check_problem_field_error_type,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ProblemFieldError")
@@ -13,24 +17,17 @@ T = TypeVar("T", bound="ProblemFieldError")
 
 @_attrs_define
 class ProblemFieldError:
-    """Typed FIELD error. Every entry names the offending request field.
-
-    Attributes:
-        type_ (ProblemFieldErrorType):  Example: field.
-        field (str): Offending field path using body/query/header/path prefixes. Example: body.hostname.
-        code (str):  Example: invalid.
-        detail (str):  Example: hostname must be unique for this account..
-        hint (str | Unset):  Example: Choose another hostname or omit the field to auto-generate one..
-    """
+    """Typed FIELD error. Every entry names the offending request field."""
 
     type_: ProblemFieldErrorType
     field: str
+    """ Offending field path using body/query/header/path prefixes. """
     code: str
     detail: str
     hint: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        type_ = self.type_.value
+        type_: str = self.type_
 
         field = self.field
 
@@ -56,9 +53,9 @@ class ProblemFieldError:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        type_ = ProblemFieldErrorType(d.pop("type"))
+        type_ = check_problem_field_error_type(d.pop("type"))
 
         field = d.pop("field")
 

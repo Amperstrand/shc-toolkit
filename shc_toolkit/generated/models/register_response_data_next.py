@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,14 +14,7 @@ T = TypeVar("T", bound="RegisterResponseDataNext")
 
 @_attrs_define
 class RegisterResponseDataNext:
-    """Pointers to the next steps (catalog browse, docs).
-
-    Attributes:
-        catalog (str | Unset):  Example: /user-api/v2/ordering/catalog.
-        docs (str | Unset):  Example: /user-api/docs/.
-        note (str | Unset):  Example: Account is inert until a first order is placed and its invoice is paid.
-            Authenticate with the api_key Bearer token, or HTTP Basic (email + password)..
-    """
+    """Pointers to the next steps (catalog browse, docs)."""
 
     catalog: str | Unset = UNSET
     docs: str | Unset = UNSET
@@ -47,7 +41,7 @@ class RegisterResponseDataNext:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         catalog = d.pop("catalog", UNSET)
 

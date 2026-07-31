@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -17,21 +18,13 @@ T = TypeVar("T", bound="BillingBalance")
 
 @_attrs_define
 class BillingBalance:
-    """
-    Attributes:
-        default_currency (str):  Example: USD.
-        selected_currency (str):  Example: USD.
-        payment_credit_enabled (bool):  Example: True.
-        balances (list[BillingCurrencyBalance]):
-        credit (list[BillingBalanceCreditItem] | Unset): v2.4.0 alias (additive): per-currency available credit as
-            {currency, amount} — the same list /account/balance calls 'credit'.
-    """
-
     default_currency: str
     selected_currency: str
     payment_credit_enabled: bool
     balances: list[BillingCurrencyBalance]
     credit: list[BillingBalanceCreditItem] | Unset = UNSET
+    """ v2.4.0 alias (additive): per-currency available credit as {currency, amount} — the same list
+    /account/balance calls 'credit'. """
 
     def to_dict(self) -> dict[str, Any]:
         default_currency = self.default_currency
@@ -68,7 +61,7 @@ class BillingBalance:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.billing_balance_credit_item import BillingBalanceCreditItem
         from ..models.billing_currency_balance import BillingCurrencyBalance
 

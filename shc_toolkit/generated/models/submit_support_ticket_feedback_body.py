@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,15 +13,10 @@ T = TypeVar("T", bound="SubmitSupportTicketFeedbackBody")
 
 @_attrs_define
 class SubmitSupportTicketFeedbackBody:
-    """
-    Attributes:
-        rating (int | str): Required 1 through 5 ticket rating; numeric strings are accepted by the handler.
-        rating_comment (None | str | Unset): Optional feedback comment; omitted, null, or empty clears the stored
-            comment.
-    """
-
     rating: int | str
+    """ Required 1 through 5 ticket rating; numeric strings are accepted by the handler. """
     rating_comment: None | str | Unset = UNSET
+    """ Optional feedback comment; omitted, null, or empty clears the stored comment. """
 
     def to_dict(self) -> dict[str, Any]:
         rating: int | str
@@ -45,7 +41,7 @@ class SubmitSupportTicketFeedbackBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_rating(data: object) -> int | str:

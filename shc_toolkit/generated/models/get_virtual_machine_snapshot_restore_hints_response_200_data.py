@@ -5,9 +5,11 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.get_virtual_machine_snapshot_restore_hints_response_200_data_source import (
     GetVirtualMachineSnapshotRestoreHintsResponse200DataSource,
+    check_get_virtual_machine_snapshot_restore_hints_response_200_data_source,
 )
 from ..types import UNSET, Unset
 
@@ -22,25 +24,13 @@ T = TypeVar("T", bound="GetVirtualMachineSnapshotRestoreHintsResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
-    """
-    Attributes:
-        service_id (int):
-        source (GetVirtualMachineSnapshotRestoreHintsResponse200DataSource):
-        backup_id (str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        encrypted (bool):
-        key_type (str | Unset):
-        wrapped_blob (str | Unset):
-        unwrap_hints (list[bool | float | GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItemType4 | int
-            | list[str] | None | str] | Unset):
-        fingerprint (str | Unset):
-    """
-
     service_id: int
     source: GetVirtualMachineSnapshotRestoreHintsResponse200DataSource
     backup_id: str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     encrypted: bool
     key_type: str | Unset = UNSET
     wrapped_blob: str | Unset = UNSET
@@ -66,7 +56,7 @@ class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
 
         service_id = self.service_id
 
-        source = self.source.value
+        source: str = self.source
 
         backup_id = self.backup_id
 
@@ -121,7 +111,7 @@ class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_virtual_machine_snapshot_restore_hints_response_200_data_unwrap_hints_item_type_4 import (
             GetVirtualMachineSnapshotRestoreHintsResponse200DataUnwrapHintsItemType4,
         )
@@ -129,8 +119,10 @@ class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        source = GetVirtualMachineSnapshotRestoreHintsResponse200DataSource(
-            d.pop("source")
+        source = (
+            check_get_virtual_machine_snapshot_restore_hints_response_200_data_source(
+                d.pop("source")
+            )
         )
 
         backup_id = d.pop("backup_id")

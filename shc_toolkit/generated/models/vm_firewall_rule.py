@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -16,35 +17,34 @@ class VmFirewallRule:
     """A single firewall rule. Field names mirror the Proxmox rule object as consumed by the client portal; 'type' is the
     rule direction (in/out).
 
-        Attributes:
-            pos (int | None | Unset): Rule position (ordering key). Positions renumber when a rule is deleted.
-            type_ (None | str | Unset): Rule direction (in or out).
-            action (None | str | Unset): Rule action (ACCEPT, DROP, or REJECT).
-            comment (None | str | Unset): Rule comment / name.
-            enable (int | None | Unset): 1 if the rule is enabled, 0 otherwise.
-            macro (None | str | Unset): Applied macro, if any.
-            iface (None | str | Unset): Bound network interface, if any.
-            proto (None | str | Unset): Protocol, if any.
-            source (None | str | Unset): Source address/CIDR, if any.
-            sport (None | str | Unset): Source port, if any.
-            dest (None | str | Unset): Destination address/CIDR, if any.
-            dport (None | str | Unset): Destination port, if any.
-            icmp_type (None | str | Unset): ICMP type, if any.
     """
 
     pos: int | None | Unset = UNSET
+    """ Rule position (ordering key). Positions renumber when a rule is deleted. """
     type_: None | str | Unset = UNSET
+    """ Rule direction (in or out). """
     action: None | str | Unset = UNSET
+    """ Rule action (ACCEPT, DROP, or REJECT). """
     comment: None | str | Unset = UNSET
+    """ Rule comment / name. """
     enable: int | None | Unset = UNSET
+    """ 1 if the rule is enabled, 0 otherwise. """
     macro: None | str | Unset = UNSET
+    """ Applied macro, if any. """
     iface: None | str | Unset = UNSET
+    """ Bound network interface, if any. """
     proto: None | str | Unset = UNSET
+    """ Protocol, if any. """
     source: None | str | Unset = UNSET
+    """ Source address/CIDR, if any. """
     sport: None | str | Unset = UNSET
+    """ Source port, if any. """
     dest: None | str | Unset = UNSET
+    """ Destination address/CIDR, if any. """
     dport: None | str | Unset = UNSET
+    """ Destination port, if any. """
     icmp_type: None | str | Unset = UNSET
+    """ ICMP type, if any. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -159,7 +159,7 @@ class VmFirewallRule:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_pos(data: object) -> int | None | Unset:

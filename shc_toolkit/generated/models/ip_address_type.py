@@ -1,9 +1,16 @@
-from enum import Enum
+from typing import Literal
+
+IpAddressType = Literal["v4", "v6"]
+
+IP_ADDRESS_TYPE_VALUES: set[IpAddressType] = {
+    "v4",
+    "v6",
+}
 
 
-class IpAddressType(str, Enum):
-    V4 = "v4"
-    V6 = "v6"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_ip_address_type(value: str) -> IpAddressType:
+    if value in IP_ADDRESS_TYPE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {IP_ADDRESS_TYPE_VALUES!r}"
+    )

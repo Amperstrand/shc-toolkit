@@ -4,19 +4,15 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ManagedAccountSwitchResponseHeaders")
 
 
 @_attrs_define
 class ManagedAccountSwitchResponseHeaders:
-    """
-    Attributes:
-        x_managed_client_id (str): Send this header on subsequent calls to act as the managed client within the approved
-            areas.
-    """
-
     x_managed_client_id: str
+    """ Send this header on subsequent calls to act as the managed client within the approved areas. """
 
     def to_dict(self) -> dict[str, Any]:
         x_managed_client_id = self.x_managed_client_id
@@ -32,7 +28,7 @@ class ManagedAccountSwitchResponseHeaders:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         x_managed_client_id = d.pop("X-Managed-Client-Id")
 

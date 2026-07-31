@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -28,17 +29,14 @@ class VmUpgradePreviewRequest:
         Example:
             {'pricing_ref': '58', 'config_options': {'142': '64'}}
 
-        Attributes:
-            pricing_ref (int | str | Unset): Raw package_pricing.id (same-group, client-allowable, same billing term).
-                Example: 58.
-            config_options (VmUpgradePreviewRequestConfigOptions | Unset): Map of package option id (string) -> selected
-                value, validated identically to ordering. Example: {'142': '64'}.
-            pricing_id (int | Unset): v2.4.0 alias (additive): synonym of pricing_ref. pricing_ref wins if both are sent.
     """
 
     pricing_ref: int | str | Unset = UNSET
+    """ Raw package_pricing.id (same-group, client-allowable, same billing term). """
     config_options: VmUpgradePreviewRequestConfigOptions | Unset = UNSET
+    """ Map of package option id (string) -> selected value, validated identically to ordering. """
     pricing_id: int | Unset = UNSET
+    """ v2.4.0 alias (additive): synonym of pricing_ref. pricing_ref wins if both are sent. """
     additional_properties: dict[
         str,
         bool
@@ -88,7 +86,7 @@ class VmUpgradePreviewRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgrade_preview_request_additional_property_type_4 import (
             VmUpgradePreviewRequestAdditionalPropertyType4,
         )
@@ -196,7 +194,6 @@ class VmUpgradePreviewRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

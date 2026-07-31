@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -22,12 +23,6 @@ T = TypeVar("T", bound="ListApiKeysResponse200")
 
 @_attrs_define
 class ListApiKeysResponse200:
-    """
-    Attributes:
-        items (list[ListApiKeysResponse200ItemsItem] | Unset):
-        pagination (ListApiKeysResponse200Pagination | Unset):
-    """
-
     items: list[ListApiKeysResponse200ItemsItem] | Unset = UNSET
     pagination: ListApiKeysResponse200Pagination | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -55,7 +50,7 @@ class ListApiKeysResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_api_keys_response_200_items_item import (
             ListApiKeysResponse200ItemsItem,
         )

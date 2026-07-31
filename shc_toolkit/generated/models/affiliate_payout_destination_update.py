@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -17,15 +18,12 @@ class AffiliatePayoutDestinationUpdate:
     Example:
         {'payout_onchain': 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'}
 
-    Attributes:
-        payout_onchain (str | Unset): Extended public key (xpub/ypub/zpub, testnet variants) or a single mainnet
-            address; "" to clear. Example: bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq.
-        payout_lightning (str | Unset): Lightning Address, LNURL, or BOLT11 invoice; "" to clear. Example:
-            satoshi@sovereignhybridcompute.com.
     """
 
     payout_onchain: str | Unset = UNSET
+    """ Extended public key (xpub/ypub/zpub, testnet variants) or a single mainnet address; "" to clear. """
     payout_lightning: str | Unset = UNSET
+    """ Lightning Address, LNURL, or BOLT11 invoice; "" to clear. """
 
     def to_dict(self) -> dict[str, Any]:
         payout_onchain = self.payout_onchain
@@ -43,7 +41,7 @@ class AffiliatePayoutDestinationUpdate:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         payout_onchain = d.pop("payout_onchain", UNSET)
 

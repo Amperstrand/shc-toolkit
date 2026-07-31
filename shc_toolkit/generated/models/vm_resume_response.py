@@ -4,9 +4,16 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.vm_resume_response_lifecycle_state import VmResumeResponseLifecycleState
-from ..models.vm_resume_response_state import VmResumeResponseState
+from ..models.vm_resume_response_lifecycle_state import (
+    VmResumeResponseLifecycleState,
+    check_vm_resume_response_lifecycle_state,
+)
+from ..models.vm_resume_response_state import (
+    VmResumeResponseState,
+    check_vm_resume_response_state,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="VmResumeResponse")
@@ -14,16 +21,6 @@ T = TypeVar("T", bound="VmResumeResponse")
 
 @_attrs_define
 class VmResumeResponse:
-    """
-    Attributes:
-        service_id (int):
-        state (VmResumeResponseState):
-        lifecycle_state (VmResumeResponseLifecycleState):
-        resume_charge (str):  Example: 51.9194.
-        op_id (None | str | Unset):
-        job_id (int | None | Unset):
-    """
-
     service_id: int
     state: VmResumeResponseState
     lifecycle_state: VmResumeResponseLifecycleState
@@ -34,9 +31,9 @@ class VmResumeResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        state = self.state.value
+        state: str = self.state
 
-        lifecycle_state = self.lifecycle_state.value
+        lifecycle_state: str = self.lifecycle_state
 
         resume_charge = self.resume_charge
 
@@ -70,13 +67,15 @@ class VmResumeResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        state = VmResumeResponseState(d.pop("state"))
+        state = check_vm_resume_response_state(d.pop("state"))
 
-        lifecycle_state = VmResumeResponseLifecycleState(d.pop("lifecycle_state"))
+        lifecycle_state = check_vm_resume_response_lifecycle_state(
+            d.pop("lifecycle_state")
+        )
 
         resume_charge = d.pop("resume_charge")
 

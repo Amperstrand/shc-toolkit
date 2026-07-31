@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -26,24 +27,13 @@ class UpdateAccountContactRequest:
             {'email': 'billing@example.com', 'phone': '+15125550123', 'address1': '200 Congress Ave', 'city': 'Austin',
                 'state': 'TX', 'zip': '78701', 'country': 'US'}
 
-        Attributes:
-            first_name (str | Unset):
-            last_name (str | Unset):
-            email (str | Unset):
-            phone (str | Unset): Primary phone number. The API normalizes and validates E.164-style values.
-            company (str | Unset):
-            address1 (str | Unset):
-            address2 (str | Unset):
-            city (str | Unset):
-            state (str | Unset):
-            zip_ (str | Unset):
-            country (str | Unset): ISO 3166-1 alpha-2 uppercase country code (e.g. `US`).
     """
 
     first_name: str | Unset = UNSET
     last_name: str | Unset = UNSET
     email: str | Unset = UNSET
     phone: str | Unset = UNSET
+    """ Primary phone number. The API normalizes and validates E.164-style values. """
     company: str | Unset = UNSET
     address1: str | Unset = UNSET
     address2: str | Unset = UNSET
@@ -51,6 +41,7 @@ class UpdateAccountContactRequest:
     state: str | Unset = UNSET
     zip_: str | Unset = UNSET
     country: str | Unset = UNSET
+    """ ISO 3166-1 alpha-2 uppercase country code (e.g. `US`). """
     additional_properties: dict[
         str,
         bool
@@ -126,7 +117,7 @@ class UpdateAccountContactRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.update_account_contact_request_additional_property_type_4 import (
             UpdateAccountContactRequestAdditionalPropertyType4,
         )
@@ -244,7 +235,6 @@ class UpdateAccountContactRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

@@ -5,9 +5,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.agent_session_proof_of_possession import AgentSessionProofOfPossession
-from ..models.agent_session_scope import AgentSessionScope
+from ..models.agent_session_proof_of_possession import (
+    AgentSessionProofOfPossession,
+    check_agent_session_proof_of_possession,
+)
+from ..models.agent_session_scope import AgentSessionScope, check_agent_session_scope
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AgentSession")
@@ -15,22 +19,6 @@ T = TypeVar("T", bound="AgentSession")
 
 @_attrs_define
 class AgentSession:
-    """
-    Attributes:
-        session_id (str):
-        agent_id (str):
-        agent_name (str):
-        agent_purpose (str):
-        key_prefix (str):
-        scope (AgentSessionScope):
-        proof_of_possession (AgentSessionProofOfPossession):
-        created_at (datetime.datetime):
-        expires_at (datetime.datetime):
-        revoked_at (datetime.datetime | None):
-        public_key (None | str | Unset):
-        last_used_at (datetime.datetime | None | Unset):
-    """
-
     session_id: str
     agent_id: str
     agent_name: str
@@ -55,9 +43,9 @@ class AgentSession:
 
         key_prefix = self.key_prefix
 
-        scope = self.scope.value
+        scope: str = self.scope
 
-        proof_of_possession = self.proof_of_possession.value
+        proof_of_possession: str = self.proof_of_possession
 
         created_at = self.created_at.isoformat()
 
@@ -107,7 +95,7 @@ class AgentSession:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         session_id = d.pop("sessionId")
 
@@ -119,9 +107,11 @@ class AgentSession:
 
         key_prefix = d.pop("keyPrefix")
 
-        scope = AgentSessionScope(d.pop("scope"))
+        scope = check_agent_session_scope(d.pop("scope"))
 
-        proof_of_possession = AgentSessionProofOfPossession(d.pop("proofOfPossession"))
+        proof_of_possession = check_agent_session_proof_of_possession(
+            d.pop("proofOfPossession")
+        )
 
         created_at = datetime.datetime.fromisoformat(d.pop("createdAt"))
 

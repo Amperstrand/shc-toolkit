@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_queued_job_response import VmQueuedJobResponse
@@ -15,14 +16,8 @@ T = TypeVar("T", bound="RestoreVirtualMachineSnapshotResponse202")
 
 @_attrs_define
 class RestoreVirtualMachineSnapshotResponse202:
-    """
-    Attributes:
-        data (VmQueuedJobResponse): Queued backup, snapshot, or restore job response. Example: {'service_id': 353,
-            'job_id': 912, 'type': 'backup', 'source': None, 'backup_id': None, 'name': 'nightly-demo', 'mode': 'suspend',
-            'description': None, 'message': 'Backup queued successfully.'}.
-    """
-
     data: VmQueuedJobResponse
+    """ Queued backup, snapshot, or restore job response. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +34,7 @@ class RestoreVirtualMachineSnapshotResponse202:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_queued_job_response import VmQueuedJobResponse
 
         d = dict(src_dict)

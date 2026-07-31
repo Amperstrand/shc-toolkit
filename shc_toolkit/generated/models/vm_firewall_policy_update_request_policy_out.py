@@ -1,10 +1,21 @@
-from enum import Enum
+from typing import Literal
+
+VmFirewallPolicyUpdateRequestPolicyOut = Literal["ACCEPT", "DROP", "REJECT"]
+
+VM_FIREWALL_POLICY_UPDATE_REQUEST_POLICY_OUT_VALUES: set[
+    VmFirewallPolicyUpdateRequestPolicyOut
+] = {
+    "ACCEPT",
+    "DROP",
+    "REJECT",
+}
 
 
-class VmFirewallPolicyUpdateRequestPolicyOut(str, Enum):
-    ACCEPT = "ACCEPT"
-    DROP = "DROP"
-    REJECT = "REJECT"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_vm_firewall_policy_update_request_policy_out(
+    value: str,
+) -> VmFirewallPolicyUpdateRequestPolicyOut:
+    if value in VM_FIREWALL_POLICY_UPDATE_REQUEST_POLICY_OUT_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {VM_FIREWALL_POLICY_UPDATE_REQUEST_POLICY_OUT_VALUES!r}"
+    )

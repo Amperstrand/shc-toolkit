@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="Pagination")
 
@@ -14,11 +15,6 @@ class Pagination:
     Example:
         {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}
 
-    Attributes:
-        total (int):  Example: 42.
-        limit (int):  Example: 100.
-        offset (int):
-        has_more (bool):
     """
 
     total: int
@@ -49,7 +45,7 @@ class Pagination:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         total = d.pop("total")
 

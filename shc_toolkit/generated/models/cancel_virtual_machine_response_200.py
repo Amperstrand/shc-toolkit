@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.cancel_vm_response_data import CancelVmResponseData
@@ -15,14 +16,10 @@ T = TypeVar("T", bound="CancelVirtualMachineResponse200")
 
 @_attrs_define
 class CancelVirtualMachineResponse200:
-    """
-    Attributes:
-        data (CancelVmResponseData): VmDetail extended with `cancel_credit` when the cancel was immediate. End-of-term
-            cancels return the bare VmDetail shape (no `cancel_credit`). v2.4.0: top-level expected_refund + transaction_id
-            mirrors are always present on cancel responses.
-    """
-
     data: CancelVmResponseData
+    """ VmDetail extended with `cancel_credit` when the cancel was immediate. End-of-term cancels return the bare
+    VmDetail shape (no `cancel_credit`). v2.4.0: top-level expected_refund + transaction_id mirrors are always
+    present on cancel responses. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +36,7 @@ class CancelVirtualMachineResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.cancel_vm_response_data import CancelVmResponseData
 
         d = dict(src_dict)

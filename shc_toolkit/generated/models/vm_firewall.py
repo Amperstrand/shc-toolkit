@@ -5,9 +5,16 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_firewall_actions_item import VmFirewallActionsItem
-from ..models.vm_firewall_directions_item import VmFirewallDirectionsItem
+from ..models.vm_firewall_actions_item import (
+    VmFirewallActionsItem,
+    check_vm_firewall_actions_item,
+)
+from ..models.vm_firewall_directions_item import (
+    VmFirewallDirectionsItem,
+    check_vm_firewall_directions_item,
+)
 
 if TYPE_CHECKING:
     from ..models.vm_firewall_macros_item import VmFirewallMacrosItem
@@ -20,27 +27,24 @@ T = TypeVar("T", bound="VmFirewall")
 
 @_attrs_define
 class VmFirewall:
-    """Per-VM firewall configuration and rule-form vocabulary.
-
-    Attributes:
-        service_id (int): Owned Blesta service id.
-        policy (VmFirewallPolicy): Default firewall policy.
-        rules (list[VmFirewallRule]): Firewall rules (security-group rules are excluded).
-        interfaces (list[str]): VM network interface keys (e.g. net0) selectable on a rule.
-        macros (list[VmFirewallMacrosItem]): Available firewall macros.
-        directions (list[VmFirewallDirectionsItem]): Supported rule directions.
-        actions (list[VmFirewallActionsItem]): Supported rule actions.
-        icmp_types (list[str]): Supported ICMP types for ICMP rules.
-    """
+    """Per-VM firewall configuration and rule-form vocabulary."""
 
     service_id: int
+    """ Owned Blesta service id. """
     policy: VmFirewallPolicy
+    """ Default firewall policy. """
     rules: list[VmFirewallRule]
+    """ Firewall rules (security-group rules are excluded). """
     interfaces: list[str]
+    """ VM network interface keys (e.g. net0) selectable on a rule. """
     macros: list[VmFirewallMacrosItem]
+    """ Available firewall macros. """
     directions: list[VmFirewallDirectionsItem]
+    """ Supported rule directions. """
     actions: list[VmFirewallActionsItem]
+    """ Supported rule actions. """
     icmp_types: list[str]
+    """ Supported ICMP types for ICMP rules. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -62,12 +66,12 @@ class VmFirewall:
 
         directions = []
         for directions_item_data in self.directions:
-            directions_item = directions_item_data.value
+            directions_item: str = directions_item_data
             directions.append(directions_item)
 
         actions = []
         for actions_item_data in self.actions:
-            actions_item = actions_item_data.value
+            actions_item: str = actions_item_data
             actions.append(actions_item)
 
         icmp_types = self.icmp_types
@@ -90,7 +94,7 @@ class VmFirewall:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_firewall_macros_item import VmFirewallMacrosItem
         from ..models.vm_firewall_policy import VmFirewallPolicy
         from ..models.vm_firewall_rule import VmFirewallRule
@@ -119,14 +123,14 @@ class VmFirewall:
         directions = []
         _directions = d.pop("directions")
         for directions_item_data in _directions:
-            directions_item = VmFirewallDirectionsItem(directions_item_data)
+            directions_item = check_vm_firewall_directions_item(directions_item_data)
 
             directions.append(directions_item)
 
         actions = []
         _actions = d.pop("actions")
         for actions_item_data in _actions:
-            actions_item = VmFirewallActionsItem(actions_item_data)
+            actions_item = check_vm_firewall_actions_item(actions_item_data)
 
             actions.append(actions_item)
 

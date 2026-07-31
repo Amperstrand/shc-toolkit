@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -16,21 +17,17 @@ class VmUpgradeOptionTerm:
     """One client-orderable term for an upgradable plan. pricing_ref is the raw package_pricing id to pass to
     preview/PATCH.
 
-        Attributes:
-            pricing_ref (str): Raw package_pricing.id. Example: 57.
-            term (int):  Example: 1.
-            period (str):  Example: month.
-            recurring_amount (str): Recurring price (base plan) at this term. Example: 20.00.
-            currency (str):  Example: USD.
-            setup_fee (str | Unset): One-time setup fee at this term. Example: 0.00.
     """
 
     pricing_ref: str
+    """ Raw package_pricing.id. """
     term: int
     period: str
     recurring_amount: str
+    """ Recurring price (base plan) at this term. """
     currency: str
     setup_fee: str | Unset = UNSET
+    """ One-time setup fee at this term. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -63,7 +60,7 @@ class VmUpgradeOptionTerm:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         pricing_ref = d.pop("pricing_ref")
 

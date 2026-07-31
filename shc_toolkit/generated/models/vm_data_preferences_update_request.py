@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -33,27 +34,19 @@ class VmDataPreferencesUpdateRequest:
             {'backup': {'retention': 'keep-daily=7', 'auto_days': ['mon', 'thu'], 'auto_time': '03:00'}, 'notify':
                 {'failed': True, 'success': False}}
 
-        Attributes:
-            backup (VmDataPreferencesUpdateRequestBackup | Unset): Backup or snapshot scheduling preferences. Only the keys
-                present are updated (PATCH semantics).
-            snapshot (VmDataPreferencesUpdateRequestSnapshot | Unset): Backup or snapshot scheduling preferences. Only the
-                keys present are updated (PATCH semantics).
-            notify (VmDataPreferencesUpdateRequestNotify | Unset): Notification toggles. Each accepts a JSON boolean or the
-                strings on/off/true/false/1/0.
-            encryption_pubkey (None | str | Unset): Reserved — client-side backup encryption is not yet available; a non-
-                empty value returns 501.
-            zk_backup (ZkBackupRegistration | Unset): Zero-knowledge backup registration: client-derived X25519 pubkeys +
-                immutable KDF config. Exactly one recipient must be kind=password (the primary). The server never sees the
-                password or private keys. Example: {'config': {'v': 1, 'alg': 'argon2id13', 'ctx': 'shc-vps-backup-v1', 'ops':
-                3, 'mem': 268435456, 'salt': '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind': 'password', 'pubkey':
-                'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f', 'label': 'primary'}]}.
     """
 
     backup: VmDataPreferencesUpdateRequestBackup | Unset = UNSET
+    """ Backup or snapshot scheduling preferences. Only the keys present are updated (PATCH semantics). """
     snapshot: VmDataPreferencesUpdateRequestSnapshot | Unset = UNSET
+    """ Backup or snapshot scheduling preferences. Only the keys present are updated (PATCH semantics). """
     notify: VmDataPreferencesUpdateRequestNotify | Unset = UNSET
+    """ Notification toggles. Each accepts a JSON boolean or the strings on/off/true/false/1/0. """
     encryption_pubkey: None | str | Unset = UNSET
+    """ Reserved — client-side backup encryption is not yet available; a non-empty value returns 501. """
     zk_backup: ZkBackupRegistration | Unset = UNSET
+    """ Zero-knowledge backup registration: client-derived X25519 pubkeys + immutable KDF config. Exactly one
+    recipient must be kind=password (the primary). The server never sees the password or private keys. """
 
     def to_dict(self) -> dict[str, Any]:
         backup: dict[str, Any] | Unset = UNSET
@@ -95,7 +88,7 @@ class VmDataPreferencesUpdateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_data_preferences_update_request_backup import (
             VmDataPreferencesUpdateRequestBackup,
         )

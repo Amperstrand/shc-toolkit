@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,14 +13,6 @@ T = TypeVar("T", bound="ListKbCategoriesResponse200DataCategoriesItem")
 
 @_attrs_define
 class ListKbCategoriesResponse200DataCategoriesItem:
-    """
-    Attributes:
-        id (int):  Example: 7.
-        name (str):  Example: Getting Started.
-        parent_id (int | None | Unset):
-        description (None | str | Unset):
-    """
-
     id: int
     name: str
     parent_id: int | None | Unset = UNSET
@@ -58,7 +51,7 @@ class ListKbCategoriesResponse200DataCategoriesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 

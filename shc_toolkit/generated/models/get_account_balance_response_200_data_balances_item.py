@@ -4,18 +4,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="GetAccountBalanceResponse200DataBalancesItem")
 
 
 @_attrs_define
 class GetAccountBalanceResponse200DataBalancesItem:
-    """
-    Attributes:
-        currency (str):  Example: USD.
-        amount (str):  Example: 25.00.
-    """
-
     currency: str
     amount: str
 
@@ -36,7 +31,7 @@ class GetAccountBalanceResponse200DataBalancesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         currency = d.pop("currency")
 

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -22,15 +23,12 @@ class SupportTicketReplyRequest:
     Example:
         {'message': 'Still happening after a reboot.'}
 
-    Attributes:
-        message (str): Reply body. Example: Still happening after a reboot..
-        custom_fields (SupportTicketCustomFields | Unset): Department custom-field values keyed by numeric field id.
-            Values are scalar (string/number/boolean). Example: {'12': 'value', '15': True}.
-        attachments (list[SupportTicketAttachment] | Unset):
     """
 
     message: str
+    """ Reply body. """
     custom_fields: SupportTicketCustomFields | Unset = UNSET
+    """ Department custom-field values keyed by numeric field id. Values are scalar (string/number/boolean). """
     attachments: list[SupportTicketAttachment] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -62,7 +60,7 @@ class SupportTicketReplyRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.support_ticket_attachment import SupportTicketAttachment
         from ..models.support_ticket_custom_fields import SupportTicketCustomFields
 

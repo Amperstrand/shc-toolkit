@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.delete_ssh_key_request_additional_property_type_4 import (
@@ -21,14 +22,11 @@ class DeleteSshKeyRequest:
     Example:
         {'service_id': 353, 'key_fingerprint': 'SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU'}
 
-    Attributes:
-        service_id (int):  Example: 353.
-        key_fingerprint (str): Fingerprint of the stored SSH public key to remove. `SHA256:` and `MD5:` forms are
-            accepted. Example: SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU.
     """
 
     service_id: int
     key_fingerprint: str
+    """ Fingerprint of the stored SSH public key to remove. `SHA256:` and `MD5:` forms are accepted. """
     additional_properties: dict[
         str,
         bool
@@ -69,7 +67,7 @@ class DeleteSshKeyRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.delete_ssh_key_request_additional_property_type_4 import (
             DeleteSshKeyRequestAdditionalPropertyType4,
         )
@@ -159,7 +157,6 @@ class DeleteSshKeyRequest:
         value: bool
         | DeleteSshKeyRequestAdditionalPropertyType4
         | float
-        | int
         | list[str]
         | None
         | str,

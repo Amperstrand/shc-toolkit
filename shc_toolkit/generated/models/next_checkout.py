@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,13 +14,7 @@ T = TypeVar("T", bound="NextCheckout")
 
 @_attrs_define
 class NextCheckout:
-    """Checkout pointer for a payment-gated, queued change (package upgrade).
-
-    Attributes:
-        checkout_url (str):  Example: /user-api/v2/payment/9012/checkout.
-        note (str | Unset):  Example: The package change is queued; it is applied automatically once the prorated
-            invoice is paid. A disk size increase takes effect after you reboot the VM..
-    """
+    """Checkout pointer for a payment-gated, queued change (package upgrade)."""
 
     checkout_url: str
     note: str | Unset = UNSET
@@ -43,7 +38,7 @@ class NextCheckout:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         checkout_url = d.pop("checkout_url")
 

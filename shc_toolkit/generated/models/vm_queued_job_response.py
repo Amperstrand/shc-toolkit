@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,20 +24,6 @@ class VmQueuedJobResponse:
         {'service_id': 353, 'job_id': 912, 'type': 'backup', 'source': None, 'backup_id': None, 'name': 'nightly-demo',
             'mode': 'suspend', 'description': None, 'message': 'Backup queued successfully.'}
 
-    Attributes:
-        service_id (int):  Example: 353.
-        job_id (int):  Example: 912.
-        type_ (str):  Example: backup.
-        message (str):  Example: Backup queued successfully..
-        source (None | str | Unset):
-        backup_id (str | Unset): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the
-            real storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        name (None | str | Unset):  Example: nightly-demo.
-        mode (None | str | Unset):  Example: suspend.
-        description (None | str | Unset):
-        next_ (NextPoll | Unset): Poll pointer for an async (queued-job) producer.
     """
 
     service_id: int
@@ -45,10 +32,15 @@ class VmQueuedJobResponse:
     message: str
     source: None | str | Unset = UNSET
     backup_id: str | Unset = UNSET
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     name: None | str | Unset = UNSET
     mode: None | str | Unset = UNSET
     description: None | str | Unset = UNSET
     next_: NextPoll | Unset = UNSET
+    """ Poll pointer for an async (queued-job) producer. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -116,7 +108,7 @@ class VmQueuedJobResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.next_poll import NextPoll
 
         d = dict(src_dict)

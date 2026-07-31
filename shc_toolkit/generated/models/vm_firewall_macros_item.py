@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,14 +14,10 @@ T = TypeVar("T", bound="VmFirewallMacrosItem")
 
 @_attrs_define
 class VmFirewallMacrosItem:
-    """
-    Attributes:
-        macro (str): Macro name.
-        description (None | str | Unset): Human-readable macro description.
-    """
-
     macro: str
+    """ Macro name. """
     description: None | str | Unset = UNSET
+    """ Human-readable macro description. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,7 +42,7 @@ class VmFirewallMacrosItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         macro = d.pop("macro")
 

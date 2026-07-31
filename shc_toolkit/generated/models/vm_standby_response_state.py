@@ -1,8 +1,15 @@
-from enum import Enum
+from typing import Literal
+
+VmStandbyResponseState = Literal["standby"]
+
+VM_STANDBY_RESPONSE_STATE_VALUES: set[VmStandbyResponseState] = {
+    "standby",
+}
 
 
-class VmStandbyResponseState(str, Enum):
-    STANDBY = "standby"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_vm_standby_response_state(value: str) -> VmStandbyResponseState:
+    if value in VM_STANDBY_RESPONSE_STATE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {VM_STANDBY_RESPONSE_STATE_VALUES!r}"
+    )

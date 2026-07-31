@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.approve_quotation_body_additional_property_type_4 import (
@@ -17,12 +18,8 @@ T = TypeVar("T", bound="ApproveQuotationBody")
 
 @_attrs_define
 class ApproveQuotationBody:
-    """
-    Attributes:
-        idempotency_key (str): Replay key required by the live route body idempotency gate.
-    """
-
     idempotency_key: str
+    """ Replay key required by the live route body idempotency gate. """
     additional_properties: dict[
         str,
         ApproveQuotationBodyAdditionalPropertyType4
@@ -60,7 +57,7 @@ class ApproveQuotationBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.approve_quotation_body_additional_property_type_4 import (
             ApproveQuotationBodyAdditionalPropertyType4,
         )
@@ -147,7 +144,6 @@ class ApproveQuotationBody:
         value: ApproveQuotationBodyAdditionalPropertyType4
         | bool
         | float
-        | int
         | list[str]
         | None
         | str,

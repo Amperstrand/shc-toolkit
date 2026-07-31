@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,14 +13,6 @@ T = TypeVar("T", bound="GetQuotationResponse200DataLineItemsItem")
 
 @_attrs_define
 class GetQuotationResponse200DataLineItemsItem:
-    """
-    Attributes:
-        description (None | str | Unset):
-        qty (float | None | Unset):  Example: 1.
-        amount (None | str | Unset):  Example: 50.00.
-        subtotal (None | str | Unset):  Example: 50.00.
-    """
-
     description: None | str | Unset = UNSET
     qty: float | None | Unset = UNSET
     amount: None | str | Unset = UNSET
@@ -65,7 +58,7 @@ class GetQuotationResponse200DataLineItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_description(data: object) -> None | str | Unset:

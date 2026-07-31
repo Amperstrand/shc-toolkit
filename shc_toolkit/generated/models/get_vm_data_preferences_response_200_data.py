@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -25,24 +26,14 @@ T = TypeVar("T", bound="GetVmDataPreferencesResponse200Data")
 
 @_attrs_define
 class GetVmDataPreferencesResponse200Data:
-    """
-    Attributes:
-        service_id (int):
-        backup (GetVmDataPreferencesResponse200DataBackup):
-        snapshot (GetVmDataPreferencesResponse200DataSnapshot):
-        notify (GetVmDataPreferencesResponse200DataNotify):
-        encryption_pubkey_set (bool): Reserved; not applied to backups (client-side backup encryption is not yet
-            available).
-        encryption_pubkey_fingerprint (None | str | Unset): Reserved; not applied to backups (client-side backup
-            encryption is not yet available).
-    """
-
     service_id: int
     backup: GetVmDataPreferencesResponse200DataBackup
     snapshot: GetVmDataPreferencesResponse200DataSnapshot
     notify: GetVmDataPreferencesResponse200DataNotify
     encryption_pubkey_set: bool
+    """ Reserved; not applied to backups (client-side backup encryption is not yet available). """
     encryption_pubkey_fingerprint: None | str | Unset = UNSET
+    """ Reserved; not applied to backups (client-side backup encryption is not yet available). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -79,7 +70,7 @@ class GetVmDataPreferencesResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_vm_data_preferences_response_200_data_backup import (
             GetVmDataPreferencesResponse200DataBackup,
         )

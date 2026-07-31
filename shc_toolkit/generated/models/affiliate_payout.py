@@ -5,8 +5,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.affiliate_payout_status import AffiliatePayoutStatus
+from ..models.affiliate_payout_status import (
+    AffiliatePayoutStatus,
+    check_affiliate_payout_status,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AffiliatePayout")
@@ -14,31 +18,21 @@ T = TypeVar("T", bound="AffiliatePayout")
 
 @_attrs_define
 class AffiliatePayout:
-    """
-    Attributes:
-        id (int):  Example: 5.
-        status (AffiliatePayoutStatus):  Example: pending.
-        requested_amount (str): BTC (8 dp). Example: 0.00100000.
-        requested_currency (str):  Example: BTC.
-        date_requested (datetime.datetime | None):
-        paid_amount (None | str | Unset): BTC (8 dp), or null. Example: 0.00100000.
-        paid_currency (None | str | Unset):  Example: BTC.
-        payment_method (None | str | Unset):  Example: Btcpay.
-    """
-
     id: int
     status: AffiliatePayoutStatus
     requested_amount: str
+    """ BTC (8 dp). """
     requested_currency: str
     date_requested: datetime.datetime | None
     paid_amount: None | str | Unset = UNSET
+    """ BTC (8 dp), or null. """
     paid_currency: None | str | Unset = UNSET
     payment_method: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status = self.status.value
+        status: str = self.status
 
         requested_amount = self.requested_amount
 
@@ -89,11 +83,11 @@ class AffiliatePayout:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        status = AffiliatePayoutStatus(d.pop("status"))
+        status = check_affiliate_payout_status(d.pop("status"))
 
         requested_amount = d.pop("requested_amount")
 

@@ -6,25 +6,15 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus
+from ..models.invoice_status import InvoiceStatus, check_invoice_status
 
 T = TypeVar("T", bound="VmOrderInvoice")
 
 
 @_attrs_define
 class VmOrderInvoice:
-    """
-    Attributes:
-        invoice_id (int):  Example: 1550.
-        invoice_status (InvoiceStatus | None):  Example: open.
-        currency (str):  Example: USD.
-        total (str):  Example: 11.99.
-        paid (str):  Example: 0.00.
-        balance_due (str):  Example: 11.99.
-        date_due (datetime.datetime | None):  Example: 2026-04-24T00:00:00+00:00.
-    """
-
     invoice_id: int
     invoice_status: InvoiceStatus | None
     currency: str
@@ -38,8 +28,8 @@ class VmOrderInvoice:
         invoice_id = self.invoice_id
 
         invoice_status: None | str
-        if isinstance(self.invoice_status, InvoiceStatus):
-            invoice_status = self.invoice_status.value
+        if isinstance(self.invoice_status, str):
+            invoice_status = self.invoice_status
         else:
             invoice_status = self.invoice_status
 
@@ -74,7 +64,7 @@ class VmOrderInvoice:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         invoice_id = d.pop("invoice_id")
 
@@ -84,7 +74,7 @@ class VmOrderInvoice:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                invoice_status_type_0 = InvoiceStatus(data)
+                invoice_status_type_0 = check_invoice_status(data)
 
                 return invoice_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

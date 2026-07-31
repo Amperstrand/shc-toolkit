@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmSpecs")
 
@@ -16,21 +17,20 @@ class VmSpecs:
     Example:
         {'cpu': 2, 'memory_mb': 4096, 'disk_gb': 80, 'bandwidth_gb': 4000, 'ipv4': 1, 'ipv6': 1}
 
-    Attributes:
-        cpu (int): vCPU count from package metadata. Example: 2.
-        memory_mb (int): Provisioned memory in megabytes. Example: 4096.
-        disk_gb (int): Primary disk allocation in gigabytes. Example: 80.
-        bandwidth_gb (int): Included transfer allowance in gigabytes. Example: 4000.
-        ipv4 (int): Count of IPv4 addresses included in the package metadata. Example: 1.
-        ipv6 (int): Count of IPv6 addresses included in the package metadata. Example: 1.
     """
 
     cpu: int
+    """ vCPU count from package metadata. """
     memory_mb: int
+    """ Provisioned memory in megabytes. """
     disk_gb: int
+    """ Primary disk allocation in gigabytes. """
     bandwidth_gb: int
+    """ Included transfer allowance in gigabytes. """
     ipv4: int
+    """ Count of IPv4 addresses included in the package metadata. """
     ipv6: int
+    """ Count of IPv6 addresses included in the package metadata. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -62,7 +62,7 @@ class VmSpecs:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         cpu = d.pop("cpu")
 

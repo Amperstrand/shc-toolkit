@@ -1,10 +1,17 @@
-from enum import Enum
+from typing import Literal
+
+TransactionSummaryType = Literal["ach", "cc", "other"]
+
+TRANSACTION_SUMMARY_TYPE_VALUES: set[TransactionSummaryType] = {
+    "ach",
+    "cc",
+    "other",
+}
 
 
-class TransactionSummaryType(str, Enum):
-    ACH = "ach"
-    CC = "cc"
-    OTHER = "other"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_transaction_summary_type(value: str) -> TransactionSummaryType:
+    if value in TRANSACTION_SUMMARY_TYPE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {TRANSACTION_SUMMARY_TYPE_VALUES!r}"
+    )

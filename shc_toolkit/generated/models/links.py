@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -16,28 +17,24 @@ T = TypeVar("T", bound="Links")
 
 @_attrs_define
 class Links:
-    """Hypermedia links keyed by IANA-registered link relation names.
-
-    Attributes:
-        self_ (LinkTarget | Unset): Typed hypermedia target. Relation names are carried by the containing Links object
-            and use IANA-registered rels.
-        next_ (LinkTarget | Unset): Typed hypermedia target. Relation names are carried by the containing Links object
-            and use IANA-registered rels.
-        related (list[LinkTarget] | Unset):
-        status (LinkTarget | Unset): Typed hypermedia target. Relation names are carried by the containing Links object
-            and use IANA-registered rels.
-        about (LinkTarget | Unset): Typed hypermedia target. Relation names are carried by the containing Links object
-            and use IANA-registered rels.
-        help_ (LinkTarget | Unset): Typed hypermedia target. Relation names are carried by the containing Links object
-            and use IANA-registered rels.
-    """
+    """Hypermedia links keyed by IANA-registered link relation names."""
 
     self_: LinkTarget | Unset = UNSET
+    """ Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered
+    rels. """
     next_: LinkTarget | Unset = UNSET
+    """ Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered
+    rels. """
     related: list[LinkTarget] | Unset = UNSET
     status: LinkTarget | Unset = UNSET
+    """ Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered
+    rels. """
     about: LinkTarget | Unset = UNSET
+    """ Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered
+    rels. """
     help_: LinkTarget | Unset = UNSET
+    """ Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered
+    rels. """
 
     def to_dict(self) -> dict[str, Any]:
         self_: dict[str, Any] | Unset = UNSET
@@ -86,7 +83,7 @@ class Links:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.link_target import LinkTarget
 
         d = dict(src_dict)

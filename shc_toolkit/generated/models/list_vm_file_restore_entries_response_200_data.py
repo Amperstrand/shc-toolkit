@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -19,21 +20,12 @@ T = TypeVar("T", bound="ListVmFileRestoreEntriesResponse200Data")
 
 @_attrs_define
 class ListVmFileRestoreEntriesResponse200Data:
-    """
-    Attributes:
-        service_id (int):
-        backup_id (str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        storage (str):
-        path (str):
-        entries (list[ListVmFileRestoreEntriesResponse200DataEntriesItem]):
-        base (None | str | Unset):
-    """
-
     service_id: int
     backup_id: str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     storage: str
     path: str
     entries: list[ListVmFileRestoreEntriesResponse200DataEntriesItem]
@@ -77,7 +69,7 @@ class ListVmFileRestoreEntriesResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_vm_file_restore_entries_response_200_data_entries_item import (
             ListVmFileRestoreEntriesResponse200DataEntriesItem,
         )

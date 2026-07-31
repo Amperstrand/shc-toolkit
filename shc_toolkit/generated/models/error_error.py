@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -18,32 +19,24 @@ T = TypeVar("T", bound="ErrorError")
 
 @_attrs_define
 class ErrorError:
-    """
-    Attributes:
-        code (str):  Example: validation_failed.
-        message (str):  Example: Request body must be a non-empty JSON object..
-        request_id (UUID):  Example: 5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-        details (list[ErrorDetail]): ALWAYS present. An array of field-level validation issues; it is an empty array []
-            when there are no field-level issues (e.g. on 401/403/404/409/429/500). Detail-bearing errors (typically
-            400/422) carry one ErrorDetail per offending field. A consumer can therefore read error.details unconditionally
-            without an existence check.
-        retry_after_seconds (int | Unset): Seconds to wait before retrying. Mirrors the `Retry-After` response header so
-            an agent that reads only the body still gets the backoff. Present on 429 responses. v2.4.0: also emitted with
-            registry defaults for transient error_code values (vm_locked=15, upstream_failure=30). Example: 30.
-        links (list[ErrorErrorLinksItem] | Unset): Optional stable recovery relations. Lets an agent self-route after an
-            error (e.g. rel=status -> the summary/poll endpoint to re-read authoritative state).
-        error_code (str | Unset): v2.4.0 (additive): stable machine code from the documented registry (mirrors
-            error.code, refined where the transport code is generic — e.g. a rejected key is unauthorized +
-            error_code=invalid_token). Prefer matching on this over message text.
-    """
-
     code: str
     message: str
     request_id: UUID
     details: list[ErrorDetail]
+    """ ALWAYS present. An array of field-level validation issues; it is an empty array [] when there are no field-
+    level issues (e.g. on 401/403/404/409/429/500). Detail-bearing errors (typically 400/422) carry one ErrorDetail
+    per offending field. A consumer can therefore read error.details unconditionally without an existence check. """
     retry_after_seconds: int | Unset = UNSET
+    """ Seconds to wait before retrying. Mirrors the `Retry-After` response header so an agent that reads only the
+    body still gets the backoff. Present on 429 responses. v2.4.0: also emitted with registry defaults for transient
+    error_code values (vm_locked=15, upstream_failure=30). """
     links: list[ErrorErrorLinksItem] | Unset = UNSET
+    """ Optional stable recovery relations. Lets an agent self-route after an error (e.g. rel=status -> the
+    summary/poll endpoint to re-read authoritative state). """
     error_code: str | Unset = UNSET
+    """ v2.4.0 (additive): stable machine code from the documented registry (mirrors error.code, refined where the
+    transport code is generic — e.g. a rejected key is unauthorized + error_code=invalid_token). Prefer matching on
+    this over message text. """
 
     def to_dict(self) -> dict[str, Any]:
         code = self.code
@@ -88,7 +81,7 @@ class ErrorError:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.error_detail import ErrorDetail
         from ..models.error_error_links_item import ErrorErrorLinksItem
 

@@ -4,19 +4,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ListDownloadFilesResponse200DataCategoriesItem")
 
 
 @_attrs_define
 class ListDownloadFilesResponse200DataCategoriesItem:
-    """
-    Attributes:
-        category_id (int):
-        name (str):
-        description (str):
-    """
-
     category_id: int
     name: str
     description: str
@@ -41,7 +35,7 @@ class ListDownloadFilesResponse200DataCategoriesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         category_id = d.pop("category_id")
 

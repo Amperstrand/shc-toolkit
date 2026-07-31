@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.pagination import Pagination
@@ -15,12 +16,7 @@ T = TypeVar("T", bound="SshKeyEntryList")
 
 @_attrs_define
 class SshKeyEntryList:
-    """Canonical paginated list of stored SSH keys.
-
-    Attributes:
-        items (list[SshKeyEntry]):
-        pagination (Pagination):  Example: {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}.
-    """
+    """Canonical paginated list of stored SSH keys."""
 
     items: list[SshKeyEntry]
     pagination: Pagination
@@ -45,7 +41,7 @@ class SshKeyEntryList:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.pagination import Pagination
         from ..models.ssh_key_entry import SshKeyEntry
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.plan_pricing import PlanPricing
@@ -26,36 +27,34 @@ class Plan:
             '0.00', 'currency': 'USD'}, {'pricing_id': 13, 'term': 12, 'period': 'month', 'price': '119.00', 'renew':
             '119.00', 'setup_fee': '0.00', 'currency': 'USD'}]}
 
-    Attributes:
-        package_id (int): Blesta package identifier for this plan family. Example: 7.
-        name (str): Customer-facing package or plan name. Example: NVMe VPS - Standard.
-        cpu (int): vCPU count advertised for the package. Example: 2.
-        memory_mb (int): Advertised memory allocation in megabytes. Example: 4096.
-        disk_gb (int): Advertised disk allocation in gigabytes. Example: 80.
-        bandwidth_gb (int): Advertised transfer allowance in gigabytes. Example: 4000.
-        ipv4 (int): Advertised IPv4 allocation count. Example: 1.
-        ipv6 (int): Advertised IPv6 allocation count. Example: 1.
-        template (None | str): Default template identifier associated with the package, if present. Example:
-            debian13-cloud.
-        image (None | Template): Expanded image metadata for the package template.
-        backup_limit (int): Advertised backup limit for the package. Example: 3.
-        snapshot_limit (int): Advertised snapshot limit for the package. Example: 5.
-        pricing (list[PlanPricing]): Available billing cadences for this package.
     """
 
     package_id: int
+    """ Blesta package identifier for this plan family. """
     name: str
+    """ Customer-facing package or plan name. """
     cpu: int
+    """ vCPU count advertised for the package. """
     memory_mb: int
+    """ Advertised memory allocation in megabytes. """
     disk_gb: int
+    """ Advertised disk allocation in gigabytes. """
     bandwidth_gb: int
+    """ Advertised transfer allowance in gigabytes. """
     ipv4: int
+    """ Advertised IPv4 allocation count. """
     ipv6: int
+    """ Advertised IPv6 allocation count. """
     template: None | str
+    """ Default template identifier associated with the package, if present. """
     image: None | Template
+    """ Expanded image metadata for the package template. """
     backup_limit: int
+    """ Advertised backup limit for the package. """
     snapshot_limit: int
+    """ Advertised snapshot limit for the package. """
     pricing: list[PlanPricing]
+    """ Available billing cadences for this package. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -118,7 +117,7 @@ class Plan:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.plan_pricing import PlanPricing
         from ..models.template import Template
 

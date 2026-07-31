@@ -4,20 +4,17 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="AffiliatePayoutDestination")
 
 
 @_attrs_define
 class AffiliatePayoutDestination:
-    """
-    Attributes:
-        payout_onchain (None | str): Bitcoin on-chain destination (xpub/ypub/zpub or address), or null.
-        payout_lightning (None | str): Lightning destination (Lightning Address, LNURL, or BOLT11), or null.
-    """
-
     payout_onchain: None | str
+    """ Bitcoin on-chain destination (xpub/ypub/zpub or address), or null. """
     payout_lightning: None | str
+    """ Lightning destination (Lightning Address, LNURL, or BOLT11), or null. """
 
     def to_dict(self) -> dict[str, Any]:
         payout_onchain: None | str
@@ -38,7 +35,7 @@ class AffiliatePayoutDestination:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_payout_onchain(data: object) -> None | str:

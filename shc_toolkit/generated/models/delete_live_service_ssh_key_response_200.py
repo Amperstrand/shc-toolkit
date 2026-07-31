@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_ssh_key_delete_live_response import VmSshKeyDeleteLiveResponse
@@ -15,13 +16,8 @@ T = TypeVar("T", bound="DeleteLiveServiceSshKeyResponse200")
 
 @_attrs_define
 class DeleteLiveServiceSshKeyResponse200:
-    """
-    Attributes:
-        data (VmSshKeyDeleteLiveResponse): Result of a live SSH-key removal. Idempotent: `removed` is false when the
-            fingerprint was not present.
-    """
-
     data: VmSshKeyDeleteLiveResponse
+    """ Result of a live SSH-key removal. Idempotent: `removed` is false when the fingerprint was not present. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +34,7 @@ class DeleteLiveServiceSshKeyResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_ssh_key_delete_live_response import VmSshKeyDeleteLiveResponse
 
         d = dict(src_dict)

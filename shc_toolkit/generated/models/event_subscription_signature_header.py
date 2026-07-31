@@ -1,8 +1,17 @@
-from enum import Enum
+from typing import Literal
+
+EventSubscriptionSignatureHeader = Literal["X-SHC-Webhook-Signature"]
+
+EVENT_SUBSCRIPTION_SIGNATURE_HEADER_VALUES: set[EventSubscriptionSignatureHeader] = {
+    "X-SHC-Webhook-Signature",
+}
 
 
-class EventSubscriptionSignatureHeader(str, Enum):
-    X_SHC_WEBHOOK_SIGNATURE = "X-SHC-Webhook-Signature"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_event_subscription_signature_header(
+    value: str,
+) -> EventSubscriptionSignatureHeader:
+    if value in EVENT_SUBSCRIPTION_SIGNATURE_HEADER_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {EVENT_SUBSCRIPTION_SIGNATURE_HEADER_VALUES!r}"
+    )

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.link_nostr_identity_response_200_data import (
@@ -17,11 +18,6 @@ T = TypeVar("T", bound="LinkNostrIdentityResponse200")
 
 @_attrs_define
 class LinkNostrIdentityResponse200:
-    """
-    Attributes:
-        data (LinkNostrIdentityResponse200Data):
-    """
-
     data: LinkNostrIdentityResponse200Data
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -39,7 +35,7 @@ class LinkNostrIdentityResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.link_nostr_identity_response_200_data import (
             LinkNostrIdentityResponse200Data,
         )

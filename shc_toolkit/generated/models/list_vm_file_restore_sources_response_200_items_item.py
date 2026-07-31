@@ -6,9 +6,11 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.list_vm_file_restore_sources_response_200_items_item_kind import (
     ListVmFileRestoreSourcesResponse200ItemsItemKind,
+    check_list_vm_file_restore_sources_response_200_items_item_kind,
 )
 from ..types import UNSET, Unset
 
@@ -17,26 +19,12 @@ T = TypeVar("T", bound="ListVmFileRestoreSourcesResponse200ItemsItem")
 
 @_attrs_define
 class ListVmFileRestoreSourcesResponse200ItemsItem:
-    """
-    Attributes:
-        kind (ListVmFileRestoreSourcesResponse200ItemsItemKind):
-        backup_id (str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        label (str):
-        encrypted (bool):
-        name (str | Unset):
-        storage (None | str | Unset):
-        notes (None | str | Unset):
-        size_bytes (int | None | Unset):
-        protected (bool | Unset):
-        created_at (datetime.datetime | None | Unset):
-        created_epoch (int | None | Unset):
-    """
-
     kind: ListVmFileRestoreSourcesResponse200ItemsItemKind
     backup_id: str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     label: str
     encrypted: bool
     name: str | Unset = UNSET
@@ -49,7 +37,7 @@ class ListVmFileRestoreSourcesResponse200ItemsItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind.value
+        kind: str = self.kind
 
         backup_id = self.backup_id
 
@@ -121,9 +109,11 @@ class ListVmFileRestoreSourcesResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = ListVmFileRestoreSourcesResponse200ItemsItemKind(d.pop("kind"))
+        kind = check_list_vm_file_restore_sources_response_200_items_item_kind(
+            d.pop("kind")
+        )
 
         backup_id = d.pop("backup_id")
 

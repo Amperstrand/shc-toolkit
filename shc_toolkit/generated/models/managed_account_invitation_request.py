@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.managed_account_invitation_request_action import (
     ManagedAccountInvitationRequestAction,
+    check_managed_account_invitation_request_action,
 )
 
 T = TypeVar("T", bound="ManagedAccountInvitationRequest")
@@ -19,14 +21,13 @@ class ManagedAccountInvitationRequest:
     Example:
         {'action': 'accept'}
 
-    Attributes:
-        action (ManagedAccountInvitationRequestAction): Whether to accept or decline the invitation. Example: accept.
     """
 
     action: ManagedAccountInvitationRequestAction
+    """ Whether to accept or decline the invitation. """
 
     def to_dict(self) -> dict[str, Any]:
-        action = self.action.value
+        action: str = self.action
 
         field_dict: dict[str, Any] = {}
 
@@ -39,9 +40,9 @@ class ManagedAccountInvitationRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        action = ManagedAccountInvitationRequestAction(d.pop("action"))
+        action = check_managed_account_invitation_request_action(d.pop("action"))
 
         managed_account_invitation_request = cls(
             action=action,

@@ -1,10 +1,17 @@
-from enum import Enum
+from typing import Literal
+
+AffiliatePayoutStatus = Literal["approved", "declined", "pending"]
+
+AFFILIATE_PAYOUT_STATUS_VALUES: set[AffiliatePayoutStatus] = {
+    "approved",
+    "declined",
+    "pending",
+}
 
 
-class AffiliatePayoutStatus(str, Enum):
-    APPROVED = "approved"
-    DECLINED = "declined"
-    PENDING = "pending"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_affiliate_payout_status(value: str) -> AffiliatePayoutStatus:
+    if value in AFFILIATE_PAYOUT_STATUS_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {AFFILIATE_PAYOUT_STATUS_VALUES!r}"
+    )

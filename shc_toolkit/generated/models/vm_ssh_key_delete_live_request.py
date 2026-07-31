@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_ssh_key_delete_live_request_additional_property_type_4 import (
@@ -22,12 +23,10 @@ class VmSshKeyDeleteLiveRequest:
     Example:
         {'key_fingerprint': 'SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU'}
 
-    Attributes:
-        key_fingerprint (str): Fingerprint of the key to remove. `SHA256:` and `MD5:` forms are accepted. Example:
-            SHA256:W5t8nY2dI0c4XnS7k3P2wM1lQ8r6V9zA0b1C2d3E4fU.
     """
 
     key_fingerprint: str
+    """ Fingerprint of the key to remove. `SHA256:` and `MD5:` forms are accepted. """
     additional_properties: dict[
         str,
         bool
@@ -65,7 +64,7 @@ class VmSshKeyDeleteLiveRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_ssh_key_delete_live_request_additional_property_type_4 import (
             VmSshKeyDeleteLiveRequestAdditionalPropertyType4,
         )
@@ -151,7 +150,6 @@ class VmSshKeyDeleteLiveRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

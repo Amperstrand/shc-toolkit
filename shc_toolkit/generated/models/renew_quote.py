@@ -6,8 +6,9 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.service_status import ServiceStatus
+from ..models.service_status import ServiceStatus, check_service_status
 
 T = TypeVar("T", bound="RenewQuote")
 
@@ -20,18 +21,11 @@ class RenewQuote:
         {'service_id': 353, 'service_status': 'active', 'date_renews': '2027-02-01T07:57:55+00:00', 'term': 1, 'period':
             'month', 'amount': '11.99', 'currency': 'USD'}
 
-    Attributes:
-        service_id (int):  Example: 353.
-        service_status (ServiceStatus): Blesta service lifecycle state. Example: active.
-        date_renews (datetime.datetime | None):  Example: 2027-02-01T07:57:55+00:00.
-        term (int):  Example: 1.
-        period (str):  Example: month.
-        amount (str):  Example: 11.99.
-        currency (str):  Example: USD.
     """
 
     service_id: int
     service_status: ServiceStatus
+    """ Blesta service lifecycle state. """
     date_renews: datetime.datetime | None
     term: int
     period: str
@@ -42,7 +36,7 @@ class RenewQuote:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        service_status = self.service_status.value
+        service_status: str = self.service_status
 
         date_renews: None | str
         if isinstance(self.date_renews, datetime.datetime):
@@ -75,11 +69,11 @@ class RenewQuote:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        service_status = ServiceStatus(d.pop("service_status"))
+        service_status = check_service_status(d.pop("service_status"))
 
         def _parse_date_renews(data: object) -> datetime.datetime | None:
             if data is None:

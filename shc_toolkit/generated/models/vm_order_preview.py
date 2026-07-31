@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_order_billing_preview import VmOrderBillingPreview
@@ -36,18 +37,6 @@ class VmOrderPreview:
             not reserve capacity or collect payment.', 'Provisioning still waits for the created order to be accepted and
             the invoice to be paid.']}
 
-    Attributes:
-        lnvps_compatible (bool):  Example: True.
-        order_submission_supported (bool):  Example: True.
-        scope_note (str):  Example: This preview validates the same storefront-backed order path used for live VM
-            purchases..
-        submit_path (str):  Example: /user-api/v2/ordering/submit.
-        normalized_request (VmOrderNormalizedRequest):
-        package (VmOrderSelectedPackage):
-        billing (VmOrderBillingPreview):
-        provisioning (VmOrderProvisioningPreview):
-        warnings (list[str]):  Example: ['This preview does not reserve capacity or collect payment.', 'Provisioning
-            still waits for the created order to be accepted and the invoice to be paid.'].
     """
 
     lnvps_compatible: bool
@@ -99,7 +88,7 @@ class VmOrderPreview:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_order_billing_preview import VmOrderBillingPreview
         from ..models.vm_order_normalized_request import VmOrderNormalizedRequest
         from ..models.vm_order_provisioning_preview import VmOrderProvisioningPreview

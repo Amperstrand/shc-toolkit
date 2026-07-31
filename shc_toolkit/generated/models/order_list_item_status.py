@@ -1,11 +1,18 @@
-from enum import Enum
+from typing import Literal
+
+OrderListItemStatus = Literal["accepted", "canceled", "fraud", "pending"]
+
+ORDER_LIST_ITEM_STATUS_VALUES: set[OrderListItemStatus] = {
+    "accepted",
+    "canceled",
+    "fraud",
+    "pending",
+}
 
 
-class OrderListItemStatus(str, Enum):
-    ACCEPTED = "accepted"
-    CANCELED = "canceled"
-    FRAUD = "fraud"
-    PENDING = "pending"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_order_list_item_status(value: str) -> OrderListItemStatus:
+    if value in ORDER_LIST_ITEM_STATUS_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {ORDER_LIST_ITEM_STATUS_VALUES!r}"
+    )

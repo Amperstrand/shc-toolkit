@@ -5,9 +5,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.contact_create_response_contact_type import (
     ContactCreateResponseContactType,
+    check_contact_create_response_contact_type,
 )
 
 T = TypeVar("T", bound="ContactCreateResponse")
@@ -15,14 +17,6 @@ T = TypeVar("T", bound="ContactCreateResponse")
 
 @_attrs_define
 class ContactCreateResponse:
-    """
-    Attributes:
-        id (int):  Example: 88.
-        contact_type (ContactCreateResponseContactType):  Example: billing.
-        has_login (bool):
-        created_at (datetime.datetime):
-    """
-
     id: int
     contact_type: ContactCreateResponseContactType
     has_login: bool
@@ -31,7 +25,7 @@ class ContactCreateResponse:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type = self.contact_type.value
+        contact_type: str = self.contact_type
 
         has_login = self.has_login
 
@@ -51,11 +45,11 @@ class ContactCreateResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = ContactCreateResponseContactType(d.pop("contact_type"))
+        contact_type = check_contact_create_response_contact_type(d.pop("contact_type"))
 
         has_login = d.pop("has_login")
 

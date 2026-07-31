@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.invoice_detail import InvoiceDetail
@@ -15,15 +16,6 @@ T = TypeVar("T", bound="GetPaymentResponse200")
 
 @_attrs_define
 class GetPaymentResponse200:
-    """
-    Attributes:
-        data (InvoiceDetail):  Example: {'id': 123, 'invoice_status': 'open', 'subtotal': '11.99', 'total': '11.99',
-            'paid': '0.00', 'currency': 'USD', 'date_billed': '2026-02-01T07:57:55+00:00', 'date_due':
-            '2026-02-08T07:57:55+00:00', 'date_closed': None, 'note': None, 'line_items': {'items': [{'description': 'NVMe
-            VPS - Standard', 'qty': 1, 'amount': '11.99'}], 'pagination': {'total': 1, 'limit': 100, 'offset': 0,
-            'has_more': False}}}.
-    """
-
     data: InvoiceDetail
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -41,7 +33,7 @@ class GetPaymentResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.invoice_detail import InvoiceDetail
 
         d = dict(src_dict)

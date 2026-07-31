@@ -5,9 +5,11 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.list_api_keys_response_200_items_item_scope import (
     ListApiKeysResponse200ItemsItemScope,
+    check_list_api_keys_response_200_items_item_scope,
 )
 from ..types import UNSET, Unset
 
@@ -16,22 +18,6 @@ T = TypeVar("T", bound="ListApiKeysResponse200ItemsItem")
 
 @_attrs_define
 class ListApiKeysResponse200ItemsItem:
-    """
-    Attributes:
-        id (int | Unset):
-        name (str | Unset):
-        scope (ListApiKeysResponse200ItemsItemScope | Unset):
-        key_prefix (str | Unset):
-        created_at (str | Unset):
-        expires_at (str | Unset):
-        last_used_at (None | str | Unset):
-        areas (list[str] | None | Unset): The key's native contact-permission area subset it is limited to, returned as
-            an array of native area aliases (null for legacy rows). For keys minted since native area-scoping shipped this
-            is an explicit array of aliases (an omitted 'areas' is materialized to the account's full permitted-area set,
-            never stored unrestricted). A null value means a legacy key created before that change, which is treated as all
-            areas (unrestricted).
-    """
-
     id: int | Unset = UNSET
     name: str | Unset = UNSET
     scope: ListApiKeysResponse200ItemsItemScope | Unset = UNSET
@@ -40,6 +26,11 @@ class ListApiKeysResponse200ItemsItem:
     expires_at: str | Unset = UNSET
     last_used_at: None | str | Unset = UNSET
     areas: list[str] | None | Unset = UNSET
+    """ The key's native contact-permission area subset it is limited to, returned as an array of native area
+    aliases (null for legacy rows). For keys minted since native area-scoping shipped this is an explicit array of
+    aliases (an omitted 'areas' is materialized to the account's full permitted-area set, never stored
+    unrestricted). A null value means a legacy key created before that change, which is treated as all areas
+    (unrestricted). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,7 +40,7 @@ class ListApiKeysResponse200ItemsItem:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope.value
+            scope = self.scope
 
         key_prefix = self.key_prefix
 
@@ -95,7 +86,7 @@ class ListApiKeysResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id", UNSET)
 
@@ -106,7 +97,7 @@ class ListApiKeysResponse200ItemsItem:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = ListApiKeysResponse200ItemsItemScope(_scope)
+            scope = check_list_api_keys_response_200_items_item_scope(_scope)
 
         key_prefix = d.pop("key_prefix", UNSET)
 

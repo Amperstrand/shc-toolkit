@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -17,26 +18,17 @@ T = TypeVar("T", bound="VmReinstallResponse")
 
 @_attrs_define
 class VmReinstallResponse:
-    """
-    Attributes:
-        id (int):  Example: 353.
-        action (str):  Example: reinstall.
-        job_id (int): Id of the queued reinstall job; poll GET /vm/{service_id}/jobs/{job_id} for progress. Example:
-            912.
-        template (str):  Example: debian13-cloud.
-        gui_choice (str): Server-resolved desktop/GUI provisioning choice for the reinstall (`none` when not
-            applicable). Not client-settable. Example: none.
-        message (str):  Example: VM reinstall initiated. This may take several minutes..
-        next_ (NextPoll | Unset): Poll pointer for an async (queued-job) producer.
-    """
-
     id: int
     action: str
     job_id: int
+    """ Id of the queued reinstall job; poll GET /vm/{service_id}/jobs/{job_id} for progress. """
     template: str
     gui_choice: str
+    """ Server-resolved desktop/GUI provisioning choice for the reinstall (`none` when not applicable). Not client-
+    settable. """
     message: str
     next_: NextPoll | Unset = UNSET
+    """ Poll pointer for an async (queued-job) producer. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,7 +66,7 @@ class VmReinstallResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.next_poll import NextPoll
 
         d = dict(src_dict)

@@ -5,20 +5,31 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_firewall_policy_policy_in_type_1 import VmFirewallPolicyPolicyInType1
+from ..models.vm_firewall_policy_policy_in_type_1 import (
+    VmFirewallPolicyPolicyInType1,
+    check_vm_firewall_policy_policy_in_type_1,
+)
 from ..models.vm_firewall_policy_policy_in_type_2_type_1 import (
     VmFirewallPolicyPolicyInType2Type1,
+    check_vm_firewall_policy_policy_in_type_2_type_1,
 )
 from ..models.vm_firewall_policy_policy_in_type_3_type_1 import (
     VmFirewallPolicyPolicyInType3Type1,
+    check_vm_firewall_policy_policy_in_type_3_type_1,
 )
-from ..models.vm_firewall_policy_policy_out_type_1 import VmFirewallPolicyPolicyOutType1
+from ..models.vm_firewall_policy_policy_out_type_1 import (
+    VmFirewallPolicyPolicyOutType1,
+    check_vm_firewall_policy_policy_out_type_1,
+)
 from ..models.vm_firewall_policy_policy_out_type_2_type_1 import (
     VmFirewallPolicyPolicyOutType2Type1,
+    check_vm_firewall_policy_policy_out_type_2_type_1,
 )
 from ..models.vm_firewall_policy_policy_out_type_3_type_1 import (
     VmFirewallPolicyPolicyOutType3Type1,
+    check_vm_firewall_policy_policy_out_type_3_type_1,
 )
 
 T = TypeVar("T", bound="VmFirewallPolicy")
@@ -26,14 +37,7 @@ T = TypeVar("T", bound="VmFirewallPolicy")
 
 @_attrs_define
 class VmFirewallPolicy:
-    """Default firewall policy.
-
-    Attributes:
-        policy_in (None | VmFirewallPolicyPolicyInType1 | VmFirewallPolicyPolicyInType2Type1 |
-            VmFirewallPolicyPolicyInType3Type1): Default inbound policy (ACCEPT, DROP, or REJECT).
-        policy_out (None | VmFirewallPolicyPolicyOutType1 | VmFirewallPolicyPolicyOutType2Type1 |
-            VmFirewallPolicyPolicyOutType3Type1): Default outbound policy (ACCEPT, DROP, or REJECT).
-    """
+    """Default firewall policy."""
 
     policy_in: (
         None
@@ -41,32 +45,34 @@ class VmFirewallPolicy:
         | VmFirewallPolicyPolicyInType2Type1
         | VmFirewallPolicyPolicyInType3Type1
     )
+    """ Default inbound policy (ACCEPT, DROP, or REJECT). """
     policy_out: (
         None
         | VmFirewallPolicyPolicyOutType1
         | VmFirewallPolicyPolicyOutType2Type1
         | VmFirewallPolicyPolicyOutType3Type1
     )
+    """ Default outbound policy (ACCEPT, DROP, or REJECT). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         policy_in: None | str
-        if isinstance(self.policy_in, VmFirewallPolicyPolicyInType1):
-            policy_in = self.policy_in.value
-        elif isinstance(self.policy_in, VmFirewallPolicyPolicyInType2Type1):
-            policy_in = self.policy_in.value
-        elif isinstance(self.policy_in, VmFirewallPolicyPolicyInType3Type1):
-            policy_in = self.policy_in.value
+        if (
+            isinstance(self.policy_in, str)
+            or isinstance(self.policy_in, str)
+            or isinstance(self.policy_in, str)
+        ):
+            policy_in = self.policy_in
         else:
             policy_in = self.policy_in
 
         policy_out: None | str
-        if isinstance(self.policy_out, VmFirewallPolicyPolicyOutType1):
-            policy_out = self.policy_out.value
-        elif isinstance(self.policy_out, VmFirewallPolicyPolicyOutType2Type1):
-            policy_out = self.policy_out.value
-        elif isinstance(self.policy_out, VmFirewallPolicyPolicyOutType3Type1):
-            policy_out = self.policy_out.value
+        if (
+            isinstance(self.policy_out, str)
+            or isinstance(self.policy_out, str)
+            or isinstance(self.policy_out, str)
+        ):
+            policy_out = self.policy_out
         else:
             policy_out = self.policy_out
 
@@ -82,7 +88,7 @@ class VmFirewallPolicy:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_policy_in(
@@ -98,7 +104,7 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_in_type_1 = VmFirewallPolicyPolicyInType1(data)
+                policy_in_type_1 = check_vm_firewall_policy_policy_in_type_1(data)
 
                 return policy_in_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -106,7 +112,9 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_in_type_2_type_1 = VmFirewallPolicyPolicyInType2Type1(data)
+                policy_in_type_2_type_1 = (
+                    check_vm_firewall_policy_policy_in_type_2_type_1(data)
+                )
 
                 return policy_in_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -114,7 +122,9 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_in_type_3_type_1 = VmFirewallPolicyPolicyInType3Type1(data)
+                policy_in_type_3_type_1 = (
+                    check_vm_firewall_policy_policy_in_type_3_type_1(data)
+                )
 
                 return policy_in_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -142,7 +152,7 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_out_type_1 = VmFirewallPolicyPolicyOutType1(data)
+                policy_out_type_1 = check_vm_firewall_policy_policy_out_type_1(data)
 
                 return policy_out_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -150,7 +160,9 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_out_type_2_type_1 = VmFirewallPolicyPolicyOutType2Type1(data)
+                policy_out_type_2_type_1 = (
+                    check_vm_firewall_policy_policy_out_type_2_type_1(data)
+                )
 
                 return policy_out_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -158,7 +170,9 @@ class VmFirewallPolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_out_type_3_type_1 = VmFirewallPolicyPolicyOutType3Type1(data)
+                policy_out_type_3_type_1 = (
+                    check_vm_firewall_policy_policy_out_type_3_type_1(data)
+                )
 
                 return policy_out_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

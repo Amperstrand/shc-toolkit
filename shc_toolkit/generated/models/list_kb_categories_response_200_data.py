@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -21,27 +22,19 @@ T = TypeVar("T", bound="ListKbCategoriesResponse200Data")
 
 @_attrs_define
 class ListKbCategoriesResponse200Data:
-    """
-    Attributes:
-        category_id (int | None):
-        categories (list[ListKbCategoriesResponse200DataCategoriesItem]):
-        articles (list[ListKbCategoriesResponse200DataArticlesItem]):
-        article_limit (int | Unset): Page size applied to the articles list in this category. Example: 20.
-        article_offset (int | Unset): Zero-based offset of the first returned article.
-        article_total (int | Unset): Total number of articles visible to the client in this category. Example: 42.
-        article_has_more (bool | Unset): True when more articles exist beyond this page. Example: True.
-        article_next_offset (int | None | Unset): Offset to request the next page of articles, or null when
-            article_has_more is false. Example: 20.
-    """
-
     category_id: int | None
     categories: list[ListKbCategoriesResponse200DataCategoriesItem]
     articles: list[ListKbCategoriesResponse200DataArticlesItem]
     article_limit: int | Unset = UNSET
+    """ Page size applied to the articles list in this category. """
     article_offset: int | Unset = UNSET
+    """ Zero-based offset of the first returned article. """
     article_total: int | Unset = UNSET
+    """ Total number of articles visible to the client in this category. """
     article_has_more: bool | Unset = UNSET
+    """ True when more articles exist beyond this page. """
     article_next_offset: int | None | Unset = UNSET
+    """ Offset to request the next page of articles, or null when article_has_more is false. """
 
     def to_dict(self) -> dict[str, Any]:
         category_id: int | None
@@ -94,7 +87,7 @@ class ListKbCategoriesResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_kb_categories_response_200_data_articles_item import (
             ListKbCategoriesResponse200DataArticlesItem,
         )

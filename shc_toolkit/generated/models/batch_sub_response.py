@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -21,25 +22,18 @@ T = TypeVar("T", bound="BatchSubResponse")
 
 @_attrs_define
 class BatchSubResponse:
-    """One batch sub-response, returned in the same array position as its sub-request.
-
-    Attributes:
-        id (None | str):  Example: vm-read.
-        status (int):  Example: 200.
-        headers (BatchSubResponseHeaders): Selected public response headers for this sub-response. Example: {'X-Request-
-            Id': '5f051e42-f6a0-4f4d-9b67-c444f4673dd7'}.
-        body (BatchSubResponseBodyType0 | list[BatchSubResponseBodyType1Item] | None | Unset): Success body for this
-            sub-response when the target operation succeeds.
-        error (Problem | Unset): RFC 9457 problem detail envelope. Error responses use application/problem+json only.
-    """
+    """One batch sub-response, returned in the same array position as its sub-request."""
 
     id: None | str
     status: int
     headers: BatchSubResponseHeaders
+    """ Selected public response headers for this sub-response. """
     body: (
         BatchSubResponseBodyType0 | list[BatchSubResponseBodyType1Item] | None | Unset
     ) = UNSET
+    """ Success body for this sub-response when the target operation succeeds. """
     error: Problem | Unset = UNSET
+    """ RFC 9457 problem detail envelope. Error responses use application/problem+json only. """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.batch_sub_response_body_type_0 import BatchSubResponseBodyType0
@@ -86,7 +80,7 @@ class BatchSubResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.batch_sub_response_body_type_0 import BatchSubResponseBodyType0
         from ..models.batch_sub_response_body_type_1_item import (
             BatchSubResponseBodyType1Item,

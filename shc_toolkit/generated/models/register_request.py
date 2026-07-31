@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.register_request_scope import RegisterRequestScope
+from ..models.register_request_scope import (
+    RegisterRequestScope,
+    check_register_request_scope,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="RegisterRequest")
@@ -13,36 +17,27 @@ T = TypeVar("T", bound="RegisterRequest")
 
 @_attrs_define
 class RegisterRequest:
-    """
-    Attributes:
-        email (str): The account login identifier (used as the HTTP Basic username). Must be a valid email address.
-            Example: dev@example.com.
-        password (str): Account password. Minimum 8 characters; no other complexity rule is imposed. Example: correct-
-            horse-battery-staple.
-        first_name (str):  Example: Dev.
-        last_name (str):  Example: User.
-        tos_accepted (bool): REQUIRED. Must be true: the caller affirms the end user accepted SHC's Terms of Service
-            (https://blesta.sovereignhybridcompute.com/tos). A missing, null, or false value is rejected 400 tos_required.
-            Mirrors the web registration form's terms gate. Example: True.
-        country (str | Unset): ISO 3166-1 alpha-2 country code (case-insensitive; stored uppercased). Optional; defaults
-            to US. Validated against the supported country list. Default: 'US'. Example: US.
-        recovery_email (str | Unset): Optional alternate email for password-reset delivery. Example: dev-
-            recovery@example.com.
-        scope (RegisterRequestScope | Unset): Optional scope for the API key minted at registration. Defaults to
-            'operate' (read + provision, never spend). The anonymous /register endpoint is capped to {read, operate}; full
-            keys are issued only via your account settings (authenticated POST /account/api-keys) after you sign in. Note
-            that no scope can reach identity/credential routes (api-keys, password, 2FA, contact, primary-identity PATCH
-            /account) — those are Basic+OTP-only for every key. Default: RegisterRequestScope.OPERATE. Example: operate.
-    """
-
     email: str
+    """ The account login identifier (used as the HTTP Basic username). Must be a valid email address. """
     password: str
+    """ Account password. Minimum 8 characters; no other complexity rule is imposed. """
     first_name: str
     last_name: str
     tos_accepted: bool
+    """ REQUIRED. Must be true: the caller affirms the end user accepted SHC's Terms of Service
+    (https://blesta.sovereignhybridcompute.com/tos). A missing, null, or false value is rejected 400 tos_required.
+    Mirrors the web registration form's terms gate. """
     country: str | Unset = "US"
+    """ ISO 3166-1 alpha-2 country code (case-insensitive; stored uppercased). Optional; defaults to US. Validated
+    against the supported country list. """
     recovery_email: str | Unset = UNSET
-    scope: RegisterRequestScope | Unset = RegisterRequestScope.OPERATE
+    """ Optional alternate email for password-reset delivery. """
+    scope: RegisterRequestScope | Unset = "operate"
+    """ Optional scope for the API key minted at registration. Defaults to 'operate' (read + provision, never
+    spend). The anonymous /register endpoint is capped to {read, operate}; full keys are issued only via your
+    account settings (authenticated POST /account/api-keys) after you sign in. Note that no scope can reach
+    identity/credential routes (api-keys, password, 2FA, contact, primary-identity PATCH /account) — those are
+    Basic+OTP-only for every key. """
 
     def to_dict(self) -> dict[str, Any]:
         email = self.email
@@ -61,7 +56,7 @@ class RegisterRequest:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope.value
+            scope = self.scope
 
         field_dict: dict[str, Any] = {}
 
@@ -84,7 +79,7 @@ class RegisterRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         email = d.pop("email")
 
@@ -105,7 +100,7 @@ class RegisterRequest:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = RegisterRequestScope(_scope)
+            scope = check_register_request_scope(_scope)
 
         register_request = cls(
             email=email,

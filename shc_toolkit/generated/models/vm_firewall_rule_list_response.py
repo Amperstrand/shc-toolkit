@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_firewall_rule import VmFirewallRule
@@ -15,12 +16,7 @@ T = TypeVar("T", bound="VmFirewallRuleListResponse")
 
 @_attrs_define
 class VmFirewallRuleListResponse:
-    """The refreshed client-visible firewall rule list after a rule mutation (security-group rules excluded).
-
-    Attributes:
-        service_id (int):  Example: 353.
-        rules (list[VmFirewallRule]):
-    """
+    """The refreshed client-visible firewall rule list after a rule mutation (security-group rules excluded)."""
 
     service_id: int
     rules: list[VmFirewallRule]
@@ -46,7 +42,7 @@ class VmFirewallRuleListResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_firewall_rule import VmFirewallRule
 
         d = dict(src_dict)

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.list_service_addons_response_200_data import (
@@ -17,12 +18,8 @@ T = TypeVar("T", bound="ListServiceAddonsResponse200")
 
 @_attrs_define
 class ListServiceAddonsResponse200:
-    """
-    Attributes:
-        data (ListServiceAddonsResponse200Data): List add-ons attached to this service.
-    """
-
     data: ListServiceAddonsResponse200Data
+    """ List add-ons attached to this service. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +36,7 @@ class ListServiceAddonsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_service_addons_response_200_data import (
             ListServiceAddonsResponse200Data,
         )

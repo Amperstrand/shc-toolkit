@@ -5,24 +5,31 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.vm_firewall_policy_response_policy_policy_in_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyInType1,
+    check_vm_firewall_policy_response_policy_policy_in_type_1,
 )
 from ..models.vm_firewall_policy_response_policy_policy_in_type_2_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyInType2Type1,
+    check_vm_firewall_policy_response_policy_policy_in_type_2_type_1,
 )
 from ..models.vm_firewall_policy_response_policy_policy_in_type_3_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyInType3Type1,
+    check_vm_firewall_policy_response_policy_policy_in_type_3_type_1,
 )
 from ..models.vm_firewall_policy_response_policy_policy_out_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyOutType1,
+    check_vm_firewall_policy_response_policy_policy_out_type_1,
 )
 from ..models.vm_firewall_policy_response_policy_policy_out_type_2_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyOutType2Type1,
+    check_vm_firewall_policy_response_policy_policy_out_type_2_type_1,
 )
 from ..models.vm_firewall_policy_response_policy_policy_out_type_3_type_1 import (
     VmFirewallPolicyResponsePolicyPolicyOutType3Type1,
+    check_vm_firewall_policy_response_policy_policy_out_type_3_type_1,
 )
 
 T = TypeVar("T", bound="VmFirewallPolicyResponsePolicy")
@@ -30,15 +37,6 @@ T = TypeVar("T", bound="VmFirewallPolicyResponsePolicy")
 
 @_attrs_define
 class VmFirewallPolicyResponsePolicy:
-    """
-    Attributes:
-        policy_in (None | VmFirewallPolicyResponsePolicyPolicyInType1 | VmFirewallPolicyResponsePolicyPolicyInType2Type1
-            | VmFirewallPolicyResponsePolicyPolicyInType3Type1):  Example: DROP.
-        policy_out (None | VmFirewallPolicyResponsePolicyPolicyOutType1 |
-            VmFirewallPolicyResponsePolicyPolicyOutType2Type1 | VmFirewallPolicyResponsePolicyPolicyOutType3Type1):
-            Example: ACCEPT.
-    """
-
     policy_in: (
         None
         | VmFirewallPolicyResponsePolicyPolicyInType1
@@ -55,30 +53,22 @@ class VmFirewallPolicyResponsePolicy:
 
     def to_dict(self) -> dict[str, Any]:
         policy_in: None | str
-        if isinstance(self.policy_in, VmFirewallPolicyResponsePolicyPolicyInType1):
-            policy_in = self.policy_in.value
-        elif isinstance(
-            self.policy_in, VmFirewallPolicyResponsePolicyPolicyInType2Type1
+        if (
+            isinstance(self.policy_in, str)
+            or isinstance(self.policy_in, str)
+            or isinstance(self.policy_in, str)
         ):
-            policy_in = self.policy_in.value
-        elif isinstance(
-            self.policy_in, VmFirewallPolicyResponsePolicyPolicyInType3Type1
-        ):
-            policy_in = self.policy_in.value
+            policy_in = self.policy_in
         else:
             policy_in = self.policy_in
 
         policy_out: None | str
-        if isinstance(self.policy_out, VmFirewallPolicyResponsePolicyPolicyOutType1):
-            policy_out = self.policy_out.value
-        elif isinstance(
-            self.policy_out, VmFirewallPolicyResponsePolicyPolicyOutType2Type1
+        if (
+            isinstance(self.policy_out, str)
+            or isinstance(self.policy_out, str)
+            or isinstance(self.policy_out, str)
         ):
-            policy_out = self.policy_out.value
-        elif isinstance(
-            self.policy_out, VmFirewallPolicyResponsePolicyPolicyOutType3Type1
-        ):
-            policy_out = self.policy_out.value
+            policy_out = self.policy_out
         else:
             policy_out = self.policy_out
 
@@ -94,7 +84,7 @@ class VmFirewallPolicyResponsePolicy:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_policy_in(
@@ -110,7 +100,9 @@ class VmFirewallPolicyResponsePolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_in_type_1 = VmFirewallPolicyResponsePolicyPolicyInType1(data)
+                policy_in_type_1 = (
+                    check_vm_firewall_policy_response_policy_policy_in_type_1(data)
+                )
 
                 return policy_in_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -119,7 +111,9 @@ class VmFirewallPolicyResponsePolicy:
                 if not isinstance(data, str):
                     raise TypeError()
                 policy_in_type_2_type_1 = (
-                    VmFirewallPolicyResponsePolicyPolicyInType2Type1(data)
+                    check_vm_firewall_policy_response_policy_policy_in_type_2_type_1(
+                        data
+                    )
                 )
 
                 return policy_in_type_2_type_1
@@ -129,7 +123,9 @@ class VmFirewallPolicyResponsePolicy:
                 if not isinstance(data, str):
                     raise TypeError()
                 policy_in_type_3_type_1 = (
-                    VmFirewallPolicyResponsePolicyPolicyInType3Type1(data)
+                    check_vm_firewall_policy_response_policy_policy_in_type_3_type_1(
+                        data
+                    )
                 )
 
                 return policy_in_type_3_type_1
@@ -158,7 +154,9 @@ class VmFirewallPolicyResponsePolicy:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                policy_out_type_1 = VmFirewallPolicyResponsePolicyPolicyOutType1(data)
+                policy_out_type_1 = (
+                    check_vm_firewall_policy_response_policy_policy_out_type_1(data)
+                )
 
                 return policy_out_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -167,7 +165,9 @@ class VmFirewallPolicyResponsePolicy:
                 if not isinstance(data, str):
                     raise TypeError()
                 policy_out_type_2_type_1 = (
-                    VmFirewallPolicyResponsePolicyPolicyOutType2Type1(data)
+                    check_vm_firewall_policy_response_policy_policy_out_type_2_type_1(
+                        data
+                    )
                 )
 
                 return policy_out_type_2_type_1
@@ -177,7 +177,9 @@ class VmFirewallPolicyResponsePolicy:
                 if not isinstance(data, str):
                     raise TypeError()
                 policy_out_type_3_type_1 = (
-                    VmFirewallPolicyResponsePolicyPolicyOutType3Type1(data)
+                    check_vm_firewall_policy_response_policy_policy_out_type_3_type_1(
+                        data
+                    )
                 )
 
                 return policy_out_type_3_type_1

@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.provisioning_state import ProvisioningState
-from ..models.service_status import ServiceStatus
+from ..models.provisioning_state import ProvisioningState, check_provisioning_state
+from ..models.service_status import ServiceStatus, check_service_status
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -25,64 +26,43 @@ T = TypeVar("T", bound="GetVirtualMachineDetailResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineDetailResponse200Data:
-    """
-    Attributes:
-        id (int):  Example: 353.
-        hostname (None | str):  Example: my-vps.
-        os_user (None | str):  Example: debian.
-        os_template (None | str): Machine-stable OS template identifier the service was last provisioned with. Resolved
-            against the customer's eligible plan and the live /ordering/catalog `template` option (e.g. debian13-cloud,
-            debian12-cloud, ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud,
-            alpine323-cloud, devuan5-cloud, openbsd79-cloud, windows2022-byol). null when not yet known. Example:
-            debian13-cloud.
-        service_status (ServiceStatus): Service lifecycle status (renamed from the DB status field to avoid colliding
-            with runtime.raw_status). Example: active.
-        provisioning_state (ProvisioningState): Derived customer-facing provisioning readiness state. Example:
-            provisioning.
-        bootstrap_completed_at (datetime.datetime | None): When the provisioning watcher confirmed guest-agent
-            readiness, IPv4 assignment, and SSH reachability. Example: 2026-02-01T07:59:12+00:00.
-        package (str): Customer-facing package name currently attached to the service. Example: NVMe VPS - Standard.
-        specs (VmSpecs): Package-derived resource profile for a VM service or plan. Example: {'cpu': 2, 'memory_mb':
-            4096, 'disk_gb': 80, 'bandwidth_gb': 4000, 'ipv4': 1, 'ipv6': 1}.
-        ips (list[IpAddress]):
-        ssh_key (None | str): Stored SSH public key that will be applied on reinstall, if present. Example: ssh-ed25519
-            AAAAC3NzaC1lZDI1NTE5AAAA....
-        pricing (VmPricing): Current billing cadence and pricing for one owned service. Example: {'term': 1, 'period':
-            'month', 'price': '11.99', 'renew': '11.99', 'currency': 'USD'}.
-        date_created (datetime.datetime | None):  Example: 2026-02-01T07:57:55+00:00.
-        date_renews (datetime.datetime | None): Next renewal timestamp recorded for the service. Example:
-            2027-02-01T07:57:55+00:00.
-        date_suspended (datetime.datetime | None):  Example: 2026-03-01T10:15:00+00:00.
-        date_canceled (datetime.datetime | None):  Example: 2026-03-15T10:15:00+00:00.
-        has_active_job (bool | Unset): True when the VM has a backup/snapshot/restore/reinstall/provision job that is
-            pending or running. When true, poll /vm/{service_id}/jobs/{job_id} before mutating.
-        runtime (VmRuntimeOverview | Unset): Live power-state snapshot (subset of the Proxmox status/current; host-
-            identifying fields are omitted).
-        network_interfaces (list[VmNetworkInterface] | Unset):
-        pci_devices (VmPciSummary | Unset): GPU/PCI passthrough summary card. Only the device count and a primary
-            label/short are exposed; per-device topology (pci_id, vendor:device, IOMMU group) is intentionally withheld.
-    """
-
     id: int
     hostname: None | str
     os_user: None | str
     os_template: None | str
+    """ Machine-stable OS template identifier the service was last provisioned with. Resolved against the customer's
+    eligible plan and the live /ordering/catalog `template` option (e.g. debian13-cloud, debian12-cloud,
+    ubuntu2404-cloud, ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud,
+    devuan5-cloud, openbsd79-cloud, windows2022-byol). null when not yet known. """
     service_status: ServiceStatus
+    """ Service lifecycle status (renamed from the DB status field to avoid colliding with runtime.raw_status). """
     provisioning_state: ProvisioningState
+    """ Derived customer-facing provisioning readiness state. """
     bootstrap_completed_at: datetime.datetime | None
+    """ When the provisioning watcher confirmed guest-agent readiness, IPv4 assignment, and SSH reachability. """
     package: str
+    """ Customer-facing package name currently attached to the service. """
     specs: VmSpecs
+    """ Package-derived resource profile for a VM service or plan. """
     ips: list[IpAddress]
     ssh_key: None | str
+    """ Stored SSH public key that will be applied on reinstall, if present. """
     pricing: VmPricing
+    """ Current billing cadence and pricing for one owned service. """
     date_created: datetime.datetime | None
     date_renews: datetime.datetime | None
+    """ Next renewal timestamp recorded for the service. """
     date_suspended: datetime.datetime | None
     date_canceled: datetime.datetime | None
     has_active_job: bool | Unset = UNSET
+    """ True when the VM has a backup/snapshot/restore/reinstall/provision job that is pending or running. When
+    true, poll /vm/{service_id}/jobs/{job_id} before mutating. """
     runtime: VmRuntimeOverview | Unset = UNSET
+    """ Live power-state snapshot (subset of the Proxmox status/current; host-identifying fields are omitted). """
     network_interfaces: list[VmNetworkInterface] | Unset = UNSET
     pci_devices: VmPciSummary | Unset = UNSET
+    """ GPU/PCI passthrough summary card. Only the device count and a primary label/short are exposed; per-device
+    topology (pci_id, vendor:device, IOMMU group) is intentionally withheld. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -97,9 +77,9 @@ class GetVirtualMachineDetailResponse200Data:
         os_template: None | str
         os_template = self.os_template
 
-        service_status = self.service_status.value
+        service_status: str = self.service_status
 
-        provisioning_state = self.provisioning_state.value
+        provisioning_state: str = self.provisioning_state
 
         bootstrap_completed_at: None | str
         if isinstance(self.bootstrap_completed_at, datetime.datetime):
@@ -196,7 +176,7 @@ class GetVirtualMachineDetailResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.ip_address import IpAddress
         from ..models.vm_network_interface import VmNetworkInterface
         from ..models.vm_pci_summary import VmPciSummary
@@ -228,9 +208,9 @@ class GetVirtualMachineDetailResponse200Data:
 
         os_template = _parse_os_template(d.pop("os_template"))
 
-        service_status = ServiceStatus(d.pop("service_status"))
+        service_status = check_service_status(d.pop("service_status"))
 
-        provisioning_state = ProvisioningState(d.pop("provisioning_state"))
+        provisioning_state = check_provisioning_state(d.pop("provisioning_state"))
 
         def _parse_bootstrap_completed_at(data: object) -> datetime.datetime | None:
             if data is None:

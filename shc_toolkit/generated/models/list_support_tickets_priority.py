@@ -1,12 +1,19 @@
-from enum import Enum
+from typing import Literal
+
+ListSupportTicketsPriority = Literal["critical", "emergency", "high", "low", "medium"]
+
+LIST_SUPPORT_TICKETS_PRIORITY_VALUES: set[ListSupportTicketsPriority] = {
+    "critical",
+    "emergency",
+    "high",
+    "low",
+    "medium",
+}
 
 
-class ListSupportTicketsPriority(str, Enum):
-    CRITICAL = "critical"
-    EMERGENCY = "emergency"
-    HIGH = "high"
-    LOW = "low"
-    MEDIUM = "medium"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_list_support_tickets_priority(value: str) -> ListSupportTicketsPriority:
+    if value in LIST_SUPPORT_TICKETS_PRIORITY_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {LIST_SUPPORT_TICKETS_PRIORITY_VALUES!r}"
+    )

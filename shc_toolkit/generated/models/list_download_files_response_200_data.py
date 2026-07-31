@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.list_download_files_response_200_data_categories_item import (
@@ -25,23 +26,16 @@ T = TypeVar("T", bound="ListDownloadFilesResponse200Data")
 
 @_attrs_define
 class ListDownloadFilesResponse200Data:
-    """
-    Attributes:
-        category (ListDownloadFilesResponse200DataCategoryType0 | None): Selected category, or null when listing the
-            root.
-        parent_category (ListDownloadFilesResponse200DataParentCategoryType0 | None): Parent category of the selected
-            category, or null when absent.
-        categories (list[ListDownloadFilesResponse200DataCategoriesItem]): Child categories visible at this level.
-        files (list[ListDownloadFilesResponse200DataFilesItem]): Download files available to the authenticated client at
-            this level.
-        total_files (int): Portal-parity total files in the category for the company, not entitlement-filtered.
-    """
-
     category: ListDownloadFilesResponse200DataCategoryType0 | None
+    """ Selected category, or null when listing the root. """
     parent_category: ListDownloadFilesResponse200DataParentCategoryType0 | None
+    """ Parent category of the selected category, or null when absent. """
     categories: list[ListDownloadFilesResponse200DataCategoriesItem]
+    """ Child categories visible at this level. """
     files: list[ListDownloadFilesResponse200DataFilesItem]
+    """ Download files available to the authenticated client at this level. """
     total_files: int
+    """ Portal-parity total files in the category for the company, not entitlement-filtered. """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.list_download_files_response_200_data_category_type_0 import (
@@ -92,7 +86,7 @@ class ListDownloadFilesResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_download_files_response_200_data_categories_item import (
             ListDownloadFilesResponse200DataCategoriesItem,
         )

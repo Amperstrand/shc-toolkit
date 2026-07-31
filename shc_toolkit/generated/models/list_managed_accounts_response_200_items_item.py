@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_managed_accounts_response_200_items_item_status import (
     ListManagedAccountsResponse200ItemsItemStatus,
+    check_list_managed_accounts_response_200_items_item_status,
 )
 from ..types import UNSET, Unset
 
@@ -15,18 +17,6 @@ T = TypeVar("T", bound="ListManagedAccountsResponse200ItemsItem")
 
 @_attrs_define
 class ListManagedAccountsResponse200ItemsItem:
-    """
-    Attributes:
-        status (ListManagedAccountsResponse200ItemsItemStatus):  Example: active.
-        client_id (int | None | Unset):  Example: 152.
-        client_id_code (None | str | Unset):  Example: 152.
-        company (None | str | Unset):
-        first_name (None | str | Unset):
-        last_name (None | str | Unset):
-        email (None | str | Unset):
-        invitation_token (None | str | Unset):
-    """
-
     status: ListManagedAccountsResponse200ItemsItemStatus
     client_id: int | None | Unset = UNSET
     client_id_code: None | str | Unset = UNSET
@@ -37,7 +27,7 @@ class ListManagedAccountsResponse200ItemsItem:
     invitation_token: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        status = self.status.value
+        status: str = self.status
 
         client_id: int | None | Unset
         if isinstance(self.client_id, Unset):
@@ -106,9 +96,11 @@ class ListManagedAccountsResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = ListManagedAccountsResponse200ItemsItemStatus(d.pop("status"))
+        status = check_list_managed_accounts_response_200_items_item_status(
+            d.pop("status")
+        )
 
         def _parse_client_id(data: object) -> int | None | Unset:
             if data is None:

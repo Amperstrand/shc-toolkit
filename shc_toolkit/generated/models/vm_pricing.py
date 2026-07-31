@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmPricing")
 
@@ -16,19 +17,18 @@ class VmPricing:
     Example:
         {'term': 1, 'period': 'month', 'price': '11.99', 'renew': '11.99', 'currency': 'USD'}
 
-    Attributes:
-        term (int): Billing term count for the active pricing row. Example: 1.
-        period (None | str): Billing period unit such as `month` or `year`. Example: month.
-        price (str): Current billed amount for the active cadence. Example: 11.99.
-        renew (str): Renewal amount for the active cadence. Example: 11.99.
-        currency (str): ISO-style currency code used for pricing fields. Example: USD.
     """
 
     term: int
+    """ Billing term count for the active pricing row. """
     period: None | str
+    """ Billing period unit such as `month` or `year`. """
     price: str
+    """ Current billed amount for the active cadence. """
     renew: str
+    """ Renewal amount for the active cadence. """
     currency: str
+    """ ISO-style currency code used for pricing fields. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,7 +58,7 @@ class VmPricing:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         term = d.pop("term")
 

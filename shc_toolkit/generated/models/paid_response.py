@@ -5,8 +5,9 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.paid_response_status import PaidResponseStatus
+from ..models.paid_response_status import PaidResponseStatus, check_paid_response_status
 
 T = TypeVar("T", bound="PaidResponse")
 
@@ -18,24 +19,19 @@ class PaidResponse:
         {'status': 'paid', 'invoice_id': 1550, 'transaction_id': 8441, 'paid_at': '2026-05-05T22:03:11+00:00',
             'applied_credit': '11.99'}
 
-    Attributes:
-        status (PaidResponseStatus):  Example: paid.
-        invoice_id (int):  Example: 1550.
-        transaction_id (int | None): Blesta transaction row ID when one exists. Zero-value invoices may close without a
-            backing transaction row. Example: 8441.
-        paid_at (datetime.datetime):  Example: 2026-05-05T22:03:11+00:00.
-        applied_credit (str): Amount of client credit applied by this call. `0.00` for zero-value invoices and already-
-            paid invoices. Example: 11.99.
     """
 
     status: PaidResponseStatus
     invoice_id: int
     transaction_id: int | None
+    """ Blesta transaction row ID when one exists. Zero-value invoices may close without a backing transaction row.
+    """
     paid_at: datetime.datetime
     applied_credit: str
+    """ Amount of client credit applied by this call. `0.00` for zero-value invoices and already-paid invoices. """
 
     def to_dict(self) -> dict[str, Any]:
-        status = self.status.value
+        status: str = self.status
 
         invoice_id = self.invoice_id
 
@@ -61,9 +57,9 @@ class PaidResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = PaidResponseStatus(d.pop("status"))
+        status = check_paid_response_status(d.pop("status"))
 
         invoice_id = d.pop("invoice_id")
 

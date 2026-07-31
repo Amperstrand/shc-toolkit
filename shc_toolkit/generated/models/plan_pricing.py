@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="PlanPricing")
 
@@ -17,23 +18,22 @@ class PlanPricing:
         {'pricing_id': 12, 'term': 1, 'period': 'month', 'price': '11.99', 'renew': '11.99', 'setup_fee': '0.00',
             'currency': 'USD'}
 
-    Attributes:
-        pricing_id (int): Blesta pricing row identifier for this specific billing option. Example: 12.
-        term (int): Billing term count for this pricing row. Example: 1.
-        period (str): Billing period unit such as `month` or `year`. Example: month.
-        price (str): Initial billed amount for this pricing row. Example: 11.99.
-        renew (None | str): Renewal amount for this pricing row, if distinct from `price`. Example: 11.99.
-        setup_fee (str): One-time setup charge associated with this pricing row. Example: 0.00.
-        currency (str): ISO-style currency code used for pricing fields. Example: USD.
     """
 
     pricing_id: int
+    """ Blesta pricing row identifier for this specific billing option. """
     term: int
+    """ Billing term count for this pricing row. """
     period: str
+    """ Billing period unit such as `month` or `year`. """
     price: str
+    """ Initial billed amount for this pricing row. """
     renew: None | str
+    """ Renewal amount for this pricing row, if distinct from `price`. """
     setup_fee: str
+    """ One-time setup charge associated with this pricing row. """
     currency: str
+    """ ISO-style currency code used for pricing fields. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -69,7 +69,7 @@ class PlanPricing:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         pricing_id = d.pop("pricing_id")
 

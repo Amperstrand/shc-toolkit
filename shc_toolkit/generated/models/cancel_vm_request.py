@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,15 +24,14 @@ class CancelVmRequest:
     Example:
         {'reason': 'Service no longer needed after migration.', 'immediate': False}
 
-    Attributes:
-        reason (str | Unset): Optional customer-supplied cancellation note. The API trims and sanitizes this value
-            before passing it to Blesta. Example: Service no longer needed after migration..
-        immediate (bool | Unset): Set to `true` to cancel the service immediately. Leave unset or `false` to cancel at
-            the end of the current term. Default: False.
     """
 
     reason: str | Unset = UNSET
+    """ Optional customer-supplied cancellation note. The API trims and sanitizes this value before passing it to
+    Blesta. """
     immediate: bool | Unset = False
+    """ Set to `true` to cancel the service immediately. Leave unset or `false` to cancel at the end of the current
+    term. """
     additional_properties: dict[
         str,
         bool
@@ -71,7 +71,7 @@ class CancelVmRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.cancel_vm_request_additional_property_type_4 import (
             CancelVmRequestAdditionalPropertyType4,
         )
@@ -161,7 +161,6 @@ class CancelVmRequest:
         value: bool
         | CancelVmRequestAdditionalPropertyType4
         | float
-        | int
         | list[str]
         | None
         | str,

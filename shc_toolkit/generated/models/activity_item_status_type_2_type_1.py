@@ -1,14 +1,25 @@
-from enum import Enum
+from typing import Literal
+
+ActivityItemStatusType2Type1 = Literal[
+    "approved", "declined", "error", "pending", "refunded", "returned", "void"
+]
+
+ACTIVITY_ITEM_STATUS_TYPE_2_TYPE_1_VALUES: set[ActivityItemStatusType2Type1] = {
+    "approved",
+    "declined",
+    "error",
+    "pending",
+    "refunded",
+    "returned",
+    "void",
+}
 
 
-class ActivityItemStatusType2Type1(str, Enum):
-    APPROVED = "approved"
-    DECLINED = "declined"
-    ERROR = "error"
-    PENDING = "pending"
-    REFUNDED = "refunded"
-    RETURNED = "returned"
-    VOID = "void"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_activity_item_status_type_2_type_1(
+    value: str,
+) -> ActivityItemStatusType2Type1:
+    if value in ACTIVITY_ITEM_STATUS_TYPE_2_TYPE_1_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {ACTIVITY_ITEM_STATUS_TYPE_2_TYPE_1_VALUES!r}"
+    )

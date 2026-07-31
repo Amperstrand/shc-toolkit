@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus
+from ..models.invoice_status import InvoiceStatus, check_invoice_status
 
 if TYPE_CHECKING:
     from ..models.invoice_line_list import InvoiceLineList
@@ -25,24 +26,12 @@ class InvoiceDetail:
             'note': None, 'line_items': {'items': [{'description': 'NVMe VPS - Standard', 'qty': 1, 'amount': '11.99'}],
             'pagination': {'total': 1, 'limit': 100, 'offset': 0, 'has_more': False}}}
 
-    Attributes:
-        id (int):  Example: 123.
-        invoice_status (InvoiceStatus): Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due
-            date has passed; clients that previously treated it as `open` can continue to do so but the API surfaces the
-            distinction. Example: open.
-        subtotal (str):  Example: 11.99.
-        total (str):  Example: 11.99.
-        paid (str):  Example: 0.00.
-        currency (str):  Example: USD.
-        date_billed (datetime.datetime | None):  Example: 2026-02-01T07:57:55+00:00.
-        date_due (datetime.datetime | None):  Example: 2026-02-08T07:57:55+00:00.
-        date_closed (datetime.datetime | None):  Example: 2026-02-08T08:30:00+00:00.
-        note (None | str):
-        line_items (InvoiceLineList): Canonical paginated list of invoice line items.
     """
 
     id: int
     invoice_status: InvoiceStatus
+    """ Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due date has passed; clients that
+    previously treated it as `open` can continue to do so but the API surfaces the distinction. """
     subtotal: str
     total: str
     paid: str
@@ -52,12 +41,13 @@ class InvoiceDetail:
     date_closed: datetime.datetime | None
     note: None | str
     line_items: InvoiceLineList
+    """ Canonical paginated list of invoice line items. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        invoice_status = self.invoice_status.value
+        invoice_status: str = self.invoice_status
 
         subtotal = self.subtotal
 
@@ -111,13 +101,13 @@ class InvoiceDetail:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.invoice_line_list import InvoiceLineList
 
         d = dict(src_dict)
         id = d.pop("id")
 
-        invoice_status = InvoiceStatus(d.pop("invoice_status"))
+        invoice_status = check_invoice_status(d.pop("invoice_status"))
 
         subtotal = d.pop("subtotal")
 

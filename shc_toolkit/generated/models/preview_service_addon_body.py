@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -19,21 +20,15 @@ T = TypeVar("T", bound="PreviewServiceAddonBody")
 
 @_attrs_define
 class PreviewServiceAddonBody:
-    """
-    Attributes:
-        package_group_id (int): The addon package group (from /addons/options).
-        pricing_id (int): The addon package pricing id (selects package + term).
-        qty (int | Unset):  Default: 1.
-        config_options (PreviewServiceAddonBodyConfigOptions | Unset): Map of package option id -> selected value.
-        fields (PreviewServiceAddonBodyFields | Unset): Module service fields for the addon, when the addon module
-            requires any.
-    """
-
     package_group_id: int
+    """ The addon package group (from /addons/options). """
     pricing_id: int
+    """ The addon package pricing id (selects package + term). """
     qty: int | Unset = 1
     config_options: PreviewServiceAddonBodyConfigOptions | Unset = UNSET
+    """ Map of package option id -> selected value. """
     fields: PreviewServiceAddonBodyFields | Unset = UNSET
+    """ Module service fields for the addon, when the addon module requires any. """
 
     def to_dict(self) -> dict[str, Any]:
         package_group_id = self.package_group_id
@@ -68,7 +63,7 @@ class PreviewServiceAddonBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.preview_service_addon_body_config_options import (
             PreviewServiceAddonBodyConfigOptions,
         )

@@ -4,17 +4,14 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ManagedAccountSwitchResponseAudit")
 
 
 @_attrs_define
 class ManagedAccountSwitchResponseAudit:
-    """Indicates that dual-identity audit fields were recorded for this switch.
-
-    Attributes:
-        dual_identity (bool):
-    """
+    """Indicates that dual-identity audit fields were recorded for this switch."""
 
     dual_identity: bool
 
@@ -32,7 +29,7 @@ class ManagedAccountSwitchResponseAudit:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         dual_identity = d.pop("dual_identity")
 

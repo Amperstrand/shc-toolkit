@@ -5,9 +5,16 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.credit_topup_response_status import CreditTopupResponseStatus
-from ..models.credit_topup_response_type import CreditTopupResponseType
+from ..models.credit_topup_response_status import (
+    CreditTopupResponseStatus,
+    check_credit_topup_response_status,
+)
+from ..models.credit_topup_response_type import (
+    CreditTopupResponseType,
+    check_credit_topup_response_type,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreditTopupResponse")
@@ -15,39 +22,27 @@ T = TypeVar("T", bound="CreditTopupResponse")
 
 @_attrs_define
 class CreditTopupResponse:
-    """
-    Attributes:
-        status (CreditTopupResponseStatus):  Example: checkout_required.
-        type_ (CreditTopupResponseType):  Example: account_credit.
-        amount (str): The credited amount as a 2-decimal string. Example: 25.00.
-        currency (str):  Example: USD.
-        checkout_url (str): BTCPay hosted checkout page (pay by Lightning or on-chain in a browser). Example:
-            https://btcpay.sovereignhybridcompute.com/i/G7hYQdbfL3E7Pj7u5d7s2C.
-        bolt11 (None | str | Unset): A BOLT11 Lightning invoice for the amount, for wallets/automation that pay without
-            the hosted page. Null if a direct Lightning invoice is unavailable for this invoice. Example:
-            lnbc15900n1p4ztufspp5....
-        onchain_address (None | str | Unset): On-chain Bitcoin address, when the store offers on-chain. Null on a
-            Lightning-only store.
-        payment_link (None | str | Unset): A single wallet-openable payment URI (prefers lightning:lnbc…, else
-            lightning:lnurl…, else bitcoin:…). Example: lightning:lnbc15900n1p....
-        expires_at (datetime.datetime | None | Unset): When the BTCPay invoice expires. Example:
-            2026-06-07T22:46:11+00:00.
-    """
-
     status: CreditTopupResponseStatus
     type_: CreditTopupResponseType
     amount: str
+    """ The credited amount as a 2-decimal string. """
     currency: str
     checkout_url: str
+    """ BTCPay hosted checkout page (pay by Lightning or on-chain in a browser). """
     bolt11: None | str | Unset = UNSET
+    """ A BOLT11 Lightning invoice for the amount, for wallets/automation that pay without the hosted page. Null if
+    a direct Lightning invoice is unavailable for this invoice. """
     onchain_address: None | str | Unset = UNSET
+    """ On-chain Bitcoin address, when the store offers on-chain. Null on a Lightning-only store. """
     payment_link: None | str | Unset = UNSET
+    """ A single wallet-openable payment URI (prefers lightning:lnbc…, else lightning:lnurl…, else bitcoin:…). """
     expires_at: datetime.datetime | None | Unset = UNSET
+    """ When the BTCPay invoice expires. """
 
     def to_dict(self) -> dict[str, Any]:
-        status = self.status.value
+        status: str = self.status
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         amount = self.amount
 
@@ -104,11 +99,11 @@ class CreditTopupResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = CreditTopupResponseStatus(d.pop("status"))
+        status = check_credit_topup_response_status(d.pop("status"))
 
-        type_ = CreditTopupResponseType(d.pop("type"))
+        type_ = check_credit_topup_response_type(d.pop("type"))
 
         amount = d.pop("amount")
 

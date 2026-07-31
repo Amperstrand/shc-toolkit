@@ -4,15 +4,19 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_auto_debit_response_200_data_type_type_1 import (
     GetAutoDebitResponse200DataTypeType1,
+    check_get_auto_debit_response_200_data_type_type_1,
 )
 from ..models.get_auto_debit_response_200_data_type_type_2_type_1 import (
     GetAutoDebitResponse200DataTypeType2Type1,
+    check_get_auto_debit_response_200_data_type_type_2_type_1,
 )
 from ..models.get_auto_debit_response_200_data_type_type_3_type_1 import (
     GetAutoDebitResponse200DataTypeType3Type1,
+    check_get_auto_debit_response_200_data_type_type_3_type_1,
 )
 
 T = TypeVar("T", bound="GetAutoDebitResponse200Data")
@@ -20,14 +24,6 @@ T = TypeVar("T", bound="GetAutoDebitResponse200Data")
 
 @_attrs_define
 class GetAutoDebitResponse200Data:
-    """
-    Attributes:
-        enabled (bool):  Example: True.
-        account_id (int | None):  Example: 41.
-        type_ (GetAutoDebitResponse200DataTypeType1 | GetAutoDebitResponse200DataTypeType2Type1 |
-            GetAutoDebitResponse200DataTypeType3Type1 | None):  Example: cc.
-    """
-
     enabled: bool
     account_id: int | None
     type_: (
@@ -44,12 +40,12 @@ class GetAutoDebitResponse200Data:
         account_id = self.account_id
 
         type_: None | str
-        if isinstance(self.type_, GetAutoDebitResponse200DataTypeType1):
-            type_ = self.type_.value
-        elif isinstance(self.type_, GetAutoDebitResponse200DataTypeType2Type1):
-            type_ = self.type_.value
-        elif isinstance(self.type_, GetAutoDebitResponse200DataTypeType3Type1):
-            type_ = self.type_.value
+        if (
+            isinstance(self.type_, str)
+            or isinstance(self.type_, str)
+            or isinstance(self.type_, str)
+        ):
+            type_ = self.type_
         else:
             type_ = self.type_
 
@@ -66,7 +62,7 @@ class GetAutoDebitResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         enabled = d.pop("enabled")
 
@@ -90,7 +86,7 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_1 = GetAutoDebitResponse200DataTypeType1(data)
+                type_type_1 = check_get_auto_debit_response_200_data_type_type_1(data)
 
                 return type_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -98,7 +94,9 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_2_type_1 = GetAutoDebitResponse200DataTypeType2Type1(data)
+                type_type_2_type_1 = (
+                    check_get_auto_debit_response_200_data_type_type_2_type_1(data)
+                )
 
                 return type_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -106,7 +104,9 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_3_type_1 = GetAutoDebitResponse200DataTypeType3Type1(data)
+                type_type_3_type_1 = (
+                    check_get_auto_debit_response_200_data_type_type_3_type_1(data)
+                )
 
                 return type_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

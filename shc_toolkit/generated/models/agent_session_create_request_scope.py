@@ -1,9 +1,18 @@
-from enum import Enum
+from typing import Literal
+
+AgentSessionCreateRequestScope = Literal["operate", "read"]
+
+AGENT_SESSION_CREATE_REQUEST_SCOPE_VALUES: set[AgentSessionCreateRequestScope] = {
+    "operate",
+    "read",
+}
 
 
-class AgentSessionCreateRequestScope(str, Enum):
-    OPERATE = "operate"
-    READ = "read"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_agent_session_create_request_scope(
+    value: str,
+) -> AgentSessionCreateRequestScope:
+    if value in AGENT_SESSION_CREATE_REQUEST_SCOPE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {AGENT_SESSION_CREATE_REQUEST_SCOPE_VALUES!r}"
+    )

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.pagination import Pagination
@@ -15,12 +16,6 @@ T = TypeVar("T", bound="SearchKbResponse200")
 
 @_attrs_define
 class SearchKbResponse200:
-    """
-    Attributes:
-        items (list[SearchKbResponse200ItemsItem]):
-        pagination (Pagination):  Example: {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}.
-    """
-
     items: list[SearchKbResponse200ItemsItem]
     pagination: Pagination
 
@@ -44,7 +39,7 @@ class SearchKbResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.pagination import Pagination
         from ..models.search_kb_response_200_items_item import (
             SearchKbResponse200ItemsItem,

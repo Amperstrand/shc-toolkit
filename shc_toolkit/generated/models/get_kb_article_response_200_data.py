@@ -4,15 +4,19 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_kb_article_response_200_data_content_type_type_1 import (
     GetKbArticleResponse200DataContentTypeType1,
+    check_get_kb_article_response_200_data_content_type_type_1,
 )
 from ..models.get_kb_article_response_200_data_content_type_type_2_type_1 import (
     GetKbArticleResponse200DataContentTypeType2Type1,
+    check_get_kb_article_response_200_data_content_type_type_2_type_1,
 )
 from ..models.get_kb_article_response_200_data_content_type_type_3_type_1 import (
     GetKbArticleResponse200DataContentTypeType3Type1,
+    check_get_kb_article_response_200_data_content_type_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -27,18 +31,6 @@ T = TypeVar("T", bound="GetKbArticleResponse200Data")
 
 @_attrs_define
 class GetKbArticleResponse200Data:
-    """
-    Attributes:
-        id (int):  Example: 21.
-        title (None | str):  Example: How to reboot a VM.
-        content (None | str):
-        categories (list[GetKbArticleResponse200DataCategoriesItem]):
-        up_votes (int):  Example: 12.
-        down_votes (int):  Example: 1.
-        content_type (GetKbArticleResponse200DataContentTypeType1 | GetKbArticleResponse200DataContentTypeType2Type1 |
-            GetKbArticleResponse200DataContentTypeType3Type1 | None | Unset):  Example: html.
-    """
-
     id: int
     title: None | str
     content: None | str
@@ -74,16 +66,12 @@ class GetKbArticleResponse200Data:
         content_type: None | str | Unset
         if isinstance(self.content_type, Unset):
             content_type = UNSET
-        elif isinstance(self.content_type, GetKbArticleResponse200DataContentTypeType1):
-            content_type = self.content_type.value
-        elif isinstance(
-            self.content_type, GetKbArticleResponse200DataContentTypeType2Type1
+        elif (
+            isinstance(self.content_type, str)
+            or isinstance(self.content_type, str)
+            or isinstance(self.content_type, str)
         ):
-            content_type = self.content_type.value
-        elif isinstance(
-            self.content_type, GetKbArticleResponse200DataContentTypeType3Type1
-        ):
-            content_type = self.content_type.value
+            content_type = self.content_type
         else:
             content_type = self.content_type
 
@@ -105,7 +93,7 @@ class GetKbArticleResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_kb_article_response_200_data_categories_item import (
             GetKbArticleResponse200DataCategoriesItem,
         )
@@ -156,7 +144,9 @@ class GetKbArticleResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                content_type_type_1 = GetKbArticleResponse200DataContentTypeType1(data)
+                content_type_type_1 = (
+                    check_get_kb_article_response_200_data_content_type_type_1(data)
+                )
 
                 return content_type_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -165,7 +155,9 @@ class GetKbArticleResponse200Data:
                 if not isinstance(data, str):
                     raise TypeError()
                 content_type_type_2_type_1 = (
-                    GetKbArticleResponse200DataContentTypeType2Type1(data)
+                    check_get_kb_article_response_200_data_content_type_type_2_type_1(
+                        data
+                    )
                 )
 
                 return content_type_type_2_type_1
@@ -175,7 +167,9 @@ class GetKbArticleResponse200Data:
                 if not isinstance(data, str):
                     raise TypeError()
                 content_type_type_3_type_1 = (
-                    GetKbArticleResponse200DataContentTypeType3Type1(data)
+                    check_get_kb_article_response_200_data_content_type_type_3_type_1(
+                        data
+                    )
                 )
 
                 return content_type_type_3_type_1

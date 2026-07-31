@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.proxmox_job import ProxmoxJob
@@ -15,15 +16,8 @@ T = TypeVar("T", bound="GetVirtualMachineJobResponse200")
 
 @_attrs_define
 class GetVirtualMachineJobResponse200:
-    """
-    Attributes:
-        data (ProxmoxJob): Queued or historical background job for one owned VM service. Example: {'job_id': 912,
-            'service_id': 353, 'type': 'backup', 'status': 'running', 'progress': 45, 'step': 'Creating backup archive',
-            'error': None, 'requested': {'name': 'nightly-demo', 'mode': 'suspend', 'backup_id': None, 'storage': 'pbs'},
-            'created_at': '2026-04-17T01:23:45+00:00', 'completed_at': None}.
-    """
-
     data: ProxmoxJob
+    """ Queued or historical background job for one owned VM service. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,7 +34,7 @@ class GetVirtualMachineJobResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.proxmox_job import ProxmoxJob
 
         d = dict(src_dict)

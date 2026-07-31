@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.preview_virtual_machine_term_change_response_200_data_current import (
@@ -19,20 +20,13 @@ T = TypeVar("T", bound="PreviewVirtualMachineTermChangeResponse200Data")
 
 @_attrs_define
 class PreviewVirtualMachineTermChangeResponse200Data:
-    """
-    Attributes:
-        service_id (int):
-        current (PreviewVirtualMachineTermChangeResponse200DataCurrent):
-        target (PreviewVirtualMachineTermChangeResponse200DataTarget):
-        due_on_change (str): Amount due to change term, as a fixed two-decimal money string.
-        term_change_allowed (bool): Whether this client is allowed to change service term.
-    """
-
     service_id: int
     current: PreviewVirtualMachineTermChangeResponse200DataCurrent
     target: PreviewVirtualMachineTermChangeResponse200DataTarget
     due_on_change: str
+    """ Amount due to change term, as a fixed two-decimal money string. """
     term_change_allowed: bool
+    """ Whether this client is allowed to change service term. """
 
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
@@ -60,7 +54,7 @@ class PreviewVirtualMachineTermChangeResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.preview_virtual_machine_term_change_response_200_data_current import (
             PreviewVirtualMachineTermChangeResponse200DataCurrent,
         )

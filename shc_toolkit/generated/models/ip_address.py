@@ -5,22 +5,16 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.ip_address_type import IpAddressType
+from ..models.ip_address_type import IpAddressType, check_ip_address_type
 
 T = TypeVar("T", bound="IpAddress")
 
 
 @_attrs_define
 class IpAddress:
-    """Assigned IP address currently associated with an owned VM service.
-
-    Attributes:
-        ip (str):  Example: 23.182.128.79.
-        cidr (str):  Example: 23.182.128.79/24.
-        gateway (None | str):  Example: 23.182.128.1.
-        type_ (IpAddressType):  Example: v4.
-    """
+    """Assigned IP address currently associated with an owned VM service."""
 
     ip: str
     cidr: str
@@ -36,7 +30,7 @@ class IpAddress:
         gateway: None | str
         gateway = self.gateway
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -52,7 +46,7 @@ class IpAddress:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         ip = d.pop("ip")
 
@@ -65,7 +59,7 @@ class IpAddress:
 
         gateway = _parse_gateway(d.pop("gateway"))
 
-        type_ = IpAddressType(d.pop("type"))
+        type_ = check_ip_address_type(d.pop("type"))
 
         ip_address = cls(
             ip=ip,

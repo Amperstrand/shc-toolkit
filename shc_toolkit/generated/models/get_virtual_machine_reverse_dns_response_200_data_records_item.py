@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,21 +14,15 @@ T = TypeVar("T", bound="GetVirtualMachineReverseDnsResponse200DataRecordsItem")
 
 @_attrs_define
 class GetVirtualMachineReverseDnsResponse200DataRecordsItem:
-    """
-    Attributes:
-        ip (str | Unset):
-        ptr (None | str | Unset): Live PTR (null if none set).
-        pending (None | str | Unset): Queued-but-not-yet-live PTR, else null.
-        zone (str | Unset):  Example: 128.182.23.in-addr.arpa.
-        pending_public (bool | Unset): True when the reverse block is authoritative on SHC nameservers but not yet
-            publicly delegated (e.g. Kansas 204.92.66).
-    """
-
     ip: str | Unset = UNSET
     ptr: None | str | Unset = UNSET
+    """ Live PTR (null if none set). """
     pending: None | str | Unset = UNSET
+    """ Queued-but-not-yet-live PTR, else null. """
     zone: str | Unset = UNSET
     pending_public: bool | Unset = UNSET
+    """ True when the reverse block is authoritative on SHC nameservers but not yet publicly delegated (e.g. Kansas
+    204.92.66). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -66,7 +61,7 @@ class GetVirtualMachineReverseDnsResponse200DataRecordsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         ip = d.pop("ip", UNSET)
 

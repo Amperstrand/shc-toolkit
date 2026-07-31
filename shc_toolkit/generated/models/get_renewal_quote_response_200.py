@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.renew_quote import RenewQuote
@@ -15,14 +16,8 @@ T = TypeVar("T", bound="GetRenewalQuoteResponse200")
 
 @_attrs_define
 class GetRenewalQuoteResponse200:
-    """
-    Attributes:
-        data (RenewQuote): Renewal quote for one existing service. Example: {'service_id': 353, 'service_status':
-            'active', 'date_renews': '2027-02-01T07:57:55+00:00', 'term': 1, 'period': 'month', 'amount': '11.99',
-            'currency': 'USD'}.
-    """
-
     data: RenewQuote
+    """ Renewal quote for one existing service. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +34,7 @@ class GetRenewalQuoteResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.renew_quote import RenewQuote
 
         d = dict(src_dict)

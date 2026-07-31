@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_iso_unmount_request_additional_property_type_4 import (
@@ -23,12 +24,10 @@ class VmIsoUnmountRequest:
         Example:
             {'drive': 'ide2'}
 
-        Attributes:
-            drive (str): QEMU IDE cdrom drive key to detach (from the `mounted` list of GET /vm/{service_id}/iso), e.g.
-                ide2. Example: ide2.
     """
 
     drive: str
+    """ QEMU IDE cdrom drive key to detach (from the `mounted` list of GET /vm/{service_id}/iso), e.g. ide2. """
     additional_properties: dict[
         str,
         bool
@@ -66,7 +65,7 @@ class VmIsoUnmountRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_iso_unmount_request_additional_property_type_4 import (
             VmIsoUnmountRequestAdditionalPropertyType4,
         )
@@ -152,7 +151,6 @@ class VmIsoUnmountRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

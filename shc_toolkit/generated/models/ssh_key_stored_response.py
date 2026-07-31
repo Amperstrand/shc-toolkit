@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="SshKeyStoredResponse")
 
@@ -16,10 +17,6 @@ class SshKeyStoredResponse:
         {'service_id': 353, 'ssh_key': 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host', 'message': 'SSH key saved.
             It will be applied on next reinstall.'}
 
-    Attributes:
-        service_id (int):  Example: 353.
-        ssh_key (str):  Example: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host.
-        message (str):  Example: SSH key saved. It will be applied on next reinstall..
     """
 
     service_id: int
@@ -47,7 +44,7 @@ class SshKeyStoredResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 

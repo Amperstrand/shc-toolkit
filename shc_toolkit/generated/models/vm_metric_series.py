@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -21,11 +22,6 @@ class VmMetricSeries:
     """One RRD metric series. values is an array of [epoch_seconds, value] pairs. divider (when present) converts raw
     values to display units.
 
-        Attributes:
-            name (str):  Example: CPU.
-            values (list[list[bool | float | int | list[str] | None | str | VmMetricSeriesValuesItemItemType2Type4]]):
-            divider (int | Unset): Divide raw values by this for display units (RAM 1073741824=GiB; disk/network
-                1048576=MiB). Absent for CPU. Example: 1073741824.
     """
 
     name: str
@@ -41,6 +37,8 @@ class VmMetricSeries:
         ]
     ]
     divider: int | Unset = UNSET
+    """ Divide raw values by this for display units (RAM 1073741824=GiB; disk/network 1048576=MiB). Absent for CPU.
+    """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.vm_metric_series_values_item_item_type_2_type_4 import (
@@ -85,7 +83,7 @@ class VmMetricSeries:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_metric_series_values_item_item_type_2_type_4 import (
             VmMetricSeriesValuesItemItemType2Type4,
         )

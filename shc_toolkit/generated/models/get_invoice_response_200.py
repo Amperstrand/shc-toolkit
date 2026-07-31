@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.account_invoice_detail import AccountInvoiceDetail
@@ -14,12 +15,8 @@ T = TypeVar("T", bound="GetInvoiceResponse200")
 
 @_attrs_define
 class GetInvoiceResponse200:
-    """
-    Attributes:
-        data (AccountInvoiceDetail): Customer-safe single invoice with line items and optional applied payments.
-    """
-
     data: AccountInvoiceDetail
+    """ Customer-safe single invoice with line items and optional applied payments. """
 
     def to_dict(self) -> dict[str, Any]:
         data = self.data.to_dict()
@@ -35,7 +32,7 @@ class GetInvoiceResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.account_invoice_detail import AccountInvoiceDetail
 
         d = dict(src_dict)

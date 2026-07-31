@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_backup_create_request_mode import VmBackupCreateRequestMode
+from ..models.vm_backup_create_request_mode import (
+    VmBackupCreateRequestMode,
+    check_vm_backup_create_request_mode,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -24,16 +28,12 @@ class VmBackupCreateRequest:
     Example:
         {'name': 'nightly-demo', 'mode': 'suspend'}
 
-    Attributes:
-        name (str | Unset):  Example: nightly-demo.
-        mode (VmBackupCreateRequestMode | Unset):  Example: suspend.
-        encryption_key (str | Unset): Reserved — client-side backup encryption is not yet available; a non-empty value
-            returns 501.
     """
 
     name: str | Unset = UNSET
     mode: VmBackupCreateRequestMode | Unset = UNSET
     encryption_key: str | Unset = UNSET
+    """ Reserved — client-side backup encryption is not yet available; a non-empty value returns 501. """
     additional_properties: dict[
         str,
         bool
@@ -54,7 +54,7 @@ class VmBackupCreateRequest:
 
         mode: str | Unset = UNSET
         if not isinstance(self.mode, Unset):
-            mode = self.mode.value
+            mode = self.mode
 
         encryption_key = self.encryption_key
 
@@ -79,7 +79,7 @@ class VmBackupCreateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_backup_create_request_additional_property_type_4 import (
             VmBackupCreateRequestAdditionalPropertyType4,
         )
@@ -92,7 +92,7 @@ class VmBackupCreateRequest:
         if isinstance(_mode, Unset):
             mode = UNSET
         else:
-            mode = VmBackupCreateRequestMode(_mode)
+            mode = check_vm_backup_create_request_mode(_mode)
 
         encryption_key = d.pop("encryption_key", UNSET)
 
@@ -176,7 +176,6 @@ class VmBackupCreateRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

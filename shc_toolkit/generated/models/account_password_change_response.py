@@ -5,17 +5,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="AccountPasswordChangeResponse")
 
 
 @_attrs_define
 class AccountPasswordChangeResponse:
-    """
-    Attributes:
-        password_changed_at (datetime.datetime):  Example: 2026-05-05T23:15:42+00:00.
-    """
-
     password_changed_at: datetime.datetime
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,7 +28,7 @@ class AccountPasswordChangeResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         password_changed_at = datetime.datetime.fromisoformat(
             d.pop("password_changed_at")

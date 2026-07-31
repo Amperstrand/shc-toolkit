@@ -4,10 +4,20 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.vm_standby_response_ip_disposition import VmStandbyResponseIpDisposition
-from ..models.vm_standby_response_lifecycle_state import VmStandbyResponseLifecycleState
-from ..models.vm_standby_response_state import VmStandbyResponseState
+from ..models.vm_standby_response_ip_disposition import (
+    VmStandbyResponseIpDisposition,
+    check_vm_standby_response_ip_disposition,
+)
+from ..models.vm_standby_response_lifecycle_state import (
+    VmStandbyResponseLifecycleState,
+    check_vm_standby_response_lifecycle_state,
+)
+from ..models.vm_standby_response_state import (
+    VmStandbyResponseState,
+    check_vm_standby_response_state,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="VmStandbyResponse")
@@ -15,19 +25,6 @@ T = TypeVar("T", bound="VmStandbyResponse")
 
 @_attrs_define
 class VmStandbyResponse:
-    """
-    Attributes:
-        service_id (int):
-        state (VmStandbyResponseState):
-        lifecycle_state (VmStandbyResponseLifecycleState):
-        standby_recurring (str):  Example: 6.8340.
-        park_credit (str):  Example: 51.9194.
-        ip_disposition (VmStandbyResponseIpDisposition):
-        keep_ip (bool):
-        op_id (None | str | Unset):
-        job_id (int | None | Unset):
-    """
-
     service_id: int
     state: VmStandbyResponseState
     lifecycle_state: VmStandbyResponseLifecycleState
@@ -41,15 +38,15 @@ class VmStandbyResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        state = self.state.value
+        state: str = self.state
 
-        lifecycle_state = self.lifecycle_state.value
+        lifecycle_state: str = self.lifecycle_state
 
         standby_recurring = self.standby_recurring
 
         park_credit = self.park_credit
 
-        ip_disposition = self.ip_disposition.value
+        ip_disposition: str = self.ip_disposition
 
         keep_ip = self.keep_ip
 
@@ -86,19 +83,23 @@ class VmStandbyResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        state = VmStandbyResponseState(d.pop("state"))
+        state = check_vm_standby_response_state(d.pop("state"))
 
-        lifecycle_state = VmStandbyResponseLifecycleState(d.pop("lifecycle_state"))
+        lifecycle_state = check_vm_standby_response_lifecycle_state(
+            d.pop("lifecycle_state")
+        )
 
         standby_recurring = d.pop("standby_recurring")
 
         park_credit = d.pop("park_credit")
 
-        ip_disposition = VmStandbyResponseIpDisposition(d.pop("ip_disposition"))
+        ip_disposition = check_vm_standby_response_ip_disposition(
+            d.pop("ip_disposition")
+        )
 
         keep_ip = d.pop("keep_ip")
 

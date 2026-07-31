@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.list_support_departments_response_200_items_item import (
@@ -17,12 +18,6 @@ T = TypeVar("T", bound="ListSupportDepartmentsResponse200")
 
 @_attrs_define
 class ListSupportDepartmentsResponse200:
-    """
-    Attributes:
-        items (list[ListSupportDepartmentsResponse200ItemsItem]):
-        pagination (Pagination):  Example: {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}.
-    """
-
     items: list[ListSupportDepartmentsResponse200ItemsItem]
     pagination: Pagination
 
@@ -46,7 +41,7 @@ class ListSupportDepartmentsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_support_departments_response_200_items_item import (
             ListSupportDepartmentsResponse200ItemsItem,
         )

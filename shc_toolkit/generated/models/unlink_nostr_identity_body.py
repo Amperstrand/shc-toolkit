@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.unlink_nostr_identity_body_event_type_0 import (
@@ -16,12 +17,8 @@ T = TypeVar("T", bound="UnlinkNostrIdentityBody")
 
 @_attrs_define
 class UnlinkNostrIdentityBody:
-    """
-    Attributes:
-        event (str | UnlinkNostrIdentityBodyEventType0): Signed NIP-98 event accepted as a JSON object or JSON string.
-    """
-
     event: str | UnlinkNostrIdentityBodyEventType0
+    """ Signed NIP-98 event accepted as a JSON object or JSON string. """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.unlink_nostr_identity_body_event_type_0 import (
@@ -45,7 +42,7 @@ class UnlinkNostrIdentityBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.unlink_nostr_identity_body_event_type_0 import (
             UnlinkNostrIdentityBodyEventType0,
         )

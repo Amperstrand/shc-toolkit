@@ -23,6 +23,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPEC="$REPO_ROOT/shc_toolkit/openapi.json"
+CONFIG="$REPO_ROOT/scripts/openapi-client-config.yaml"
 OUTPUT_DIR="$REPO_ROOT/shc_toolkit/generated"
 TMP_DIR="$(mktemp -d)"
 
@@ -65,42 +66,12 @@ fix_empty_arrays_deep(spec)
 with open(sys.argv[2], 'w') as f:
     json.dump(spec, f, indent=2)
 print(f"  Fixed {fixed} schema quirks")
-
-# Fix duplicate enum keys (SHC spec bug: cloud-init-policy-violation vs cloud_init_policy_violation)
-# openapi-python-client normalizes both to CLOUD_INIT_POLICY_VIOLATION → collision
-spec2 = json.load(open(sys.argv[2]))
-enum_fixed = 0
-def fix_enums(obj, path=""):
-    global enum_fixed
-    if isinstance(obj, dict):
-        if "enum" in obj and isinstance(obj["enum"], list):
-            seen_keys = set()
-            deduped = []
-            for val in obj["enum"]:
-                key = val.upper().replace("-", "_") if isinstance(val, str) else str(val)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    deduped.append(val)
-                else:
-                    enum_fixed += 1
-            obj["enum"] = deduped
-        for k, v in obj.items():
-            if isinstance(v, (dict, list)):
-                fix_enums(v, f"{path}.{k}")
-    elif isinstance(obj, list):
-        for i, item in enumerate(obj):
-            if isinstance(item, (dict, list)):
-                fix_enums(item, f"{path}[{i}]")
-fix_enums(spec2)
-with open(sys.argv[2], 'w') as f:
-    json.dump(spec2, f, indent=2)
-if enum_fixed:
-    print(f"  Fixed {enum_fixed} duplicate enum value(s)")
 PYEOF
 
 echo "→ Generating Python client..."
 openapi-python-client generate \
   --path "$TMP_DIR/openapi-fixed.json" \
+  --config "$CONFIG" \
   --meta none \
   --output-path "$TMP_DIR/client" 2>&1 | grep -v "^$" || true
 

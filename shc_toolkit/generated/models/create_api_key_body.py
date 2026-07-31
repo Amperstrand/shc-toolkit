@@ -5,9 +5,16 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.create_api_key_body_areas_item import CreateApiKeyBodyAreasItem
-from ..models.create_api_key_body_scope import CreateApiKeyBodyScope
+from ..models.create_api_key_body_areas_item import (
+    CreateApiKeyBodyAreasItem,
+    check_create_api_key_body_areas_item,
+)
+from ..models.create_api_key_body_scope import (
+    CreateApiKeyBodyScope,
+    check_create_api_key_body_scope,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreateApiKeyBody")
@@ -19,23 +26,19 @@ class CreateApiKeyBody:
     Example:
         {'name': 'ci-integration', 'scope': 'operate', 'expires_in_days': 90}
 
-    Attributes:
-        name (str):
-        scope (CreateApiKeyBodyScope | Unset): read=GET only; operate=ops but no money/billing/credentials; full=all
-            except credential management
-        expires_in_days (int | Unset):  Default: 90.
-        areas (list[CreateApiKeyBodyAreasItem] | Unset): OPTIONAL. Native Blesta contact-permission area aliases this
-            key may reach (ANDed with 'scope'). Omit to materialize the key to the account's FULL permitted-area set (the
-            key is never stored area-unrestricted/null). Each value is validated against the account's native permission
-            vocabulary; unknown areas are rejected 400, and a present-but-empty array is rejected 400 (omit the field
-            instead). A key may only call operations whose x-required-area is in its set; identity/credential routes
-            (x-required-area=__identity__) are never reachable by any key.
     """
 
     name: str
     scope: CreateApiKeyBodyScope | Unset = UNSET
+    """ read=GET only; operate=ops but no money/billing/credentials; full=all except credential management """
     expires_in_days: int | Unset = 90
     areas: list[CreateApiKeyBodyAreasItem] | Unset = UNSET
+    """ OPTIONAL. Native Blesta contact-permission area aliases this key may reach (ANDed with 'scope'). Omit to
+    materialize the key to the account's FULL permitted-area set (the key is never stored area-unrestricted/null).
+    Each value is validated against the account's native permission vocabulary; unknown areas are rejected 400, and
+    a present-but-empty array is rejected 400 (omit the field instead). A key may only call operations whose
+    x-required-area is in its set; identity/credential routes (x-required-area=__identity__) are never reachable by
+    any key. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -43,7 +46,7 @@ class CreateApiKeyBody:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope.value
+            scope = self.scope
 
         expires_in_days = self.expires_in_days
 
@@ -51,7 +54,7 @@ class CreateApiKeyBody:
         if not isinstance(self.areas, Unset):
             areas = []
             for areas_item_data in self.areas:
-                areas_item = areas_item_data.value
+                areas_item: str = areas_item_data
                 areas.append(areas_item)
 
         field_dict: dict[str, Any] = {}
@@ -71,7 +74,7 @@ class CreateApiKeyBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         name = d.pop("name")
 
@@ -80,7 +83,7 @@ class CreateApiKeyBody:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = CreateApiKeyBodyScope(_scope)
+            scope = check_create_api_key_body_scope(_scope)
 
         expires_in_days = d.pop("expires_in_days", UNSET)
 
@@ -89,7 +92,7 @@ class CreateApiKeyBody:
         if _areas is not UNSET:
             areas = []
             for areas_item_data in _areas:
-                areas_item = CreateApiKeyBodyAreasItem(areas_item_data)
+                areas_item = check_create_api_key_body_areas_item(areas_item_data)
 
                 areas.append(areas_item)
 
