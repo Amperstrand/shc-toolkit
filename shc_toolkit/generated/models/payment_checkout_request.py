@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.payment_checkout_request_gateway import PaymentCheckoutRequestGateway
+from ..models.payment_checkout_request_gateway import (
+    PaymentCheckoutRequestGateway,
+    check_payment_checkout_request_gateway,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -25,25 +29,21 @@ class PaymentCheckoutRequest:
         {'gateway': 'btcpay_server', 'idempotency_key': '5f051e42-f6a0-4f4d-9b67-c444f4673dd7', 'return_url':
             'https://app.example.com/billing/return', 'cancel_url': 'https://app.example.com/billing/cancel'}
 
-    Attributes:
-        idempotency_key (str): Invoice-scoped idempotency key. Reuse the same value with the same body to replay the
-            original response for this invoice. Example: 5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-        gateway (PaymentCheckoutRequestGateway | Unset): Gateway class selector. Only the enabled BTCPay nonmerchant
-            gateway is currently accepted; other values return 400. Default: PaymentCheckoutRequestGateway.BTCPAY_SERVER.
-            Example: btcpay_server.
-        return_url (None | str | Unset): Optional HTTPS URL to which BTCPay should redirect the browser after checkout.
-            Non-https URLs are rejected with 400. Example: https://app.example.com/billing/return.
-        cancel_url (None | str | Unset): Optional HTTPS URL accepted for client compatibility. BTCPay's native Blesta
-            flow uses a single redirect URL, so this value is advisory unless the gateway gains first-class support for it.
-            Non-https URLs are rejected with 400. Example: https://app.example.com/billing/cancel.
     """
 
     idempotency_key: str
-    gateway: PaymentCheckoutRequestGateway | Unset = (
-        PaymentCheckoutRequestGateway.BTCPAY_SERVER
-    )
+    """ Invoice-scoped idempotency key. Reuse the same value with the same body to replay the original response for
+    this invoice. """
+    gateway: PaymentCheckoutRequestGateway | Unset = "btcpay_server"
+    """ Gateway class selector. Only the enabled BTCPay nonmerchant gateway is currently accepted; other values
+    return 400. """
     return_url: None | str | Unset = UNSET
+    """ Optional HTTPS URL to which BTCPay should redirect the browser after checkout. Non-https URLs are rejected
+    with 400. """
     cancel_url: None | str | Unset = UNSET
+    """ Optional HTTPS URL accepted for client compatibility. BTCPay's native Blesta flow uses a single redirect
+    URL, so this value is advisory unless the gateway gains first-class support for it. Non-https URLs are rejected
+    with 400. """
     additional_properties: dict[
         str,
         bool
@@ -64,7 +64,7 @@ class PaymentCheckoutRequest:
 
         gateway: str | Unset = UNSET
         if not isinstance(self.gateway, Unset):
-            gateway = self.gateway.value
+            gateway = self.gateway
 
         return_url: None | str | Unset
         if isinstance(self.return_url, Unset):
@@ -103,7 +103,7 @@ class PaymentCheckoutRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.payment_checkout_request_additional_property_type_4 import (
             PaymentCheckoutRequestAdditionalPropertyType4,
         )
@@ -116,7 +116,7 @@ class PaymentCheckoutRequest:
         if isinstance(_gateway, Unset):
             gateway = UNSET
         else:
-            gateway = PaymentCheckoutRequestGateway(_gateway)
+            gateway = check_payment_checkout_request_gateway(_gateway)
 
         def _parse_return_url(data: object) -> None | str | Unset:
             if data is None:
@@ -217,7 +217,6 @@ class PaymentCheckoutRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | PaymentCheckoutRequestAdditionalPropertyType4

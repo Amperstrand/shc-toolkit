@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.account_contact_update_response import AccountContactUpdateResponse
@@ -15,12 +16,6 @@ T = TypeVar("T", bound="UpdateAccountContactResponse200")
 
 @_attrs_define
 class UpdateAccountContactResponse200:
-    """
-    Attributes:
-        data (AccountContactUpdateResponse):  Example: {'contact_updated_at': '2026-05-05T23:15:42+00:00',
-            'email_verification_required': True}.
-    """
-
     data: AccountContactUpdateResponse
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -38,7 +33,7 @@ class UpdateAccountContactResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.account_contact_update_response import (
             AccountContactUpdateResponse,
         )

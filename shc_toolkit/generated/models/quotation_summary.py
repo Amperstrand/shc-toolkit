@@ -5,13 +5,19 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.quotation_summary_status_type_1 import QuotationSummaryStatusType1
+from ..models.quotation_summary_status_type_1 import (
+    QuotationSummaryStatusType1,
+    check_quotation_summary_status_type_1,
+)
 from ..models.quotation_summary_status_type_2_type_1 import (
     QuotationSummaryStatusType2Type1,
+    check_quotation_summary_status_type_2_type_1,
 )
 from ..models.quotation_summary_status_type_3_type_1 import (
     QuotationSummaryStatusType3Type1,
+    check_quotation_summary_status_type_3_type_1,
 )
 
 T = TypeVar("T", bound="QuotationSummary")
@@ -23,22 +29,11 @@ class QuotationSummary:
     (two decimal places) to preserve precision. Returned directly in the GET /quotations list; the GET
     /quotations/{quotation_id} detail response composes this summary with notes and line_items via allOf.
 
-        Attributes:
-            id (int):  Example: 9001.
-            id_code (None | str): Formatted quotation number shown to the customer. Example: QUO-0042.
-            title (None | str):  Example: Managed VPS migration.
-            status (None | QuotationSummaryStatusType1 | QuotationSummaryStatusType2Type1 |
-                QuotationSummaryStatusType3Type1): Quotation lifecycle state. Example: pending.
-            subtotal (None | str): Quotation subtotal before tax, as a fixed-point string with two decimal places. Example:
-                50.00.
-            total (None | str): Quotation grand total, as a fixed-point string with two decimal places. Example: 54.13.
-            currency (None | str): ISO-4217 currency code for the quotation amounts. Example: USD.
-            date_created (datetime.datetime | None):
-            date_expires (datetime.datetime | None):
     """
 
     id: int
     id_code: None | str
+    """ Formatted quotation number shown to the customer. """
     title: None | str
     status: (
         None
@@ -46,9 +41,13 @@ class QuotationSummary:
         | QuotationSummaryStatusType2Type1
         | QuotationSummaryStatusType3Type1
     )
+    """ Quotation lifecycle state. """
     subtotal: None | str
+    """ Quotation subtotal before tax, as a fixed-point string with two decimal places. """
     total: None | str
+    """ Quotation grand total, as a fixed-point string with two decimal places. """
     currency: None | str
+    """ ISO-4217 currency code for the quotation amounts. """
     date_created: datetime.datetime | None
     date_expires: datetime.datetime | None
 
@@ -62,12 +61,12 @@ class QuotationSummary:
         title = self.title
 
         status: None | str
-        if isinstance(self.status, QuotationSummaryStatusType1):
-            status = self.status.value
-        elif isinstance(self.status, QuotationSummaryStatusType2Type1):
-            status = self.status.value
-        elif isinstance(self.status, QuotationSummaryStatusType3Type1):
-            status = self.status.value
+        if (
+            isinstance(self.status, str)
+            or isinstance(self.status, str)
+            or isinstance(self.status, str)
+        ):
+            status = self.status
         else:
             status = self.status
 
@@ -111,7 +110,7 @@ class QuotationSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -142,7 +141,7 @@ class QuotationSummary:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = QuotationSummaryStatusType1(data)
+                status_type_1 = check_quotation_summary_status_type_1(data)
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -150,7 +149,9 @@ class QuotationSummary:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = QuotationSummaryStatusType2Type1(data)
+                status_type_2_type_1 = check_quotation_summary_status_type_2_type_1(
+                    data
+                )
 
                 return status_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -158,7 +159,9 @@ class QuotationSummary:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = QuotationSummaryStatusType3Type1(data)
+                status_type_3_type_1 = check_quotation_summary_status_type_3_type_1(
+                    data
+                )
 
                 return status_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

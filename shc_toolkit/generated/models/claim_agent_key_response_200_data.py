@@ -6,9 +6,11 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.claim_agent_key_response_200_data_scope import (
     ClaimAgentKeyResponse200DataScope,
+    check_claim_agent_key_response_200_data_scope,
 )
 from ..types import UNSET, Unset
 
@@ -17,18 +19,12 @@ T = TypeVar("T", bound="ClaimAgentKeyResponse200Data")
 
 @_attrs_define
 class ClaimAgentKeyResponse200Data:
-    """
-    Attributes:
-        key (str | Unset): The plaintext shc_live_ API key. Shown once.
-        key_prefix (str | Unset):
-        scope (ClaimAgentKeyResponse200DataScope | Unset):
-        expires_at (datetime.datetime | None | Unset): The KEY's own expiry (the claim itself is now spent).
-    """
-
     key: str | Unset = UNSET
+    """ The plaintext shc_live_ API key. Shown once. """
     key_prefix: str | Unset = UNSET
     scope: ClaimAgentKeyResponse200DataScope | Unset = UNSET
     expires_at: datetime.datetime | None | Unset = UNSET
+    """ The KEY's own expiry (the claim itself is now spent). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +34,7 @@ class ClaimAgentKeyResponse200Data:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope.value
+            scope = self.scope
 
         expires_at: None | str | Unset
         if isinstance(self.expires_at, Unset):
@@ -63,7 +59,7 @@ class ClaimAgentKeyResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         key = d.pop("key", UNSET)
 
@@ -74,7 +70,7 @@ class ClaimAgentKeyResponse200Data:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = ClaimAgentKeyResponse200DataScope(_scope)
+            scope = check_claim_agent_key_response_200_data_scope(_scope)
 
         def _parse_expires_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:

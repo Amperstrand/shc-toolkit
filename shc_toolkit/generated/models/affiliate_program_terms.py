@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.affiliate_program_terms_commission_type import (
     AffiliateProgramTermsCommissionType,
+    check_affiliate_program_terms_commission_type,
 )
 from ..types import UNSET, Unset
 
@@ -15,28 +17,23 @@ T = TypeVar("T", bound="AffiliateProgramTerms")
 
 @_attrs_define
 class AffiliateProgramTerms:
-    """Company-level affiliate program terms (BTC-native).
-
-    Attributes:
-        commission_type (AffiliateProgramTermsCommissionType):  Example: percentage.
-        commission_amount (str): For percentage, the percent (e.g. "2"); for fixed, a BTC amount. Example: 2.
-        withdrawal_currency (str):  Example: BTC.
-        min_withdrawal_amount (str): Minimum payout, BTC (8 dp). Example: 0.00100000.
-        max_withdrawal_amount (str): Maximum payout, BTC (8 dp). Example: 0.10000000.
-        cookie_days (int): Referral attribution cookie window, in days. Example: 90.
-        maturity_days (int | Unset): Days before a referral commission matures. Example: 1.
-    """
+    """Company-level affiliate program terms (BTC-native)."""
 
     commission_type: AffiliateProgramTermsCommissionType
     commission_amount: str
+    """ For percentage, the percent (e.g. "2"); for fixed, a BTC amount. """
     withdrawal_currency: str
     min_withdrawal_amount: str
+    """ Minimum payout, BTC (8 dp). """
     max_withdrawal_amount: str
+    """ Maximum payout, BTC (8 dp). """
     cookie_days: int
+    """ Referral attribution cookie window, in days. """
     maturity_days: int | Unset = UNSET
+    """ Days before a referral commission matures. """
 
     def to_dict(self) -> dict[str, Any]:
-        commission_type = self.commission_type.value
+        commission_type: str = self.commission_type
 
         commission_amount = self.commission_amount
 
@@ -68,9 +65,11 @@ class AffiliateProgramTerms:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        commission_type = AffiliateProgramTermsCommissionType(d.pop("commission_type"))
+        commission_type = check_affiliate_program_terms_commission_type(
+            d.pop("commission_type")
+        )
 
         commission_amount = d.pop("commission_amount")
 

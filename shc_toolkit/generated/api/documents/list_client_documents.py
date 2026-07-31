@@ -6,16 +6,20 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
-from ...models.list_client_documents_order import ListClientDocumentsOrder
+from ...models.list_client_documents_order import (
+    ListClientDocumentsOrder,
+)
 from ...models.list_client_documents_response_200 import ListClientDocumentsResponse200
-from ...models.list_client_documents_sort import ListClientDocumentsSort
+from ...models.list_client_documents_sort import (
+    ListClientDocumentsSort,
+)
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
-    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    sort: ListClientDocumentsSort | Unset = "date_added",
+    order: ListClientDocumentsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -28,13 +32,13 @@ def _get_kwargs(
 
     json_sort: str | Unset = UNSET
     if not isinstance(sort, Unset):
-        json_sort = sort.value
+        json_sort = sort
 
     params["sort"] = json_sort
 
     json_order: str | Unset = UNSET
     if not isinstance(order, Unset):
-        json_order = order.value
+        json_order = order
 
     params["order"] = json_order
 
@@ -102,8 +106,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
-    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    sort: ListClientDocumentsSort | Unset = "date_added",
+    order: ListClientDocumentsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -114,8 +118,8 @@ def sync_detailed(
     parameters.
 
     Args:
-        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
-        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        sort (ListClientDocumentsSort | Unset):  Default: 'date_added'.
+        order (ListClientDocumentsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -146,8 +150,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
-    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    sort: ListClientDocumentsSort | Unset = "date_added",
+    order: ListClientDocumentsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -158,8 +162,8 @@ def sync(
     parameters.
 
     Args:
-        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
-        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        sort (ListClientDocumentsSort | Unset):  Default: 'date_added'.
+        order (ListClientDocumentsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -185,8 +189,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
-    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    sort: ListClientDocumentsSort | Unset = "date_added",
+    order: ListClientDocumentsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -197,8 +201,8 @@ async def asyncio_detailed(
     parameters.
 
     Args:
-        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
-        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        sort (ListClientDocumentsSort | Unset):  Default: 'date_added'.
+        order (ListClientDocumentsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -227,8 +231,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    sort: ListClientDocumentsSort | Unset = ListClientDocumentsSort.DATE_ADDED,
-    order: ListClientDocumentsOrder | Unset = ListClientDocumentsOrder.DESC,
+    sort: ListClientDocumentsSort | Unset = "date_added",
+    order: ListClientDocumentsOrder | Unset = "desc",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -239,8 +243,8 @@ async def asyncio(
     parameters.
 
     Args:
-        sort (ListClientDocumentsSort | Unset):  Default: ListClientDocumentsSort.DATE_ADDED.
-        order (ListClientDocumentsOrder | Unset):  Default: ListClientDocumentsOrder.DESC.
+        sort (ListClientDocumentsSort | Unset):  Default: 'date_added'.
+        order (ListClientDocumentsOrder | Unset):  Default: 'desc'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):

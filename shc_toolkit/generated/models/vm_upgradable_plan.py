@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,16 +24,6 @@ class VmUpgradablePlan:
     """A same-group package the service may move to. disk_reduces / disk_change_blocked flag a base-disk-shrinking move
     (rejected at commit). Placement is never present.
 
-        Attributes:
-            plan_label (str):  Example: SSD VPS - Professional.
-            terms (list[VmUpgradeOptionTerm]):
-            cpu (int | None | Unset):  Example: 4.
-            memory_mb (int | None | Unset):  Example: 16384.
-            disk_gb (int | None | Unset): Base package disk (GB), config options excluded. Example: 32.
-            available_config_options (list[VmUpgradablePlanAvailableConfigOptionsItem] | Unset): Catalog of settable config
-                options per term (ordering catalog shape).
-            disk_reduces (bool | Unset): True if a no-add-on move to this plan would reduce disk.
-            disk_change_blocked (bool | Unset): True if a disk-reducing move is rejected at commit.
     """
 
     plan_label: str
@@ -40,11 +31,15 @@ class VmUpgradablePlan:
     cpu: int | None | Unset = UNSET
     memory_mb: int | None | Unset = UNSET
     disk_gb: int | None | Unset = UNSET
+    """ Base package disk (GB), config options excluded. """
     available_config_options: (
         list[VmUpgradablePlanAvailableConfigOptionsItem] | Unset
     ) = UNSET
+    """ Catalog of settable config options per term (ordering catalog shape). """
     disk_reduces: bool | Unset = UNSET
+    """ True if a no-add-on move to this plan would reduce disk. """
     disk_change_blocked: bool | Unset = UNSET
+    """ True if a disk-reducing move is rejected at commit. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -110,7 +105,7 @@ class VmUpgradablePlan:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgradable_plan_available_config_options_item import (
             VmUpgradablePlanAvailableConfigOptionsItem,
         )

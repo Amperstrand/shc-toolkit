@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_firewall_policy_response_policy import (
@@ -17,12 +18,7 @@ T = TypeVar("T", bound="VmFirewallPolicyResponse")
 
 @_attrs_define
 class VmFirewallPolicyResponse:
-    """The refreshed default firewall policy after an update.
-
-    Attributes:
-        service_id (int):  Example: 353.
-        policy (VmFirewallPolicyResponsePolicy):
-    """
+    """The refreshed default firewall policy after an update."""
 
     service_id: int
     policy: VmFirewallPolicyResponsePolicy
@@ -45,7 +41,7 @@ class VmFirewallPolicyResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_firewall_policy_response_policy import (
             VmFirewallPolicyResponsePolicy,
         )

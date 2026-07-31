@@ -1,9 +1,20 @@
-from enum import Enum
+from typing import Literal
+
+GetAutoDebitResponse200DataTypeType1 = Literal["ach", "cc"]
+
+GET_AUTO_DEBIT_RESPONSE_200_DATA_TYPE_TYPE_1_VALUES: set[
+    GetAutoDebitResponse200DataTypeType1
+] = {
+    "ach",
+    "cc",
+}
 
 
-class GetAutoDebitResponse200DataTypeType1(str, Enum):
-    ACH = "ach"
-    CC = "cc"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_get_auto_debit_response_200_data_type_type_1(
+    value: str,
+) -> GetAutoDebitResponse200DataTypeType1:
+    if value in GET_AUTO_DEBIT_RESPONSE_200_DATA_TYPE_TYPE_1_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {GET_AUTO_DEBIT_RESPONSE_200_DATA_TYPE_TYPE_1_VALUES!r}"
+    )

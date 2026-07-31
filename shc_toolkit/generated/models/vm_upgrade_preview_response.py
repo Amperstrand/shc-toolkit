@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_upgrade_preview_response_applies import VmUpgradePreviewResponseApplies
+from ..models.vm_upgrade_preview_response_applies import (
+    VmUpgradePreviewResponseApplies,
+    check_vm_upgrade_preview_response_applies,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -21,32 +25,22 @@ class VmUpgradePreviewResponse:
     """Prorated quote (no charge). amount_due_now already includes any setup fee. applies is always "queued" (the change is
     created queued, awaiting payment).
 
-        Attributes:
-            service_id (int):  Example: 456.
-            new_plan_label (str):  Example: SSD VPS - Professional.
-            items (list[VmUpgradePreviewLine]):
-            amount_due_now (str): Amount due now (includes setup fee). 0.00 when nothing is owed. Example: 8.00.
-            new_recurring_amount (str): New recurring amount = base renewal + config-option recurring totals. Example:
-                20.00.
-            currency (str):  Example: USD.
-            applies (VmUpgradePreviewResponseApplies):  Example: queued.
-            discounts (list[VmUpgradePreviewLine] | Unset):
-            prorate_credit (str | Unset): Prorated credit for a downgrade, only when account credit is enabled (else 0.00).
-                Example: 0.00.
-            setup_fee_total (str | Unset): Discrete setup-fee subtotal, only when the presenter exposes it (already in
-                amount_due_now). Example: 0.00.
     """
 
     service_id: int
     new_plan_label: str
     items: list[VmUpgradePreviewLine]
     amount_due_now: str
+    """ Amount due now (includes setup fee). 0.00 when nothing is owed. """
     new_recurring_amount: str
+    """ New recurring amount = base renewal + config-option recurring totals. """
     currency: str
     applies: VmUpgradePreviewResponseApplies
     discounts: list[VmUpgradePreviewLine] | Unset = UNSET
     prorate_credit: str | Unset = UNSET
+    """ Prorated credit for a downgrade, only when account credit is enabled (else 0.00). """
     setup_fee_total: str | Unset = UNSET
+    """ Discrete setup-fee subtotal, only when the presenter exposes it (already in amount_due_now). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -65,7 +59,7 @@ class VmUpgradePreviewResponse:
 
         currency = self.currency
 
-        applies = self.applies.value
+        applies: str = self.applies
 
         discounts: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.discounts, Unset):
@@ -101,7 +95,7 @@ class VmUpgradePreviewResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgrade_preview_line import VmUpgradePreviewLine
 
         d = dict(src_dict)
@@ -122,7 +116,7 @@ class VmUpgradePreviewResponse:
 
         currency = d.pop("currency")
 
-        applies = VmUpgradePreviewResponseApplies(d.pop("applies"))
+        applies = check_vm_upgrade_preview_response_applies(d.pop("applies"))
 
         _discounts = d.pop("discounts", UNSET)
         discounts: list[VmUpgradePreviewLine] | Unset = UNSET

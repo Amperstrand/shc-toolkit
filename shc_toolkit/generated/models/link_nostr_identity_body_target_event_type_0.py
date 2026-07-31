@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.link_nostr_identity_body_target_event_type_0_additional_property_type_4 import (
@@ -50,7 +51,7 @@ class LinkNostrIdentityBodyTargetEventType0:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.link_nostr_identity_body_target_event_type_0_additional_property_type_4 import (
             LinkNostrIdentityBodyTargetEventType0AdditionalPropertyType4,
         )
@@ -134,7 +135,6 @@ class LinkNostrIdentityBodyTargetEventType0:
         key: str,
         value: bool
         | float
-        | int
         | LinkNostrIdentityBodyTargetEventType0AdditionalPropertyType4
         | list[str]
         | None

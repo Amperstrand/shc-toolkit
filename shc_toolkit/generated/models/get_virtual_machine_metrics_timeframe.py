@@ -1,12 +1,21 @@
-from enum import Enum
+from typing import Literal
+
+GetVirtualMachineMetricsTimeframe = Literal["day", "hour", "month", "week", "year"]
+
+GET_VIRTUAL_MACHINE_METRICS_TIMEFRAME_VALUES: set[GetVirtualMachineMetricsTimeframe] = {
+    "day",
+    "hour",
+    "month",
+    "week",
+    "year",
+}
 
 
-class GetVirtualMachineMetricsTimeframe(str, Enum):
-    DAY = "day"
-    HOUR = "hour"
-    MONTH = "month"
-    WEEK = "week"
-    YEAR = "year"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_get_virtual_machine_metrics_timeframe(
+    value: str,
+) -> GetVirtualMachineMetricsTimeframe:
+    if value in GET_VIRTUAL_MACHINE_METRICS_TIMEFRAME_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {GET_VIRTUAL_MACHINE_METRICS_TIMEFRAME_VALUES!r}"
+    )

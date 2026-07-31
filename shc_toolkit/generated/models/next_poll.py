@@ -5,20 +5,17 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="NextPoll")
 
 
 @_attrs_define
 class NextPoll:
-    """Poll pointer for an async (queued-job) producer.
-
-    Attributes:
-        poll (str): Job-status endpoint to poll until the job reaches a terminal status. Example: /user-
-            api/v2/vm/353/jobs/912.
-    """
+    """Poll pointer for an async (queued-job) producer."""
 
     poll: str
+    """ Job-status endpoint to poll until the job reaches a terminal status. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,7 +32,7 @@ class NextPoll:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         poll = d.pop("poll")
 

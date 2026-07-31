@@ -4,25 +4,18 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="PreviewVirtualMachineTermChangeResponse200DataTarget")
 
 
 @_attrs_define
 class PreviewVirtualMachineTermChangeResponse200DataTarget:
-    """
-    Attributes:
-        pricing_id (int):
-        term (int):
-        period (str):
-        price (str): Target renewal amount as a fixed two-decimal money string.
-        currency (str):
-    """
-
     pricing_id: int
     term: int
     period: str
     price: str
+    """ Target renewal amount as a fixed two-decimal money string. """
     currency: str
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,7 +44,7 @@ class PreviewVirtualMachineTermChangeResponse200DataTarget:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         pricing_id = d.pop("pricing_id")
 

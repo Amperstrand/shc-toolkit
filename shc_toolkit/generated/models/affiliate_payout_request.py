@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -16,17 +17,14 @@ class AffiliatePayoutRequest:
     Example:
         {'requested_amount': '0.001', 'requested_currency': 'BTC'}
 
-    Attributes:
-        requested_amount (float | str): Amount to withdraw, BTC. Must be > 0, <= available balance, and within min/max
-            withdrawal limits. Example: 0.001.
-        requested_currency (str | Unset): Optional; must equal the affiliate withdrawal currency (BTC). Example: BTC.
-        payment_method_id (int | Unset): Optional payout method id; defaults to the single configured method. Example:
-            1.
     """
 
     requested_amount: float | str
+    """ Amount to withdraw, BTC. Must be > 0, <= available balance, and within min/max withdrawal limits. """
     requested_currency: str | Unset = UNSET
+    """ Optional; must equal the affiliate withdrawal currency (BTC). """
     payment_method_id: int | Unset = UNSET
+    """ Optional payout method id; defaults to the single configured method. """
 
     def to_dict(self) -> dict[str, Any]:
         requested_amount: float | str
@@ -51,7 +49,7 @@ class AffiliatePayoutRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_requested_amount(data: object) -> float | str:

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.update_nip_05_response_200_data import UpdateNip05Response200Data
@@ -15,11 +16,6 @@ T = TypeVar("T", bound="UpdateNip05Response200")
 
 @_attrs_define
 class UpdateNip05Response200:
-    """
-    Attributes:
-        data (UpdateNip05Response200Data):
-    """
-
     data: UpdateNip05Response200Data
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -37,7 +33,7 @@ class UpdateNip05Response200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.update_nip_05_response_200_data import UpdateNip05Response200Data
 
         d = dict(src_dict)

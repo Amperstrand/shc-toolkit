@@ -6,8 +6,9 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.storage_item_kind import StorageItemKind
+from ..models.storage_item_kind import StorageItemKind, check_storage_item_kind
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="StorageItem")
@@ -15,45 +16,34 @@ T = TypeVar("T", bound="StorageItem")
 
 @_attrs_define
 class StorageItem:
-    """Backup or snapshot volume currently visible for the owned VM service.
-
-    Attributes:
-        kind (StorageItemKind):  Example: backup.
-        backup_id (str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        name (str):  Example: nightly-demo.
-        storage (None | str): Datastore class label with any per-node suffix removed (never reveals the host node).
-            Example: pbs-backups.
-        notes (None | str):  Example: nightly-demo.
-        size_bytes (int | None):  Example: 2147483648.
-        protected (bool):
-        encrypted (bool):  Example: True.
-        created_at (datetime.datetime | None):  Example: 2026-04-17T01:23:45+00:00.
-        created_epoch (int | None): Unix timestamp (seconds since 1970-01-01 UTC). Surfaced alongside `created_at` for
-            clients that prefer a numeric value. Example: 1745895825.
-        id (str | Unset): v2.4.0 alias (additive): identical to backup_id (the opaque handle).
-        snapshot_id (str | Unset): v2.4.0 alias (additive): present on kind=snapshot items only; identical to backup_id.
-            Write bodies accept backup_id | snapshot_id | id | volid.
-    """
+    """Backup or snapshot volume currently visible for the owned VM service."""
 
     kind: StorageItemKind
     backup_id: str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     name: str
     storage: None | str
+    """ Datastore class label with any per-node suffix removed (never reveals the host node). """
     notes: None | str
     size_bytes: int | None
     protected: bool
     encrypted: bool
     created_at: datetime.datetime | None
     created_epoch: int | None
+    """ Unix timestamp (seconds since 1970-01-01 UTC). Surfaced alongside `created_at` for clients that prefer a
+    numeric value. """
     id: str | Unset = UNSET
+    """ v2.4.0 alias (additive): identical to backup_id (the opaque handle). """
     snapshot_id: str | Unset = UNSET
+    """ v2.4.0 alias (additive): present on kind=snapshot items only; identical to backup_id. Write bodies accept
+    backup_id | snapshot_id | id | volid. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind.value
+        kind: str = self.kind
 
         backup_id = self.backup_id
 
@@ -109,9 +99,9 @@ class StorageItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = StorageItemKind(d.pop("kind"))
+        kind = check_storage_item_kind(d.pop("kind"))
 
         backup_id = d.pop("backup_id")
 

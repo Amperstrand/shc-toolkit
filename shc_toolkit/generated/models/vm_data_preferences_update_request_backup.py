@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,20 +13,15 @@ T = TypeVar("T", bound="VmDataPreferencesUpdateRequestBackup")
 
 @_attrs_define
 class VmDataPreferencesUpdateRequestBackup:
-    """Backup or snapshot scheduling preferences. Only the keys present are updated (PATCH semantics).
-
-    Attributes:
-        retention (str | Unset): A configured retention preset key, the literal `keep-all`, or a comma-separated
-            `keep-<unit>=<n>` policy (units: last, hourly, daily, weekly, monthly, yearly). Example: keep-daily=7,keep-
-            weekly=4.
-        auto_days (list[str] | Unset): Days the automatic job runs (configured schedule-day keys). Example: ['mon',
-            'thu'].
-        auto_time (str | Unset): Hour the automatic job runs, in `HH:00` form. Example: 03:00.
-    """
+    """Backup or snapshot scheduling preferences. Only the keys present are updated (PATCH semantics)."""
 
     retention: str | Unset = UNSET
+    """ A configured retention preset key, the literal `keep-all`, or a comma-separated `keep-<unit>=<n>` policy
+    (units: last, hourly, daily, weekly, monthly, yearly). """
     auto_days: list[str] | Unset = UNSET
+    """ Days the automatic job runs (configured schedule-day keys). """
     auto_time: str | Unset = UNSET
+    """ Hour the automatic job runs, in `HH:00` form. """
 
     def to_dict(self) -> dict[str, Any]:
         retention = self.retention
@@ -49,7 +45,7 @@ class VmDataPreferencesUpdateRequestBackup:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         retention = d.pop("retention", UNSET)
 

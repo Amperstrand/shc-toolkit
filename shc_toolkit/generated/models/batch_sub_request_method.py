@@ -1,12 +1,19 @@
-from enum import Enum
+from typing import Literal
+
+BatchSubRequestMethod = Literal["DELETE", "GET", "PATCH", "POST", "PUT"]
+
+BATCH_SUB_REQUEST_METHOD_VALUES: set[BatchSubRequestMethod] = {
+    "DELETE",
+    "GET",
+    "PATCH",
+    "POST",
+    "PUT",
+}
 
 
-class BatchSubRequestMethod(str, Enum):
-    DELETE = "DELETE"
-    GET = "GET"
-    PATCH = "PATCH"
-    POST = "POST"
-    PUT = "PUT"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_batch_sub_request_method(value: str) -> BatchSubRequestMethod:
+    if value in BATCH_SUB_REQUEST_METHOD_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {BATCH_SUB_REQUEST_METHOD_VALUES!r}"
+    )

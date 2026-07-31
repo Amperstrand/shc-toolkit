@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_standby_quote_side import VmStandbyQuoteSide
@@ -14,16 +15,6 @@ T = TypeVar("T", bound="VmStandbyPreviewResponse")
 
 @_attrs_define
 class VmStandbyPreviewResponse:
-    """
-    Attributes:
-        service_id (int):
-        keep (VmStandbyQuoteSide):
-        release (VmStandbyQuoteSide):
-        keep_ip_delta (str):  Example: 0.7300.
-        currency (str):  Example: USD.
-        period (str):  Example: month.
-    """
-
     service_id: int
     keep: VmStandbyQuoteSide
     release: VmStandbyQuoteSide
@@ -60,7 +51,7 @@ class VmStandbyPreviewResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_standby_quote_side import VmStandbyQuoteSide
 
         d = dict(src_dict)

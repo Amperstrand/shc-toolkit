@@ -4,22 +4,19 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="EnableTwoFactorBody")
 
 
 @_attrs_define
 class EnableTwoFactorBody:
-    """
-    Attributes:
-        current_password (str): The account's current login password.
-        two_factor_key (str): The hex key from POST /account/2fa/enrollment.
-        otp (str): A current code from the authenticator app.
-    """
-
     current_password: str
+    """ The account's current login password. """
     two_factor_key: str
+    """ The hex key from POST /account/2fa/enrollment. """
     otp: str
+    """ A current code from the authenticator app. """
 
     def to_dict(self) -> dict[str, Any]:
         current_password = self.current_password
@@ -41,7 +38,7 @@ class EnableTwoFactorBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         current_password = d.pop("current_password")
 

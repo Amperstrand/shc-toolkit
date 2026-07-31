@@ -5,8 +5,9 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus
+from ..models.invoice_status import InvoiceStatus, check_invoice_status
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ListQuotationInvoicesResponse200ItemsItem")
@@ -14,22 +15,10 @@ T = TypeVar("T", bound="ListQuotationInvoicesResponse200ItemsItem")
 
 @_attrs_define
 class ListQuotationInvoicesResponse200ItemsItem:
-    """
-    Attributes:
-        id (int):  Example: 9100.
-        invoice_status (InvoiceStatus): Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due
-            date has passed; clients that previously treated it as `open` can continue to do so but the API surfaces the
-            distinction. Example: open.
-        total (str):  Example: 120.00.
-        paid (str):  Example: 0.00.
-        currency (str):  Example: USD.
-        date_billed (datetime.datetime | None | Unset):
-        date_due (datetime.datetime | None | Unset):
-        date_closed (datetime.datetime | None | Unset):
-    """
-
     id: int
     invoice_status: InvoiceStatus
+    """ Blesta invoice lifecycle state. `past_due` indicates an open invoice whose due date has passed; clients that
+    previously treated it as `open` can continue to do so but the API surfaces the distinction. """
     total: str
     paid: str
     currency: str
@@ -40,7 +29,7 @@ class ListQuotationInvoicesResponse200ItemsItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        invoice_status = self.invoice_status.value
+        invoice_status: str = self.invoice_status
 
         total = self.total
 
@@ -93,11 +82,11 @@ class ListQuotationInvoicesResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        invoice_status = InvoiceStatus(d.pop("invoice_status"))
+        invoice_status = check_invoice_status(d.pop("invoice_status"))
 
         total = d.pop("total")
 

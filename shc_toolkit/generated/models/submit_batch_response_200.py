@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.batch_sub_response import BatchSubResponse
@@ -14,13 +15,9 @@ T = TypeVar("T", bound="SubmitBatchResponse200")
 
 @_attrs_define
 class SubmitBatchResponse200:
-    """
-    Attributes:
-        data (list[BatchSubResponse]): Ordered array of batch sub-responses. Partial failures are represented by per-
-            item status/error values; successful siblings are not rolled back.
-    """
-
     data: list[BatchSubResponse]
+    """ Ordered array of batch sub-responses. Partial failures are represented by per-item status/error values;
+    successful siblings are not rolled back. """
 
     def to_dict(self) -> dict[str, Any]:
         data = []
@@ -41,7 +38,7 @@ class SubmitBatchResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.batch_sub_response import BatchSubResponse
 
         d = dict(src_dict)

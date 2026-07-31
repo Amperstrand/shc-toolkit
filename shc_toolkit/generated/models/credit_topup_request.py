@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -23,24 +24,20 @@ class CreditTopupRequest:
     Example:
         {'amount': '25.00', 'currency': 'USD', 'idempotency_key': '5f051e42-f6a0-4f4d-9b67-c444f4673dd7'}
 
-    Attributes:
-        amount (int | str): Amount of account credit to add. Send a positive decimal STRING with at most 2 decimal
-            places (e.g. "25.00"); a bare integer is also accepted. A JSON float is REJECTED (422) so the customer is
-            charged EXACTLY what they type — no silent rounding. Must be > 0 and within the account's configured credit
-            limits. Example: 25.00.
-        idempotency_key (str): REQUIRED client-supplied idempotency key (body field). Reuse the same value with the same
-            body to replay the original response instead of minting a second top-up invoice. Example:
-            5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-        currency (str | Unset): Optional ISO-4217 code (defaults to the client's currency). Must be an active company
-            currency. Example: USD.
-        return_url (None | str | Unset): Optional HTTPS URL BTCPay redirects the browser to after payment. Non-https or
-            non-allowlisted hosts are rejected with 400. Example: https://www.sovereignhybridcompute.com/account.
     """
 
     amount: int | str
+    """ Amount of account credit to add. Send a positive decimal STRING with at most 2 decimal places (e.g.
+    "25.00"); a bare integer is also accepted. A JSON float is REJECTED (422) so the customer is charged EXACTLY
+    what they type — no silent rounding. Must be > 0 and within the account's configured credit limits. """
     idempotency_key: str
+    """ REQUIRED client-supplied idempotency key (body field). Reuse the same value with the same body to replay the
+    original response instead of minting a second top-up invoice. """
     currency: str | Unset = UNSET
+    """ Optional ISO-4217 code (defaults to the client's currency). Must be an active company currency. """
     return_url: None | str | Unset = UNSET
+    """ Optional HTTPS URL BTCPay redirects the browser to after payment. Non-https or non-allowlisted hosts are
+    rejected with 400. """
     additional_properties: dict[
         str,
         bool
@@ -94,7 +91,7 @@ class CreditTopupRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.credit_topup_request_additional_property_type_4 import (
             CreditTopupRequestAdditionalPropertyType4,
         )
@@ -201,7 +198,6 @@ class CreditTopupRequest:
         value: bool
         | CreditTopupRequestAdditionalPropertyType4
         | float
-        | int
         | list[str]
         | None
         | str,

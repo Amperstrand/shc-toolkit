@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -24,17 +25,10 @@ T = TypeVar("T", bound="GetAccountBalanceResponse200Data")
 
 @_attrs_define
 class GetAccountBalanceResponse200Data:
-    """
-    Attributes:
-        due (list[GetAccountBalanceResponse200DataDueItem]):
-        credit (list[GetAccountBalanceResponse200DataCreditItem]):
-        balances (list[GetAccountBalanceResponse200DataBalancesItem] | Unset): v2.4.0 alias (additive): identical to
-            'credit' — the name /billing/balance uses.
-    """
-
     due: list[GetAccountBalanceResponse200DataDueItem]
     credit: list[GetAccountBalanceResponse200DataCreditItem]
     balances: list[GetAccountBalanceResponse200DataBalancesItem] | Unset = UNSET
+    """ v2.4.0 alias (additive): identical to 'credit' — the name /billing/balance uses. """
 
     def to_dict(self) -> dict[str, Any]:
         due = []
@@ -68,7 +62,7 @@ class GetAccountBalanceResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_account_balance_response_200_data_balances_item import (
             GetAccountBalanceResponse200DataBalancesItem,
         )

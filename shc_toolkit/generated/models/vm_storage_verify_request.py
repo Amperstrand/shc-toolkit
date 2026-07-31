@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -25,18 +26,17 @@ class VmStorageVerifyRequest:
         Example:
             {'backup_id': 'bk_6ERwSd_PLY66FW72VFM'}
 
-        Attributes:
-            backup_id (str | Unset): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the
-                real storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-                restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-                side. Example: bk_6ERwSd_PLY66FW72VFM.
-            snapshot_id (str | Unset): v2.4.0 alias of backup_id (accepted on input).
-            id (str | Unset): v2.4.0 alias of backup_id (accepted on input).
     """
 
     backup_id: str | Unset = UNSET
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     snapshot_id: str | Unset = UNSET
+    """ v2.4.0 alias of backup_id (accepted on input). """
     id: str | Unset = UNSET
+    """ v2.4.0 alias of backup_id (accepted on input). """
     additional_properties: dict[
         str,
         bool
@@ -80,7 +80,7 @@ class VmStorageVerifyRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_storage_verify_request_additional_property_type_4 import (
             VmStorageVerifyRequestAdditionalPropertyType4,
         )
@@ -172,7 +172,6 @@ class VmStorageVerifyRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

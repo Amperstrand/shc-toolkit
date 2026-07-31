@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.get_contact_response_200_data import GetContactResponse200Data
@@ -14,11 +15,6 @@ T = TypeVar("T", bound="GetContactResponse200")
 
 @_attrs_define
 class GetContactResponse200:
-    """
-    Attributes:
-        data (GetContactResponse200Data):
-    """
-
     data: GetContactResponse200Data
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,7 +31,7 @@ class GetContactResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_contact_response_200_data import GetContactResponse200Data
 
         d = dict(src_dict)

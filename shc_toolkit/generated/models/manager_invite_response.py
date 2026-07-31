@@ -5,27 +5,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.manager_invite_response_status import ManagerInviteResponseStatus
+from ..models.manager_invite_response_status import (
+    ManagerInviteResponseStatus,
+    check_manager_invite_response_status,
+)
 
 T = TypeVar("T", bound="ManagerInviteResponse")
 
 
 @_attrs_define
 class ManagerInviteResponse:
-    """
-    Attributes:
-        invited (bool):  Example: True.
-        email (str):
-        status (ManagerInviteResponseStatus): 'pending' = invitation email sent to an existing same-company account;
-            'invalid' = no matching account, recorded without an email (stock Blesta behavior). Example: pending.
-        permissions (list[str]):
-        created_at (datetime.datetime):
-    """
-
     invited: bool
     email: str
     status: ManagerInviteResponseStatus
+    """ 'pending' = invitation email sent to an existing same-company account; 'invalid' = no matching account,
+    recorded without an email (stock Blesta behavior). """
     permissions: list[str]
     created_at: datetime.datetime
 
@@ -34,7 +30,7 @@ class ManagerInviteResponse:
 
         email = self.email
 
-        status = self.status.value
+        status: str = self.status
 
         permissions = self.permissions
 
@@ -55,13 +51,13 @@ class ManagerInviteResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         invited = d.pop("invited")
 
         email = d.pop("email")
 
-        status = ManagerInviteResponseStatus(d.pop("status"))
+        status = check_manager_invite_response_status(d.pop("status"))
 
         permissions = cast(list[str], d.pop("permissions"))
 

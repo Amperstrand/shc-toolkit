@@ -5,23 +5,14 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="AppliedPayment")
 
 
 @_attrs_define
 class AppliedPayment:
-    """A transaction applied to an invoice (shown when inv_display_payments is enabled).
-
-    Attributes:
-        transaction_id (int):  Example: 88.
-        type_ (str):  Example: other.
-        type_name (None | str):  Example: Bitcoin.
-        amount (str):  Example: 11.99.
-        currency (str):  Example: USD.
-        date_added (datetime.datetime | None):
-        applied_date (datetime.datetime | None):
-    """
+    """A transaction applied to an invoice (shown when inv_display_payments is enabled)."""
 
     transaction_id: int
     type_: str
@@ -72,7 +63,7 @@ class AppliedPayment:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         transaction_id = d.pop("transaction_id")
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.zk_backup_registration_config import ZkBackupRegistrationConfig
@@ -26,13 +27,10 @@ class ZkBackupRegistration:
                 '0f1e2d3c4b5a69788796a5b4c3d2e1f0'}, 'recipients': [{'kind': 'password', 'pubkey':
                 'b3c1e4a7d20f5986cc417b0e2d9a6f3418e7c05b9a2d1f6034785c6b9e0a1d2f', 'label': 'primary'}]}
 
-        Attributes:
-            config (ZkBackupRegistrationConfig): Immutable per-service KDF config; salt is 16 client-random bytes (lowercase
-                hex).
-            recipients (list[ZkBackupRegistrationRecipientsItem]):
     """
 
     config: ZkBackupRegistrationConfig
+    """ Immutable per-service KDF config; salt is 16 client-random bytes (lowercase hex). """
     recipients: list[ZkBackupRegistrationRecipientsItem]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -56,7 +54,7 @@ class ZkBackupRegistration:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.zk_backup_registration_config import ZkBackupRegistrationConfig
         from ..models.zk_backup_registration_recipients_item import (
             ZkBackupRegistrationRecipientsItem,

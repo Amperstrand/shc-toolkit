@@ -5,25 +5,13 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmOrderBillingPreview")
 
 
 @_attrs_define
 class VmOrderBillingPreview:
-    """
-    Attributes:
-        pricing_id (int):  Example: 12.
-        term (int):  Example: 1.
-        period (str):  Example: month.
-        price (str):  Example: 11.99.
-        renew (None | str):  Example: 11.99.
-        setup_fee (str):  Example: 0.00.
-        currency (str):  Example: USD.
-        initial_due (str):  Example: 11.99.
-        renewal_amount (str):  Example: 11.99.
-    """
-
     pricing_id: int
     term: int
     period: str
@@ -74,7 +62,7 @@ class VmOrderBillingPreview:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         pricing_id = d.pop("pricing_id")
 

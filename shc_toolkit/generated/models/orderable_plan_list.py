@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.orderable_plan import OrderablePlan
@@ -15,12 +16,7 @@ T = TypeVar("T", bound="OrderablePlanList")
 
 @_attrs_define
 class OrderablePlanList:
-    """Canonical paginated list of orderable VM plans.
-
-    Attributes:
-        items (list[OrderablePlan]):
-        pagination (Pagination):  Example: {'total': 42, 'limit': 100, 'offset': 0, 'has_more': False}.
-    """
+    """Canonical paginated list of orderable VM plans."""
 
     items: list[OrderablePlan]
     pagination: Pagination
@@ -45,7 +41,7 @@ class OrderablePlanList:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.orderable_plan import OrderablePlan
         from ..models.pagination import Pagination
 

@@ -4,28 +4,27 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.zk_backup_revoke_request_ack import ZkBackupRevokeRequestAck
+from ..models.zk_backup_revoke_request_ack import (
+    ZkBackupRevokeRequestAck,
+    check_zk_backup_revoke_request_ack,
+)
 
 T = TypeVar("T", bound="ZkBackupRevokeRequest")
 
 
 @_attrs_define
 class ZkBackupRevokeRequest:
-    """
-    Attributes:
-        fingerprint (str):
-        ack (ZkBackupRevokeRequestAck): Acknowledges rotate-forward self-custody: revocation stops future seals to this
-            recipient, while already sealed backups stay openable by their sealed recovery keys until customer re-upload.
-    """
-
     fingerprint: str
     ack: ZkBackupRevokeRequestAck
+    """ Acknowledges rotate-forward self-custody: revocation stops future seals to this recipient, while already
+    sealed backups stay openable by their sealed recovery keys until customer re-upload. """
 
     def to_dict(self) -> dict[str, Any]:
         fingerprint = self.fingerprint
 
-        ack = self.ack.value
+        ack: str = self.ack
 
         field_dict: dict[str, Any] = {}
 
@@ -39,11 +38,11 @@ class ZkBackupRevokeRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         fingerprint = d.pop("fingerprint")
 
-        ack = ZkBackupRevokeRequestAck(d.pop("ack"))
+        ack = check_zk_backup_revoke_request_ack(d.pop("ack"))
 
         zk_backup_revoke_request = cls(
             fingerprint=fingerprint,

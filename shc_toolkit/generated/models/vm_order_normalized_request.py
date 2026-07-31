@@ -5,25 +5,13 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmOrderNormalizedRequest")
 
 
 @_attrs_define
 class VmOrderNormalizedRequest:
-    """
-    Attributes:
-        package_id (int):  Example: 23.
-        pricing_id (int):  Example: 12.
-        hostname (str):  Example: demo1.example.net.
-        user (str):  Example: debian.
-        ssh_key_present (bool):  Example: True.
-        module_group_id (int | None):  Example: 4.
-        order_form_id (int):  Example: 1.
-        package_group_id (int):  Example: 3.
-        coupon_present (bool):
-    """
-
     package_id: int
     pricing_id: int
     hostname: str
@@ -74,7 +62,7 @@ class VmOrderNormalizedRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         package_id = d.pop("package_id")
 

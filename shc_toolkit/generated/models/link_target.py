@@ -4,8 +4,9 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.link_target_method import LinkTargetMethod
+from ..models.link_target_method import LinkTargetMethod, check_link_target_method
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="LinkTarget")
@@ -13,15 +14,7 @@ T = TypeVar("T", bound="LinkTarget")
 
 @_attrs_define
 class LinkTarget:
-    """Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered rels.
-
-    Attributes:
-        href (str):  Example: /user-api/v3/virtual-machines/353/jobs/912.
-        method (LinkTargetMethod | Unset):  Example: GET.
-        path (str | Unset):  Example: /virtual-machines/353/jobs/912.
-        operation_id (str | Unset):  Example: getVirtualMachineJob.
-        description (str | Unset):  Example: Poll job status..
-    """
+    """Typed hypermedia target. Relation names are carried by the containing Links object and use IANA-registered rels."""
 
     href: str
     method: LinkTargetMethod | Unset = UNSET
@@ -34,7 +27,7 @@ class LinkTarget:
 
         method: str | Unset = UNSET
         if not isinstance(self.method, Unset):
-            method = self.method.value
+            method = self.method
 
         path = self.path
 
@@ -61,7 +54,7 @@ class LinkTarget:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         href = d.pop("href")
 
@@ -70,7 +63,7 @@ class LinkTarget:
         if isinstance(_method, Unset):
             method = UNSET
         else:
-            method = LinkTargetMethod(_method)
+            method = check_link_target_method(_method)
 
         path = d.pop("path", UNSET)
 

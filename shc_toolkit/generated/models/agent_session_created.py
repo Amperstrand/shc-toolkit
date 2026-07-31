@@ -5,27 +5,22 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.agent_session_created_scope import AgentSessionCreatedScope
+from ..models.agent_session_created_scope import (
+    AgentSessionCreatedScope,
+    check_agent_session_created_scope,
+)
 
 T = TypeVar("T", bound="AgentSessionCreated")
 
 
 @_attrs_define
 class AgentSessionCreated:
-    """
-    Attributes:
-        session_id (str):
-        agent_id (str):
-        token (str): Plaintext shc_agent_ token returned once.
-        key_prefix (str):
-        scope (AgentSessionCreatedScope):
-        expires_at (datetime.datetime):
-    """
-
     session_id: str
     agent_id: str
     token: str
+    """ Plaintext shc_agent_ token returned once. """
     key_prefix: str
     scope: AgentSessionCreatedScope
     expires_at: datetime.datetime
@@ -39,7 +34,7 @@ class AgentSessionCreated:
 
         key_prefix = self.key_prefix
 
-        scope = self.scope.value
+        scope: str = self.scope
 
         expires_at = self.expires_at.isoformat()
 
@@ -59,7 +54,7 @@ class AgentSessionCreated:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         session_id = d.pop("sessionId")
 
@@ -69,7 +64,7 @@ class AgentSessionCreated:
 
         key_prefix = d.pop("keyPrefix")
 
-        scope = AgentSessionCreatedScope(d.pop("scope"))
+        scope = check_agent_session_created_scope(d.pop("scope"))
 
         expires_at = datetime.datetime.fromisoformat(d.pop("expiresAt"))
 

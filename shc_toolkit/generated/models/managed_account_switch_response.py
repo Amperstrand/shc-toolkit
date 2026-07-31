@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.managed_account_switch_response_audit import (
@@ -19,28 +20,21 @@ T = TypeVar("T", bound="ManagedAccountSwitchResponse")
 
 @_attrs_define
 class ManagedAccountSwitchResponse:
-    """
-    Attributes:
-        switched (bool): True when the act-as context is available.
-        acting_client_id (int): Authenticated manager client id.
-        effective_client_id (int): Managed client id to send in X-Managed-Client-Id on later requests.
-        managed_client_id (int): Alias of effective_client_id for callers that model this as the path id.
-        areas (list[str]): Effective areas approved for this switch. This is never a superset of the request or the
-            Blesta grant.
-        same_company (bool): True after same-company enforcement succeeds.
-        headers (ManagedAccountSwitchResponseHeaders):
-        audit (ManagedAccountSwitchResponseAudit): Indicates that dual-identity audit fields were recorded for this
-            switch.
-    """
-
     switched: bool
+    """ True when the act-as context is available. """
     acting_client_id: int
+    """ Authenticated manager client id. """
     effective_client_id: int
+    """ Managed client id to send in X-Managed-Client-Id on later requests. """
     managed_client_id: int
+    """ Alias of effective_client_id for callers that model this as the path id. """
     areas: list[str]
+    """ Effective areas approved for this switch. This is never a superset of the request or the Blesta grant. """
     same_company: bool
+    """ True after same-company enforcement succeeds. """
     headers: ManagedAccountSwitchResponseHeaders
     audit: ManagedAccountSwitchResponseAudit
+    """ Indicates that dual-identity audit fields were recorded for this switch. """
 
     def to_dict(self) -> dict[str, Any]:
         switched = self.switched
@@ -77,7 +71,7 @@ class ManagedAccountSwitchResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.managed_account_switch_response_audit import (
             ManagedAccountSwitchResponseAudit,
         )

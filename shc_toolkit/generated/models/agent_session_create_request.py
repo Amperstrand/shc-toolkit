@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.agent_session_create_request_scope import AgentSessionCreateRequestScope
+from ..models.agent_session_create_request_scope import (
+    AgentSessionCreateRequestScope,
+    check_agent_session_create_request_scope,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AgentSessionCreateRequest")
@@ -18,22 +22,16 @@ class AgentSessionCreateRequest:
         {'agentName': 'invoice-review-agent', 'agentPurpose': 'Review invoices and open support tickets when approved.',
             'publicKey': '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'scope': 'read'}
 
-    Attributes:
-        agent_name (str):
-        agent_purpose (str):
-        public_key (str): Required Nostr public key for proof-of-possession binding. Hex public keys and npub values are
-            accepted; stored sessions verify against the hex public key.
-        scope (AgentSessionCreateRequestScope | Unset): read is GET-only. operate can perform allowed non-money
-            operations but cannot manage credentials, identity, billing money movement, contacts, managers, or sessions.
-            Default: AgentSessionCreateRequestScope.OPERATE.
     """
 
     agent_name: str
     agent_purpose: str
     public_key: str
-    scope: AgentSessionCreateRequestScope | Unset = (
-        AgentSessionCreateRequestScope.OPERATE
-    )
+    """ Required Nostr public key for proof-of-possession binding. Hex public keys and npub values are accepted;
+    stored sessions verify against the hex public key. """
+    scope: AgentSessionCreateRequestScope | Unset = "operate"
+    """ read is GET-only. operate can perform allowed non-money operations but cannot manage credentials, identity,
+    billing money movement, contacts, managers, or sessions. """
 
     def to_dict(self) -> dict[str, Any]:
         agent_name = self.agent_name
@@ -44,7 +42,7 @@ class AgentSessionCreateRequest:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope.value
+            scope = self.scope
 
         field_dict: dict[str, Any] = {}
 
@@ -61,7 +59,7 @@ class AgentSessionCreateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         agent_name = d.pop("agentName")
 
@@ -74,7 +72,7 @@ class AgentSessionCreateRequest:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = AgentSessionCreateRequestScope(_scope)
+            scope = check_agent_session_create_request_scope(_scope)
 
         agent_session_create_request = cls(
             agent_name=agent_name,

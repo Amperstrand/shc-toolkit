@@ -9,7 +9,9 @@ from ...models.error import Error
 from ...models.list_affiliate_referrals_response_200 import (
     ListAffiliateReferralsResponse200,
 )
-from ...models.list_affiliate_referrals_status import ListAffiliateReferralsStatus
+from ...models.list_affiliate_referrals_status import (
+    ListAffiliateReferralsStatus,
+)
 from ...types import UNSET, Response, Unset
 
 
@@ -28,7 +30,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status.value
+        json_status = status
 
     params["status"] = json_status
 

@@ -5,8 +5,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.zk_backup_recipient_status_kind import ZkBackupRecipientStatusKind
+from ..models.zk_backup_recipient_status_kind import (
+    ZkBackupRecipientStatusKind,
+    check_zk_backup_recipient_status_kind,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ZkBackupRecipientStatus")
@@ -17,16 +21,6 @@ class ZkBackupRecipientStatus:
     """One public ZK backup recipient row in the verified recipient set. Public keys and fingerprints are owner-visible;
     private keys are never present.
 
-        Attributes:
-            kind (ZkBackupRecipientStatusKind):
-            label (str):
-            pubkey_x25519_hex (str):
-            fingerprint (str):
-            revoked (bool):
-            created_at (datetime.datetime | None | Unset):
-            revoked_at (datetime.datetime | None | Unset):
-            pubkey_mlkem_hex (None | str | Unset):
-            reader_id (None | str | Unset):
     """
 
     kind: ZkBackupRecipientStatusKind
@@ -40,7 +34,7 @@ class ZkBackupRecipientStatus:
     reader_id: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind.value
+        kind: str = self.kind
 
         label = self.label
 
@@ -101,9 +95,9 @@ class ZkBackupRecipientStatus:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = ZkBackupRecipientStatusKind(d.pop("kind"))
+        kind = check_zk_backup_recipient_status_kind(d.pop("kind"))
 
         label = d.pop("label")
 

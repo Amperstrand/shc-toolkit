@@ -1,17 +1,35 @@
-from enum import Enum
+from typing import Literal
+
+CreateApiKeyBodyAreasItem = Literal[
+    "_credits",
+    "_managed",
+    "client_accounts",
+    "client_contacts",
+    "client_emails",
+    "client_invoices",
+    "client_quotations",
+    "client_services",
+    "client_transactions",
+    "support",
+]
+
+CREATE_API_KEY_BODY_AREAS_ITEM_VALUES: set[CreateApiKeyBodyAreasItem] = {
+    "_credits",
+    "_managed",
+    "client_accounts",
+    "client_contacts",
+    "client_emails",
+    "client_invoices",
+    "client_quotations",
+    "client_services",
+    "client_transactions",
+    "support",
+}
 
 
-class CreateApiKeyBodyAreasItem(str, Enum):
-    CLIENT_ACCOUNTS = "client_accounts"
-    CLIENT_CONTACTS = "client_contacts"
-    CLIENT_EMAILS = "client_emails"
-    CLIENT_INVOICES = "client_invoices"
-    CLIENT_QUOTATIONS = "client_quotations"
-    CLIENT_SERVICES = "client_services"
-    CLIENT_TRANSACTIONS = "client_transactions"
-    SUPPORT = "support"
-    VALUE_7 = "_credits"
-    VALUE_8 = "_managed"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_create_api_key_body_areas_item(value: str) -> CreateApiKeyBodyAreasItem:
+    if value in CREATE_API_KEY_BODY_AREAS_ITEM_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {CREATE_API_KEY_BODY_AREAS_ITEM_VALUES!r}"
+    )

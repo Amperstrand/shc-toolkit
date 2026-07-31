@@ -5,9 +5,11 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.support_ticket_reply_response_reply_author_type import (
     SupportTicketReplyResponseReplyAuthorType,
+    check_support_ticket_reply_response_reply_author_type,
 )
 
 T = TypeVar("T", bound="SupportTicketReplyResponseReply")
@@ -15,26 +17,18 @@ T = TypeVar("T", bound="SupportTicketReplyResponseReply")
 
 @_attrs_define
 class SupportTicketReplyResponseReply:
-    """
-    Attributes:
-        id (int):  Example: 9001.
-        author_type (SupportTicketReplyResponseReplyAuthorType):  Example: client.
-        author_name (None | str):  Example: Jane Customer.
-        details (str):  Example: Still happening after a reboot..
-        date_added (None | str): Datetime the reply was recorded. Example: 2026-06-04 14:32:10.
-    """
-
     id: int
     author_type: SupportTicketReplyResponseReplyAuthorType
     author_name: None | str
     details: str
     date_added: None | str
+    """ Datetime the reply was recorded. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        author_type = self.author_type.value
+        author_type: str = self.author_type
 
         author_name: None | str
         author_name = self.author_name
@@ -59,11 +53,13 @@ class SupportTicketReplyResponseReply:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        author_type = SupportTicketReplyResponseReplyAuthorType(d.pop("author_type"))
+        author_type = check_support_ticket_reply_response_reply_author_type(
+            d.pop("author_type")
+        )
 
         def _parse_author_name(data: object) -> None | str:
             if data is None:

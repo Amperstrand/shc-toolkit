@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -27,21 +28,17 @@ class ConfirmationChallenge:
     confirmation_id is NOT permission: obtain an explicit human yes to THIS specific action first. The id is non-secret,
     single-use, and names an already-bound pending action.
 
-        Attributes:
-            confirmation_id (str): STABLE PATH - read this. Mirrored flat at `confirmation.confirmation_id` since v2.4.0 and
-                always present. The nested copies under `structuredContent` are legacy and may be absent; do not depend on them.
-                Example: cnf_9f2c1ab4d7e34c02.
-            is_error (bool | Unset): Legacy MCP-envelope remnant. Always false here.
-            content (list[ConfirmationChallengeContentItem] | Unset): Legacy MCP-envelope remnant: the human-facing prompt
-                text.
-            structured_content (ConfirmationChallengeStructuredContent | Unset): LEGACY nested copy, kept verbatim for
-                existing clients. May be absent.
     """
 
     confirmation_id: str
+    """ STABLE PATH - read this. Mirrored flat at `confirmation.confirmation_id` since v2.4.0 and always present.
+    The nested copies under `structuredContent` are legacy and may be absent; do not depend on them. """
     is_error: bool | Unset = UNSET
+    """ Legacy MCP-envelope remnant. Always false here. """
     content: list[ConfirmationChallengeContentItem] | Unset = UNSET
+    """ Legacy MCP-envelope remnant: the human-facing prompt text. """
     structured_content: ConfirmationChallengeStructuredContent | Unset = UNSET
+    """ LEGACY nested copy, kept verbatim for existing clients. May be absent. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -77,7 +74,7 @@ class ConfirmationChallenge:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.confirmation_challenge_content_item import (
             ConfirmationChallengeContentItem,
         )

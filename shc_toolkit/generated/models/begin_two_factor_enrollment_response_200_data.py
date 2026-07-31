@@ -4,22 +4,19 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="BeginTwoFactorEnrollmentResponse200Data")
 
 
 @_attrs_define
 class BeginTwoFactorEnrollmentResponse200Data:
-    """
-    Attributes:
-        two_factor_key (str): 40-char hex TOTP secret; submit back to POST /account/2fa to enable.
-        secret_base32 (str): Base32 secret for manual authenticator entry.
-        otpauth_uri (str): otpauth:// URI for QR provisioning.
-    """
-
     two_factor_key: str
+    """ 40-char hex TOTP secret; submit back to POST /account/2fa to enable. """
     secret_base32: str
+    """ Base32 secret for manual authenticator entry. """
     otpauth_uri: str
+    """ otpauth:// URI for QR provisioning. """
 
     def to_dict(self) -> dict[str, Any]:
         two_factor_key = self.two_factor_key
@@ -41,7 +38,7 @@ class BeginTwoFactorEnrollmentResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         two_factor_key = d.pop("two_factor_key")
 

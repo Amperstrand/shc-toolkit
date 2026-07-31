@@ -5,12 +5,15 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_support_ticket_response_200_data_priority import (
     GetSupportTicketResponse200DataPriority,
+    check_get_support_ticket_response_200_data_priority,
 )
 from ..models.get_support_ticket_response_200_data_status import (
     GetSupportTicketResponse200DataStatus,
+    check_get_support_ticket_response_200_data_status,
 )
 from ..types import UNSET, Unset
 
@@ -25,24 +28,6 @@ T = TypeVar("T", bound="GetSupportTicketResponse200Data")
 
 @_attrs_define
 class GetSupportTicketResponse200Data:
-    """
-    Attributes:
-        id (int):  Example: 501.
-        code (str):  Example: ABC-123456.
-        department_id (int):  Example: 3.
-        summary (None | str):
-        priority (GetSupportTicketResponse200DataPriority):
-        status (GetSupportTicketResponse200DataStatus):
-        replies (list[GetSupportTicketResponse200DataRepliesItem]):
-        service_id (int | None | Unset):
-        date_added (datetime.datetime | None | Unset):
-        date_updated (datetime.datetime | None | Unset):
-        date_closed (datetime.datetime | None | Unset):
-        reply_limit (int | Unset):  Example: 100.
-        reply_offset (int | Unset):
-        reply_has_more (bool | Unset):
-    """
-
     id: int
     code: str
     department_id: int
@@ -68,9 +53,9 @@ class GetSupportTicketResponse200Data:
         summary: None | str
         summary = self.summary
 
-        priority = self.priority.value
+        priority: str = self.priority
 
-        status = self.status.value
+        status: str = self.status
 
         replies = []
         for replies_item_data in self.replies:
@@ -144,7 +129,7 @@ class GetSupportTicketResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_support_ticket_response_200_data_replies_item import (
             GetSupportTicketResponse200DataRepliesItem,
         )
@@ -163,9 +148,11 @@ class GetSupportTicketResponse200Data:
 
         summary = _parse_summary(d.pop("summary"))
 
-        priority = GetSupportTicketResponse200DataPriority(d.pop("priority"))
+        priority = check_get_support_ticket_response_200_data_priority(
+            d.pop("priority")
+        )
 
-        status = GetSupportTicketResponse200DataStatus(d.pop("status"))
+        status = check_get_support_ticket_response_200_data_status(d.pop("status"))
 
         replies = []
         _replies = d.pop("replies")

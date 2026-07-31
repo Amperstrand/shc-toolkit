@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.order_list_item_status import OrderListItemStatus
+from ..models.order_list_item_status import (
+    OrderListItemStatus,
+    check_order_list_item_status,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="OrderListItem")
@@ -13,28 +17,11 @@ T = TypeVar("T", bound="OrderListItem")
 
 @_attrs_define
 class OrderListItem:
-    """
-    Attributes:
-        order_id (int):
-        order_number (str):
-        status (OrderListItemStatus):
-        date_added (None | str): Blesta UTC timestamp as emitted by the v2 handler. Example: 2026-07-12 02:50:55.
-        invoice_id (int):
-        currency (str):
-        total (str):
-        paid (str):
-        balance_due (str):
-        order_form_id (int | None | Unset):
-        order_form_label (str | Unset):
-        invoice_id_code (str | Unset):
-        date_closed (None | str | Unset): Blesta UTC timestamp as emitted by the v2 handler. Example: 2026-07-12
-            02:50:55.
-    """
-
     order_id: int
     order_number: str
     status: OrderListItemStatus
     date_added: None | str
+    """ Blesta UTC timestamp as emitted by the v2 handler. """
     invoice_id: int
     currency: str
     total: str
@@ -44,13 +31,14 @@ class OrderListItem:
     order_form_label: str | Unset = UNSET
     invoice_id_code: str | Unset = UNSET
     date_closed: None | str | Unset = UNSET
+    """ Blesta UTC timestamp as emitted by the v2 handler. """
 
     def to_dict(self) -> dict[str, Any]:
         order_id = self.order_id
 
         order_number = self.order_number
 
-        status = self.status.value
+        status: str = self.status
 
         date_added: None | str
         date_added = self.date_added
@@ -108,13 +96,13 @@ class OrderListItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         order_id = d.pop("order_id")
 
         order_number = d.pop("order_number")
 
-        status = OrderListItemStatus(d.pop("status"))
+        status = check_order_list_item_status(d.pop("status"))
 
         def _parse_date_added(data: object) -> None | str:
             if data is None:

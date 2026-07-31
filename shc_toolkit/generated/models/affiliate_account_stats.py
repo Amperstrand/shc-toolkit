@@ -4,22 +4,17 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="AffiliateAccountStats")
 
 
 @_attrs_define
 class AffiliateAccountStats:
-    """
-    Attributes:
-        visits (int):  Example: 2.
-        sales (int):
-        conversion_rate (float): sales / visits as a percentage.
-    """
-
     visits: int
     sales: int
     conversion_rate: float
+    """ sales / visits as a percentage. """
 
     def to_dict(self) -> dict[str, Any]:
         visits = self.visits
@@ -41,7 +36,7 @@ class AffiliateAccountStats:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         visits = d.pop("visits")
 

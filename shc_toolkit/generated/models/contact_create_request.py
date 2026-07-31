@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.contact_create_request_contact_type_type_0 import (
     ContactCreateRequestContactTypeType0,
+    check_contact_create_request_contact_type_type_0,
 )
 from ..types import UNSET, Unset
 
@@ -20,55 +22,39 @@ class ContactCreateRequest:
     Example:
         {'first_name': 'Jane', 'last_name': 'Roe', 'email': 'jane.roe@example.com', 'contact_type': 'billing'}
 
-    Attributes:
-        first_name (str):  Example: Jane.
-        last_name (str):  Example: Roe.
-        email (str):  Example: jane.roe@example.com.
-        contact_type (ContactCreateRequestContactTypeType0 | int | Unset): Non-primary contact type: 'billing'
-            (default), 'other', or a numeric custom contact-type id (stored as 'other'). Default:
-            ContactCreateRequestContactTypeType0.BILLING. Example: billing.
-        title (str | Unset):
-        company (str | Unset):
-        address1 (str | Unset):
-        address2 (str | Unset):
-        city (str | Unset):
-        state (str | Unset): ISO 3166-2 subdivision code, where applicable.
-        zip_ (str | Unset):
-        country (str | Unset): ISO 3166-1 alpha-2 country code. Defaults to the account's own country if omitted.
-            Example: US.
-        phone (str | Unset): Optional single phone number in E.164 format (e.g. +15125550123). Example: +15125550123.
-        permissions (list[str] | Unset): Permission area keys to grant this contact. Unknown keys are ignored. See GET
-            /contacts/permission-options. Example: ['client_invoices', 'client_services'].
-        enable_login (bool | Unset): Create a portal login for this contact. When true, new_password is required (and
-            confirm_password must match if supplied). Default: False.
-        username (str | Unset): Login username when enable_login is true (defaults to the email). Only valid with
-            enable_login.
-        new_password (str | Unset): Password for the contact's portal login. Required when enable_login is true; only
-            valid with enable_login. Must satisfy the company password policy.
-        confirm_password (str | Unset): Must equal new_password. Defaults to new_password if omitted. Only valid with
-            enable_login.
     """
 
     first_name: str
     last_name: str
     email: str
-    contact_type: ContactCreateRequestContactTypeType0 | int | Unset = (
-        ContactCreateRequestContactTypeType0.BILLING
-    )
+    contact_type: ContactCreateRequestContactTypeType0 | int | Unset = "billing"
+    """ Non-primary contact type: 'billing' (default), 'other', or a numeric custom contact-type id (stored as
+    'other'). """
     title: str | Unset = UNSET
     company: str | Unset = UNSET
     address1: str | Unset = UNSET
     address2: str | Unset = UNSET
     city: str | Unset = UNSET
     state: str | Unset = UNSET
+    """ ISO 3166-2 subdivision code, where applicable. """
     zip_: str | Unset = UNSET
     country: str | Unset = UNSET
+    """ ISO 3166-1 alpha-2 country code. Defaults to the account's own country if omitted. """
     phone: str | Unset = UNSET
+    """ Optional single phone number in E.164 format (e.g. +15125550123). """
     permissions: list[str] | Unset = UNSET
+    """ Permission area keys to grant this contact. Unknown keys are ignored. See GET /contacts/permission-options.
+    """
     enable_login: bool | Unset = False
+    """ Create a portal login for this contact. When true, new_password is required (and confirm_password must match
+    if supplied). """
     username: str | Unset = UNSET
+    """ Login username when enable_login is true (defaults to the email). Only valid with enable_login. """
     new_password: str | Unset = UNSET
+    """ Password for the contact's portal login. Required when enable_login is true; only valid with enable_login.
+    Must satisfy the company password policy. """
     confirm_password: str | Unset = UNSET
+    """ Must equal new_password. Defaults to new_password if omitted. Only valid with enable_login. """
 
     def to_dict(self) -> dict[str, Any]:
         first_name = self.first_name
@@ -80,8 +66,8 @@ class ContactCreateRequest:
         contact_type: int | str | Unset
         if isinstance(self.contact_type, Unset):
             contact_type = UNSET
-        elif isinstance(self.contact_type, ContactCreateRequestContactTypeType0):
-            contact_type = self.contact_type.value
+        elif isinstance(self.contact_type, str):
+            contact_type = self.contact_type
         else:
             contact_type = self.contact_type
 
@@ -158,7 +144,7 @@ class ContactCreateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         first_name = d.pop("first_name")
 
@@ -174,7 +160,9 @@ class ContactCreateRequest:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                contact_type_type_0 = ContactCreateRequestContactTypeType0(data)
+                contact_type_type_0 = check_contact_create_request_contact_type_type_0(
+                    data
+                )
 
                 return contact_type_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_virtual_machine_metrics_response_200_data_timeframe import (
     GetVirtualMachineMetricsResponse200DataTimeframe,
+    check_get_virtual_machine_metrics_response_200_data_timeframe,
 )
 
 if TYPE_CHECKING:
@@ -29,15 +31,6 @@ T = TypeVar("T", bound="GetVirtualMachineMetricsResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineMetricsResponse200Data:
-    """
-    Attributes:
-        timeframe (GetVirtualMachineMetricsResponse200DataTimeframe):  Example: hour.
-        cpu (GetVirtualMachineMetricsResponse200DataCpu):
-        ram (GetVirtualMachineMetricsResponse200DataRam):
-        disk_bandwidth (GetVirtualMachineMetricsResponse200DataDiskBandwidth):
-        network_bandwidth (GetVirtualMachineMetricsResponse200DataNetworkBandwidth):
-    """
-
     timeframe: GetVirtualMachineMetricsResponse200DataTimeframe
     cpu: GetVirtualMachineMetricsResponse200DataCpu
     ram: GetVirtualMachineMetricsResponse200DataRam
@@ -45,7 +38,7 @@ class GetVirtualMachineMetricsResponse200Data:
     network_bandwidth: GetVirtualMachineMetricsResponse200DataNetworkBandwidth
 
     def to_dict(self) -> dict[str, Any]:
-        timeframe = self.timeframe.value
+        timeframe: str = self.timeframe
 
         cpu = self.cpu.to_dict()
 
@@ -70,7 +63,7 @@ class GetVirtualMachineMetricsResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_virtual_machine_metrics_response_200_data_cpu import (
             GetVirtualMachineMetricsResponse200DataCpu,
         )
@@ -85,7 +78,9 @@ class GetVirtualMachineMetricsResponse200Data:
         )
 
         d = dict(src_dict)
-        timeframe = GetVirtualMachineMetricsResponse200DataTimeframe(d.pop("timeframe"))
+        timeframe = check_get_virtual_machine_metrics_response_200_data_timeframe(
+            d.pop("timeframe")
+        )
 
         cpu = GetVirtualMachineMetricsResponse200DataCpu.from_dict(d.pop("cpu"))
 

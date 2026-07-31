@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -22,18 +23,6 @@ class ZkBackupRecipientSetStatus:
     key is exposed, register a fresh recipient set and re-upload replacement backups, like sweeping a Bitcoin key to a
     fresh address. SHC cannot re-seal, claw back, or reach into existing backup data; that inability is the guarantee.
 
-        Attributes:
-            zk_enabled (bool):
-            revocation_guarantee (str):  Example: SHC ZK backup is genuine self-custody, the same model as Bitcoin: your
-                keys, your data. Backups already sealed to a recovery key stay openable by that key until you rotate forward and
-                re-upload the backups you care about; that is the sovereignty property. If a recovery key is exposed, register a
-                fresh recipient set and re-upload replacement backups, like sweeping a Bitcoin key to a fresh address. SHC
-                cannot re-seal, claw back, or reach into existing backup data; that inability is the guarantee..
-            recipients (list[ZkBackupRecipientStatus]):
-            generation (int | None | Unset):
-            config_hash (None | str | Unset):
-            recipient_set_hash (None | str | Unset):
-            active_seal_digest (None | str | Unset):
     """
 
     zk_enabled: bool
@@ -99,7 +88,7 @@ class ZkBackupRecipientSetStatus:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.zk_backup_recipient_status import ZkBackupRecipientStatus
 
         d = dict(src_dict)

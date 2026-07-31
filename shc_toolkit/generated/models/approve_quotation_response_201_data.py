@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.approve_quotation_response_201_data_status import (
     ApproveQuotationResponse201DataStatus,
+    check_approve_quotation_response_201_data_status,
 )
 
 T = TypeVar("T", bound="ApproveQuotationResponse201Data")
@@ -14,19 +16,15 @@ T = TypeVar("T", bound="ApproveQuotationResponse201Data")
 
 @_attrs_define
 class ApproveQuotationResponse201Data:
-    """
-    Attributes:
-        quotation_id (int): Approved quotation id.
-        status (ApproveQuotationResponse201DataStatus): Final quotation status.
-    """
-
     quotation_id: int
+    """ Approved quotation id. """
     status: ApproveQuotationResponse201DataStatus
+    """ Final quotation status. """
 
     def to_dict(self) -> dict[str, Any]:
         quotation_id = self.quotation_id
 
-        status = self.status.value
+        status: str = self.status
 
         field_dict: dict[str, Any] = {}
 
@@ -40,11 +38,11 @@ class ApproveQuotationResponse201Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         quotation_id = d.pop("quotation_id")
 
-        status = ApproveQuotationResponse201DataStatus(d.pop("status"))
+        status = check_approve_quotation_response_201_data_status(d.pop("status"))
 
         approve_quotation_response_201_data = cls(
             quotation_id=quotation_id,

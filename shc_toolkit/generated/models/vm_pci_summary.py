@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
@@ -17,13 +18,11 @@ class VmPciSummary:
     """GPU/PCI passthrough summary card. Only the device count and a primary label/short are exposed; per-device topology
     (pci_id, vendor:device, IOMMU group) is intentionally withheld.
 
-        Attributes:
-            count (int):  Example: 1.
-            primary (None | VmPciSummaryPrimaryType0): Null when no PCI devices are assigned.
     """
 
     count: int
     primary: None | VmPciSummaryPrimaryType0
+    """ Null when no PCI devices are assigned. """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
@@ -48,7 +47,7 @@ class VmPciSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
 
         d = dict(src_dict)

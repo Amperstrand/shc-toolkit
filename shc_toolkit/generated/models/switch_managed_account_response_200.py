@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.managed_account_switch_response import ManagedAccountSwitchResponse
@@ -14,11 +15,6 @@ T = TypeVar("T", bound="SwitchManagedAccountResponse200")
 
 @_attrs_define
 class SwitchManagedAccountResponse200:
-    """
-    Attributes:
-        data (ManagedAccountSwitchResponse):
-    """
-
     data: ManagedAccountSwitchResponse
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,7 +31,7 @@ class SwitchManagedAccountResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.managed_account_switch_response import (
             ManagedAccountSwitchResponse,
         )

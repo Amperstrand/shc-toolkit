@@ -4,12 +4,15 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_payment_methods_response_200_items_item_status import (
     ListPaymentMethodsResponse200ItemsItemStatus,
+    check_list_payment_methods_response_200_items_item_status,
 )
 from ..models.list_payment_methods_response_200_items_item_type import (
     ListPaymentMethodsResponse200ItemsItemType,
+    check_list_payment_methods_response_200_items_item_type,
 )
 from ..types import UNSET, Unset
 
@@ -18,31 +21,21 @@ T = TypeVar("T", bound="ListPaymentMethodsResponse200ItemsItem")
 
 @_attrs_define
 class ListPaymentMethodsResponse200ItemsItem:
-    """
-    Attributes:
-        id (int):  Example: 41.
-        type_ (ListPaymentMethodsResponse200ItemsItemType):  Example: cc.
-        account_type (str): Card brand (visa, mc, amex, ...) for cc, or checking/savings for ach. Example: visa.
-        last4 (None | str):  Example: 4242.
-        contact_id (int):  Example: 88.
-        status (ListPaymentMethodsResponse200ItemsItemStatus):  Example: active.
-        expiration (None | str | Unset): Card expiration (cc only), masked/encrypted-at-rest source. Example: 2027-05.
-        name (None | str | Unset):  Example: Jane Roe.
-    """
-
     id: int
     type_: ListPaymentMethodsResponse200ItemsItemType
     account_type: str
+    """ Card brand (visa, mc, amex, ...) for cc, or checking/savings for ach. """
     last4: None | str
     contact_id: int
     status: ListPaymentMethodsResponse200ItemsItemStatus
     expiration: None | str | Unset = UNSET
+    """ Card expiration (cc only), masked/encrypted-at-rest source. """
     name: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         account_type = self.account_type
 
@@ -51,7 +44,7 @@ class ListPaymentMethodsResponse200ItemsItem:
 
         contact_id = self.contact_id
 
-        status = self.status.value
+        status: str = self.status
 
         expiration: None | str | Unset
         if isinstance(self.expiration, Unset):
@@ -85,11 +78,11 @@ class ListPaymentMethodsResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        type_ = ListPaymentMethodsResponse200ItemsItemType(d.pop("type"))
+        type_ = check_list_payment_methods_response_200_items_item_type(d.pop("type"))
 
         account_type = d.pop("account_type")
 
@@ -102,7 +95,9 @@ class ListPaymentMethodsResponse200ItemsItem:
 
         contact_id = d.pop("contact_id")
 
-        status = ListPaymentMethodsResponse200ItemsItemStatus(d.pop("status"))
+        status = check_list_payment_methods_response_200_items_item_status(
+            d.pop("status")
+        )
 
         def _parse_expiration(data: object) -> None | str | Unset:
             if data is None:

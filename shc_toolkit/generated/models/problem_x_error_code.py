@@ -1,84 +1,169 @@
-from enum import Enum
+from typing import Literal
+
+ProblemXErrorCode = Literal[
+    "addon_invalid",
+    "addons_not_allowed",
+    "already_canceled",
+    "below_floor",
+    "busy",
+    "cancel_in_progress",
+    "cancellation_disabled",
+    "challenge_invalid",
+    "challenge_mismatch",
+    "challenge_required",
+    "challenge_unavailable",
+    "change_not_allowed",
+    "checkout_in_progress",
+    "client_limit",
+    "cloud-init-policy-violation",
+    "confirmation_required",
+    "conflict",
+    "continuity_required",
+    "credit_disabled",
+    "credit_maximum",
+    "credit_minimum",
+    "disk_indeterminate",
+    "disk_shrink_blocked",
+    "dry_run_not_supported",
+    "firewall_busy",
+    "forbidden",
+    "gateway_not_supported",
+    "gateway_unavailable",
+    "idempotency_key_conflict",
+    "idempotency_key_in_use",
+    "immediate_not_allowed",
+    "insufficient_credit",
+    "internal_error",
+    "invalid_term",
+    "invalid_token",
+    "invoice_not_payable",
+    "method_not_allowed",
+    "nip05_taken",
+    "nip98_invalid",
+    "no_term_change",
+    "nostr_unavailable",
+    "not_active",
+    "not_approvable",
+    "not_closed",
+    "not_enabled",
+    "not_found",
+    "not_linked",
+    "not_renewable",
+    "not_upgradable",
+    "option_not_addable",
+    "option_not_in_package",
+    "option_value_invalid",
+    "order_not_cancelable",
+    "payload_too_large",
+    "pending_change",
+    "pending_topup_exists",
+    "pubkey_in_use",
+    "rate_limited",
+    "renew_not_allowed",
+    "return_url_host_not_allowed",
+    "service_changes_unavailable",
+    "service_not_active",
+    "service_not_cancelable",
+    "service_on_hold",
+    "service_unavailable",
+    "ssh_keys_busy",
+    "template_required",
+    "term_change_not_allowed",
+    "term_not_allowed",
+    "ticket_busy",
+    "unauthorized",
+    "unpaid_invoices",
+    "unsupported_media_type",
+    "upgrade_in_progress",
+    "upstream_failure",
+    "validation_failed",
+    "vm_locked",
+]
+
+PROBLEM_X_ERROR_CODE_VALUES: set[ProblemXErrorCode] = {
+    "addon_invalid",
+    "addons_not_allowed",
+    "already_canceled",
+    "below_floor",
+    "busy",
+    "cancel_in_progress",
+    "cancellation_disabled",
+    "challenge_invalid",
+    "challenge_mismatch",
+    "challenge_required",
+    "challenge_unavailable",
+    "change_not_allowed",
+    "checkout_in_progress",
+    "client_limit",
+    "cloud-init-policy-violation",
+    "confirmation_required",
+    "conflict",
+    "continuity_required",
+    "credit_disabled",
+    "credit_maximum",
+    "credit_minimum",
+    "disk_indeterminate",
+    "disk_shrink_blocked",
+    "dry_run_not_supported",
+    "firewall_busy",
+    "forbidden",
+    "gateway_not_supported",
+    "gateway_unavailable",
+    "idempotency_key_conflict",
+    "idempotency_key_in_use",
+    "immediate_not_allowed",
+    "insufficient_credit",
+    "internal_error",
+    "invalid_term",
+    "invalid_token",
+    "invoice_not_payable",
+    "method_not_allowed",
+    "nip05_taken",
+    "nip98_invalid",
+    "no_term_change",
+    "nostr_unavailable",
+    "not_active",
+    "not_approvable",
+    "not_closed",
+    "not_enabled",
+    "not_found",
+    "not_linked",
+    "not_renewable",
+    "not_upgradable",
+    "option_not_addable",
+    "option_not_in_package",
+    "option_value_invalid",
+    "order_not_cancelable",
+    "payload_too_large",
+    "pending_change",
+    "pending_topup_exists",
+    "pubkey_in_use",
+    "rate_limited",
+    "renew_not_allowed",
+    "return_url_host_not_allowed",
+    "service_changes_unavailable",
+    "service_not_active",
+    "service_not_cancelable",
+    "service_on_hold",
+    "service_unavailable",
+    "ssh_keys_busy",
+    "template_required",
+    "term_change_not_allowed",
+    "term_not_allowed",
+    "ticket_busy",
+    "unauthorized",
+    "unpaid_invoices",
+    "unsupported_media_type",
+    "upgrade_in_progress",
+    "upstream_failure",
+    "validation_failed",
+    "vm_locked",
+}
 
 
-class ProblemXErrorCode(str, Enum):
-    ADDONS_NOT_ALLOWED = "addons_not_allowed"
-    ADDON_INVALID = "addon_invalid"
-    ALREADY_CANCELED = "already_canceled"
-    BELOW_FLOOR = "below_floor"
-    BUSY = "busy"
-    CANCELLATION_DISABLED = "cancellation_disabled"
-    CANCEL_IN_PROGRESS = "cancel_in_progress"
-    CHALLENGE_INVALID = "challenge_invalid"
-    CHALLENGE_MISMATCH = "challenge_mismatch"
-    CHALLENGE_REQUIRED = "challenge_required"
-    CHALLENGE_UNAVAILABLE = "challenge_unavailable"
-    CHANGE_NOT_ALLOWED = "change_not_allowed"
-    CHECKOUT_IN_PROGRESS = "checkout_in_progress"
-    CLIENT_LIMIT = "client_limit"
-    CLOUD_INIT_POLICY_VIOLATION = "cloud-init-policy-violation"
-    CONFIRMATION_REQUIRED = "confirmation_required"
-    CONFLICT = "conflict"
-    CONTINUITY_REQUIRED = "continuity_required"
-    CREDIT_DISABLED = "credit_disabled"
-    CREDIT_MAXIMUM = "credit_maximum"
-    CREDIT_MINIMUM = "credit_minimum"
-    DISK_INDETERMINATE = "disk_indeterminate"
-    DISK_SHRINK_BLOCKED = "disk_shrink_blocked"
-    DRY_RUN_NOT_SUPPORTED = "dry_run_not_supported"
-    FIREWALL_BUSY = "firewall_busy"
-    FORBIDDEN = "forbidden"
-    GATEWAY_NOT_SUPPORTED = "gateway_not_supported"
-    GATEWAY_UNAVAILABLE = "gateway_unavailable"
-    IDEMPOTENCY_KEY_CONFLICT = "idempotency_key_conflict"
-    IDEMPOTENCY_KEY_IN_USE = "idempotency_key_in_use"
-    IMMEDIATE_NOT_ALLOWED = "immediate_not_allowed"
-    INSUFFICIENT_CREDIT = "insufficient_credit"
-    INTERNAL_ERROR = "internal_error"
-    INVALID_TERM = "invalid_term"
-    INVALID_TOKEN = "invalid_token"
-    INVOICE_NOT_PAYABLE = "invoice_not_payable"
-    METHOD_NOT_ALLOWED = "method_not_allowed"
-    NIP05_TAKEN = "nip05_taken"
-    NIP98_INVALID = "nip98_invalid"
-    NOSTR_UNAVAILABLE = "nostr_unavailable"
-    NOT_ACTIVE = "not_active"
-    NOT_APPROVABLE = "not_approvable"
-    NOT_CLOSED = "not_closed"
-    NOT_ENABLED = "not_enabled"
-    NOT_FOUND = "not_found"
-    NOT_LINKED = "not_linked"
-    NOT_RENEWABLE = "not_renewable"
-    NOT_UPGRADABLE = "not_upgradable"
-    NO_TERM_CHANGE = "no_term_change"
-    OPTION_NOT_ADDABLE = "option_not_addable"
-    OPTION_NOT_IN_PACKAGE = "option_not_in_package"
-    OPTION_VALUE_INVALID = "option_value_invalid"
-    ORDER_NOT_CANCELABLE = "order_not_cancelable"
-    PAYLOAD_TOO_LARGE = "payload_too_large"
-    PENDING_CHANGE = "pending_change"
-    PENDING_TOPUP_EXISTS = "pending_topup_exists"
-    PUBKEY_IN_USE = "pubkey_in_use"
-    RATE_LIMITED = "rate_limited"
-    RENEW_NOT_ALLOWED = "renew_not_allowed"
-    RETURN_URL_HOST_NOT_ALLOWED = "return_url_host_not_allowed"
-    SERVICE_CHANGES_UNAVAILABLE = "service_changes_unavailable"
-    SERVICE_NOT_ACTIVE = "service_not_active"
-    SERVICE_NOT_CANCELABLE = "service_not_cancelable"
-    SERVICE_ON_HOLD = "service_on_hold"
-    SERVICE_UNAVAILABLE = "service_unavailable"
-    SSH_KEYS_BUSY = "ssh_keys_busy"
-    TEMPLATE_REQUIRED = "template_required"
-    TERM_CHANGE_NOT_ALLOWED = "term_change_not_allowed"
-    TERM_NOT_ALLOWED = "term_not_allowed"
-    TICKET_BUSY = "ticket_busy"
-    UNAUTHORIZED = "unauthorized"
-    UNPAID_INVOICES = "unpaid_invoices"
-    UNSUPPORTED_MEDIA_TYPE = "unsupported_media_type"
-    UPGRADE_IN_PROGRESS = "upgrade_in_progress"
-    UPSTREAM_FAILURE = "upstream_failure"
-    VALIDATION_FAILED = "validation_failed"
-    VM_LOCKED = "vm_locked"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_problem_x_error_code(value: str) -> ProblemXErrorCode:
+    if value in PROBLEM_X_ERROR_CODE_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {PROBLEM_X_ERROR_CODE_VALUES!r}"
+    )

@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,22 +14,14 @@ T = TypeVar("T", bound="VmUpgradeOptionsResponseCurrent")
 
 @_attrs_define
 class VmUpgradeOptionsResponseCurrent:
-    """
-    Attributes:
-        plan_label (str | Unset):  Example: SSD VPS - Standard.
-        term (int | Unset):  Example: 1.
-        period (str | Unset):  Example: month.
-        recurring_amount (str | Unset): Current recurring price. Example: 12.00.
-        currency (str | Unset):  Example: USD.
-        disk_gb (int | None | Unset): Current effective disk (base meta + current disk options). Example: 16.
-    """
-
     plan_label: str | Unset = UNSET
     term: int | Unset = UNSET
     period: str | Unset = UNSET
     recurring_amount: str | Unset = UNSET
+    """ Current recurring price. """
     currency: str | Unset = UNSET
     disk_gb: int | None | Unset = UNSET
+    """ Current effective disk (base meta + current disk options). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -67,7 +60,7 @@ class VmUpgradeOptionsResponseCurrent:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         plan_label = d.pop("plan_label", UNSET)
 

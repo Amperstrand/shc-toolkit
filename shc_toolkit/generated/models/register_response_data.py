@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.register_api_key import RegisterApiKey
@@ -17,27 +18,18 @@ T = TypeVar("T", bound="RegisterResponseData")
 
 @_attrs_define
 class RegisterResponseData:
-    """
-    Attributes:
-        client_id (int): The new client's id. Example: 4042.
-        email (str):  Example: dev@example.com.
-        first_name (str):  Example: Dev.
-        last_name (str):  Example: User.
-        country (str):  Example: US.
-        created_at (datetime.datetime):  Example: 2026-06-09T12:00:00+00:00.
-        api_key (None | RegisterApiKey): The minted API key, or null if the account was created but the key could not be
-            minted on this call (recover by logging in and generating a key).
-        next_ (RegisterResponseDataNext): Pointers to the next steps (catalog browse, docs).
-    """
-
     client_id: int
+    """ The new client's id. """
     email: str
     first_name: str
     last_name: str
     country: str
     created_at: datetime.datetime
     api_key: None | RegisterApiKey
+    """ The minted API key, or null if the account was created but the key could not be minted on this call (recover
+    by logging in and generating a key). """
     next_: RegisterResponseDataNext
+    """ Pointers to the next steps (catalog browse, docs). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,7 +73,7 @@ class RegisterResponseData:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.register_api_key import RegisterApiKey
         from ..models.register_response_data_next import RegisterResponseDataNext
 

@@ -8,13 +8,15 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
 from ...models.list_invoices_response_200 import ListInvoicesResponse200
-from ...models.list_invoices_status import ListInvoicesStatus
+from ...models.list_invoices_status import (
+    ListInvoicesStatus,
+)
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    status: ListInvoicesStatus | Unset = ListInvoicesStatus.OPEN,
+    status: ListInvoicesStatus | Unset = "open",
     currency: str | Unset = UNSET,
     date_due_start: datetime.date | Unset = UNSET,
     date_due_end: datetime.date | Unset = UNSET,
@@ -32,7 +34,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status.value
+        json_status = status
 
     params["status"] = json_status
 
@@ -126,7 +128,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    status: ListInvoicesStatus | Unset = ListInvoicesStatus.OPEN,
+    status: ListInvoicesStatus | Unset = "open",
     currency: str | Unset = UNSET,
     date_due_start: datetime.date | Unset = UNSET,
     date_due_end: datetime.date | Unset = UNSET,
@@ -146,7 +148,7 @@ def sync_detailed(
     tokens are denied on every `/invoices/*` route.
 
     Args:
-        status (ListInvoicesStatus | Unset):  Default: ListInvoicesStatus.OPEN.
+        status (ListInvoicesStatus | Unset):  Default: 'open'.
         currency (str | Unset):  Example: USD.
         date_due_start (datetime.date | Unset):
         date_due_end (datetime.date | Unset):
@@ -186,7 +188,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    status: ListInvoicesStatus | Unset = ListInvoicesStatus.OPEN,
+    status: ListInvoicesStatus | Unset = "open",
     currency: str | Unset = UNSET,
     date_due_start: datetime.date | Unset = UNSET,
     date_due_end: datetime.date | Unset = UNSET,
@@ -206,7 +208,7 @@ def sync(
     tokens are denied on every `/invoices/*` route.
 
     Args:
-        status (ListInvoicesStatus | Unset):  Default: ListInvoicesStatus.OPEN.
+        status (ListInvoicesStatus | Unset):  Default: 'open'.
         currency (str | Unset):  Example: USD.
         date_due_start (datetime.date | Unset):
         date_due_end (datetime.date | Unset):
@@ -241,7 +243,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    status: ListInvoicesStatus | Unset = ListInvoicesStatus.OPEN,
+    status: ListInvoicesStatus | Unset = "open",
     currency: str | Unset = UNSET,
     date_due_start: datetime.date | Unset = UNSET,
     date_due_end: datetime.date | Unset = UNSET,
@@ -261,7 +263,7 @@ async def asyncio_detailed(
     tokens are denied on every `/invoices/*` route.
 
     Args:
-        status (ListInvoicesStatus | Unset):  Default: ListInvoicesStatus.OPEN.
+        status (ListInvoicesStatus | Unset):  Default: 'open'.
         currency (str | Unset):  Example: USD.
         date_due_start (datetime.date | Unset):
         date_due_end (datetime.date | Unset):
@@ -299,7 +301,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    status: ListInvoicesStatus | Unset = ListInvoicesStatus.OPEN,
+    status: ListInvoicesStatus | Unset = "open",
     currency: str | Unset = UNSET,
     date_due_start: datetime.date | Unset = UNSET,
     date_due_end: datetime.date | Unset = UNSET,
@@ -319,7 +321,7 @@ async def asyncio(
     tokens are denied on every `/invoices/*` route.
 
     Args:
-        status (ListInvoicesStatus | Unset):  Default: ListInvoicesStatus.OPEN.
+        status (ListInvoicesStatus | Unset):  Default: 'open'.
         currency (str | Unset):  Example: USD.
         date_due_start (datetime.date | Unset):
         date_due_end (datetime.date | Unset):

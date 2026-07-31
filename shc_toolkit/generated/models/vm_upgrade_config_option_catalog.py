@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -25,14 +26,6 @@ class VmUpgradeConfigOptionCatalog:
     """A settable/addable config option for an upgradable plan, identical in shape to the ordering catalog (option_id is
     the raw package option id).
 
-        Attributes:
-            option_id (int | Unset):  Example: 142.
-            name (str | Unset):  Example: disk.
-            label (str | Unset):  Example: Disk (GB).
-            type_ (str | Unset):  Example: quantity.
-            addable (bool | Unset):  Example: True.
-            editable (bool | Unset):  Example: True.
-            values (list[VmUpgradeConfigOptionCatalogValuesItem] | Unset):
     """
 
     option_id: int | Unset = UNSET
@@ -106,7 +99,7 @@ class VmUpgradeConfigOptionCatalog:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgrade_config_option_catalog_additional_property_type_4 import (
             VmUpgradeConfigOptionCatalogAdditionalPropertyType4,
         )
@@ -224,7 +217,6 @@ class VmUpgradeConfigOptionCatalog:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

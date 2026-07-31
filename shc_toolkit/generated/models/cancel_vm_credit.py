@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="CancelVmCredit")
 
@@ -17,22 +18,19 @@ class CancelVmCredit:
         Example:
             {'amount': 12.47, 'currency': 'USD', 'transaction_id': 8412, 'issued': True}
 
-        Attributes:
-            amount (float): Prorated unused-paid time credited to the customer's in-house balance (rounded ceil-to-cent so
-                the customer is favored on rounding). Zero if no eligible paid term covered the cancellation moment. Example:
-                12.47.
-            currency (None | str): ISO-4217 currency code the credit was denominated in — derived from
-                `clients.settings.default_currency`, which can differ from the original invoice currency for clients whose
-                default has changed since paying. Example: USD.
-            transaction_id (int | None): Blesta transaction id for the issued in_house_credit (transaction_type_id=4).
-                `null` if no credit was issued (zero amount or remediation failure). Example: 8412.
-            issued (bool): True only when an in_house_credit transaction was successfully recorded. Example: True.
     """
 
     amount: float
+    """ Prorated unused-paid time credited to the customer's in-house balance (rounded ceil-to-cent so the customer
+    is favored on rounding). Zero if no eligible paid term covered the cancellation moment. """
     currency: None | str
+    """ ISO-4217 currency code the credit was denominated in — derived from `clients.settings.default_currency`,
+    which can differ from the original invoice currency for clients whose default has changed since paying. """
     transaction_id: int | None
+    """ Blesta transaction id for the issued in_house_credit (transaction_type_id=4). `null` if no credit was issued
+    (zero amount or remediation failure). """
     issued: bool
+    """ True only when an in_house_credit transaction was successfully recorded. """
 
     def to_dict(self) -> dict[str, Any]:
         amount = self.amount
@@ -59,7 +57,7 @@ class CancelVmCredit:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         amount = d.pop("amount")
 

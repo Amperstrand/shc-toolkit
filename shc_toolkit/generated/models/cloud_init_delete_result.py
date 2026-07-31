@@ -4,22 +4,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="CloudInitDeleteResult")
 
 
 @_attrs_define
 class CloudInitDeleteResult:
-    """
-    Attributes:
-        service_id (int):
-        iso_name (str):  Example: cloud-init-seed.iso.
-        storage (str):  Example: local.
-        detached (bool):
-        deleted (bool):
-        restored_generated_cloud_init (bool):
-    """
-
     service_id: int
     iso_name: str
     storage: str
@@ -56,7 +47,7 @@ class CloudInitDeleteResult:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 

@@ -4,18 +4,15 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ClaimAgentKeyBody")
 
 
 @_attrs_define
 class ClaimAgentKeyBody:
-    """
-    Attributes:
-        code (str): The single-use claim code (base64url, 22-128 chars). Burned on success.
-    """
-
     code: str
+    """ The single-use claim code (base64url, 22-128 chars). Burned on success. """
 
     def to_dict(self) -> dict[str, Any]:
         code = self.code
@@ -31,7 +28,7 @@ class ClaimAgentKeyBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         code = d.pop("code")
 

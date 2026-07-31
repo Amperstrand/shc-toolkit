@@ -13,7 +13,7 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    status: ListOrdersStatus | Unset = "all",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -26,7 +26,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status.value
+        json_status = status
 
     params["status"] = json_status
 
@@ -94,7 +94,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    status: ListOrdersStatus | Unset = "all",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -104,7 +104,7 @@ def sync_detailed(
      List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        status (ListOrdersStatus | Unset):  Default: 'all'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -134,7 +134,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    status: ListOrdersStatus | Unset = "all",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -144,7 +144,7 @@ def sync(
      List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        status (ListOrdersStatus | Unset):  Default: 'all'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -169,7 +169,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    status: ListOrdersStatus | Unset = "all",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -179,7 +179,7 @@ async def asyncio_detailed(
      List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        status (ListOrdersStatus | Unset):  Default: 'all'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):
@@ -207,7 +207,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    status: ListOrdersStatus | Unset = ListOrdersStatus.ALL,
+    status: ListOrdersStatus | Unset = "all",
     limit: int | Unset = 100,
     offset: int | Unset = 0,
     x_user_api_otp: str | Unset = UNSET,
@@ -217,7 +217,7 @@ async def asyncio(
      List the authenticated client's orders using the live /v2 handler filters and pagination.
 
     Args:
-        status (ListOrdersStatus | Unset):  Default: ListOrdersStatus.ALL.
+        status (ListOrdersStatus | Unset):  Default: 'all'.
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
         x_user_api_otp (str | Unset):

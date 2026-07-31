@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_upgrade_options_response import VmUpgradeOptionsResponse
@@ -15,13 +16,9 @@ T = TypeVar("T", bound="GetServiceUpgradeOptionsResponse200")
 
 @_attrs_define
 class GetServiceUpgradeOptionsResponse200:
-    """
-    Attributes:
-        data (VmUpgradeOptionsResponse): The current plan + the same-group plans the customer may move to, with a
-            blocked_reason when a change cannot proceed. Placement is never exposed.
-    """
-
     data: VmUpgradeOptionsResponse
+    """ The current plan + the same-group plans the customer may move to, with a blocked_reason when a change cannot
+    proceed. Placement is never exposed. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +35,7 @@ class GetServiceUpgradeOptionsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgrade_options_response import VmUpgradeOptionsResponse
 
         d = dict(src_dict)

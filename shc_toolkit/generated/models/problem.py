@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.problem_x_error_code import ProblemXErrorCode
+from ..models.problem_x_error_code import ProblemXErrorCode, check_problem_x_error_code
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -21,23 +22,7 @@ T = TypeVar("T", bound="Problem")
 
 @_attrs_define
 class Problem:
-    """RFC 9457 problem detail envelope. Error responses use application/problem+json only.
-
-    Attributes:
-        type_ (str):  Example: https://api.sovereignhybridcompute.com/problems/v3/validation-failed.
-        title (str):  Example: Validation Failed.
-        status (int):  Example: 422.
-        detail (str):  Example: One or more typed field errors were found..
-        instance (str):  Example: /user-api/v3/problems/5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-        x_error_code (ProblemXErrorCode):  Example: validation_failed.
-        request_id (UUID | Unset):  Example: 5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-        field_errors (list[ProblemFieldError] | Unset):
-        retry_after_seconds (int | Unset):  Example: 30.
-        retryable (bool | Unset):  Example: True.
-        links (Links | Unset): Hypermedia links keyed by IANA-registered link relation names.
-        lint_report (LintReport | Unset):
-        x_shc_agent_recovery (AgentRecovery | Unset): Machine-readable next action for agents after an error.
-    """
+    """RFC 9457 problem detail envelope. Error responses use application/problem+json only."""
 
     type_: str
     title: str
@@ -50,8 +35,10 @@ class Problem:
     retry_after_seconds: int | Unset = UNSET
     retryable: bool | Unset = UNSET
     links: Links | Unset = UNSET
+    """ Hypermedia links keyed by IANA-registered link relation names. """
     lint_report: LintReport | Unset = UNSET
     x_shc_agent_recovery: AgentRecovery | Unset = UNSET
+    """ Machine-readable next action for agents after an error. """
 
     def to_dict(self) -> dict[str, Any]:
         type_ = self.type_
@@ -64,7 +51,7 @@ class Problem:
 
         instance = self.instance
 
-        x_error_code = self.x_error_code.value
+        x_error_code: str = self.x_error_code
 
         request_id: str | Unset = UNSET
         if not isinstance(self.request_id, Unset):
@@ -123,7 +110,7 @@ class Problem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.agent_recovery import AgentRecovery
         from ..models.links import Links
         from ..models.lint_report import LintReport
@@ -140,7 +127,7 @@ class Problem:
 
         instance = d.pop("instance")
 
-        x_error_code = ProblemXErrorCode(d.pop("x-error-code"))
+        x_error_code = check_problem_x_error_code(d.pop("x-error-code"))
 
         _request_id = d.pop("requestId", UNSET)
         request_id: UUID | Unset

@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_support_departments_response_200_items_item_fields_item_type import (
     ListSupportDepartmentsResponse200ItemsItemFieldsItemType,
+    check_list_support_departments_response_200_items_item_fields_item_type,
 )
 from ..types import UNSET, Unset
 
@@ -15,30 +17,20 @@ T = TypeVar("T", bound="ListSupportDepartmentsResponse200ItemsItemFieldsItem")
 
 @_attrs_define
 class ListSupportDepartmentsResponse200ItemsItemFieldsItem:
-    """
-    Attributes:
-        id (int):  Example: 12.
-        label (str):  Example: Affected service.
-        type_ (ListSupportDepartmentsResponse200ItemsItemFieldsItemType):  Example: text.
-        required (bool):
-        description (None | str | Unset):
-        options (list[str] | None | str | Unset): Field options (array for select/radio/checkbox; otherwise null or raw
-            string).
-    """
-
     id: int
     label: str
     type_: ListSupportDepartmentsResponse200ItemsItemFieldsItemType
     required: bool
     description: None | str | Unset = UNSET
     options: list[str] | None | str | Unset = UNSET
+    """ Field options (array for select/radio/checkbox; otherwise null or raw string). """
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
         label = self.label
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
         required = self.required
 
@@ -75,13 +67,15 @@ class ListSupportDepartmentsResponse200ItemsItemFieldsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
         label = d.pop("label")
 
-        type_ = ListSupportDepartmentsResponse200ItemsItemFieldsItemType(d.pop("type"))
+        type_ = check_list_support_departments_response_200_items_item_fields_item_type(
+            d.pop("type")
+        )
 
         required = d.pop("required")
 

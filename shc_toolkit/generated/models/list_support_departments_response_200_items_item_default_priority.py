@@ -1,12 +1,28 @@
-from enum import Enum
+from typing import Literal
+
+ListSupportDepartmentsResponse200ItemsItemDefaultPriority = Literal[
+    "critical", "emergency", "high", "low", "medium"
+]
+
+LIST_SUPPORT_DEPARTMENTS_RESPONSE_200_ITEMS_ITEM_DEFAULT_PRIORITY_VALUES: set[
+    ListSupportDepartmentsResponse200ItemsItemDefaultPriority
+] = {
+    "critical",
+    "emergency",
+    "high",
+    "low",
+    "medium",
+}
 
 
-class ListSupportDepartmentsResponse200ItemsItemDefaultPriority(str, Enum):
-    CRITICAL = "critical"
-    EMERGENCY = "emergency"
-    HIGH = "high"
-    LOW = "low"
-    MEDIUM = "medium"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_list_support_departments_response_200_items_item_default_priority(
+    value: str,
+) -> ListSupportDepartmentsResponse200ItemsItemDefaultPriority:
+    if (
+        value
+        in LIST_SUPPORT_DEPARTMENTS_RESPONSE_200_ITEMS_ITEM_DEFAULT_PRIORITY_VALUES
+    ):
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {LIST_SUPPORT_DEPARTMENTS_RESPONSE_200_ITEMS_ITEM_DEFAULT_PRIORITY_VALUES!r}"
+    )

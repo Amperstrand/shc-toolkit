@@ -5,25 +5,19 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmStorageDeleteResponse")
 
 
 @_attrs_define
 class VmStorageDeleteResponse:
-    """
-    Attributes:
-        service_id (int):  Example: 353.
-        backup_id (str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side. Example: bk_6ERwSd_PLY66FW72VFM.
-        deleted (bool):  Example: True.
-        message (str):  Example: Backup deleted successfully..
-    """
-
     service_id: int
     backup_id: str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     deleted: bool
     message: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -51,7 +45,7 @@ class VmStorageDeleteResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 

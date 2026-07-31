@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -19,22 +20,20 @@ class AccountPreferencesUpdateRequest:
         Example:
             {'inv_method': 'email', 'receive_email_marketing': False}
 
-        Attributes:
-            language (str | Unset): Language code (e.g. en_us). Example: en_us.
-            default_currency (str | Unset): 3-letter ISO-4217 currency code. Example: USD.
-            inv_method (str | Unset): Invoice delivery method. Example: email.
-            inv_address_to (int | str | Unset): Contact id to address invoices to (must be one of this client's contacts).
-                Example: 88.
-            tax_id (None | str | Unset): Tax id / VAT number. Example: GB123456789.
-            receive_email_marketing (bool | Unset): Whether to receive marketing email. Example: True.
     """
 
     language: str | Unset = UNSET
+    """ Language code (e.g. en_us). """
     default_currency: str | Unset = UNSET
+    """ 3-letter ISO-4217 currency code. """
     inv_method: str | Unset = UNSET
+    """ Invoice delivery method. """
     inv_address_to: int | str | Unset = UNSET
+    """ Contact id to address invoices to (must be one of this client's contacts). """
     tax_id: None | str | Unset = UNSET
+    """ Tax id / VAT number. """
     receive_email_marketing: bool | Unset = UNSET
+    """ Whether to receive marketing email. """
 
     def to_dict(self) -> dict[str, Any]:
         language = self.language
@@ -76,7 +75,7 @@ class AccountPreferencesUpdateRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         language = d.pop("language", UNSET)
 

@@ -1,14 +1,23 @@
-from enum import Enum
+from typing import Literal
+
+InvoiceStatus = Literal[
+    "draft", "open", "paid", "past_due", "pending", "scheduled", "voided"
+]
+
+INVOICE_STATUS_VALUES: set[InvoiceStatus] = {
+    "draft",
+    "open",
+    "paid",
+    "past_due",
+    "pending",
+    "scheduled",
+    "voided",
+}
 
 
-class InvoiceStatus(str, Enum):
-    DRAFT = "draft"
-    OPEN = "open"
-    PAID = "paid"
-    PAST_DUE = "past_due"
-    PENDING = "pending"
-    SCHEDULED = "scheduled"
-    VOIDED = "voided"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_invoice_status(value: str) -> InvoiceStatus:
+    if value in INVOICE_STATUS_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {INVOICE_STATUS_VALUES!r}"
+    )

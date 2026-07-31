@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,17 +13,14 @@ T = TypeVar("T", bound="SupportTicketAttachment")
 
 @_attrs_define
 class SupportTicketAttachment:
-    """A base64-encoded file to attach to a ticket or reply.
-
-    Attributes:
-        name (str): File name (no path separators). Example: screenshot.png.
-        content_base64 (str): Standard base64-encoded file content. Example: iVBORw0KGgoAAAANSUhEUgAA....
-        content_type (None | str | Unset): MIME type. Defaults to application/octet-stream. Example: image/png.
-    """
+    """A base64-encoded file to attach to a ticket or reply."""
 
     name: str
+    """ File name (no path separators). """
     content_base64: str
+    """ Standard base64-encoded file content. """
     content_type: None | str | Unset = UNSET
+    """ MIME type. Defaults to application/octet-stream. """
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -49,7 +47,7 @@ class SupportTicketAttachment:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         name = d.pop("name")
 

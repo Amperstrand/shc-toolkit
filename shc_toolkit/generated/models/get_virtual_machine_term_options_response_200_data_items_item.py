@@ -4,30 +4,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="GetVirtualMachineTermOptionsResponse200DataItemsItem")
 
 
 @_attrs_define
 class GetVirtualMachineTermOptionsResponse200DataItemsItem:
-    """
-    Attributes:
-        pricing_id (int):
-        term (int):
-        period (str):
-        price (str): Fixed two-decimal money string.
-        price_renews (None | str): Fixed two-decimal renewal money string, or null when no renewal override exists.
-        currency (str):
-        is_current (bool): Whether this term is the service's current pricing.
-    """
-
     pricing_id: int
     term: int
     period: str
     price: str
+    """ Fixed two-decimal money string. """
     price_renews: None | str
+    """ Fixed two-decimal renewal money string, or null when no renewal override exists. """
     currency: str
     is_current: bool
+    """ Whether this term is the service's current pricing. """
 
     def to_dict(self) -> dict[str, Any]:
         pricing_id = self.pricing_id
@@ -62,7 +55,7 @@ class GetVirtualMachineTermOptionsResponse200DataItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         pricing_id = d.pop("pricing_id")
 

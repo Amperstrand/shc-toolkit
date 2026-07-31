@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_contacts_response_200_items_item_contact_type import (
     ListContactsResponse200ItemsItemContactType,
+    check_list_contacts_response_200_items_item_contact_type,
 )
 from ..types import UNSET, Unset
 
@@ -15,20 +17,6 @@ T = TypeVar("T", bound="ListContactsResponse200ItemsItem")
 
 @_attrs_define
 class ListContactsResponse200ItemsItem:
-    """
-    Attributes:
-        id (int):  Example: 88.
-        contact_type (ListContactsResponse200ItemsItemContactType):  Example: other.
-        first_name (None | str):  Example: Jane.
-        last_name (None | str):  Example: Roe.
-        email (None | str):
-        has_login (bool):
-        company (None | str | Unset):
-        title (None | str | Unset):
-        date_added (None | str | Unset): Blesta UTC timestamp as emitted by the v2 handler. Example: 2026-07-12
-            02:50:55.
-    """
-
     id: int
     contact_type: ListContactsResponse200ItemsItemContactType
     first_name: None | str
@@ -38,11 +26,12 @@ class ListContactsResponse200ItemsItem:
     company: None | str | Unset = UNSET
     title: None | str | Unset = UNSET
     date_added: None | str | Unset = UNSET
+    """ Blesta UTC timestamp as emitted by the v2 handler. """
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type = self.contact_type.value
+        contact_type: str = self.contact_type
 
         first_name: None | str
         first_name = self.first_name
@@ -95,11 +84,11 @@ class ListContactsResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = ListContactsResponse200ItemsItemContactType(
+        contact_type = check_list_contacts_response_200_items_item_contact_type(
             d.pop("contact_type")
         )
 

@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.batch_sub_request_method import BatchSubRequestMethod
+from ..models.batch_sub_request_method import (
+    BatchSubRequestMethod,
+    check_batch_sub_request_method,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -24,33 +28,29 @@ class BatchSubRequest:
         Example:
             {'id': 'vm-read', 'method': 'GET', 'path': '/vm/353'}
 
-        Attributes:
-            method (BatchSubRequestMethod):  Example: GET.
-            path (str): Live /user-api/v2-relative path using the current v2 route convention (for example /vm, /events,
-                /event-subscriptions, /account). Absolute URLs, scheme URLs, double-slash paths, and nested /batch requests are
-                rejected by the native batch dispatcher. Example: /vm/353.
-            id (str | Unset): Optional caller correlation id echoed in the matching sub-response. Example: step-1.
-            body (BatchSubRequestBodyType0 | list[BatchSubRequestBodyType1Item] | None | Unset): Optional JSON request body
-                for this sub-request. Unknown fields are validated against the target operation schema before dispatch.
-            idempotency_key (str | Unset): Optional per-sub-request Idempotency-Key value. Required when the target
-                operation requires idempotency. Example: 5f051e42-f6a0-4f4d-9b67-c444f4673dd7.
-            confirm (str | Unset): Optional per-sub-request X-User-Api-Confirm value for a confirmed retry. Example:
-                cnf_01J2Z7QCGJ7FQ86A6W6A9A0M5X.
     """
 
     method: BatchSubRequestMethod
     path: str
+    """ Live /user-api/v2-relative path using the current v2 route convention (for example /vm, /events, /event-
+    subscriptions, /account). Absolute URLs, scheme URLs, double-slash paths, and nested /batch requests are
+    rejected by the native batch dispatcher. """
     id: str | Unset = UNSET
+    """ Optional caller correlation id echoed in the matching sub-response. """
     body: (
         BatchSubRequestBodyType0 | list[BatchSubRequestBodyType1Item] | None | Unset
     ) = UNSET
+    """ Optional JSON request body for this sub-request. Unknown fields are validated against the target operation
+    schema before dispatch. """
     idempotency_key: str | Unset = UNSET
+    """ Optional per-sub-request Idempotency-Key value. Required when the target operation requires idempotency. """
     confirm: str | Unset = UNSET
+    """ Optional per-sub-request X-User-Api-Confirm value for a confirmed retry. """
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.batch_sub_request_body_type_0 import BatchSubRequestBodyType0
 
-        method = self.method.value
+        method: str = self.method
 
         path = self.path
 
@@ -94,14 +94,14 @@ class BatchSubRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.batch_sub_request_body_type_0 import BatchSubRequestBodyType0
         from ..models.batch_sub_request_body_type_1_item import (
             BatchSubRequestBodyType1Item,
         )
 
         d = dict(src_dict)
-        method = BatchSubRequestMethod(d.pop("method"))
+        method = check_batch_sub_request_method(d.pop("method"))
 
         path = d.pop("path")
 

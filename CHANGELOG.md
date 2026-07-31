@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`tunnel.py` — Cloudflare Quick Tunnel for SSH access when inbound traffic is blocked.** New module with `CloudflareTunnel`, `ConsoleShell`, and `ensure_ssh_access()` for establishing outbound-only SSH tunnels via Cloudflare Quick Tunnel (no account needed). Uses noVNC console automation to bootstrap cloudflared on the VM, then connects locally via `cloudflared access tcp`. Proven working during SHC inbound network outage (2026-07-20). Install: `pip install shc-toolkit[tunnel]`.
+- **`scripts/openapi-client-config.yaml`** — openapi-python-client config enabling `literal_enums: true`. Documents the codegen settings that produce correct generated models (Literal type aliases instead of Enum classes, avoiding key-normalization collisions). Makes `scripts/generate_client.sh` reproducible.
+
+### Changed
+- **Regenerated client synced with current SHC spec (v2.4.24).** 741 generated files refreshed (net −596 lines — cleaner output). Notably, **issue #20 (enum collision) is resolved upstream**: the SHC spec no longer contains the duplicate `cloud_init_policy_violation` variant — only the canonical `cloud-init-policy-violation` remains. The old `fix_enums` dedup workaround in `generate_client.sh` is removed (dead code, no collision exists). Added a mypy `follow_imports = skip` override for `shc_toolkit.generated.*` so codegen template quirks don't surface as type errors.
 
 ### Fixed
 - **`test_update_vm_cloud_init_uses_confirmation_flow` stale assertion (PUT → PATCH).** Commit c3febee corrected `update_vm_cloud_init` to use `PATCH` per OpenAPI spec v2.4.24, but the unit test still asserted `"PUT"`. This broke every scheduled `shc-tests.yml` run (8+ consecutive failures since 2026-07-30). Test now asserts `"PATCH"`, matching the implementation and the spec's `updateVirtualMachineCloudInit` operation.

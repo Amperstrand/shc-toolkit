@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -24,15 +25,14 @@ class AccountPasswordChangeRequest:
         {'current_password': '<current-password>', 'new_password': '<new-password>', 'idempotency_key':
             '5f051e42-f6a0-4f4d-9b67-c444f4673dd7'}
 
-    Attributes:
-        current_password (str): The authenticated customer's current Blesta login password.
-        new_password (str): The replacement password. Must satisfy the company's configured Blesta password rules.
-        idempotency_key (str | Unset): Optional opaque caller-supplied key for retry-safe client bookkeeping.
     """
 
     current_password: str
+    """ The authenticated customer's current Blesta login password. """
     new_password: str
+    """ The replacement password. Must satisfy the company's configured Blesta password rules. """
     idempotency_key: str | Unset = UNSET
+    """ Optional opaque caller-supplied key for retry-safe client bookkeeping. """
     additional_properties: dict[
         str,
         AccountPasswordChangeRequestAdditionalPropertyType4
@@ -77,7 +77,7 @@ class AccountPasswordChangeRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.account_password_change_request_additional_property_type_4 import (
             AccountPasswordChangeRequestAdditionalPropertyType4,
         )
@@ -172,7 +172,6 @@ class AccountPasswordChangeRequest:
         value: AccountPasswordChangeRequestAdditionalPropertyType4
         | bool
         | float
-        | int
         | list[str]
         | None
         | str,

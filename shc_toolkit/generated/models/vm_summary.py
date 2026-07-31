@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.provisioning_state import ProvisioningState
-from ..models.service_status import ServiceStatus
+from ..models.provisioning_state import ProvisioningState, check_provisioning_state
+from ..models.service_status import ServiceStatus, check_service_status
 
 if TYPE_CHECKING:
     from ..models.ip_address import IpAddress
@@ -27,29 +28,21 @@ class VmSummary:
             '23.182.128.1', 'type': 'v4'}], 'date_created': '2026-02-01T07:57:55+00:00', 'date_renews':
             '2027-02-01T07:57:55+00:00'}
 
-    Attributes:
-        id (int):  Example: 353.
-        hostname (None | str):  Example: my-vps.
-        os_user (None | str):  Example: debian.
-        package (str): Customer-facing package name associated with the service. Example: NVMe VPS - Standard.
-        service_status (ServiceStatus): Blesta service lifecycle state. Example: active.
-        provisioning_state (ProvisioningState): Derived customer-facing provisioning readiness state. Example:
-            provisioning.
-        ips (list[IpAddress]):
-        date_created (datetime.datetime | None):  Example: 2026-02-01T07:57:55+00:00.
-        date_renews (datetime.datetime | None): Next renewal timestamp recorded for the service. Example:
-            2027-02-01T07:57:55+00:00.
     """
 
     id: int
     hostname: None | str
     os_user: None | str
     package: str
+    """ Customer-facing package name associated with the service. """
     service_status: ServiceStatus
+    """ Blesta service lifecycle state. """
     provisioning_state: ProvisioningState
+    """ Derived customer-facing provisioning readiness state. """
     ips: list[IpAddress]
     date_created: datetime.datetime | None
     date_renews: datetime.datetime | None
+    """ Next renewal timestamp recorded for the service. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -63,9 +56,9 @@ class VmSummary:
 
         package = self.package
 
-        service_status = self.service_status.value
+        service_status: str = self.service_status
 
-        provisioning_state = self.provisioning_state.value
+        provisioning_state: str = self.provisioning_state
 
         ips = []
         for ips_item_data in self.ips:
@@ -103,7 +96,7 @@ class VmSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.ip_address import IpAddress
 
         d = dict(src_dict)
@@ -125,9 +118,9 @@ class VmSummary:
 
         package = d.pop("package")
 
-        service_status = ServiceStatus(d.pop("service_status"))
+        service_status = check_service_status(d.pop("service_status"))
 
-        provisioning_state = ProvisioningState(d.pop("provisioning_state"))
+        provisioning_state = check_provisioning_state(d.pop("provisioning_state"))
 
         ips = []
         _ips = d.pop("ips")

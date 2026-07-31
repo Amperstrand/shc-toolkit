@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.module_group_choice import ModuleGroupChoice
@@ -16,16 +17,6 @@ T = TypeVar("T", bound="VmOrderSubmitResponsePackage")
 
 @_attrs_define
 class VmOrderSubmitResponsePackage:
-    """
-    Attributes:
-        package_id (int):  Example: 23.
-        name (str):  Example: NVMe VPS - Starter.
-        template (None | str):  Example: debian13-cloud.
-        image (None | Template):
-        module_groups (list[ModuleGroupChoice]):
-        module_group_required (bool):
-    """
-
     package_id: int
     name: str
     template: None | str
@@ -73,7 +64,7 @@ class VmOrderSubmitResponsePackage:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.module_group_choice import ModuleGroupChoice
         from ..models.template import Template
 

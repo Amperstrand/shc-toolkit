@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -17,17 +18,12 @@ T = TypeVar("T", bound="Error")
 
 @_attrs_define
 class Error:
-    """
-    Attributes:
-        error (ErrorError):
-        confirmation (ConfirmationChallenge | Unset): Present on a 409 whose error.code is `confirmation_required`. The
-            action was NOT performed. Re-send the IDENTICAL request (same path, query, body and Idempotency-Key) with header
-            `X-User-Api-Confirm: <confirmation_id>`. A confirmation_id is NOT permission: obtain an explicit human yes to
-            THIS specific action first. The id is non-secret, single-use, and names an already-bound pending action.
-    """
-
     error: ErrorError
     confirmation: ConfirmationChallenge | Unset = UNSET
+    """ Present on a 409 whose error.code is `confirmation_required`. The action was NOT performed. Re-send the
+    IDENTICAL request (same path, query, body and Idempotency-Key) with header `X-User-Api-Confirm:
+    <confirmation_id>`. A confirmation_id is NOT permission: obtain an explicit human yes to THIS specific action
+    first. The id is non-secret, single-use, and names an already-bound pending action. """
 
     def to_dict(self) -> dict[str, Any]:
         error = self.error.to_dict()
@@ -49,7 +45,7 @@ class Error:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.confirmation_challenge import ConfirmationChallenge
         from ..models.error_error import ErrorError
 

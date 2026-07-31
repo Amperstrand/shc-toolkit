@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.preview_virtual_machine_term_change_body_additional_property_type_4 import (
@@ -17,12 +18,8 @@ T = TypeVar("T", bound="PreviewVirtualMachineTermChangeBody")
 
 @_attrs_define
 class PreviewVirtualMachineTermChangeBody:
-    """
-    Attributes:
-        pricing_id (int | str): Required target package_pricing ID for the new term.
-    """
-
     pricing_id: int | str
+    """ Required target package_pricing ID for the new term. """
     additional_properties: dict[
         str,
         bool
@@ -63,7 +60,7 @@ class PreviewVirtualMachineTermChangeBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.preview_virtual_machine_term_change_body_additional_property_type_4 import (
             PreviewVirtualMachineTermChangeBodyAdditionalPropertyType4,
         )
@@ -155,7 +152,6 @@ class PreviewVirtualMachineTermChangeBody:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | PreviewVirtualMachineTermChangeBodyAdditionalPropertyType4

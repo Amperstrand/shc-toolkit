@@ -4,20 +4,16 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="GetOrderResponse200DataServicesItem")
 
 
 @_attrs_define
 class GetOrderResponse200DataServicesItem:
-    """
-    Attributes:
-        service_id (int):
-        status (None | str): Current service status, or null when the service row has been deleted.
-    """
-
     service_id: int
     status: None | str
+    """ Current service status, or null when the service row has been deleted. """
 
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
@@ -37,7 +33,7 @@ class GetOrderResponse200DataServicesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 

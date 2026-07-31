@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_network_interface import VmNetworkInterface
@@ -14,12 +15,6 @@ T = TypeVar("T", bound="GetVirtualMachineNetworkResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineNetworkResponse200Data:
-    """
-    Attributes:
-        service_id (int):  Example: 451.
-        interfaces (list[VmNetworkInterface]):
-    """
-
     service_id: int
     interfaces: list[VmNetworkInterface]
 
@@ -43,7 +38,7 @@ class GetVirtualMachineNetworkResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_network_interface import VmNetworkInterface
 
         d = dict(src_dict)

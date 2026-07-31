@@ -1,8 +1,19 @@
-from enum import Enum
+from typing import Literal
+
+ApproveQuotationResponse201DataStatus = Literal["approved"]
+
+APPROVE_QUOTATION_RESPONSE_201_DATA_STATUS_VALUES: set[
+    ApproveQuotationResponse201DataStatus
+] = {
+    "approved",
+}
 
 
-class ApproveQuotationResponse201DataStatus(str, Enum):
-    APPROVED = "approved"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_approve_quotation_response_201_data_status(
+    value: str,
+) -> ApproveQuotationResponse201DataStatus:
+    if value in APPROVE_QUOTATION_RESPONSE_201_DATA_STATUS_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {APPROVE_QUOTATION_RESPONSE_201_DATA_STATUS_VALUES!r}"
+    )

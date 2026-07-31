@@ -5,20 +5,31 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.event_subscription_delivery_id_header import (
     EventSubscriptionDeliveryIdHeader,
+    check_event_subscription_delivery_id_header,
 )
-from ..models.event_subscription_event_id_header import EventSubscriptionEventIdHeader
+from ..models.event_subscription_event_id_header import (
+    EventSubscriptionEventIdHeader,
+    check_event_subscription_event_id_header,
+)
 from ..models.event_subscription_signature_header import (
     EventSubscriptionSignatureHeader,
+    check_event_subscription_signature_header,
 )
 from ..models.event_subscription_signing_algorithm import (
     EventSubscriptionSigningAlgorithm,
+    check_event_subscription_signing_algorithm,
 )
-from ..models.event_subscription_status import EventSubscriptionStatus
+from ..models.event_subscription_status import (
+    EventSubscriptionStatus,
+    check_event_subscription_status,
+)
 from ..models.event_subscription_timestamp_header import (
     EventSubscriptionTimestampHeader,
+    check_event_subscription_timestamp_header,
 )
 
 T = TypeVar("T", bound="EventSubscription")
@@ -29,26 +40,13 @@ class EventSubscription:
     """Webhook subscription metadata. The signing secret is not present on read, list, delete, or idempotent replay
     responses.
 
-        Attributes:
-            event_subscription_id (str):  Example: evsub_0123456789abcdef0123456789abcdef.
-            url (str): Registered HTTPS webhook destination. Example: https://hooks.customer-domain.com/shc/webhooks.
-            event_types (list[str]): CloudEvents type filters matched against the customer-scoped /events feed.
-            signing_algorithm (EventSubscriptionSigningAlgorithm):  Example: HMAC-SHA256.
-            signature_header (EventSubscriptionSignatureHeader):  Example: X-SHC-Webhook-Signature.
-            timestamp_header (EventSubscriptionTimestampHeader):  Example: X-SHC-Webhook-Timestamp.
-            event_id_header (EventSubscriptionEventIdHeader):  Example: X-SHC-Webhook-Event-Id.
-            delivery_id_header (EventSubscriptionDeliveryIdHeader):  Example: X-SHC-Webhook-Delivery-Id.
-            status (EventSubscriptionStatus):  Example: active.
-            secret_preview (str): Display-only prefix. It is not enough to verify signatures. Example: whsec_abc123....
-            created_at (datetime.datetime):  Example: 2026-07-13T22:30:00Z.
-            updated_at (datetime.datetime):  Example: 2026-07-13T22:30:00Z.
-            last_delivery_at (datetime.datetime | None):  Example: 2026-07-13T22:31:00Z.
-            dead_letter_count (int):
     """
 
     event_subscription_id: str
     url: str
+    """ Registered HTTPS webhook destination. """
     event_types: list[str]
+    """ CloudEvents type filters matched against the customer-scoped /events feed. """
     signing_algorithm: EventSubscriptionSigningAlgorithm
     signature_header: EventSubscriptionSignatureHeader
     timestamp_header: EventSubscriptionTimestampHeader
@@ -56,6 +54,7 @@ class EventSubscription:
     delivery_id_header: EventSubscriptionDeliveryIdHeader
     status: EventSubscriptionStatus
     secret_preview: str
+    """ Display-only prefix. It is not enough to verify signatures. """
     created_at: datetime.datetime
     updated_at: datetime.datetime
     last_delivery_at: datetime.datetime | None
@@ -68,17 +67,17 @@ class EventSubscription:
 
         event_types = self.event_types
 
-        signing_algorithm = self.signing_algorithm.value
+        signing_algorithm: str = self.signing_algorithm
 
-        signature_header = self.signature_header.value
+        signature_header: str = self.signature_header
 
-        timestamp_header = self.timestamp_header.value
+        timestamp_header: str = self.timestamp_header
 
-        event_id_header = self.event_id_header.value
+        event_id_header: str = self.event_id_header
 
-        delivery_id_header = self.delivery_id_header.value
+        delivery_id_header: str = self.delivery_id_header
 
-        status = self.status.value
+        status: str = self.status
 
         secret_preview = self.secret_preview
 
@@ -118,7 +117,7 @@ class EventSubscription:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         event_subscription_id = d.pop("eventSubscriptionId")
 
@@ -126,19 +125,27 @@ class EventSubscription:
 
         event_types = cast(list[str], d.pop("eventTypes"))
 
-        signing_algorithm = EventSubscriptionSigningAlgorithm(d.pop("signingAlgorithm"))
+        signing_algorithm = check_event_subscription_signing_algorithm(
+            d.pop("signingAlgorithm")
+        )
 
-        signature_header = EventSubscriptionSignatureHeader(d.pop("signatureHeader"))
+        signature_header = check_event_subscription_signature_header(
+            d.pop("signatureHeader")
+        )
 
-        timestamp_header = EventSubscriptionTimestampHeader(d.pop("timestampHeader"))
+        timestamp_header = check_event_subscription_timestamp_header(
+            d.pop("timestampHeader")
+        )
 
-        event_id_header = EventSubscriptionEventIdHeader(d.pop("eventIdHeader"))
+        event_id_header = check_event_subscription_event_id_header(
+            d.pop("eventIdHeader")
+        )
 
-        delivery_id_header = EventSubscriptionDeliveryIdHeader(
+        delivery_id_header = check_event_subscription_delivery_id_header(
             d.pop("deliveryIdHeader")
         )
 
-        status = EventSubscriptionStatus(d.pop("status"))
+        status = check_event_subscription_status(d.pop("status"))
 
         secret_preview = d.pop("secretPreview")
 

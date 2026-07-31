@@ -4,14 +4,13 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="DeleteEventSubscriptionBody")
 
 
 @_attrs_define
 class DeleteEventSubscriptionBody:
-    """ """
-
     def to_dict(self) -> dict[str, Any]:
 
         field_dict: dict[str, Any] = {}
@@ -19,7 +18,7 @@ class DeleteEventSubscriptionBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         delete_event_subscription_body = cls()
 
         return delete_event_subscription_body

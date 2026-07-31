@@ -5,41 +5,44 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.zk_backup_registration_config_alg import ZkBackupRegistrationConfigAlg
-from ..models.zk_backup_registration_config_ctx import ZkBackupRegistrationConfigCtx
-from ..models.zk_backup_registration_config_v import ZkBackupRegistrationConfigV
+from ..models.zk_backup_registration_config_alg import (
+    ZkBackupRegistrationConfigAlg,
+    check_zk_backup_registration_config_alg,
+)
+from ..models.zk_backup_registration_config_ctx import (
+    ZkBackupRegistrationConfigCtx,
+    check_zk_backup_registration_config_ctx,
+)
+from ..models.zk_backup_registration_config_v import (
+    ZkBackupRegistrationConfigV,
+    check_zk_backup_registration_config_v,
+)
 
 T = TypeVar("T", bound="ZkBackupRegistrationConfig")
 
 
 @_attrs_define
 class ZkBackupRegistrationConfig:
-    """Immutable per-service KDF config; salt is 16 client-random bytes (lowercase hex).
-
-    Attributes:
-        v (ZkBackupRegistrationConfigV):
-        alg (ZkBackupRegistrationConfigAlg):
-        ctx (ZkBackupRegistrationConfigCtx):
-        ops (int): argon2 opslimit (MODERATE)
-        mem (int): argon2 memlimit bytes (MODERATE)
-        salt (str):
-    """
+    """Immutable per-service KDF config; salt is 16 client-random bytes (lowercase hex)."""
 
     v: ZkBackupRegistrationConfigV
     alg: ZkBackupRegistrationConfigAlg
     ctx: ZkBackupRegistrationConfigCtx
     ops: int
+    """ argon2 opslimit (MODERATE) """
     mem: int
+    """ argon2 memlimit bytes (MODERATE) """
     salt: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        v = self.v.value
+        v: int = self.v
 
-        alg = self.alg.value
+        alg: str = self.alg
 
-        ctx = self.ctx.value
+        ctx: str = self.ctx
 
         ops = self.ops
 
@@ -63,13 +66,13 @@ class ZkBackupRegistrationConfig:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        v = ZkBackupRegistrationConfigV(d.pop("v"))
+        v = check_zk_backup_registration_config_v(d.pop("v"))
 
-        alg = ZkBackupRegistrationConfigAlg(d.pop("alg"))
+        alg = check_zk_backup_registration_config_alg(d.pop("alg"))
 
-        ctx = ZkBackupRegistrationConfigCtx(d.pop("ctx"))
+        ctx = check_zk_backup_registration_config_ctx(d.pop("ctx"))
 
         ops = d.pop("ops")
 

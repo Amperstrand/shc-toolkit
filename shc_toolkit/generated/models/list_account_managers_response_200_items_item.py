@@ -4,15 +4,19 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_account_managers_response_200_items_item_status_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType1,
+    check_list_account_managers_response_200_items_item_status_type_1,
 )
 from ..models.list_account_managers_response_200_items_item_status_type_2_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType2Type1,
+    check_list_account_managers_response_200_items_item_status_type_2_type_1,
 )
 from ..models.list_account_managers_response_200_items_item_status_type_3_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType3Type1,
+    check_list_account_managers_response_200_items_item_status_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -21,20 +25,6 @@ T = TypeVar("T", bound="ListAccountManagersResponse200ItemsItem")
 
 @_attrs_define
 class ListAccountManagersResponse200ItemsItem:
-    """
-    Attributes:
-        email (None | str):
-        status (ListAccountManagersResponse200ItemsItemStatusType1 |
-            ListAccountManagersResponse200ItemsItemStatusType2Type1 |
-            ListAccountManagersResponse200ItemsItemStatusType3Type1 | None):  Example: active.
-        permissions (list[str]):
-        contact_id (int | None | Unset):  Example: 88.
-        invitation_token (None | str | Unset):
-        first_name (None | str | Unset):
-        last_name (None | str | Unset):
-        company (None | str | Unset):
-    """
-
     email: None | str
     status: (
         ListAccountManagersResponse200ItemsItemStatusType1
@@ -54,16 +44,12 @@ class ListAccountManagersResponse200ItemsItem:
         email = self.email
 
         status: None | str
-        if isinstance(self.status, ListAccountManagersResponse200ItemsItemStatusType1):
-            status = self.status.value
-        elif isinstance(
-            self.status, ListAccountManagersResponse200ItemsItemStatusType2Type1
+        if (
+            isinstance(self.status, str)
+            or isinstance(self.status, str)
+            or isinstance(self.status, str)
         ):
-            status = self.status.value
-        elif isinstance(
-            self.status, ListAccountManagersResponse200ItemsItemStatusType3Type1
-        ):
-            status = self.status.value
+            status = self.status
         else:
             status = self.status
 
@@ -122,7 +108,7 @@ class ListAccountManagersResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_email(data: object) -> None | str:
@@ -145,7 +131,11 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = ListAccountManagersResponse200ItemsItemStatusType1(data)
+                status_type_1 = (
+                    check_list_account_managers_response_200_items_item_status_type_1(
+                        data
+                    )
+                )
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -153,8 +143,8 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = (
-                    ListAccountManagersResponse200ItemsItemStatusType2Type1(data)
+                status_type_2_type_1 = check_list_account_managers_response_200_items_item_status_type_2_type_1(
+                    data
                 )
 
                 return status_type_2_type_1
@@ -163,8 +153,8 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = (
-                    ListAccountManagersResponse200ItemsItemStatusType3Type1(data)
+                status_type_3_type_1 = check_list_account_managers_response_200_items_item_status_type_3_type_1(
+                    data
                 )
 
                 return status_type_3_type_1

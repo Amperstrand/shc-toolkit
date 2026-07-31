@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.cloud_event import CloudEvent
@@ -15,16 +16,10 @@ T = TypeVar("T", bound="ListEventsResponse200")
 
 @_attrs_define
 class ListEventsResponse200:
-    """
-    Attributes:
-        items (list[CloudEvent]):
-        next_cursor (None | str):  Example: evt_01J2Z7QCGJ7FQ86A6W6A9A0M5X.
-        links (Links): Hypermedia links keyed by IANA-registered link relation names.
-    """
-
     items: list[CloudEvent]
     next_cursor: None | str
     links: Links
+    """ Hypermedia links keyed by IANA-registered link relation names. """
 
     def to_dict(self) -> dict[str, Any]:
         items = []
@@ -50,7 +45,7 @@ class ListEventsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.cloud_event import CloudEvent
         from ..models.links import Links
 

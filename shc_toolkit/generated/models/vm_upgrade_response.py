@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_upgrade_response_change import VmUpgradeResponseChange
+from ..models.vm_upgrade_response_change import (
+    VmUpgradeResponseChange,
+    check_vm_upgrade_response_change,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -22,29 +26,24 @@ class VmUpgradeResponse:
     """Result of an accepted (queued) package change. change is always "queued"; the prorated invoice_id is awaiting
     payment and the change is applied by cron once that invoice is paid.
 
-        Attributes:
-            service_id (int):  Example: 456.
-            change (VmUpgradeResponseChange):  Example: queued.
-            invoice_id (int): The prorated invoice awaiting payment. Example: 9012.
-            amount_due (VmUpgradeResponseAmountDue):
-            new_plan_label (str):  Example: SSD VPS - Professional.
-            new_recurring_amount (str): New recurring amount (base + ALL merged config-option recurring). Example: 20.00.
-            next_ (NextCheckout | Unset): Checkout pointer for a payment-gated, queued change (package upgrade).
     """
 
     service_id: int
     change: VmUpgradeResponseChange
     invoice_id: int
+    """ The prorated invoice awaiting payment. """
     amount_due: VmUpgradeResponseAmountDue
     new_plan_label: str
     new_recurring_amount: str
+    """ New recurring amount (base + ALL merged config-option recurring). """
     next_: NextCheckout | Unset = UNSET
+    """ Checkout pointer for a payment-gated, queued change (package upgrade). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        change = self.change.value
+        change: str = self.change
 
         invoice_id = self.invoice_id
 
@@ -76,14 +75,14 @@ class VmUpgradeResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.next_checkout import NextCheckout
         from ..models.vm_upgrade_response_amount_due import VmUpgradeResponseAmountDue
 
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        change = VmUpgradeResponseChange(d.pop("change"))
+        change = check_vm_upgrade_response_change(d.pop("change"))
 
         invoice_id = d.pop("invoice_id")
 

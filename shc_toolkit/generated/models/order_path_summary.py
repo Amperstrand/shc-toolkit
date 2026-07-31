@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="OrderPathSummary")
 
@@ -16,10 +17,6 @@ class OrderPathSummary:
     Example:
         {'order_form_id': 1, 'order_form_label': 'NVME', 'package_group_id': 3}
 
-    Attributes:
-        order_form_id (int):  Example: 1.
-        order_form_label (str):  Example: NVME.
-        package_group_id (int):  Example: 3.
     """
 
     order_form_id: int
@@ -47,7 +44,7 @@ class OrderPathSummary:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         order_form_id = d.pop("order_form_id")
 

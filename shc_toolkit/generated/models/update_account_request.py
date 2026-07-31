@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -24,16 +25,6 @@ class UpdateAccountRequest:
     Example:
         {'first_name': 'Jane', 'last_name': 'Smith', 'company': 'Acme LLC'}
 
-    Attributes:
-        first_name (str | Unset):
-        last_name (str | Unset):
-        company (str | Unset):
-        address1 (str | Unset):
-        address2 (str | Unset):
-        city (str | Unset):
-        state (str | Unset):
-        zip_ (str | Unset):
-        country (str | Unset): ISO 3166-1 alpha-2 uppercase country code (e.g. `US`).
     """
 
     first_name: str | Unset = UNSET
@@ -45,6 +36,7 @@ class UpdateAccountRequest:
     state: str | Unset = UNSET
     zip_: str | Unset = UNSET
     country: str | Unset = UNSET
+    """ ISO 3166-1 alpha-2 uppercase country code (e.g. `US`). """
     additional_properties: dict[
         str,
         bool
@@ -112,7 +104,7 @@ class UpdateAccountRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.update_account_request_additional_property_type_4 import (
             UpdateAccountRequestAdditionalPropertyType4,
         )
@@ -222,7 +214,6 @@ class UpdateAccountRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

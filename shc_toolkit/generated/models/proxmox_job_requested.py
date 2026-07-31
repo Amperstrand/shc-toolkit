@@ -5,28 +5,24 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ProxmoxJobRequested")
 
 
 @_attrs_define
 class ProxmoxJobRequested:
-    """Normalized request fields captured when the job was queued.
-
-    Attributes:
-        name (None | str):  Example: nightly-demo.
-        mode (None | str):  Example: suspend.
-        backup_id (None | str): Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real
-            storage volume id so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
-            restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
-            side.
-        storage (None | str): Datastore class label with any per-node suffix removed. Example: pbs.
-    """
+    """Normalized request fields captured when the job was queued."""
 
     name: None | str
     mode: None | str
     backup_id: None | str
+    """ Opaque, per-customer backup/restore-point handle (`bk_…`). Returned in place of the real storage volume id
+    so the underlying Proxmox vmid/node is never disclosed. Use this value verbatim as the
+    restore/delete/protection/verify/file-restore/restore-hints handle; it is mapped back to the real volume server-
+    side. """
     storage: None | str
+    """ Datastore class label with any per-node suffix removed. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,7 +52,7 @@ class ProxmoxJobRequested:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
 
         def _parse_name(data: object) -> None | str:

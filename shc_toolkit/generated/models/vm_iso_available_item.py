@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,18 +14,14 @@ T = TypeVar("T", bound="VmIsoAvailableItem")
 
 @_attrs_define
 class VmIsoAvailableItem:
-    """
-    Attributes:
-        volid (str): Proxmox volume id (e.g. local:iso/debian-12.iso).
-        name (str): ISO file name.
-        size_bytes (int | None | Unset): ISO size in bytes, if reported.
-        format_ (None | str | Unset): Storage format, if reported.
-    """
-
     volid: str
+    """ Proxmox volume id (e.g. local:iso/debian-12.iso). """
     name: str
+    """ ISO file name. """
     size_bytes: int | None | Unset = UNSET
+    """ ISO size in bytes, if reported. """
     format_: None | str | Unset = UNSET
+    """ Storage format, if reported. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -60,7 +57,7 @@ class VmIsoAvailableItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         volid = d.pop("volid")
 

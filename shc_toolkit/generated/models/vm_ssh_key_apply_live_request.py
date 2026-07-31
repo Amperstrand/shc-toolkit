@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_ssh_key_apply_live_request_additional_property_type_4 import (
@@ -23,12 +24,10 @@ class VmSshKeyApplyLiveRequest:
         Example:
             {'ssh_key': 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host'}
 
-        Attributes:
-            ssh_key (str): Single-line ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp256/384/521 public key. Example: ssh-ed25519
-                AAAAC3NzaC1lZDI1NTE5AAAA... user@host.
     """
 
     ssh_key: str
+    """ Single-line ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp256/384/521 public key. """
     additional_properties: dict[
         str,
         bool
@@ -66,7 +65,7 @@ class VmSshKeyApplyLiveRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_ssh_key_apply_live_request_additional_property_type_4 import (
             VmSshKeyApplyLiveRequestAdditionalPropertyType4,
         )
@@ -152,7 +151,6 @@ class VmSshKeyApplyLiveRequest:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

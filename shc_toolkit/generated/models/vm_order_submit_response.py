@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -42,18 +43,6 @@ class VmOrderSubmitResponse:
             'manual_review': False, 'provisioning': 'Provisioning begins after the order is accepted and the invoice is
             paid.'}}
 
-    Attributes:
-        lnvps_compatible (bool):  Example: True.
-        submitted (bool):  Example: True.
-        order (VmOrderResult):
-        invoice (VmOrderInvoice):
-        service_ids (list[int]):  Example: [4012].
-        virtual_machines (list[VmDetail]):
-        normalized_request (VmOrderNormalizedRequest):
-        package (VmOrderSubmitResponsePackage):
-        next_ (VmOrderNext):
-        service_id (int | None | Unset): v2.4.0 alias (additive): the single created service id (first of service_ids; a
-            VM order creates exactly one). null only if creation yielded none.
     """
 
     lnvps_compatible: bool
@@ -66,6 +55,8 @@ class VmOrderSubmitResponse:
     package: VmOrderSubmitResponsePackage
     next_: VmOrderNext
     service_id: int | None | Unset = UNSET
+    """ v2.4.0 alias (additive): the single created service id (first of service_ids; a VM order creates exactly
+    one). null only if creation yielded none. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -117,7 +108,7 @@ class VmOrderSubmitResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_detail import VmDetail
         from ..models.vm_order_invoice import VmOrderInvoice
         from ..models.vm_order_next import VmOrderNext

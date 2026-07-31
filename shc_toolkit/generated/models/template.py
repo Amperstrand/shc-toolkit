@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="Template")
 
@@ -16,20 +17,19 @@ class Template:
     Example:
         {'name': 'debian13-cloud', 'display_name': 'Debian 13 Cloud', 'default_user': 'debian', 'cloudinit': True}
 
-    Attributes:
-        name (str): Machine-stable template identifier used for reinstall requests and returned by GET /image and GET
-            /vm/templates. Examples (current live /ordering/catalog set): debian13-cloud, debian12-cloud, ubuntu2404-cloud,
-            ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud,
-            openbsd79-cloud, windows2022-byol. Example: debian13-cloud.
-        display_name (str): Human-readable template label suitable for UI display. Example: Debian 13 Cloud.
-        default_user (str): Default login user typically provided by the image. Example: debian.
-        cloudinit (bool): Whether the template is intended for cloud-init style provisioning. Example: True.
     """
 
     name: str
+    """ Machine-stable template identifier used for reinstall requests and returned by GET /image and GET
+    /vm/templates. Examples (current live /ordering/catalog set): debian13-cloud, debian12-cloud, ubuntu2404-cloud,
+    ubuntu2204-cloud, fedora43-cloud, arch-cloud, nixos-cloud, almalinux9-cloud, alpine323-cloud, devuan5-cloud,
+    openbsd79-cloud, windows2022-byol. """
     display_name: str
+    """ Human-readable template label suitable for UI display. """
     default_user: str
+    """ Default login user typically provided by the image. """
     cloudinit: bool
+    """ Whether the template is intended for cloud-init style provisioning. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -55,7 +55,7 @@ class Template:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         name = d.pop("name")
 

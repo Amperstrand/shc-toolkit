@@ -6,8 +6,12 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.console_session_response_via import ConsoleSessionResponseVia
+from ..models.console_session_response_via import (
+    ConsoleSessionResponseVia,
+    check_console_session_response_via,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ConsoleSessionResponse")
@@ -15,24 +19,18 @@ T = TypeVar("T", bound="ConsoleSessionResponse")
 
 @_attrs_define
 class ConsoleSessionResponse:
-    """A freshly minted, single-use noVNC console session. Open console_url in a browser before it expires.
-
-    Attributes:
-        service_id (int):
-        console_url (str): Ready-to-open noVNC URL with a short-lived signed token in the fragment. Single-use.
-        expires_at (datetime.datetime): ISO 8601 (UTC) instant when the session token expires.
-        expires_in (int): Seconds until expiry (bridge token TTL, 5..60).
-        via (ConsoleSessionResponseVia):
-        ttl (int | Unset): Session ttl in seconds (v2.4.0: request a custom ttl via the optional body, clamp 5-300).
-        note (str | Unset):
-    """
+    """A freshly minted, single-use noVNC console session. Open console_url in a browser before it expires."""
 
     service_id: int
     console_url: str
+    """ Ready-to-open noVNC URL with a short-lived signed token in the fragment. Single-use. """
     expires_at: datetime.datetime
+    """ ISO 8601 (UTC) instant when the session token expires. """
     expires_in: int
+    """ Seconds until expiry (bridge token TTL, 5..60). """
     via: ConsoleSessionResponseVia
     ttl: int | Unset = UNSET
+    """ Session ttl in seconds (v2.4.0: request a custom ttl via the optional body, clamp 5-300). """
     note: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -45,7 +43,7 @@ class ConsoleSessionResponse:
 
         expires_in = self.expires_in
 
-        via = self.via.value
+        via: str = self.via
 
         ttl = self.ttl
 
@@ -70,7 +68,7 @@ class ConsoleSessionResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
@@ -80,7 +78,7 @@ class ConsoleSessionResponse:
 
         expires_in = d.pop("expires_in")
 
-        via = ConsoleSessionResponseVia(d.pop("via"))
+        via = check_console_session_response_via(d.pop("via"))
 
         ttl = d.pop("ttl", UNSET)
 

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -17,23 +18,6 @@ T = TypeVar("T", bound="AgentSessionAuditRecord")
 
 @_attrs_define
 class AgentSessionAuditRecord:
-    """
-    Attributes:
-        audit_id (str):
-        session_id (str):
-        agent_id (str):
-        time (datetime.datetime):
-        action (str):
-        method (str):
-        path (str):
-        status (int):
-        data (AgentSessionAuditRecordData): Includes tamperEvidence when the audit row carries prevEventHash and
-            eventHash.
-        traceparent (None | str | Unset):
-        subject (None | str | Unset):
-        message (None | str | Unset):
-    """
-
     audit_id: str
     session_id: str
     agent_id: str
@@ -43,6 +27,7 @@ class AgentSessionAuditRecord:
     path: str
     status: int
     data: AgentSessionAuditRecordData
+    """ Includes tamperEvidence when the audit row carries prevEventHash and eventHash. """
     traceparent: None | str | Unset = UNSET
     subject: None | str | Unset = UNSET
     message: None | str | Unset = UNSET
@@ -109,7 +94,7 @@ class AgentSessionAuditRecord:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.agent_session_audit_record_data import AgentSessionAuditRecordData
 
         d = dict(src_dict)

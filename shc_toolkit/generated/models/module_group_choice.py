@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="ModuleGroupChoice")
 
@@ -16,9 +17,6 @@ class ModuleGroupChoice:
     Example:
         {'id': 4, 'name': 'Katy, Texas'}
 
-    Attributes:
-        id (int):  Example: 4.
-        name (str):  Example: Katy, Texas.
     """
 
     id: int
@@ -42,7 +40,7 @@ class ModuleGroupChoice:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 

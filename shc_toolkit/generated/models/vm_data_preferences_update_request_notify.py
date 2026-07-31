@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,14 +13,7 @@ T = TypeVar("T", bound="VmDataPreferencesUpdateRequestNotify")
 
 @_attrs_define
 class VmDataPreferencesUpdateRequestNotify:
-    """Notification toggles. Each accepts a JSON boolean or the strings on/off/true/false/1/0.
-
-    Attributes:
-        success (bool | Unset):  Example: True.
-        failed (bool | Unset):  Example: True.
-        limit (bool | Unset):
-        auto_deleted (bool | Unset):
-    """
+    """Notification toggles. Each accepts a JSON boolean or the strings on/off/true/false/1/0."""
 
     success: bool | Unset = UNSET
     failed: bool | Unset = UNSET
@@ -50,7 +44,7 @@ class VmDataPreferencesUpdateRequestNotify:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         success = d.pop("success", UNSET)
 

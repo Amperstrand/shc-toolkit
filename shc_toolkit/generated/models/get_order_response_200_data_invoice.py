@@ -4,30 +4,24 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="GetOrderResponse200DataInvoice")
 
 
 @_attrs_define
 class GetOrderResponse200DataInvoice:
-    """
-    Attributes:
-        invoice_id (int):
-        invoice_id_code (str):
-        currency (str):
-        total (str): Fixed two-decimal money string.
-        paid (str): Fixed two-decimal money string.
-        balance_due (str): Fixed two-decimal money string.
-        date_closed (None | str): Raw Blesta invoice close timestamp.
-    """
-
     invoice_id: int
     invoice_id_code: str
     currency: str
     total: str
+    """ Fixed two-decimal money string. """
     paid: str
+    """ Fixed two-decimal money string. """
     balance_due: str
+    """ Fixed two-decimal money string. """
     date_closed: None | str
+    """ Raw Blesta invoice close timestamp. """
 
     def to_dict(self) -> dict[str, Any]:
         invoice_id = self.invoice_id
@@ -62,7 +56,7 @@ class GetOrderResponse200DataInvoice:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         invoice_id = d.pop("invoice_id")
 

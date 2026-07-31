@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -12,45 +13,40 @@ T = TypeVar("T", bound="UpdateContactBody")
 
 @_attrs_define
 class UpdateContactBody:
-    """
-    Attributes:
-        first_name (str | Unset): Contact first name.
-        last_name (str | Unset): Contact last name.
-        email (str | Unset): Contact email address; changed email values are verification-gated.
-        title (str | Unset): Contact title.
-        company (str | Unset): Contact company name.
-        address1 (str | Unset): First street address line.
-        address2 (str | Unset): Second street address line.
-        city (str | Unset): Contact city.
-        state (str | Unset): Contact state or region.
-        zip_ (str | Unset): Contact postal code.
-        country (str | Unset): ISO 3166-1 alpha-2 country code.
-        phone (str | Unset): Single E.164 phone number; an empty string clears phone rows.
-        permissions (list[str] | Unset): Full replacement list of contact permission area keys.
-        enable_login (bool | Unset): Whether to create, keep/update, or remove this contact's portal login.
-        username (str | Unset): Username used only when creating a new login.
-        new_password (str | Unset): New portal login password when enabling login or changing an existing login
-            password.
-        confirm_password (str | Unset): Confirmation for new_password; defaults to new_password when omitted.
-    """
-
     first_name: str | Unset = UNSET
+    """ Contact first name. """
     last_name: str | Unset = UNSET
+    """ Contact last name. """
     email: str | Unset = UNSET
+    """ Contact email address; changed email values are verification-gated. """
     title: str | Unset = UNSET
+    """ Contact title. """
     company: str | Unset = UNSET
+    """ Contact company name. """
     address1: str | Unset = UNSET
+    """ First street address line. """
     address2: str | Unset = UNSET
+    """ Second street address line. """
     city: str | Unset = UNSET
+    """ Contact city. """
     state: str | Unset = UNSET
+    """ Contact state or region. """
     zip_: str | Unset = UNSET
+    """ Contact postal code. """
     country: str | Unset = UNSET
+    """ ISO 3166-1 alpha-2 country code. """
     phone: str | Unset = UNSET
+    """ Single E.164 phone number; an empty string clears phone rows. """
     permissions: list[str] | Unset = UNSET
+    """ Full replacement list of contact permission area keys. """
     enable_login: bool | Unset = UNSET
+    """ Whether to create, keep/update, or remove this contact's portal login. """
     username: str | Unset = UNSET
+    """ Username used only when creating a new login. """
     new_password: str | Unset = UNSET
+    """ New portal login password when enabling login or changing an existing login password. """
     confirm_password: str | Unset = UNSET
+    """ Confirmation for new_password; defaults to new_password when omitted. """
 
     def to_dict(self) -> dict[str, Any]:
         first_name = self.first_name
@@ -130,7 +126,7 @@ class UpdateContactBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         first_name = d.pop("first_name", UNSET)
 

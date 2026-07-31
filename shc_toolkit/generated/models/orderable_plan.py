@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.module_group_choice import ModuleGroupChoice
@@ -28,52 +29,48 @@ class OrderablePlan:
             'module_group_required': False, 'order_form_id': 1, 'order_form_label': 'NVME', 'package_group_id': 3,
             'order_paths': [{'order_form_id': 1, 'order_form_label': 'NVME', 'package_group_id': 3}]}
 
-    Attributes:
-        package_id (int): Blesta package identifier for this plan family. Example: 7.
-        name (str): Customer-facing package or plan name. Example: NVMe VPS - Standard.
-        cpu (int): vCPU count advertised for the package. Example: 2.
-        memory_mb (int): Advertised memory allocation in megabytes. Example: 4096.
-        disk_gb (int): Advertised disk allocation in gigabytes. Example: 80.
-        bandwidth_gb (int): Advertised transfer allowance in gigabytes. Example: 4000.
-        ipv4 (int): Advertised IPv4 allocation count. Example: 1.
-        ipv6 (int): Advertised IPv6 allocation count. Example: 1.
-        template (None | str): Default template identifier associated with the package, if present. Example:
-            debian13-cloud.
-        image (None | Template): Expanded image metadata for the package template.
-        backup_limit (int): Advertised backup limit for the package. Example: 3.
-        snapshot_limit (int): Advertised snapshot limit for the package. Example: 5.
-        pricing (list[PlanPricing]): Available billing cadences for this package.
-        module_groups (list[ModuleGroupChoice]): Selectable location or module-group choices for this package.
-        default_module_group_id (int | None): Default module-group selection when the plan only exposes one location or
-            has a package default. Example: 4.
-        module_group_required (bool): Whether the caller must supply `module_group_id` to disambiguate multiple
-            locations.
-        order_form_id (int | None): Preferred order form chosen for this package when one is available. Example: 1.
-        order_form_label (None | str): Preferred order form label chosen for this package. Example: NVME.
-        package_group_id (int | None): Preferred package group used to route the order. Example: 3.
-        order_paths (list[OrderPathSummary]): Available storefront paths for this package.
     """
 
     package_id: int
+    """ Blesta package identifier for this plan family. """
     name: str
+    """ Customer-facing package or plan name. """
     cpu: int
+    """ vCPU count advertised for the package. """
     memory_mb: int
+    """ Advertised memory allocation in megabytes. """
     disk_gb: int
+    """ Advertised disk allocation in gigabytes. """
     bandwidth_gb: int
+    """ Advertised transfer allowance in gigabytes. """
     ipv4: int
+    """ Advertised IPv4 allocation count. """
     ipv6: int
+    """ Advertised IPv6 allocation count. """
     template: None | str
+    """ Default template identifier associated with the package, if present. """
     image: None | Template
+    """ Expanded image metadata for the package template. """
     backup_limit: int
+    """ Advertised backup limit for the package. """
     snapshot_limit: int
+    """ Advertised snapshot limit for the package. """
     pricing: list[PlanPricing]
+    """ Available billing cadences for this package. """
     module_groups: list[ModuleGroupChoice]
+    """ Selectable location or module-group choices for this package. """
     default_module_group_id: int | None
+    """ Default module-group selection when the plan only exposes one location or has a package default. """
     module_group_required: bool
+    """ Whether the caller must supply `module_group_id` to disambiguate multiple locations. """
     order_form_id: int | None
+    """ Preferred order form chosen for this package when one is available. """
     order_form_label: None | str
+    """ Preferred order form label chosen for this package. """
     package_group_id: int | None
+    """ Preferred package group used to route the order. """
     order_paths: list[OrderPathSummary]
+    """ Available storefront paths for this package. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -167,7 +164,7 @@ class OrderablePlan:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.module_group_choice import ModuleGroupChoice
         from ..models.order_path_summary import OrderPathSummary
         from ..models.plan_pricing import PlanPricing

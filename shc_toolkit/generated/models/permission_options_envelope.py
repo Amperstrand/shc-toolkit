@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.permission_options_envelope_permissions_item import (
@@ -20,13 +21,11 @@ class PermissionOptionsEnvelope:
     GET /contacts/permission-options and GET /managers/permission-options (the manager vocabulary is the contact
     vocabulary minus the _managed area).
 
-        Attributes:
-            permissions (list[PermissionOptionsEnvelopePermissionsItem]): Grantable permission areas. Keys mirror the
-                portal's permission options, including any plugin-contributed areas. Example: [{'key': 'client_invoices',
-                'label': 'Invoices'}, {'key': 'client_services', 'label': 'Services'}].
     """
 
     permissions: list[PermissionOptionsEnvelopePermissionsItem]
+    """ Grantable permission areas. Keys mirror the portal's permission options, including any plugin-contributed
+    areas. """
 
     def to_dict(self) -> dict[str, Any]:
         permissions = []
@@ -45,7 +44,7 @@ class PermissionOptionsEnvelope:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.permission_options_envelope_permissions_item import (
             PermissionOptionsEnvelopePermissionsItem,
         )

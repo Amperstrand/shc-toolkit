@@ -4,12 +4,15 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.list_support_departments_response_200_items_item_default_priority import (
     ListSupportDepartmentsResponse200ItemsItemDefaultPriority,
+    check_list_support_departments_response_200_items_item_default_priority,
 )
 from ..models.list_support_departments_response_200_items_item_priorities_item import (
     ListSupportDepartmentsResponse200ItemsItemPrioritiesItem,
+    check_list_support_departments_response_200_items_item_priorities_item,
 )
 from ..types import UNSET, Unset
 
@@ -24,17 +27,6 @@ T = TypeVar("T", bound="ListSupportDepartmentsResponse200ItemsItem")
 
 @_attrs_define
 class ListSupportDepartmentsResponse200ItemsItem:
-    """
-    Attributes:
-        id (int):  Example: 3.
-        name (str):  Example: Technical Support.
-        default_priority (ListSupportDepartmentsResponse200ItemsItemDefaultPriority):  Example: medium.
-        clients_only (bool):  Example: True.
-        priorities (list[ListSupportDepartmentsResponse200ItemsItemPrioritiesItem]):
-        fields (list[ListSupportDepartmentsResponse200ItemsItemFieldsItem]):
-        description (None | str | Unset):
-    """
-
     id: int
     name: str
     default_priority: ListSupportDepartmentsResponse200ItemsItemDefaultPriority
@@ -48,13 +40,13 @@ class ListSupportDepartmentsResponse200ItemsItem:
 
         name = self.name
 
-        default_priority = self.default_priority.value
+        default_priority: str = self.default_priority
 
         clients_only = self.clients_only
 
         priorities = []
         for priorities_item_data in self.priorities:
-            priorities_item = priorities_item_data.value
+            priorities_item: str = priorities_item_data
             priorities.append(priorities_item)
 
         fields = []
@@ -86,7 +78,7 @@ class ListSupportDepartmentsResponse200ItemsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.list_support_departments_response_200_items_item_fields_item import (
             ListSupportDepartmentsResponse200ItemsItemFieldsItem,
         )
@@ -96,8 +88,10 @@ class ListSupportDepartmentsResponse200ItemsItem:
 
         name = d.pop("name")
 
-        default_priority = ListSupportDepartmentsResponse200ItemsItemDefaultPriority(
-            d.pop("default_priority")
+        default_priority = (
+            check_list_support_departments_response_200_items_item_default_priority(
+                d.pop("default_priority")
+            )
         )
 
         clients_only = d.pop("clients_only")
@@ -105,8 +99,10 @@ class ListSupportDepartmentsResponse200ItemsItem:
         priorities = []
         _priorities = d.pop("priorities")
         for priorities_item_data in _priorities:
-            priorities_item = ListSupportDepartmentsResponse200ItemsItemPrioritiesItem(
-                priorities_item_data
+            priorities_item = (
+                check_list_support_departments_response_200_items_item_priorities_item(
+                    priorities_item_data
+                )
             )
 
             priorities.append(priorities_item)

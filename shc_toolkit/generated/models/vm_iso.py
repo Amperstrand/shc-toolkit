@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_iso_available_item import VmIsoAvailableItem
@@ -16,21 +17,18 @@ T = TypeVar("T", bound="VmIso")
 
 @_attrs_define
 class VmIso:
-    """ISO images and CD-ROM state for an owned VM.
-
-    Attributes:
-        service_id (int): Owned Blesta service id.
-        storage (str): Node storage holding ISO images.
-        mounted (list[VmIsoMountedItem]): CD-ROM drives currently mounted on the VM.
-        available (list[VmIsoAvailableItem]): ISO images available to mount (excludes those already mounted).
-        boot_order (list[str]): Current boot order (read-only; changed only via mount/unmount).
-    """
+    """ISO images and CD-ROM state for an owned VM."""
 
     service_id: int
+    """ Owned Blesta service id. """
     storage: str
+    """ Node storage holding ISO images. """
     mounted: list[VmIsoMountedItem]
+    """ CD-ROM drives currently mounted on the VM. """
     available: list[VmIsoAvailableItem]
+    """ ISO images available to mount (excludes those already mounted). """
     boot_order: list[str]
+    """ Current boot order (read-only; changed only via mount/unmount). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -65,7 +63,7 @@ class VmIso:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_iso_available_item import VmIsoAvailableItem
         from ..models.vm_iso_mounted_item import VmIsoMountedItem
 

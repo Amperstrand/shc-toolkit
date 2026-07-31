@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.get_account_preferences_response_200_data_editable import (
@@ -16,20 +17,6 @@ T = TypeVar("T", bound="GetAccountPreferencesResponse200Data")
 
 @_attrs_define
 class GetAccountPreferencesResponse200Data:
-    """
-    Attributes:
-        language (None | str):  Example: en_us.
-        default_currency (None | str):  Example: USD.
-        inv_method (None | str):  Example: email.
-        inv_address_to (None | str):  Example: 88.
-        tax_id (None | str):
-        receive_email_marketing (bool | None):  Example: True.
-        autodebit (bool | None):  Example: True.
-        editable (GetAccountPreferencesResponse200DataEditable):  Example: {'autodebit': True, 'inv_address_to': True,
-            'tax_id': False, 'default_currency': False, 'inv_method': False, 'language': False, 'receive_email_marketing':
-            True}.
-    """
-
     language: None | str
     default_currency: None | str
     inv_method: None | str
@@ -81,7 +68,7 @@ class GetAccountPreferencesResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_account_preferences_response_200_data_editable import (
             GetAccountPreferencesResponse200DataEditable,
         )

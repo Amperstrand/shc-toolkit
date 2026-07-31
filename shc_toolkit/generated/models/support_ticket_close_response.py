@@ -5,19 +5,13 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="SupportTicketCloseResponse")
 
 
 @_attrs_define
 class SupportTicketCloseResponse:
-    """
-    Attributes:
-        ticket_id (int):  Example: 501.
-        code (str):  Example: ABC-123456.
-        status (str):  Example: closed.
-    """
-
     ticket_id: int
     code: str
     status: str
@@ -43,7 +37,7 @@ class SupportTicketCloseResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         ticket_id = d.pop("ticket_id")
 

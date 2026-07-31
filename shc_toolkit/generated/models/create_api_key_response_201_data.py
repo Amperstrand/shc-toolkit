@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -13,21 +14,11 @@ T = TypeVar("T", bound="CreateApiKeyResponse201Data")
 
 @_attrs_define
 class CreateApiKeyResponse201Data:
-    """
-    Attributes:
-        id (int | Unset):
-        name (str | Unset):
-        scope (str | Unset):
-        key (str | Unset): The secret API key — shown ONCE, never retrievable again.
-        key_prefix (str | Unset):
-        created_at (str | Unset):
-        expires_at (str | Unset):
-    """
-
     id: int | Unset = UNSET
     name: str | Unset = UNSET
     scope: str | Unset = UNSET
     key: str | Unset = UNSET
+    """ The secret API key — shown ONCE, never retrievable again. """
     key_prefix: str | Unset = UNSET
     created_at: str | Unset = UNSET
     expires_at: str | Unset = UNSET
@@ -69,7 +60,7 @@ class CreateApiKeyResponse201Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id", UNSET)
 

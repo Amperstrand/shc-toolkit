@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.runtime_status import RuntimeStatus
+from ..models.runtime_status import RuntimeStatus, check_runtime_status
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -18,24 +19,16 @@ T = TypeVar("T", bound="VmActionResponse")
 
 @_attrs_define
 class VmActionResponse:
-    """
-    Attributes:
-        id (int):  Example: 353.
-        action (str):  Example: restart.
-        runtime_status (RuntimeStatus): Live Proxmox VM runtime state. Example: running.
-        confirmed (bool):  Example: True.
-        message (str):  Example: VM restart command sent successfully.
-        expected_runtime_status (RuntimeStatus | Unset): Live Proxmox VM runtime state. Example: running.
-        next_ (NextVerify | Unset): Verify pointer for a fire-and-confirm action (power verbs).
-    """
-
     id: int
     action: str
     runtime_status: RuntimeStatus
+    """ Live Proxmox VM runtime state. """
     confirmed: bool
     message: str
     expected_runtime_status: RuntimeStatus | Unset = UNSET
+    """ Live Proxmox VM runtime state. """
     next_: NextVerify | Unset = UNSET
+    """ Verify pointer for a fire-and-confirm action (power verbs). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -43,7 +36,7 @@ class VmActionResponse:
 
         action = self.action
 
-        runtime_status = self.runtime_status.value
+        runtime_status: str = self.runtime_status
 
         confirmed = self.confirmed
 
@@ -51,7 +44,7 @@ class VmActionResponse:
 
         expected_runtime_status: str | Unset = UNSET
         if not isinstance(self.expected_runtime_status, Unset):
-            expected_runtime_status = self.expected_runtime_status.value
+            expected_runtime_status = self.expected_runtime_status
 
         next_: dict[str, Any] | Unset = UNSET
         if not isinstance(self.next_, Unset):
@@ -76,7 +69,7 @@ class VmActionResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.next_verify import NextVerify
 
         d = dict(src_dict)
@@ -84,7 +77,7 @@ class VmActionResponse:
 
         action = d.pop("action")
 
-        runtime_status = RuntimeStatus(d.pop("runtime_status"))
+        runtime_status = check_runtime_status(d.pop("runtime_status"))
 
         confirmed = d.pop("confirmed")
 
@@ -95,7 +88,7 @@ class VmActionResponse:
         if isinstance(_expected_runtime_status, Unset):
             expected_runtime_status = UNSET
         else:
-            expected_runtime_status = RuntimeStatus(_expected_runtime_status)
+            expected_runtime_status = check_runtime_status(_expected_runtime_status)
 
         _next_ = d.pop("next", UNSET)
         next_: NextVerify | Unset

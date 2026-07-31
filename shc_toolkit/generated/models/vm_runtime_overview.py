@@ -4,27 +4,21 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmRuntimeOverview")
 
 
 @_attrs_define
 class VmRuntimeOverview:
-    """Live power-state snapshot (subset of the Proxmox status/current; host-identifying fields are omitted).
-
-    Attributes:
-        raw_status (str):  Example: running.
-        state (str): raw_status, or 'locked' when a lock is held. Example: running.
-        locked (bool):
-        lock (None | str): Lock reason when locked (e.g. backup, migrate, snapshot).
-        cpu_percent (int):  Example: 3.
-        mem_percent (int):  Example: 42.
-    """
+    """Live power-state snapshot (subset of the Proxmox status/current; host-identifying fields are omitted)."""
 
     raw_status: str
     state: str
+    """ raw_status, or 'locked' when a lock is held. """
     locked: bool
     lock: None | str
+    """ Lock reason when locked (e.g. backup, migrate, snapshot). """
     cpu_percent: int
     mem_percent: int
 
@@ -58,7 +52,7 @@ class VmRuntimeOverview:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         raw_status = d.pop("raw_status")
 

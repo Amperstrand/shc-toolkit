@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar(
     "T", bound="GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4"
@@ -13,8 +14,6 @@ T = TypeVar(
 
 @_attrs_define
 class GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4:
-    """ """
-
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -25,7 +24,7 @@ class GetVirtualMachineBackupRestoreHintsResponse200DataUnwrapHintsItemType4:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         get_virtual_machine_backup_restore_hints_response_200_data_unwrap_hints_item_type_4 = cls()
 

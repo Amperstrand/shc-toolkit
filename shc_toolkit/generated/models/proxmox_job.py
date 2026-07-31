@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.proxmox_job_status import ProxmoxJobStatus
-from ..models.proxmox_job_type import ProxmoxJobType
+from ..models.proxmox_job_status import ProxmoxJobStatus, check_proxmox_job_status
+from ..models.proxmox_job_type import ProxmoxJobType, check_proxmox_job_type
 
 if TYPE_CHECKING:
     from ..models.proxmox_job_requested import ProxmoxJobRequested
@@ -26,18 +27,6 @@ class ProxmoxJob:
             backup archive', 'error': None, 'requested': {'name': 'nightly-demo', 'mode': 'suspend', 'backup_id': None,
             'storage': 'pbs'}, 'created_at': '2026-04-17T01:23:45+00:00', 'completed_at': None}
 
-    Attributes:
-        job_id (int):  Example: 912.
-        service_id (int):  Example: 353.
-        type_ (ProxmoxJobType):  Example: backup.
-        status (ProxmoxJobStatus):  Example: running.
-        progress (int):  Example: 45.
-        step (None | str): Current/last human-readable progress step. Sanitized at the API boundary so it never
-            discloses the real Proxmox vmid, host node, or paths. Example: Creating backup archive.
-        error (None | str):
-        requested (ProxmoxJobRequested): Normalized request fields captured when the job was queued.
-        created_at (datetime.datetime):  Example: 2026-04-17T01:23:45+00:00.
-        completed_at (datetime.datetime | None):  Example: 2026-04-17T01:29:45+00:00.
     """
 
     job_id: int
@@ -46,8 +35,11 @@ class ProxmoxJob:
     status: ProxmoxJobStatus
     progress: int
     step: None | str
+    """ Current/last human-readable progress step. Sanitized at the API boundary so it never discloses the real
+    Proxmox vmid, host node, or paths. """
     error: None | str
     requested: ProxmoxJobRequested
+    """ Normalized request fields captured when the job was queued. """
     created_at: datetime.datetime
     completed_at: datetime.datetime | None
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -57,9 +49,9 @@ class ProxmoxJob:
 
         service_id = self.service_id
 
-        type_ = self.type_.value
+        type_: str = self.type_
 
-        status = self.status.value
+        status: str = self.status
 
         progress = self.progress
 
@@ -99,7 +91,7 @@ class ProxmoxJob:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.proxmox_job_requested import ProxmoxJobRequested
 
         d = dict(src_dict)
@@ -107,9 +99,9 @@ class ProxmoxJob:
 
         service_id = d.pop("service_id")
 
-        type_ = ProxmoxJobType(d.pop("type"))
+        type_ = check_proxmox_job_type(d.pop("type"))
 
-        status = ProxmoxJobStatus(d.pop("status"))
+        status = check_proxmox_job_status(d.pop("status"))
 
         progress = d.pop("progress")
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.change_virtual_machine_term_response_200_data import (
@@ -17,13 +18,8 @@ T = TypeVar("T", bound="ChangeVirtualMachineTermResponse200")
 
 @_attrs_define
 class ChangeVirtualMachineTermResponse200:
-    """
-    Attributes:
-        data (ChangeVirtualMachineTermResponse200Data): Staged contract stub -- field shape finalizes when the handler
-            lands.
-    """
-
     data: ChangeVirtualMachineTermResponse200Data
+    """ Staged contract stub -- field shape finalizes when the handler lands. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,7 +36,7 @@ class ChangeVirtualMachineTermResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.change_virtual_machine_term_response_200_data import (
             ChangeVirtualMachineTermResponse200Data,
         )

@@ -5,26 +5,23 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="UpdateContactResponse200Data")
 
 
 @_attrs_define
 class UpdateContactResponse200Data:
-    """
-    Attributes:
-        id (int): Updated contact id.
-        contact_type (str): Existing non-primary contact type.
-        has_login (bool): Whether the contact has a login after the update.
-        email_verification_pending (bool): True when the submitted email changed and verification is pending.
-        updated_at (datetime.datetime): Server timestamp when the update completed.
-    """
-
     id: int
+    """ Updated contact id. """
     contact_type: str
+    """ Existing non-primary contact type. """
     has_login: bool
+    """ Whether the contact has a login after the update. """
     email_verification_pending: bool
+    """ True when the submitted email changed and verification is pending. """
     updated_at: datetime.datetime
+    """ Server timestamp when the update completed. """
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
@@ -52,7 +49,7 @@ class UpdateContactResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 

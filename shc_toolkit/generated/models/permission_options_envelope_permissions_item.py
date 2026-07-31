@@ -4,20 +4,17 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="PermissionOptionsEnvelopePermissionsItem")
 
 
 @_attrs_define
 class PermissionOptionsEnvelopePermissionsItem:
-    """
-    Attributes:
-        key (str): Stable permission area identifier. Example: client_invoices.
-        label (str): Human-readable label for the permission area. Example: Invoices.
-    """
-
     key: str
+    """ Stable permission area identifier. """
     label: str
+    """ Human-readable label for the permission area. """
 
     def to_dict(self) -> dict[str, Any]:
         key = self.key
@@ -36,7 +33,7 @@ class PermissionOptionsEnvelopePermissionsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         key = d.pop("key")
 

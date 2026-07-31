@@ -4,9 +4,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.update_nip_05_response_200_data_status import (
     UpdateNip05Response200DataStatus,
+    check_update_nip_05_response_200_data_status,
 )
 
 T = TypeVar("T", bound="UpdateNip05Response200Data")
@@ -14,19 +16,15 @@ T = TypeVar("T", bound="UpdateNip05Response200Data")
 
 @_attrs_define
 class UpdateNip05Response200Data:
-    """
-    Attributes:
-        status (UpdateNip05Response200DataStatus): NIP-05 update outcome.
-        nip05_name (str): Stored NIP-05 local name.
-        npub (str): Linked Nostr public key in npub form.
-    """
-
     status: UpdateNip05Response200DataStatus
+    """ NIP-05 update outcome. """
     nip05_name: str
+    """ Stored NIP-05 local name. """
     npub: str
+    """ Linked Nostr public key in npub form. """
 
     def to_dict(self) -> dict[str, Any]:
-        status = self.status.value
+        status: str = self.status
 
         nip05_name = self.nip05_name
 
@@ -45,9 +43,9 @@ class UpdateNip05Response200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = UpdateNip05Response200DataStatus(d.pop("status"))
+        status = check_update_nip_05_response_200_data_status(d.pop("status"))
 
         nip05_name = d.pop("nip05_name")
 

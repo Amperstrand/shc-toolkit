@@ -5,28 +5,23 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.vm_order_result_status import VmOrderResultStatus
+from ..models.vm_order_result_status import (
+    VmOrderResultStatus,
+    check_vm_order_result_status,
+)
 
 T = TypeVar("T", bound="VmOrderResult")
 
 
 @_attrs_define
 class VmOrderResult:
-    """
-    Attributes:
-        order_id (int):  Example: 901.
-        order_number (str):  Example: 1000901.
-        status (VmOrderResultStatus): Order lifecycle state from Blesta's order engine. Distinct from service status,
-            runtime status, and invoice status. Example: accepted.
-        order_form_id (int):  Example: 1.
-        order_form_label (str):  Example: NVME.
-        package_group_id (int):  Example: 3.
-    """
-
     order_id: int
     order_number: str
     status: VmOrderResultStatus
+    """ Order lifecycle state from Blesta's order engine. Distinct from service status, runtime status, and invoice
+    status. """
     order_form_id: int
     order_form_label: str
     package_group_id: int
@@ -37,7 +32,7 @@ class VmOrderResult:
 
         order_number = self.order_number
 
-        status = self.status.value
+        status: str = self.status
 
         order_form_id = self.order_form_id
 
@@ -61,13 +56,13 @@ class VmOrderResult:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         order_id = d.pop("order_id")
 
         order_number = d.pop("order_number")
 
-        status = VmOrderResultStatus(d.pop("status"))
+        status = check_vm_order_result_status(d.pop("status"))
 
         order_form_id = d.pop("order_form_id")
 

@@ -6,11 +6,21 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
-from ..models.activity_item_status_type_1 import ActivityItemStatusType1
-from ..models.activity_item_status_type_2_type_1 import ActivityItemStatusType2Type1
-from ..models.activity_item_status_type_3_type_1 import ActivityItemStatusType3Type1
-from ..models.activity_item_type import ActivityItemType
+from ..models.activity_item_status_type_1 import (
+    ActivityItemStatusType1,
+    check_activity_item_status_type_1,
+)
+from ..models.activity_item_status_type_2_type_1 import (
+    ActivityItemStatusType2Type1,
+    check_activity_item_status_type_2_type_1,
+)
+from ..models.activity_item_status_type_3_type_1 import (
+    ActivityItemStatusType3Type1,
+    check_activity_item_status_type_3_type_1,
+)
+from ..models.activity_item_type import ActivityItemType, check_activity_item_type
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ActivityItem")
@@ -23,38 +33,28 @@ class ActivityItem:
     `type`: only the fields relevant to that event kind are populated; type-specific fields are null/absent for other
     types. NEVER exposes internal placement (node/VMID/host), staff identity, or the old/new VALUES of changed fields.
 
-        Attributes:
-            type_ (ActivityItemType): Event kind. Example: login.
-            label (str): Human-readable summary of the event. Example: Successful sign-in.
-            timestamp (datetime.datetime | None): ISO-8601 UTC time of the event; null if the source datetime was zero
-                (0000-00-00 00:00:00). Example: 2026-06-06T23:06:34+00:00.
-            timestamp_epoch (int | None): Unix epoch of the event (the sort key); null if the source datetime was zero.
-                Example: 1780787194.
-            ip_address (None | str | Unset): login / login_failed only: the customer's OWN source IP. Null for other event
-                types. Example: 203.0.113.10.
-            changed_fields (list[str] | Unset): contact_change / setting_change only: the NAMES of the changed fields
-                (allow-listed). Field names only — never the previous/new values. Empty for other event types. Example:
-                ['first_name', 'email'].
-            changed_count (int | Unset): contact_change/setting_change: the TOTAL number of changed fields (a count only).
-                May exceed the length of changed_fields, which lists only the allow-listed, customer-safe field NAMES. Example:
-                2.
-            amount (None | str | Unset): transaction only: 2-decimal amount string. Null for other event types. Example:
-                12.00.
-            currency (None | str | Unset): transaction only: ISO-4217 currency code. Null for other event types. Example:
-                USD.
-            status (ActivityItemStatusType1 | ActivityItemStatusType2Type1 | ActivityItemStatusType3Type1 | None | Unset):
-                transaction only: transaction status. Null for other event types. Example: approved.
     """
 
     type_: ActivityItemType
+    """ Event kind. """
     label: str
+    """ Human-readable summary of the event. """
     timestamp: datetime.datetime | None
+    """ ISO-8601 UTC time of the event; null if the source datetime was zero (0000-00-00 00:00:00). """
     timestamp_epoch: int | None
+    """ Unix epoch of the event (the sort key); null if the source datetime was zero. """
     ip_address: None | str | Unset = UNSET
+    """ login / login_failed only: the customer's OWN source IP. Null for other event types. """
     changed_fields: list[str] | Unset = UNSET
+    """ contact_change / setting_change only: the NAMES of the changed fields (allow-listed). Field names only —
+    never the previous/new values. Empty for other event types. """
     changed_count: int | Unset = UNSET
+    """ contact_change/setting_change: the TOTAL number of changed fields (a count only). May exceed the length of
+    changed_fields, which lists only the allow-listed, customer-safe field NAMES. """
     amount: None | str | Unset = UNSET
+    """ transaction only: 2-decimal amount string. Null for other event types. """
     currency: None | str | Unset = UNSET
+    """ transaction only: ISO-4217 currency code. Null for other event types. """
     status: (
         ActivityItemStatusType1
         | ActivityItemStatusType2Type1
@@ -62,10 +62,11 @@ class ActivityItem:
         | None
         | Unset
     ) = UNSET
+    """ transaction only: transaction status. Null for other event types. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        type_ = self.type_.value
+        type_: str = self.type_
 
         label = self.label
 
@@ -105,12 +106,12 @@ class ActivityItem:
         status: None | str | Unset
         if isinstance(self.status, Unset):
             status = UNSET
-        elif isinstance(self.status, ActivityItemStatusType1):
-            status = self.status.value
-        elif isinstance(self.status, ActivityItemStatusType2Type1):
-            status = self.status.value
-        elif isinstance(self.status, ActivityItemStatusType3Type1):
-            status = self.status.value
+        elif (
+            isinstance(self.status, str)
+            or isinstance(self.status, str)
+            or isinstance(self.status, str)
+        ):
+            status = self.status
         else:
             status = self.status
 
@@ -140,9 +141,9 @@ class ActivityItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        type_ = ActivityItemType(d.pop("type"))
+        type_ = check_activity_item_type(d.pop("type"))
 
         label = d.pop("label")
 
@@ -215,7 +216,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = ActivityItemStatusType1(data)
+                status_type_1 = check_activity_item_status_type_1(data)
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -223,7 +224,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = ActivityItemStatusType2Type1(data)
+                status_type_2_type_1 = check_activity_item_status_type_2_type_1(data)
 
                 return status_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -231,7 +232,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = ActivityItemStatusType3Type1(data)
+                status_type_3_type_1 = check_activity_item_status_type_3_type_1(data)
 
                 return status_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

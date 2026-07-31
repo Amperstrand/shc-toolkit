@@ -5,9 +5,11 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..models.managed_account_invitation_response_action import (
     ManagedAccountInvitationResponseAction,
+    check_managed_account_invitation_response_action,
 )
 from ..types import UNSET, Unset
 
@@ -16,23 +18,17 @@ T = TypeVar("T", bound="ManagedAccountInvitationResponse")
 
 @_attrs_define
 class ManagedAccountInvitationResponse:
-    """Result of accepting/declining a management invitation.
-
-    Attributes:
-        action (ManagedAccountInvitationResponseAction):  Example: accepted.
-        managed_client_id (int): The client id this client now manages (on accept) or that the invitation referenced.
-            Example: 4096.
-        already_resolved (bool | Unset): Present and true when accept is a no-op because the invitation was already
-            accepted (idempotent). Example: True.
-    """
+    """Result of accepting/declining a management invitation."""
 
     action: ManagedAccountInvitationResponseAction
     managed_client_id: int
+    """ The client id this client now manages (on accept) or that the invitation referenced. """
     already_resolved: bool | Unset = UNSET
+    """ Present and true when accept is a no-op because the invitation was already accepted (idempotent). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        action = self.action.value
+        action: str = self.action
 
         managed_client_id = self.managed_client_id
 
@@ -52,9 +48,9 @@ class ManagedAccountInvitationResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        action = ManagedAccountInvitationResponseAction(d.pop("action"))
+        action = check_managed_account_invitation_response_action(d.pop("action"))
 
         managed_client_id = d.pop("managed_client_id")
 

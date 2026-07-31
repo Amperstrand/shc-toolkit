@@ -5,27 +5,14 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 T = TypeVar("T", bound="EmailDetail")
 
 
 @_attrs_define
 class EmailDetail:
-    """Customer-safe email / notice detail with full body.
-
-    Attributes:
-        id (int):  Example: 501.
-        subject (None | str):  Example: Invoice #123.
-        from_address (None | str):  Example: billing@example.com.
-        from_name (None | str):  Example: Billing.
-        to_address (None | str):  Example: client@example.com.
-        cc_address (list[str]):
-        sent (bool):  Example: True.
-        error (None | str):
-        date_sent (datetime.datetime | None):
-        body_text (None | str):
-        body_html (None | str):
-    """
+    """Customer-safe email / notice detail with full body."""
 
     id: int
     subject: None | str
@@ -94,7 +81,7 @@ class EmailDetail:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 

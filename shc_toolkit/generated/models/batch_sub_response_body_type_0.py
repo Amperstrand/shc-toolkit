@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.batch_sub_response_body_type_0_additional_property_type_4 import (
@@ -48,7 +49,7 @@ class BatchSubResponseBodyType0:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.batch_sub_response_body_type_0_additional_property_type_4 import (
             BatchSubResponseBodyType0AdditionalPropertyType4,
         )
@@ -131,7 +132,6 @@ class BatchSubResponseBodyType0:
         value: BatchSubResponseBodyType0AdditionalPropertyType4
         | bool
         | float
-        | int
         | list[str]
         | None
         | str,

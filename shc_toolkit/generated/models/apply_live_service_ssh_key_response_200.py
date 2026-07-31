@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_ssh_key_apply_live_response import VmSshKeyApplyLiveResponse
@@ -15,13 +16,9 @@ T = TypeVar("T", bound="ApplyLiveServiceSshKeyResponse200")
 
 @_attrs_define
 class ApplyLiveServiceSshKeyResponse200:
-    """
-    Attributes:
-        data (VmSshKeyApplyLiveResponse): Result of a live SSH-key inject. The live guest-exec result is best-effort and
-            not authoritatively confirmable, so `live_inject` is always `attempted` (never `success`).
-    """
-
     data: VmSshKeyApplyLiveResponse
+    """ Result of a live SSH-key inject. The live guest-exec result is best-effort and not authoritatively
+    confirmable, so `live_inject` is always `attempted` (never `success`). """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +35,7 @@ class ApplyLiveServiceSshKeyResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_ssh_key_apply_live_response import VmSshKeyApplyLiveResponse
 
         d = dict(src_dict)

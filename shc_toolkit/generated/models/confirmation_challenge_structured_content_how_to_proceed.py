@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
@@ -19,15 +20,6 @@ T = TypeVar("T", bound="ConfirmationChallengeStructuredContentHowToProceed")
 
 @_attrs_define
 class ConfirmationChallengeStructuredContentHowToProceed:
-    """
-    Attributes:
-        name (str | Unset):
-        transport (str | Unset):  Example: header.
-        header (str | Unset):  Example: X-User-Api-Confirm.
-        confirmation_id (str | Unset):
-        arguments (ConfirmationChallengeStructuredContentHowToProceedArguments | Unset):
-    """
-
     name: str | Unset = UNSET
     transport: str | Unset = UNSET
     header: str | Unset = UNSET
@@ -67,7 +59,7 @@ class ConfirmationChallengeStructuredContentHowToProceed:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.confirmation_challenge_structured_content_how_to_proceed_arguments import (
             ConfirmationChallengeStructuredContentHowToProceedArguments,
         )

@@ -5,9 +5,11 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 from ..models.get_support_ticket_response_200_data_replies_item_author_type import (
     GetSupportTicketResponse200DataRepliesItemAuthorType,
+    check_get_support_ticket_response_200_data_replies_item_author_type,
 )
 from ..types import UNSET, Unset
 
@@ -16,15 +18,6 @@ T = TypeVar("T", bound="GetSupportTicketResponse200DataRepliesItem")
 
 @_attrs_define
 class GetSupportTicketResponse200DataRepliesItem:
-    """
-    Attributes:
-        id (int):  Example: 9001.
-        author_type (GetSupportTicketResponse200DataRepliesItemAuthorType):  Example: client.
-        details (None | str):
-        author_name (None | str | Unset):  Example: Jane Roe.
-        date_added (datetime.datetime | None | Unset):
-    """
-
     id: int
     author_type: GetSupportTicketResponse200DataRepliesItemAuthorType
     details: None | str
@@ -34,7 +27,7 @@ class GetSupportTicketResponse200DataRepliesItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        author_type = self.author_type.value
+        author_type: str = self.author_type
 
         details: None | str
         details = self.details
@@ -70,12 +63,14 @@ class GetSupportTicketResponse200DataRepliesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         id = d.pop("id")
 
-        author_type = GetSupportTicketResponse200DataRepliesItemAuthorType(
-            d.pop("author_type")
+        author_type = (
+            check_get_support_ticket_response_200_data_replies_item_author_type(
+                d.pop("author_type")
+            )
         )
 
         def _parse_details(data: object) -> None | str:

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.vm_upgrade_config_option_catalog_values_item_additional_property_type_4 import (
@@ -17,8 +18,6 @@ T = TypeVar("T", bound="VmUpgradeConfigOptionCatalogValuesItem")
 
 @_attrs_define
 class VmUpgradeConfigOptionCatalogValuesItem:
-    """ """
-
     additional_properties: dict[
         str,
         bool
@@ -50,7 +49,7 @@ class VmUpgradeConfigOptionCatalogValuesItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.vm_upgrade_config_option_catalog_values_item_additional_property_type_4 import (
             VmUpgradeConfigOptionCatalogValuesItemAdditionalPropertyType4,
         )
@@ -134,7 +133,6 @@ class VmUpgradeConfigOptionCatalogValuesItem:
         key: str,
         value: bool
         | float
-        | int
         | list[str]
         | None
         | str

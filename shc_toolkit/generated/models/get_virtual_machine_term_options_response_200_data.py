@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.get_virtual_machine_term_options_response_200_data_items_item import (
@@ -16,17 +17,11 @@ T = TypeVar("T", bound="GetVirtualMachineTermOptionsResponse200Data")
 
 @_attrs_define
 class GetVirtualMachineTermOptionsResponse200Data:
-    """
-    Attributes:
-        service_id (int):
-        term_change_allowed (bool): Whether this client is allowed to change service term.
-        items (list[GetVirtualMachineTermOptionsResponse200DataItemsItem]): Available recurring terms for the service
-            package.
-    """
-
     service_id: int
     term_change_allowed: bool
+    """ Whether this client is allowed to change service term. """
     items: list[GetVirtualMachineTermOptionsResponse200DataItemsItem]
+    """ Available recurring terms for the service package. """
 
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
@@ -51,7 +46,7 @@ class GetVirtualMachineTermOptionsResponse200Data:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.get_virtual_machine_term_options_response_200_data_items_item import (
             GetVirtualMachineTermOptionsResponse200DataItemsItem,
         )

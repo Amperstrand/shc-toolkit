@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.module_group_choice import ModuleGroupChoice
@@ -18,21 +19,6 @@ T = TypeVar("T", bound="VmOrderSelectedPackage")
 
 @_attrs_define
 class VmOrderSelectedPackage:
-    """
-    Attributes:
-        package_id (int):  Example: 23.
-        name (str):  Example: NVMe VPS - Starter.
-        template (None | str):  Example: debian13-cloud.
-        image (None | Template):
-        specs (VmOrderSelectedPackageSpecs):
-        backup_limit (int):  Example: 3.
-        snapshot_limit (int):  Example: 5.
-        module_groups (list[ModuleGroupChoice]):
-        module_group_required (bool):
-        order_path (OrderPathSummary): Blesta storefront path used to route the order. Example: {'order_form_id': 1,
-            'order_form_label': 'NVME', 'package_group_id': 3}.
-    """
-
     package_id: int
     name: str
     template: None | str
@@ -43,6 +29,7 @@ class VmOrderSelectedPackage:
     module_groups: list[ModuleGroupChoice]
     module_group_required: bool
     order_path: OrderPathSummary
+    """ Blesta storefront path used to route the order. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -96,7 +83,7 @@ class VmOrderSelectedPackage:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.module_group_choice import ModuleGroupChoice
         from ..models.order_path_summary import OrderPathSummary
         from ..models.template import Template

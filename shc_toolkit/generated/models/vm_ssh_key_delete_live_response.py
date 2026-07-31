@@ -5,18 +5,14 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 T = TypeVar("T", bound="VmSshKeyDeleteLiveResponse")
 
 
 @_attrs_define
 class VmSshKeyDeleteLiveResponse:
-    """Result of a live SSH-key removal. Idempotent: `removed` is false when the fingerprint was not present.
-
-    Attributes:
-        service_id (int):  Example: 353.
-        removed (bool):  Example: True.
-    """
+    """Result of a live SSH-key removal. Idempotent: `removed` is false when the fingerprint was not present."""
 
     service_id: int
     removed: bool
@@ -39,7 +35,7 @@ class VmSshKeyDeleteLiveResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 

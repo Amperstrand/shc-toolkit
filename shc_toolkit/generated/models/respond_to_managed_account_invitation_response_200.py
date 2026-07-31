@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ..models.managed_account_invitation_response import (
@@ -17,12 +18,8 @@ T = TypeVar("T", bound="RespondToManagedAccountInvitationResponse200")
 
 @_attrs_define
 class RespondToManagedAccountInvitationResponse200:
-    """
-    Attributes:
-        data (ManagedAccountInvitationResponse): Result of accepting/declining a management invitation.
-    """
-
     data: ManagedAccountInvitationResponse
+    """ Result of accepting/declining a management invitation. """
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +36,7 @@ class RespondToManagedAccountInvitationResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.managed_account_invitation_response import (
             ManagedAccountInvitationResponse,
         )

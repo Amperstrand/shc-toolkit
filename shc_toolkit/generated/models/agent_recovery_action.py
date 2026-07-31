@@ -1,13 +1,22 @@
-from enum import Enum
+from typing import Literal
+
+AgentRecoveryAction = Literal[
+    "confirm", "contactSupport", "fixRequest", "followNext", "poll", "retry"
+]
+
+AGENT_RECOVERY_ACTION_VALUES: set[AgentRecoveryAction] = {
+    "confirm",
+    "contactSupport",
+    "fixRequest",
+    "followNext",
+    "poll",
+    "retry",
+}
 
 
-class AgentRecoveryAction(str, Enum):
-    CONFIRM = "confirm"
-    CONTACTSUPPORT = "contactSupport"
-    FIXREQUEST = "fixRequest"
-    FOLLOWNEXT = "followNext"
-    POLL = "poll"
-    RETRY = "retry"
-
-    def __str__(self) -> str:
-        return str(self.value)
+def check_agent_recovery_action(value: str) -> AgentRecoveryAction:
+    if value in AGENT_RECOVERY_ACTION_VALUES:
+        return value
+    raise TypeError(
+        f"Unexpected value {value!r}. Expected one of {AGENT_RECOVERY_ACTION_VALUES!r}"
+    )

@@ -4,10 +4,15 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from typing_extensions import Self
 
-from ..models.cloud_init_apply_result_format import CloudInitApplyResultFormat
+from ..models.cloud_init_apply_result_format import (
+    CloudInitApplyResultFormat,
+    check_cloud_init_apply_result_format,
+)
 from ..models.cloud_init_apply_result_volume_label import (
     CloudInitApplyResultVolumeLabel,
+    check_cloud_init_apply_result_volume_label,
 )
 
 if TYPE_CHECKING:
@@ -20,20 +25,6 @@ T = TypeVar("T", bound="CloudInitApplyResult")
 
 @_attrs_define
 class CloudInitApplyResult:
-    """
-    Attributes:
-        service_id (int):
-        accepted (bool):
-        lint_report (LintReport):
-        iso_name (str):  Example: cloud-init-seed.iso.
-        volume_label (CloudInitApplyResultVolumeLabel):
-        format_ (CloudInitApplyResultFormat):
-        storage (str):  Example: local.
-        attached (CloudInitAttachedDrive):
-        removed_generated_cloud_init (bool):
-        single_cidata_source (bool):
-    """
-
     service_id: int
     accepted: bool
     lint_report: LintReport
@@ -54,9 +45,9 @@ class CloudInitApplyResult:
 
         iso_name = self.iso_name
 
-        volume_label = self.volume_label.value
+        volume_label: str = self.volume_label
 
-        format_ = self.format_.value
+        format_: str = self.format_
 
         storage = self.storage
 
@@ -86,7 +77,7 @@ class CloudInitApplyResult:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.cloud_init_attached_drive import CloudInitAttachedDrive
         from ..models.lint_report import LintReport
 
@@ -99,9 +90,9 @@ class CloudInitApplyResult:
 
         iso_name = d.pop("isoName")
 
-        volume_label = CloudInitApplyResultVolumeLabel(d.pop("volumeLabel"))
+        volume_label = check_cloud_init_apply_result_volume_label(d.pop("volumeLabel"))
 
-        format_ = CloudInitApplyResultFormat(d.pop("format"))
+        format_ = check_cloud_init_apply_result_format(d.pop("format"))
 
         storage = d.pop("storage")
 
