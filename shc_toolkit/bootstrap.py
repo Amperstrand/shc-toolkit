@@ -111,7 +111,7 @@ class VMBootstrap:
             try:
                 with socket.create_connection((ip, p), timeout=5):
                     return p
-            except (socket.timeout, ConnectionRefusedError, OSError):
+            except (TimeoutError, ConnectionRefusedError, OSError):
                 continue
         raise RuntimeError(f"No SSH port reachable on {ip} (tried 22, 2222)")
 
@@ -133,7 +133,7 @@ class VMBootstrap:
         parts.append(f"chmod +x {REMOTE_PATH}")
 
         if verify:
-            local_sha = hashlib.sha256(script.encode()).hexdigest()  # noqa: F841
+            local_sha = hashlib.sha256(script.encode()).hexdigest()
             parts.append(f"echo '{local_sha}  {REMOTE_PATH}' | sha256sum -c -")
 
         if background:

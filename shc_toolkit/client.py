@@ -13,9 +13,9 @@ import json as _json
 import logging
 import os
 import socket
-import uuid
 import time
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -1031,7 +1031,7 @@ class SHCClient:
             kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
-        credit_before = self._safe_credit()  # noqa: F841
+        credit_before = self._safe_credit()
         result = self._confirmed_request(
             "POST", "/ordering/submit", json=kwargs, headers=headers
         )
@@ -1176,7 +1176,7 @@ class SHCClient:
             List of destroyed (or would-be-destroyed) VM dicts.
         """
         import os
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         if hostname_prefixes is None:
             hostname_prefixes = [
@@ -1205,7 +1205,7 @@ class SHCClient:
                 *(p.strip() for p in env_extra.split(",") if p.strip()),
             ]
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         orphans = []
 
         for vm in self.list_vms():
@@ -1235,7 +1235,7 @@ class SHCClient:
                     created_str.replace("Z", "+00:00").replace(" ", "T")
                 )
                 if created.tzinfo is None:
-                    created = created.replace(tzinfo=timezone.utc)
+                    created = created.replace(tzinfo=UTC)
             except (ValueError, TypeError):
                 log.warning(
                     f"reap: cannot parse date_created='{created_str}' for VM {vm_id}"
@@ -1845,7 +1845,7 @@ class SHCClient:
             created = datetime.fromisoformat(date_created)
         except (ValueError, TypeError):
             return 0
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         delta = int((now - created).total_seconds())
         if delta >= 0:
             return delta

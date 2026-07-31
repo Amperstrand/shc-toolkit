@@ -45,8 +45,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from playwright.sync_api import Browser, Page
 
-    from .mcp_client import SHCMCPClient
     from .client import SHCClient  # noqa: F401
+    from .mcp_client import SHCMCPClient
 
 log = logging.getLogger(__name__)
 
@@ -77,9 +77,9 @@ class ConsoleShell:
         mcp_client: SHCMCPClient | None = None,
     ):
         try:
-            from playwright.sync_api import sync_playwright
             import pytesseract
             from PIL import Image
+            from playwright.sync_api import sync_playwright
         except ImportError as e:
             raise TunnelError(
                 "ConsoleShell requires playwright, pytesseract, Pillow. "
@@ -115,7 +115,7 @@ class ConsoleShell:
         assert self._page is not None, "call connect() before _send_text()"
         self._page.evaluate(
             f"""() => {{
-                document.getElementById('clipboard-textarea').value = {repr(text)};
+                document.getElementById('clipboard-textarea').value = {text!r};
                 document.getElementById('btn-send').click();
             }}"""
         )
@@ -433,7 +433,7 @@ def ensure_ssh_access(
     Raises:
         TunnelError: If neither direct SSH nor tunnel works.
     """
-    from .client import SHCClient  # noqa: F401
+    from .client import SHCClient
 
     c = SHCClient()
     detail = c.get_vm(service_id)

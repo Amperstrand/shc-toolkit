@@ -226,7 +226,7 @@ def _github_headers(github_token: str) -> dict[str, str]:
     }
 
 
-def _ssl_context() -> "ssl.SSLContext":
+def _ssl_context() -> ssl.SSLContext:
     """Return a TLS context that trusts system + certifi CAs.
 
     macOS Python from python.org does not always pick up the system trust
@@ -250,8 +250,8 @@ def fetch_registration_token(repo: str, github_token: str) -> dict[str, str]:
 
     Uses urllib from the stdlib so we add no new dependency.
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     url = f"{GITHUB_API}/repos/{repo}/actions/runners/registration-token"
     req = urllib.request.Request(
@@ -280,8 +280,8 @@ def fetch_runner_binary_url() -> str:
     GET /repos/actions/runner/releases/latest → pick the
     ``actions-runner-linux-x64-*.tar.gz`` asset.
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     url = f"{GITHUB_API}/repos/actions/runner/releases/latest"
     req = urllib.request.Request(
@@ -336,7 +336,7 @@ def wait_runner_online(
                     if status in ("offline", "queued"):
                         # Keep polling briefly
                         pass
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             # Transient API errors should not abort the wait
             print(f"  warn: runners list poll failed: {e}", file=sys.stderr)
         time.sleep(interval)
@@ -397,7 +397,7 @@ def wait_ssh(
             out = _ssh(host, "echo SSH_READY", user=user, identity=identity, timeout=15)
             if "SSH_READY" in out:
                 return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         time.sleep(interval)
     return False
@@ -611,7 +611,7 @@ def _provision_shc_vps(
         # Re-apply SSH key live in case cloud-init hasn't picked it up yet
         try:
             client.apply_ssh_key_live(service_id, pub_key_str)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(
                 f"  warn: apply_ssh_key_live failed (continuing): {e}", file=sys.stderr
             )
@@ -676,7 +676,7 @@ def _provision_shc_vps(
             timings=timings,
         )
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         _mark(timings, "t6_finished")
         _finalize_durations(timings)
         return ProvisionResult(
@@ -767,7 +767,7 @@ def _destroy_shc_vps(
             "error": f"SHCError: {e}",
             "code": getattr(e, "code", None),
         }
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return {
             "ok": False,
             "service_id": sid,
@@ -925,7 +925,7 @@ def _provision_firecracker(req: ProvisionRequest) -> ProvisionResult:
             timings=timings,
         )
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         _mark(timings, "t6_finished")
         _finalize_durations(timings)
         return ProvisionResult(
@@ -991,7 +991,7 @@ def _destroy_firecracker(
             "runner_name": runner_name,
             "result": payload,
         }
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return {
             "ok": False,
             "service_id": None,
@@ -1056,17 +1056,17 @@ def _resolve_ssh_keys(
 
 
 __all__ = [
+    "SUPPORTED_BACKENDS",
     "ProvisionRequest",
     "ProvisionResult",
-    "provision",
-    "destroy",
-    "parse_labels",
     "default_labels",
-    "is_idempotent_cancel_error",
+    "destroy",
     "fetch_registration_token",
     "fetch_runner_binary_url",
     "fetch_runners",
+    "is_idempotent_cancel_error",
+    "parse_labels",
+    "provision",
     "wait_runner_online",
     "wait_ssh",
-    "SUPPORTED_BACKENDS",
 ]

@@ -19,13 +19,14 @@ import urllib.error
 import urllib.request
 
 try:
-    import certifi
     import ssl
+
+    import certifi
 
     _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 except ImportError:
     _SSL_CTX = None
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .provision import ssh_cmd
@@ -87,7 +88,7 @@ def _http_get_json(
 def _collect_pricing_shc() -> dict[str, Any]:
     """Pull live pricing from SHC catalog API."""
     api_key = os.environ.get("SHC_API_KEY")
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    fetched_at = datetime.now(UTC).isoformat()
     if not api_key:
         return {
             "provider": "shc",
@@ -163,7 +164,7 @@ def _extract_shc_daily_price(catalog: Any) -> str:
 
 def _collect_pricing_hetzner() -> dict[str, Any]:
     """Pull live pricing from Hetzner public pricing endpoint."""
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    fetched_at = datetime.now(UTC).isoformat()
     try:
         data = _http_get_json(HETZNER_PRICING_URL)
         pricing = data.get("pricing", {}) if isinstance(data, dict) else {}
@@ -249,7 +250,7 @@ def collect_sysinfo(host: str, user: str = "debian", port: int = 22) -> dict[str
             info["l3_cache"] = line.split(":")[1].strip()
 
     info["nested_virt"] = "vmx" in raw or "svm" in raw
-    info["timestamp"] = datetime.now(timezone.utc).isoformat()
+    info["timestamp"] = datetime.now(UTC).isoformat()
 
     return info
 
@@ -786,7 +787,7 @@ def run_full_suite(
 
     results: dict[str, Any] = {
         "host": host,
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "benchmarks": {},
     }
 
@@ -844,7 +845,7 @@ def run_full_suite(
 
     elapsed = time.time() - start
     results["elapsed_seconds"] = round(elapsed, 1)
-    results["completed_at"] = datetime.now(timezone.utc).isoformat()
+    results["completed_at"] = datetime.now(UTC).isoformat()
 
     # Save results
     _ensure_results_dir()
