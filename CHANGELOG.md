@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`test_update_vm_cloud_init_uses_confirmation_flow` stale assertion (PUT → PATCH).** Commit c3febee corrected `update_vm_cloud_init` to use `PATCH` per OpenAPI spec v2.4.24, but the unit test still asserted `"PUT"`. This broke every scheduled `shc-tests.yml` run (8+ consecutive failures since 2026-07-30). Test now asserts `"PATCH"`, matching the implementation and the spec's `updateVirtualMachineCloudInit` operation.
+- **Pre-existing typecheck + coverage CI failures on `main` (since 2026-07-24).** Three independent root causes, all now resolved:
+  - **mypy:** `tunnel.py` declared `self._page` / `self._browser` without annotations, so mypy inferred type `None` → 19 "None has no attribute" errors. Fields now typed `Page | None` / `Browser | None` (via `TYPE_CHECKING` import — playwright stays an optional dep) with `assert self._page is not None` narrowing in the four methods that use it (`_send_text`, `login`, `verify_shell`, `run_cmd`), which also doubles as a runtime "call `connect()` first" guard.
+  - **ruff format:** `client.py` and `tunnel.py` had drifted from the formatter (f-string quote style + line wrapping). Reformatted.
+  - **coverage workflow:** `coverage.yml` ran `tests/test_ansible.py` (which does `import yaml`) but installed only `pytest pytest-cov`, causing a `ModuleNotFoundError: No module named 'yaml'` at collection. Added `pyyaml` to the install step.
 
 ## [2.4.24.0] — 2026-07-20
 

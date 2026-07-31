@@ -951,7 +951,7 @@ class SHCClient:
                     {
                         "package_id": pid,
                         "name": pkg["name"],
-                        "specs": f'{pkg["cpu"]}cpu/{pkg["memory_mb"] // 1024}GB/{pkg["disk_gb"]}GB',
+                        "specs": f"{pkg['cpu']}cpu/{pkg['memory_mb'] // 1024}GB/{pkg['disk_gb']}GB",
                         "price_per_day": daily["price"],
                         "pricing_id": daily["pricing_id"],
                         "available": avail.get("available", False),
