@@ -153,7 +153,7 @@ def setup_caddy(host: str, fqdn: str, user: str = "debian") -> str:
 
 def generate_certbot_auth_hook(
     venv_path: str = "/home/debian/shc-toolkit",
-    keypair_path: str = "/tmp/nodns-keypair.json",
+    keypair_path: str = "/tmp/nodns-keypair.json",  # nosec B108 — default keypair location, caller can override
 ) -> str:
     """Generate a certbot manual auth hook script.
 
@@ -186,7 +186,7 @@ print('Done')
 def get_cert_dns01(
     host: str,
     fqdn: str,
-    keypair_path: str = "/tmp/nodns-keypair.json",
+    keypair_path: str = "/tmp/nodns-keypair.json",  # nosec B108 — default keypair location, caller can override
     email: str = "admin@example.com",
     user: str = "debian",
 ) -> str:
@@ -206,7 +206,7 @@ def get_cert_dns01(
     log.info("Requesting cert for {fqdn} via DNS-01...")
 
     hook_script = generate_certbot_auth_hook(keypair_path=keypair_path)
-    hook_remote = "/tmp/certbot-auth-hook.sh"  # noqa: F841
+    hook_remote = "/tmp/certbot-auth-hook.sh"  # noqa: F841  # nosec B108 — remote VM path
 
     subprocess.run(
         [
