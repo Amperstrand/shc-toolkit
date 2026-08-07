@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **NoDNS marked experimental**: CLI help strings for `--nodns` and `shc nodns` subcommand now say `(experimental)`. README moved NoDNS from hero section to "Experimental" with warning. Dropped false "VERIFIED 2026-06-30" claim. NoDNS is a Python-only provisioning feature that belongs at a layer above IaC tools — it has been removed from terraform-provider-shc v0.2.0.
+
 ### Added
 - **`tunnel.py` — Cloudflare Quick Tunnel for SSH access when inbound traffic is blocked.** New module with `CloudflareTunnel`, `ConsoleShell`, and `ensure_ssh_access()` for establishing outbound-only SSH tunnels via Cloudflare Quick Tunnel (no account needed). Uses noVNC console automation to bootstrap cloudflared on the VM, then connects locally via `cloudflared access tcp`. Proven working during SHC inbound network outage (2026-07-20). Install: `pip install shc-toolkit[tunnel]`.
 - **`scripts/openapi-client-config.yaml`** — openapi-python-client config enabling `literal_enums: true`. Documents the codegen settings that produce correct generated models (Literal type aliases instead of Enum classes, avoiding key-normalization collisions). Makes `scripts/generate_client.sh` reproducible.
