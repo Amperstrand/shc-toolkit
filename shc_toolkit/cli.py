@@ -982,7 +982,7 @@ def main():
     p.add_argument(
         "--nodns",
         action="store_true",
-        help="Auto-publish NoDNS record after VM creation",
+        help="Auto-publish NoDNS record after VM creation (experimental — may be unreliable)",
     )
     p.add_argument(
         "--zone", default="nodns.shop", help="NoDNS zone: nodns.shop or dns4sats.xyz"
@@ -1123,7 +1123,7 @@ def main():
     p.add_argument("--position", type=int)
     p.set_defaults(func=cmd_firewall)
 
-    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop or dns4sats.xyz")
+    p = sub.add_parser("nodns", help="Provision DNS via nodns.shop (experimental)")
     p.add_argument("--ip", required=True)
     p.add_argument("--nsec")
     p.add_argument("--subdomain")

@@ -1,6 +1,6 @@
 # SHC Toolkit
 
-Python client, CLI, and provisioning toolkit for [Sovereign Hybrid Compute](https://blesta.sovereignhybridcompute.com/order/forms/a/lecture-mushroom-lunar) (SHC) — the quickest way to spin up a VM, give it a [NoDNS](https://nodns.shop/) domain via Nostr, and get HTTPS with Let's Encrypt DNS-01. No domain registrar needed.
+Python client, CLI, and provisioning toolkit for [Sovereign Hybrid Compute](https://blesta.sovereignhybridcompute.com/order/forms/a/lecture-mushroom-lunar) (SHC) — the quickest way to spin up a VM and manage it from the command line or Python.
 
 > **Disclosure**: The SHC link above is an affiliate link. If you sign up through it, we receive a **5% recurring commission** (grandfathered rate) on your spending, at no extra cost to you. We use SHC as the CI backend for our open-source projects and genuinely recommend the service.
 
@@ -13,7 +13,7 @@ Python client, CLI, and provisioning toolkit for [Sovereign Hybrid Compute](http
 
 - **`shc` CLI** — order, manage, and snapshot VMs from the command line
 - **Python client** — `SHCClient` wraps the full SHC User API
-- **NoDNS integration** — publish DNS records via Nostr events (kind 11111)
+- **NoDNS integration** (experimental) — publish DNS records via Nostr events (kind 11111). May be unreliable; use `shc nodns --ip <ip>` separately from IaC tools.
 - **Certbot DNS-01** — get Let's Encrypt certs without opening port 80
 - **Provisioning helpers** — one-call setup for Caddy + HTTPS on a fresh VM
 
@@ -50,7 +50,9 @@ c.start_vm(123)
 c.create_snapshot(123, name="pre-deploy")
 ```
 
-## NoDNS + Let's Encrypt DNS-01
+## NoDNS + Let's Encrypt DNS-01 (Experimental)
+
+> **⚠️ Experimental**: NoDNS integration may be unreliable. It is a Python-only provisioning feature, not part of the Terraform or Pulumi providers. Use `shc nodns --ip <ip>` separately from IaC workflows.
 
 NoDNS maps Nostr keypairs to `.nodns.shop` subdomains. You publish DNS records as kind 11111 Nostr events, and the [nodns-bot](https://github.com/nicobao/nodns) pushes them to Knot DNS. No domain registration, no DNS provider account.
 
@@ -320,10 +322,10 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 - READS: All working (getAccount, getBillingBalance, listVirtualMachines, getOrderingCatalog)
 - WRITES: All working (createVirtualMachineOrder with confirmation flow, cancelVirtualMachine)
 - CI: Randomly selects REST or MCP per run for equal coverage
+### NoDNS (Experimental — may be unreliable)
 
-### NoDNS (Working — Fixed 2026-06-30)
-- Code is complete and correct (keypair generation, event publishing, DNS verification)
-- **VERIFIED**: Published A record resolves correctly within 10 seconds
+- Code is complete (keypair generation, event publishing, DNS verification)
+- **Not actively tested**: Published A record may or may not resolve correctly
 - `shc nodns --ip <ip> --zone nodns.shop` publishes, `shc order --nodns` auto-publishes after VM creation
 
 ### ContextVM (Verified 2026-07-01)
