@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.24.1] — 2026-08-09
+
 ### Changed
 - **NoDNS marked experimental**: CLI help strings for `--nodns` and `shc nodns` subcommand now say `(experimental)`. README moved NoDNS from hero section to "Experimental" with warning. Dropped false "VERIFIED 2026-06-30" claim. NoDNS is a Python-only provisioning feature that belongs at a layer above IaC tools — it has been removed from terraform-provider-shc v0.2.0.
 
