@@ -231,6 +231,13 @@ def cmd_order(args):
         kwargs["module_group_id"] = args.module_group_id
     if ssh_key:
         kwargs["ssh_key"] = ssh_key
+    if hasattr(args, "template") and args.template:
+        try:
+            config_options = c.resolve_addons(package_id, template=args.template)
+            if config_options:
+                kwargs["config_options"] = config_options
+        except Exception:
+            pass
 
     if args.dry_run:
         _print(c.preview_order(**kwargs), _get_fmt(args))
@@ -989,6 +996,11 @@ def main():
     )
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
+    p.add_argument(
+        "--template",
+        default="debian12-cloud",
+        help="OS template (default: debian12-cloud; debian13-cloud deadlocks — see issue #24)",
+    )
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")
     p.add_argument(

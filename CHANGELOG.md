@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`submit_order` resolves `order_form_id` and `package_group_id` from preview instead of hardcoding Dev VPS defaults.** Previously, `submit_order` unconditionally injected `order_form_id=11` (Dev VPS storefront) for all orders without `config_options`, causing `validation_failed` errors for NVMe, SSD, and HDD packages which use different storefront IDs. Now calls `preview_order` to resolve the correct IDs from the package's storefront path, falling back to 11 only if preview fails.
+- **`shc order` defaults to `debian12-cloud` template** instead of `debian13-cloud` which deadlocks (issue #24). Added `--template` flag to the `order` subcommand to allow override.
+
+### Added
+- **`--template` flag on `shc order`** for specifying OS template at order time. Defaults to `debian12-cloud` to avoid the debian13-cloud cloud-init deadlock.
+
 ## [2.4.24.1] — 2026-08-09
 
 ### Changed

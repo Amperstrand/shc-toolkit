@@ -1027,8 +1027,33 @@ class SHCClient:
             include_dev_vps_options
             and "config_options" not in kwargs
             and "options" not in kwargs
+            and "order_form_id" not in kwargs
         ):
-            kwargs.setdefault("order_form_id", 11)
+            try:
+                preview = self.preview_order(
+                    **{
+                        k: v
+                        for k, v in kwargs.items()
+                        if k
+                        in (
+                            "package_id",
+                            "pricing_id",
+                            "hostname",
+                            "module_group_id",
+                        )
+                    }
+                )
+                norm = preview.get("normalized_request", {})
+                resolved_ofi = norm.get("order_form_id")
+                resolved_pgi = norm.get("package_group_id")
+                if resolved_ofi:
+                    kwargs["order_form_id"] = resolved_ofi
+                else:
+                    kwargs.setdefault("order_form_id", 11)
+                if resolved_pgi and "package_group_id" not in kwargs:
+                    kwargs["package_group_id"] = resolved_pgi
+            except Exception:
+                kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}
         credit_before = self._safe_credit()
