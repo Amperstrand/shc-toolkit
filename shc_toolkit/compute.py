@@ -329,7 +329,7 @@ def cmd_instances(args):
             "hostname": name,
             "options": {
                 str(DEV_VPS_SSH_KEY_OPTION): ssh_key_content,
-                str(DEV_VPS_DEBIAN_OPTION): "debian12-cloud",
+                str(DEV_VPS_DEBIAN_OPTION): "debian13-cloud",
                 str(DEV_VPS_IPV4_OPTION): "none",
             },
             "pay": False,
@@ -917,13 +917,13 @@ def _cmd_machine_types(args):
             if pkg_id and not any(m["id"] == str(pkg_id) for m in machine_types):
                 machine_types.append(
                     {
-                        "name": item.get("name", "pkg-{pkg_id}"),
+                        "name": item.get("name", f"pkg-{pkg_id}"),
                         "id": str(pkg_id),
                         "zone": "us-central1-a",
                         "guestCpus": item.get("cpu", ""),
-                        "memoryMb": item.get("ram", ""),
+                        "memoryMb": item.get("memory_mb", ""),
                         "description": item.get("description", ""),
-                        "selfLink": "projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
+                        "selfLink": f"projects/shc/zones/us-central1-a/machineTypes/{item.get('name', pkg_id)}",
                     }
                 )
     except Exception:

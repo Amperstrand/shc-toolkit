@@ -42,10 +42,6 @@ FREE_TIER_SIZE_LIMIT = 1_000_000  # 1 MB — files under this are free on blosso
 # Kind 30078 = NIP-78 application-specific data (parameterized replaceable).
 KIND_APP_DATA = 30078
 
-# SHC catalog API for live pricing enrichment.
-SHC_CATALOG_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
-SHC_DAILY_PRICE_FALLBACK = "0.49"
-
 import certifi
 import ssl
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -192,79 +188,20 @@ def upload_to_blossom(
 
 
 def _fetch_shc_pricing() -> dict[str, Any]:
-    """Fetch live daily pricing from the SHC catalog API.
+    """Get SHC daily pricing from the static catalog model (no network call)."""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from shc_toolkit.catalog_model import daily_price_for_package
 
-    Falls back to a static price if the API is unreachable or SHC_API_KEY is
-    not set. Always includes the source_api URL so the SPA can display it.
-    """
-    fetched_at = datetime.now(timezone.utc).isoformat()
-    api_key = os.environ.get("SHC_API_KEY")
-
-    if not api_key:
-        return {
-            "provider": "shc",
-            "daily_price": SHC_DAILY_PRICE_FALLBACK,
-            "hourly_price": f"{float(SHC_DAILY_PRICE_FALLBACK) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-            "note": "SHC_API_KEY not set; using fallback price",
-        }
-
-    try:
-        req = urllib.request.Request(
-            SHC_CATALOG_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            catalog = json.loads(resp.read().decode("utf-8"))
-
-        daily = _extract_shc_daily_price(catalog)
-        return {
-            "provider": "shc",
-            "daily_price": daily,
-            "hourly_price": f"{float(daily) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-        }
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError) as e:
-        print(f"  WARNING: SHC pricing API unreachable: {e}")
-        return {
-            "provider": "shc",
-            "daily_price": SHC_DAILY_PRICE_FALLBACK,
-            "hourly_price": f"{float(SHC_DAILY_PRICE_FALLBACK) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-            "note": f"API unreachable ({e}); using fallback price",
-        }
-
-
-def _extract_shc_daily_price(catalog: Any) -> str:
-    """Walk the SHC catalog JSON looking for a daily price entry."""
-
-    def _walk(obj):
-        if isinstance(obj, dict):
-            term = str(obj.get("term", "")).lower()
-            price = obj.get("price")
-            if term in ("day", "daily", "1") and price is not None:
-                return str(price)
-            for v in obj.values():
-                found = _walk(v)
-                if found:
-                    return found
-        elif isinstance(obj, list):
-            for item in obj:
-                found = _walk(item)
-                if found:
-                    return found
-        return None
-
-    return _walk(catalog) or SHC_DAILY_PRICE_FALLBACK
+    daily = daily_price_for_package(26)  # nvme-2c-8gb (benchmark plan)
+    return {
+        "provider": "shc",
+        "daily_price": daily,
+        "hourly_price": f"{float(daily) / 24:.4f}",
+        "currency": "USD",
+        "billing_model": "pro-rata",
+        "source": "static catalog model (catalog_model.py)",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # --- Benchmark event publishing (kind 30078) ---

@@ -38,6 +38,10 @@ from .client import SHCConfirmationRequiredError, SHCError
 
 log = logging.getLogger(__name__)
 
+_MCP_KEY_TTL: dict[str, int] = {
+    "credit": 0,
+}
+
 MCP_ENDPOINT = "https://mcp.sovereignhybridcompute.com/mcp"
 MCP_PROTOCOL_VERSION = "2025-06-18"
 
@@ -298,24 +302,29 @@ class SHCMCPClient:
         self._cache_ttl = 300
         self._cache: dict[str, tuple[float, Any]] = {}
 
-    def _cache_get(self, key):
+    def _key_ttl(self, key: str) -> int:
         if self._cache_ttl <= 0:
+            return 0
+        for prefix, ttl in _MCP_KEY_TTL.items():
+            if key.startswith(prefix):
+                return ttl
+        return self._cache_ttl
+
+    def _cache_get(self, key):
+        ttl = self._key_ttl(key)
+        if ttl <= 0:
             return None
         entry = self._cache.get(key)
         if entry is None:
             return None
-        import time
-
         ts, data = entry
-        if time.time() - ts > self._cache_ttl:
+        if time.time() - ts > ttl:
             del self._cache[key]
             return None
         return data
 
     def _cache_set(self, key, data):
-        if self._cache_ttl > 0:
-            import time
-
+        if self._key_ttl(key) > 0:
             self._cache[key] = (time.time(), data)
         return data
 
@@ -675,7 +684,6 @@ class SHCMCPClient:
             },
             confirm=confirm,
         )
-        self.invalidate_cache("credit")
         return result
 
     def reinstall_vm(self, service_id: int, *, confirm: bool = True, **kwargs) -> dict:
@@ -869,15 +877,17 @@ class SHCMCPClient:
 
     # Ordering
     def get_catalog(self, **kwargs) -> list[dict]:
-        cached = self._cache_get("catalog:full")
-        if cached is not None:
-            return cached if isinstance(cached, list) else cached.get("items", [])
+        """Return catalog from the static model (no network call)."""
+        from .catalog_model import packages as _model_packages
+
+        return _model_packages()
+
+    def get_catalog_live(self) -> list[dict]:
+        """Fetch the real catalog via MCP. Use for validation only."""
         result = self._call("get_catalog")
         if isinstance(result, dict):
-            data = result.get("items", [])
-        else:
-            data = result if isinstance(result, list) else []
-        return self._cache_set("catalog:full", data)
+            return result.get("items", [])
+        return result if isinstance(result, list) else []
 
     def preview_order(self, **kwargs) -> dict:
         return self.call_tool("previewVirtualMachineOrder", {"body": kwargs})

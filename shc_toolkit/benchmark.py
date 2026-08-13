@@ -68,12 +68,7 @@ def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
 
 # ── Pricing ───────────────────────────────────────────────────
 
-
-SHC_CATALOG_URL = (
-    "https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog"
-)
 HETZNER_PRICING_URL = "https://api.hetzner.cloud/v1/pricing"
-SHC_DAILY_PRICE = "0.49"  # fallback when API is unreachable
 
 
 def _http_get_json(
@@ -81,85 +76,25 @@ def _http_get_json(
 ) -> Any:
     """GET a URL and return parsed JSON. Raises on HTTP/parse error."""
     req = urllib.request.Request(url, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — hardcoded HTTPS catalog URL
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — hardcoded HTTPS URL
         return json.loads(resp.read().decode("utf-8"))
 
 
 def _collect_pricing_shc() -> dict[str, Any]:
-    """Pull live pricing from SHC catalog API."""
-    api_key = os.environ.get("SHC_API_KEY")
-    fetched_at = datetime.now(UTC).isoformat()
-    if not api_key:
-        return {
-            "provider": "shc",
-            "daily_price": SHC_DAILY_PRICE,
-            "hourly_price": f"{float(SHC_DAILY_PRICE) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "minimum_charge_hours": 1,
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-            "note": "SHC_API_KEY not set; using fallback price",
-        }
-    try:
-        data = _http_get_json(
-            SHC_CATALOG_URL, headers={"Authorization": f"Bearer {api_key}"}
-        )
-        daily = _extract_shc_daily_price(data)
-        return {
-            "provider": "shc",
-            "daily_price": daily,
-            "hourly_price": f"{float(daily) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "minimum_charge_hours": 1,
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-        }
-    except (
-        urllib.error.URLError,
-        urllib.error.HTTPError,
-        json.JSONDecodeError,
-        ValueError,
-    ) as e:
-        log.warning(f"SHC pricing API unreachable: {e}")
-        return {
-            "provider": "shc",
-            "daily_price": SHC_DAILY_PRICE,
-            "hourly_price": f"{float(SHC_DAILY_PRICE) / 24:.4f}",
-            "currency": "USD",
-            "billing_model": "pro-rata",
-            "minimum_charge_hours": 1,
-            "source_api": SHC_CATALOG_URL,
-            "fetched_at": fetched_at,
-            "note": f"API unreachable ({e}); using fallback price",
-        }
+    """Get SHC pricing from the static catalog model (no network call)."""
+    from .catalog_model import daily_price_for_package
 
-
-def _extract_shc_daily_price(catalog: Any) -> str:
-    """Best-effort extraction of daily price from SHC catalog JSON."""
-    if not isinstance(catalog, dict):
-        return SHC_DAILY_PRICE
-    # Walk the catalog looking for a pricing entry with term "day"
-
-    def _walk(obj):
-        if isinstance(obj, dict):
-            term = str(obj.get("term", "")).lower()
-            price = obj.get("price")
-            if term in ("day", "daily", "1") and price is not None:
-                return str(price)
-            for v in obj.values():
-                found = _walk(v)
-                if found:
-                    return found
-        elif isinstance(obj, list):
-            for item in obj:
-                found = _walk(item)
-                if found:
-                    return found
-        return None
-
-    return _walk(catalog) or SHC_DAILY_PRICE
+    daily = daily_price_for_package(26)  # nvme-2c-8gb (benchmark plan)
+    return {
+        "provider": "shc",
+        "daily_price": daily,
+        "hourly_price": f"{float(daily) / 24:.4f}",
+        "currency": "USD",
+        "billing_model": "pro-rata",
+        "minimum_charge_hours": 1,
+        "source": "static catalog model (catalog_model.py)",
+        "fetched_at": datetime.now(UTC).isoformat(),
+    }
 
 
 def _collect_pricing_hetzner() -> dict[str, Any]:

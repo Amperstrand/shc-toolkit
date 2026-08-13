@@ -3,11 +3,11 @@
 ## The DRY Layer Cake
 
 ```
-                    SHC OpenAPI Spec (v2.4.1, 108 endpoints)
+                    SHC OpenAPI Spec (v2.4.24, 148 endpoints)
                               ↓ single source of truth
                     ┌─────────────────────────────────┐
-                    │   shc-toolkit/catalog_cache.json │  (in git, CI-validated)
-                    │   shc-toolkit/openapi.json       │  (cached, CI-diffed)
+                    │   shc-toolkit/catalog_model.py   │  (static model, CI-validated)
+                    │   shc-toolkit/openapi.json       │  (cached spec, CI-diffed)
                     └─────────────────────────────────┘
                               ↓ consumed by
            ┌──────────────────┼──────────────────┐
@@ -19,14 +19,15 @@
     shc-compute
 ```
 
-### Layer 1: OpenAPI Spec → Local Cache
+### Layer 1: OpenAPI Spec + Static Catalog Model
 
-**File**: `shc_toolkit/openapi.json` (cached copy in git)
-**File**: `shc_toolkit/catalog_cache.json` (curated catalog in git)
+**File**: `shc_toolkit/openapi.json` (cached spec in git, CI-diffed weekly)
+**File**: `shc_toolkit/catalog_model.py` (static catalog model — replaces 10.3 MB `/ordering/catalog` fetch)
 
 The OpenAPI spec is fetched from `https://blesta.sovereignhybridcompute.com/user-api/openapi.json`
-and cached locally. This solves the intermittent API problem — our tools read from local cache,
-not from the live API on every call.
+and cached locally. The catalog model derives prices, option IDs, and value lists from
+deterministic arithmetic patterns (validated weekly against the live API via CI). This solves
+the intermittent API problem — our tools read from local static data, not from the live API.
 
 ### Layer 2: Python Toolkit (the canonical client)
 
@@ -207,55 +208,11 @@ class TestOrdering:
         assert "package" in data or "normalized_request" in data
 ```
 
-### Catalog Cache Validator
+### Catalog Model Validator
 
-```python
-# tests/test_catalog_cache.py
-"""Validates that catalog_cache.json matches live API data."""
-
-import json
-import os
-import requests
-
-BASE = "https://blesta.sovereignhybridcompute.com/user-api/v2"
-KEY = os.environ.get("SHC_API_KEY_READ_ONLY", "")
-
-def test_cache_has_packages():
-    with open("shc_toolkit/catalog_cache.json") as f:
-        cache = json.load(f)
-    assert len(cache["packages"]) >= 4
-    pkg_ids = [p["package_id"] for p in cache["packages"]]
-    assert 81 in pkg_ids  # Standard
-    assert 82 in pkg_ids  # Professional
-
-def test_cache_matches_live_api():
-    """Only runs when SHC_API_KEY is set and API is reachable."""
-    if not KEY:
-        pytest.skip("No API key")
-
-    r = requests.get(f"{BASE}/ordering/catalog",
-                     headers={"Authorization": f"Bearer {KEY}"}, timeout=15)
-    if r.status_code != 200:
-        pytest.skip(f"API returned {r.status_code}")
-
-    text = r.text
-    idx = text.find("{")
-    live = json.loads(text[idx:])
-    live_items = live.get("data", {}).get("items", [])
-    if not live_items:
-        pytest.skip("Catalog returned empty (API intermittent)")
-
-    with open("shc_toolkit/catalog_cache.json") as f:
-        cache = json.load(f)
-
-    for cached_pkg in cache["packages"]:
-        live_pkg = next(
-            (i for i in live_items if i.get("package_id") == cached_pkg["package_id"]),
-            None
-        )
-        if live_pkg:
-            assert live_pkg["name"] == cached_pkg["name"], \
-                f"Package {cached_pkg['package_id']} name mismatch"
+```bash
+# Weekly CI job in api-drift.yml
+SHC_API_KEY=... python3 scripts/validate_catalog_model.py
 ```
 
 ## Summary of Key Findings
@@ -275,7 +232,7 @@ def test_cache_matches_live_api():
 
 | Component | Approach | Why |
 |-----------|----------|-----|
-| Catalog data | Local cache in git, CI-validated | Survives API outages |
+| Catalog data | Static model (`catalog_model.py`), CI-validated weekly | Survives API outages, zero network calls |
 | Python toolkit | Direct API client (source of truth) | One implementation |
 | Pulumi provider | Imports Python toolkit directly | Zero duplication |
 | Terraform provider | Go client, manually synced to spec | Go can't import Python |

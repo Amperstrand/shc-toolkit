@@ -1007,8 +1007,8 @@ def main():
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
     p.add_argument(
         "--template",
-        default="debian12-cloud",
-        help="OS template (default: debian12-cloud; debian13-cloud deadlocks — see issue #24)",
+        default="debian13-cloud",
+        help="OS template",
     )
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")

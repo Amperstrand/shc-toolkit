@@ -87,7 +87,7 @@ The SHC API surface (`openapi.json`) and live catalog were fully inspected:
   `package_id`, `pricing_id`, `hostname`, `module_group_id`, `user`,
   `ssh_key`/`ssh_keys`, `coupon`, `order_form_id`, `package_group_id`,
   `config_options`. **No `user_data` / `cloud_init` / `boot_script` field.**
-- The live catalog's `available_config_options` across all 20 packages contain
+- The catalog model's `config_options` across all 20 packages expose
   only: `cpu`, `disk`, `gui_choice`, `ipv4s`, `ram`, `template`, `win_edition`.
   **No user-data option.**
 - `ReinstallVmRequest` (`/vm/{service_id}/reinstall`) accepts only `template`.

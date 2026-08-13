@@ -7,14 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Catalog is now served from a static model — zero network calls.** The `/ordering/catalog` endpoint returns 10.3 MB per call. Previously cached to disk with a 24h TTL; now replaced entirely by `shc_toolkit/catalog_model.py`, a deterministic model derived from empirical analysis of the live catalog (prices, option IDs, pricing IDs, and value lists all follow arithmetic progressions — 160/160 checks pass with 0 mismatches). `get_catalog()` returns model data instantly; `get_catalog_live()` added for validation. Weekly CI validation against the live API auto-creates an issue on drift.
+- **Credit balance no longer cached.** Changes on every order/refund — caching it was incorrect.
+- **API drift CI changed from daily to weekly.** The `api-drift.yml` workflow now runs weekly (Monday 08:00 UTC) and includes a catalog model validation job alongside the existing OpenAPI + llms.txt drift checks.
+- **All cache infrastructure removed from SHCClient.** The `_disk_cache_*`, `_cache_get`, `_cache_set`, `_key_ttl`, `_KEY_TTL`, `_CACHE_TTL` machinery (~100 lines) is gone. The catalog model replaces caching entirely; credit was never meaningfully cached. `invalidate_cache()` kept as a no-op for backward compat.
+- **`sizes.py` now derives from `catalog_model.py`.** Eliminated 200 lines of hardcoded data duplication. `SIZE_MAP` and `_PRICING_LOOKUP` are computed at import time from the model.
+- **`benchmark.py` no longer fetches the 10.3 MB catalog.** Pricing comes from the static model. Removed `_extract_shc_daily_price`, `SHC_CATALOG_URL`, `SHC_DAILY_PRICE`.
+- **Pre-commit hooks: flake8 replaced with ruff.** The `.pre-commit-config.yaml` now runs `ruff --fix` + `ruff-format` (v0.16.1, matching CI) instead of flake8.
+- **TOOL_MAP count corrected from 156 to 157 across all docs.** The map includes `buyVirtualMachine`, giving 100% coverage (was documented as 99%).
+
 ### Fixed
 - **`shc order` now sends `config_options` with every order.** Previously, orders were submitted without `config_options`, causing the SHC platform to provision VMs with minimal resources (~1GB RAM) regardless of the ordered package. Now resolves default RAM, CPU, disk, and IPv4 count from the catalog and includes them in every order submission. This fixes the long-standing issue where ordered 8GB/16GB VMs were provisioned with ~908MB RAM.
-- **Catalog responses are now cached to disk** (`~/.cache/shc/`). The `/ordering/catalog` endpoint returns 10.3MB per call. Previously, every CLI invocation fetched this fresh (5+ seconds). Now uses a pickle-based disk cache with 5-minute TTL, reducing subsequent invocations to ~0.1s.
 - **`submit_order` resolves `order_form_id` and `package_group_id` from preview instead of hardcoding Dev VPS defaults.** Previously, `submit_order` unconditionally injected `order_form_id=11` (Dev VPS storefront) for all orders without `config_options`, causing `validation_failed` errors for NVMe, SSD, and HDD packages which use different storefront IDs. Now calls `preview_order` to resolve the correct IDs from the package's storefront path, falling back to 11 only if preview fails.
-- **`shc order` defaults to `debian12-cloud` template** instead of `debian13-cloud` which deadlocks (issue #24). Added `--template` flag to the `order` subcommand to allow override.
+- **debian13-cloud default restored.** The template was previously changed to debian12-cloud based on a misdiagnosed cloud-init deadlock (issue #24). The actual problem was the Dev zone scheduler hang (issue #28) — VMs in Cherryvale, KS (Dev VPS) fail to provision regardless of template. debian13-cloud works correctly on NVMe/SSD/HDD VPS in Katy, TX. **E2E verified 2026-08-13**: ordered nvme-1c-4gb with debian13-cloud, provisioned in 53s, cancelled cleanly.
+- **`compute.py` field mismatch and broken f-strings.** Was reading `item.get("ram")` (non-existent key, returned empty) instead of `item.get("memory_mb")`. Two f-string literals (`"pkg-{pkg_id}"`, `"…/{item.get(...)}"`) were missing the `f` prefix and silently output literal braces.
+- **`raw` property docstring corrected.** Said "149 endpoint methods" and "Pydantic type safety" → corrected to "148" and "attrs-based".
 
 ### Added
-- **`--template` flag on `shc order`** for specifying OS template at order time. Defaults to `debian12-cloud` to avoid the debian13-cloud cloud-init deadlock.
+- **`shc_toolkit/catalog_model.py`** — Static model of the SHC VM catalog. Replaces the 10.3 MB `/ordering/catalog` fetch with deterministic functions for pricing (`0.22×cpu + 0.02 + nvme_disk_premium`), option IDs, pricing IDs, and upgrade value lists. 100% accuracy across 160 checks.
+- **`scripts/validate_catalog_model.py`** — Fetches the live catalog and compares against the model. Exit 0 = match, exit 1 = drift.
+- **`--template` flag on `shc order`** for specifying OS template at order time.
+- **`get_catalog_live()` on both transports + transport Protocol.** For validation use only — returns the real API response.
 
 ## [2.4.24.1] — 2026-08-09
 

@@ -61,23 +61,40 @@ def check_size_map_parity() -> list[str]:
 
 
 def _parse_python_sizes(path: Path) -> dict[str, tuple[int, int]]:
+    """Extract size entries from a Python sizes module.
+
+    Tries runtime import (handles derived/computed SIZE_MAP), falls back
+    to regex parsing for modules with hardcoded entries.
+    """
     if not path.exists():
         return {}
+
+    # Try importing the module in-package (handles relative imports)
+    try:
+        import sys
+
+        pkg_root = str(path.parent.parent)
+        if pkg_root not in sys.path:
+            sys.path.insert(0, pkg_root)
+        mod = __import__(f"{path.parent.name}.sizes", fromlist=["SIZE_MAP"])
+        size_map = getattr(mod, "SIZE_MAP", {})
+        pricing = getattr(mod, "_PRICING_LOOKUP", {})
+        entries = {
+            name: (e.get("package_id", 0), pricing.get(e.get("package_id", 0), 0))
+            for name, e in size_map.items()
+        }
+        if entries:
+            return entries
+    except Exception:
+        pass
+
+    # Fallback: regex parse for hardcoded entries (pulumi's standalone sizes.py)
     src = path.read_text()
-    entries = {}
+    entries: dict[str, tuple[int, int]] = {}
     for m in re.finditer(r'"([\w-]+)":\s*\{[^}]*"package_id":\s*(\d+)', src):
         name = m.group(1)
         pkg = int(m.group(2))
-        pricing_match = re.search(r'"pricing_id":\s*(\d+)', m.group(0))
-        pricing = int(pricing_match.group(1)) if pricing_match else 0
-        entries[name] = (pkg, pricing)
-    pricing_lookup = {}
-    for m in re.finditer(r"(\d+):\s*(\d+),\s*#\s*[\w-]+", src):
-        pricing_lookup[int(m.group(1))] = int(m.group(2))
-    if pricing_lookup:
-        for name, (pkg, pricing) in entries.items():
-            if pricing == 0 and pkg in pricing_lookup:
-                entries[name] = (pkg, pricing_lookup[pkg])
+        entries[name] = (pkg, 0)
     return entries
 
 

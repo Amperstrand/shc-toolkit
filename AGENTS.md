@@ -8,12 +8,13 @@ Three repos form the SHC IaC ecosystem:
 
 ```
 shc-toolkit (Python, v2.4.24.0)
-├── shc_toolkit/client.py        — SHCClient (REST, httpx, retry, cache, cost tracking, batch helper)
+├── shc_toolkit/client.py        — SHCClient (REST, httpx, retry, cost tracking, batch helper)
+├── shc_toolkit/catalog_model.py — Static catalog model (replaces 10.3MB /ordering/catalog fetch)
 ├── shc_toolkit/mcp_client.py    — SHCMCPClient (MCP Streamable HTTP, 157/157 TOOL_MAP coverage)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 310+ unit tests + 4 integration tests
+├── tests/                       — 311+ unit tests + 4 integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -41,9 +42,10 @@ shc-pulumi (Python, maintenance mode)
 9. Run: `ruff check shc_toolkit/ && ruff format --check shc_toolkit/` (AGENTS.md mandates both).
 10. Run: `mypy shc_toolkit/ --ignore-missing-imports --no-strict-optional`
 11. Run: `python3 scripts/audit_cross_repo.py`
-12. Close the drift issue.
-13. **Add a CHANGELOG entry** (see below).
-14. **Sweep all docs for stale numbers** — test count, TOOL_MAP size, coverage %. A comprehensive grep prevents the "fix in one place, break in another" pattern that Oracle caught in round 2 of v2.4.24.0 verification.
+12. Run: `SHC_API_KEY=... python3 scripts/validate_catalog_model.py` (verify catalog model still matches live API after any pricing changes).
+13. Close the drift issue.
+14. **Add a CHANGELOG entry** (see below).
+15. **Sweep all docs for stale numbers** — test count, TOOL_MAP size, coverage %. A comprehensive grep prevents the "fix in one place, break in another" pattern that Oracle caught in round 2 of v2.4.24.0 verification.
 
 ## Regenerating the auto-generated client
 
@@ -56,15 +58,38 @@ bash scripts/generate_client.sh
 - Empty array schemas (`items: []`) in restore-hints and batch endpoints — the script fixes these.
 - Duplicate enum keys (e.g., `CLOUD_INIT_POLICY_VIOLATION`) — this is a spec bug on SHC's side. If regeneration fails with "Duplicate key", the generated client stays at the previous spec version. This is fine — the generated client is a bonus (type-safe models), not a dependency. SHCClient works without it.
 
-## CHANGELOG discipline
+## CHANGELOG discipline (MANDATORY for all agents)
 
-**Every commit that adds a feature or fixes a bug MUST add a CHANGELOG entry.**
+**Every change that adds a feature, fixes a bug, or alters behavior MUST add a CHANGELOG entry in the SAME commit.** Not as an afterthought, not in a follow-up — in the commit that introduces the change.
 
-Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each repo has its own `CHANGELOG.md`.
+### When to add an entry
 
-Entry goes under `[Unreleased]` → promoted to a version tag on release.
+| Change type | Category | Example |
+|-------------|----------|---------|
+| New feature, endpoint, file, flag | `Added` | `catalog_model.py` — static catalog model |
+| Modified behavior, refactored, config change | `Changed` | `get_catalog()` now returns model data instead of fetching |
+| Bug fix, correctness fix | `Fixed` | `submit_order` resolves order_form_id from preview |
+| Deleted code, removed feature | `Removed` | Removed disk cache infrastructure |
 
-Categories: `Added`, `Changed`, `Fixed`, `Removed`.
+### Format
+
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each repo has its own `CHANGELOG.md`.
+
+Entries go under `## [Unreleased]` → promoted to a version tag on release.
+
+```markdown
+### Changed
+- **Brief description of what changed.** One paragraph explaining the before/after
+  and why. Mention the file or module name.
+```
+
+### Checklist before committing
+
+1. Does the CHANGELOG have an entry for THIS change?
+2. Is it under `[Unreleased]`?
+3. Is the category correct (`Added` / `Changed` / `Fixed` / `Removed`)?
+4. Does the entry explain what changed and why (not just what)?
+5. If you bumped `pyproject.toml` version, is there a `## [version]` header?
 
 ## Documentation audit
 
@@ -82,7 +107,7 @@ Categories: `Added`, `Changed`, `Fixed`, `Removed`.
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `shc-tests.yml` | push, PR, schedule (6h) | Unit + smoke + integration + drift detection |
-| `api-drift.yml` | schedule (daily 08:00) | OpenAPI + llms.txt drift → auto-creates issue |
+| `api-drift.yml` | schedule (weekly Mon 08:00) | OpenAPI + llms.txt drift + catalog model validation → auto-creates issue |
 | `cross-repo-parity.yml` | push, PR, schedule (weekly) | Size map + resolve_addons contract parity |
 | `typecheck.yml` | push, PR | mypy + ruff lint + ruff format check (3 parallel jobs) |
 | `coverage.yml` | push, PR | pytest --cov coverage reporting (baseline, no thresholds yet) |
@@ -93,7 +118,7 @@ Categories: `Added`, `Changed`, `Fixed`, `Removed`.
 
 ## Auto-issue-creation
 
-Both drift jobs in `shc-tests.yml` auto-create deduplicated GitHub issues when drift is detected. The issues include the diff details and action items. Close them after resolving the drift.
+Both drift jobs in `shc-tests.yml` and the catalog model validation in `api-drift.yml` auto-create deduplicated GitHub issues when drift is detected. The issues include the diff details and action items. Close them after resolving the drift.
 
 ## Testing rules
 
@@ -124,7 +149,7 @@ The SHC API key is stored in `SHC_API_KEY` environment variable. It is separate 
 - **SHC "ready" fires before cloud-init finishes**: Wait ~120s after `provisioning_state: ready` before assuming full VM configuration.
 - **API key lifecycle**: Keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`.
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). Empirically verified 2026-07-20: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `vmx/svm` count=0, `/dev/kvm` absent. SSD VPS in same datacenter (Cherryvale-KS) also lacks it. The limitation is plan-type-specific, not region-specific. Verify with `shc kvm-check <service_id>`.
-- **debian13-cloud template deadlock**: As of 2026-07-20, the `debian13-cloud` template's cloud-init deadlocks — sshd never starts, all key-injection methods fail. Workaround: use `debian12-cloud` or `ubuntu2404-cloud`. This is an SHC platform bug, not a toolkit bug (see issue #24).
+- **Dev zone scheduler hang**: Dev VPS plans (pkg 80–84, Cherryvale, KS) may fail to provision — the scheduler never assigns an IP. This is issue #28, unrelated to OS template. All other zones (NVMe/SSD/HDD in Katy, TX) work correctly with all templates including `debian13-cloud`. Probe with `scripts/dev-zone-probe.py`.
 - **Identity-class operations**: `revokeApiKey`, `beginTwoFactorEnrollment`, `enableTwoFactor`, `disableTwoFactor`, `changePassword`, `linkNostrIdentity`, `unlinkNostrIdentity`, `updateNip05` are Basic+OTP-only — NOT callable with API keys and NOT exposed by the MCP server. Do NOT add these to TOOL_MAP (the MCP drift CI will flag them). The `x-shc-mcp-exposure: hidden` annotation (20 ops) in the spec marks these.
 
 ## Testing Protocol (MANDATORY)
@@ -135,7 +160,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 310 tests (unit) + 4 integration tests.
+All tests must pass. Currently 311 tests (unit) + 4 integration tests.
 
 ### 2. Lint
 ```bash
@@ -249,11 +274,11 @@ SHCMCPClient methods that call `call_tool("toolName", ...)` directly work correc
 **Affected**: `test_core_tool_count`, MCP drift CI coverage report.
 **Fix**: When adding new MCP wrappers, always add BOTH the method AND the TOOL_MAP entry.
 
-### 13. debian13-cloud template cloud-init deadlock
-The `debian13-cloud` template's cloud-init deadlocks — sshd never starts. All key-injection methods fail (`ssh_key` in order → key baked but sshd never starts; `apply_ssh_key_live` → 409 guest agent not running; `get_vm_credentials` → returns creds but SSH unreachable). This is an SHC platform bug, not a toolkit bug.
+### 13. debian13-cloud template works fine (earlier deadlock diagnosis was wrong)
+`debian13-cloud` was previously thought to deadlock (cloud-init never starts sshd). The actual problem was the **Dev zone scheduler hang** (issue #28) — VMs in Cherryvale, KS (Dev VPS, pkg 80–84) never fully provision regardless of template. debian13-cloud works correctly on NVMe/SSD/HDD VPS in Katy, TX. The default template is `debian13-cloud` everywhere.
 
-**Affected**: ALL new VMs ordered with debian13-cloud template since ~2026-07-19.
-**Fix**: Use `debian12-cloud` or `ubuntu2404-cloud` until SHC fixes the template. See issue #24.
+**Affected**: Default template on `order_vm()`, `reinstall_with_cloud_init()`, `check_stock()`, CLI `--template` flags.
+**Fix**: No workaround needed. The Dev zone scheduler issue (#28) is tracked separately via `scripts/dev-zone-probe.py`.
 
 ### 14. Cloud-init API uses /virtual-machines/{id} path convention
 Cloud-init endpoints use `/virtual-machines/{virtualMachineId}/cloud-init/...` — NOT the standard `/vm/{serviceId}/...` convention used everywhere else in the API. The value is the same `service_id`, only the URL path shape differs.

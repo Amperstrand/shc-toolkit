@@ -1,2 +1,8 @@
 #!/bin/bash
-exec python3 "$(git rev-parse --show-toplevel)/scripts/secret_scanner.py"
+set -e
+
+# Secret scanning (existing)
+python3 "$(git rev-parse --show-toplevel)/scripts/secret_scanner.py"
+
+# Pre-commit hooks (ruff format + lint, whitespace, etc.)
+pre-commit run --hook-stage commit

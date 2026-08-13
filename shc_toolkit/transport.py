@@ -7,7 +7,7 @@ parameter.
 
 Transport selection:
     SHC_TRANSPORT=rest   → SHCClient    (default; ~165 hand-written methods)
-    SHC_TRANSPORT=mcp    → SHCMCPClient (156 TOOL_MAP entries; live MCP
+    SHC_TRANSPORT=mcp    → SHCMCPClient (157 TOOL_MAP entries; live MCP
                                          server exposes 157 tools total)
     SHC_TRANSPORT=auto   → try MCP, fall back to REST
 
@@ -134,6 +134,7 @@ class SHCTransport(Protocol):
     # ── Ordering ─────────────────────────────────────────────
 
     def get_catalog(self, **kwargs) -> list[dict]: ...
+    def get_catalog_live(self) -> list[dict]: ...
     def preview_order(self, **kwargs) -> dict: ...
     def submit_order(self, idempotency_key: str | None = None, **kwargs) -> dict: ...
 

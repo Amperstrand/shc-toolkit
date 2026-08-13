@@ -2,7 +2,7 @@ name: API Drift Detection
 
 on:
   schedule:
-    - cron: "0 8 * * *"  # Daily at 08:00 UTC
+    - cron: "0 8 * * 1"  # Weekly: Monday 08:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -181,3 +181,67 @@ jobs:
           git add .omo/llms.txt shc_toolkit/openapi.json
           git commit -m "chore: update SHC API baselines [skip ci]" || echo "No changes to commit"
           git push
+
+  catalog-model-check:
+    name: Validate catalog model against live API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install toolkit
+        run: pip install -e .
+
+      - name: Validate catalog model
+        id: validate
+        run: python3 scripts/validate_catalog_model.py > /tmp/catalog-validation.txt 2>&1
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        continue-on-error: true
+
+      - name: Create issue on drift
+        if: steps.validate.outcome != 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            let output = '';
+            try {
+              output = readFileSync('/tmp/catalog-validation.txt', 'utf8');
+            } catch (e) {
+              output = '(output not available)';
+            }
+
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'catalog-model-drift'
+            });
+            if (issues.data.length > 0) {
+              core.info('Drift issue already open, skipping');
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Catalog model drift: prices or IDs no longer match live API',
+              body: [
+                'The weekly validation found discrepancies between `catalog_model.py` and the live `/ordering/catalog` API.',
+                '',
+                '```',
+                output,
+                '```',
+                '',
+                '## Action items',
+                '1. Update pricing coefficients, option ID bases, or value lists in `shc_toolkit/catalog_model.py`',
+                '2. Re-run: `SHC_API_KEY=... python3 scripts/validate_catalog_model.py`',
+                '3. Run tests: `python3 -m pytest tests/test_unit.py`',
+              ].join('\n'),
+              labels: ['catalog-model-drift', 'bug']
+            });

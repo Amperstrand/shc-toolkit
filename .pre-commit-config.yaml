@@ -9,11 +9,13 @@ repos:
         args: ['--maxkb=500']
       - id: check-merge-conflict
       - id: debug-statements
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
     hooks:
-      - id: flake8
-        args: ['--max-line-length=120', '--extend-ignore=E203,W503,E704']
+      - id: ruff
+        args: ['--fix']
+        files: 'shc_toolkit/.*\.py$'
+      - id: ruff-format
         files: 'shc_toolkit/.*\.py$'
   - repo: local
     hooks:
@@ -23,4 +25,4 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]

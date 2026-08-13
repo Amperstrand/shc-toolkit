@@ -16,17 +16,18 @@ import socket
 import time
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 import httpx
 import requests
 
+from .catalog_model import config_options as _model_config_options
+from .catalog_model import daily_price_for_package as _model_daily_price
+from .catalog_model import packages as _model_packages
+
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
-
-_CACHE_TTL = 300
 
 
 class SHCError(Exception):
@@ -165,16 +166,17 @@ class SHCClient:
 
     Auth: Bearer token (API key from /account/api-keys).
 
-    Caching:
-        Catalog, templates, balance, and upgrade options are cached with a
-        5-minute TTL. Use cache_ttl=0 to disable or call invalidate_cache().
+    Catalog:
+        Served from a static model (``catalog_model.py``) — no network
+        fetch needed. Use ``get_catalog_live()`` to fetch the real API
+        response for validation.
     """
 
     def __init__(
         self,
         api_key: str | None = None,
         base_url: str = BASE_URL,
-        cache_ttl: int = _CACHE_TTL,
+        cache_ttl: int = 0,
         max_retries: int = 3,
         backoff_base: float = 1.0,
         backoff_cap: float = 60.0,
@@ -185,8 +187,6 @@ class SHCClient:
         self.base_url = base_url
         self.session = httpx.Client(timeout=30.0)
         self.session.headers["Authorization"] = f"Bearer {self.api_key}"
-        self._cache_ttl = cache_ttl
-        self._cache: dict[str, tuple[float, Any]] = {}
         self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._backoff_cap = backoff_cap
@@ -201,7 +201,7 @@ class SHCClient:
         """Access the auto-generated type-safe client (WorkOS pattern).
 
         Returns a ``shc_toolkit.generated.Client`` (httpx-based) that
-        provides 149 endpoint methods with full Pydantic type safety.
+        provides 148 endpoint methods with attrs-based type safety.
 
         Requires: ``pip install shc-toolkit[generated]``
 
@@ -225,95 +225,19 @@ class SHCClient:
             )  # type: ignore[call-arg]
         return self._raw_client
 
-    # ── Cache ───────────────────────────────────────────────
-
-    def _cache_get(self, key: str) -> Any | None:
-        if self._cache_ttl <= 0:
-            return None
-        entry = self._cache.get(key)
-        if entry is None:
-            entry = self._disk_cache_get(key)
-            if entry is not None:
-                self._cache[key] = entry
-        if entry is None:
-            return None
-        ts, data = entry
-        if time.time() - ts > self._cache_ttl:
-            del self._cache[key]
-            self._disk_cache_del(key)
-            return None
-        return data
-
-    def _cache_set(self, key: str, data: Any) -> Any:
-        if self._cache_ttl > 0:
-            entry = (time.time(), data)
-            self._cache[key] = entry
-            self._disk_cache_set(key, entry)
-        return data
-
-    def _disk_cache_path(self) -> Path:
-        import os
-
-        cache_dir = os.environ.get(
-            "SHC_CACHE_DIR",
-            str(Path.home() / ".cache" / "shc"),
-        )
-        p = Path(cache_dir)
-        p.mkdir(parents=True, exist_ok=True)
-        return p
-
-    def _disk_cache_get(self, key: str) -> tuple[float, Any] | None:
-        import pickle
-
-        try:
-            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
-            if not p.exists():
-                return None
-            with open(p, "rb") as f:
-                return pickle.load(f)
-        except Exception:
-            return None
-
-    def _disk_cache_set(self, key: str, entry: tuple[float, Any]) -> None:
-        import pickle
-
-        try:
-            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
-            with open(p, "wb") as f:
-                pickle.dump(entry, f, protocol=pickle.HIGHEST_PROTOCOL)
-        except Exception:
-            pass
-
-    def _disk_cache_del(self, key: str) -> None:
-        try:
-            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
-            if p.exists():
-                p.unlink()
-        except Exception:
-            pass
-
     def invalidate_cache(self, prefix: str | None = None):
-        """Clear cached data. If prefix given, only clear keys starting with it."""
-        if prefix is None:
-            self._cache.clear()
-        else:
-            self._cache = {
-                k: v for k, v in self._cache.items() if not k.startswith(prefix)
-            }
+        """No-op. Caching was removed when the catalog moved to a static model.
+        Kept for backward compatibility with code that calls it."""
 
     # ── Credit ──────────────────────────────────────────────
 
     def get_available_credit(self) -> float:
-        """Return available USD credit. Cached for cache_ttl seconds."""
-        cached = self._cache_get("credit")
-        if cached is not None:
-            return cached
+        """Return available USD credit."""
         result = self._get("/billing/balance")
         balances = result.get("balances", result.get("credit", []))
         for b in balances:
             if b.get("currency") == "USD":
-                amt = float(b.get("available_credit", b.get("amount", 0)))
-                return self._cache_set("credit", amt)
+                return float(b.get("available_credit", b.get("amount", 0)))
         return 0.0
 
     def check_credit(self, required: float) -> None:
@@ -323,24 +247,15 @@ class SHCClient:
             raise InsufficientCreditError(required, available)
 
     def estimate_daily_cost(self, package_id: int) -> float:
-        """Look up daily price for a package. Cached."""
-        cache_key = f"price:{package_id}"
-        cached = self._cache_get(cache_key)
-        if cached is not None:
-            return cached
-        for pkg in self.get_catalog():
-            if pkg.get("package_id") == package_id:
-                daily: dict = next(
-                    (p for p in pkg.get("pricing", []) if p.get("period") == "day"), {}
-                )
-                price = float(daily.get("price", 0))
-                return self._cache_set(cache_key, price)
-        return 0.0
+        """Look up daily price for a package from the static catalog model."""
+        try:
+            return float(_model_daily_price(package_id))
+        except KeyError:
+            return 0.0
 
     def _safe_credit(self) -> float | None:
         """Get available credit, returning None on failure (never raises)."""
         try:
-            self.invalidate_cache("credit")
             return self.get_available_credit()
         except Exception:
             return None
@@ -777,41 +692,24 @@ class SHCClient:
 
     # ── Ordering ─────────────────────────────────────────────
 
-    def get_catalog(self, view: str = "full") -> list[dict]:
-        """List buyable VM plans. Cached for cache_ttl seconds."""
-        cache_key = f"catalog:{view}"
-        cached = self._cache_get(cache_key)
-        if cached is not None:
-            return cached
-        params = {"view": view} if view != "full" else None
-        data = self._get("/ordering/catalog", params=params).get("items", [])
-        return self._cache_set(cache_key, data)
+    def get_catalog(self) -> list[dict]:
+        """List buyable VM plans from the static catalog model (no network)."""
+        return _model_packages()
+
+    def get_catalog_live(self) -> list[dict]:
+        """Fetch the real catalog from the API. Use for validation only."""
+        return self._get("/ordering/catalog").get("items", [])
 
     def get_config_options(self, package_id: int) -> dict[str, dict]:
-        """Return config options for a package from the live catalog.
+        """Return config options for a package from the static catalog model.
 
         Each option (ram, cpu, disk, ipv4s, template, gui_choice) has an
-        option_id and a list of selectable values. Option IDs differ per
-        package, so always read them from the catalog rather than hardcoding.
+        option_id and a list of selectable values.
 
         Returns:
             Dict keyed by option name with option_id, label, and values.
         """
-        for pkg in self.get_catalog():
-            if pkg.get("package_id") != package_id:
-                continue
-            opts: dict[str, dict] = {}
-            for block in pkg.get("available_config_options", []):
-                for opt in block.get("options", []):
-                    if opt["name"] in opts:
-                        continue
-                    opts[opt["name"]] = {
-                        "option_id": opt["option_id"],
-                        "label": opt.get("label", opt["name"]),
-                        "values": [v["value"] for v in opt.get("values", [])],
-                    }
-            return opts
-        return {}
+        return _model_config_options(package_id)
 
     def resolve_addons(
         self,
@@ -829,7 +727,7 @@ class SHCClient:
             ram_mb: Desired total RAM in MB (must be an available value).
             cpu: Desired total vCPU cores (must be an available value).
             disk_gb: Desired total disk in GB (must be an available value).
-            template: OS template slug (e.g. "debian12-cloud").
+            template: OS template slug (e.g. "debian13-cloud").
 
         Returns:
             Dict of {option_id_str: value_str} for use in order/upgrade calls.
@@ -1217,7 +1115,6 @@ class SHCClient:
             confirm=confirm,
             json={"immediate": True} if immediate else {},
         )
-        self.invalidate_cache("credit")
         if immediate:
             credit_after = self._safe_credit()
             self.cost_tracker.audit_cancel(service_id, credit_after)
@@ -1769,10 +1666,7 @@ class SHCClient:
     # ── Templates ────────────────────────────────────────────
 
     def list_templates(self) -> list[dict]:
-        cached = self._cache_get("templates")
-        if cached is not None:
-            return cached
-        return self._cache_set("templates", self._get("/vm/templates").get("items", []))
+        return self._get("/vm/templates").get("items", [])
 
     def list_images(self) -> list[dict]:
         return self._get_items("/image")

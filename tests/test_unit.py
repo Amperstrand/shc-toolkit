@@ -95,11 +95,12 @@ class TestClientBugFixes:
         assert src.count("def get_invoice(") == 1
         assert src.count("def pay_invoice(") == 1
 
-    def test_get_catalog_accepts_view(self):
+    def test_get_catalog_has_no_view_param(self):
+        """get_catalog() uses the static model — no view parameter needed."""
         import inspect
         sig = inspect.signature(SHCClient.get_catalog)
-        assert "view" in sig.parameters
-        assert sig.parameters["view"].default == "full"
+        assert "view" not in sig.parameters
+        assert "self" in sig.parameters
 
 
 # ── MCP Client (mocked HTTP) ───────────────────────────────
@@ -319,9 +320,16 @@ class TestMcpClientMocked:
 
     def test_get_catalog_returns_list(self):
         client = self._make_client()
+        result = client.get_catalog()
+        assert isinstance(result, list)
+        assert len(result) == 20
+        assert result[0]["package_id"] == 23  # nvme Starter
+
+    def test_get_catalog_live_calls_mcp(self):
+        client = self._make_client()
         catalog = {"items": [{"package_id": 81, "name": "Dev VPS"}]}
         client.session.post = MagicMock(return_value=_jsonrpc_result(catalog))
-        result = client.get_catalog()
+        result = client.get_catalog_live()
         assert isinstance(result, list)
         assert result[0]["package_id"] == 81
 
@@ -396,45 +404,47 @@ class TestComputeWiring:
         assert "_create_client" in src or "create_client" in src
 
 
-class TestCaching:
-    def test_cache_get_returns_none_on_empty(self):
+class TestCatalogModel:
+    def test_get_catalog_returns_20_packages(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            assert c._cache_get("nothing") is None
+            catalog = c.get_catalog()
+            assert len(catalog) == 20
 
-    def test_cache_set_and_get(self):
+    def test_get_catalog_no_network(self):
+        """get_catalog() must not make any network calls."""
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("key1", {"data": 42})
-            assert c._cache_get("key1") == {"data": 42}
+            c._get = MagicMock(side_effect=AssertionError("get_catalog must not call _get"))
+            catalog = c.get_catalog()
+            assert len(catalog) == 20
 
-    def test_cache_expires(self):
-        from shc_toolkit.client import SHCClient
-        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
-            c = SHCClient(cache_ttl=0)
-            c._cache_set("key1", "val")
-            assert c._cache_get("key1") is None
-
-    def test_invalidate_cache_all(self):
+    def test_get_catalog_has_all_four_lines(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("a", 1)
-            c._cache_set("b", 2)
+            lines = {p["line"] for p in c.get_catalog()}
+            assert lines == {"nvme", "ssd", "hdd", "dev"}
+
+    def test_get_catalog_daily_price_matches_formula(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+            for pkg in c.get_catalog():
+                daily = next(p for p in pkg["pricing"] if p["period"] == "day")
+                expected = 0.22 * pkg["cpu"] + 0.02
+                if pkg["line"] == "nvme":
+                    expected += 0.002 * pkg["disk_gb"]
+                assert abs(float(daily["price"]) - expected) < 0.02
+
+    def test_invalidate_cache_is_noop(self):
+        from shc_toolkit.client import SHCClient
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
             c.invalidate_cache()
-            assert len(c._cache) == 0
-
-    def test_invalidate_cache_prefix(self):
-        from shc_toolkit.client import SHCClient
-        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
-            c = SHCClient()
-            c._cache_set("credit", 1.0)
-            c._cache_set("catalog:full", [])
             c.invalidate_cache("credit")
-            assert "credit" not in c._cache
-            assert "catalog:full" in c._cache
 
 
 class TestCreditCheck:
@@ -450,7 +460,7 @@ class TestCreditCheck:
         from shc_toolkit.client import SHCClient, InsufficientCreditError
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("credit", 0.10)
+            c.get_available_credit = MagicMock(return_value=0.10)
             with pytest.raises(InsufficientCreditError):
                 c.check_credit(0.50)
 
@@ -458,7 +468,7 @@ class TestCreditCheck:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("credit", 5.00)
+            c.get_available_credit = MagicMock(return_value=5.00)
             c.check_credit(0.50)
 
 
@@ -504,7 +514,7 @@ class TestSizes:
     def test_resolve_specs_finds_cheapest_across_all_lines(self):
         from shc_toolkit.sizes import resolve_specs
         pkg, _ = resolve_specs(cpu=4, ram_mb=16384)
-        assert pkg == 58  # SSD Pro is cheapest across all lines at 4c/16gb
+        assert pkg in (38, 58)  # HDD/SSD Pro tie at $0.90/day
 
     def test_resolve_specs_line_filter_nvme(self):
         from shc_toolkit.sizes import resolve_specs
@@ -542,39 +552,10 @@ class TestSizes:
 
 
 class TestConfigOptions:
-    def _mock_catalog(self):
-        return [{
-            "package_id": 26,
-            "name": "NVMe VPS - Standard",
-            "cpu": 2, "memory_mb": 8192, "disk_gb": 16,
-            "pricing": [{"pricing_id": 56, "period": "day", "price": "0.26"}],
-            "available_config_options": [{
-                "pricing_id": 56, "term": 1, "period": "day", "currency": "USD",
-                "options": [
-                    {"option_id": 110, "name": "ram", "label": "Total RAM",
-                     "values": [
-                        {"value": "8192", "name": "8 GB (Base)", "default": True},
-                        {"value": "16384", "name": "16 GB", "default": False},
-                     ]},
-                    {"option_id": 111, "name": "cpu", "label": "vCPU Cores",
-                     "values": [
-                        {"value": "2", "name": "2 Cores (Base)", "default": True},
-                        {"value": "4", "name": "4 Cores", "default": False},
-                     ]},
-                    {"option_id": 112, "name": "disk", "label": "Disk Space",
-                     "values": [
-                        {"value": "16", "name": "16 GB (Base)", "default": True},
-                        {"value": "50", "name": "50 GB", "default": False},
-                     ]},
-                ],
-            }],
-        }]
-
     def test_get_config_options_returns_option_ids(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             opts = c.get_config_options(26)
             assert opts["ram"]["option_id"] == 110
             assert opts["cpu"]["option_id"] == 111
@@ -585,14 +566,12 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             assert c.get_config_options(999) == {}
 
     def test_resolve_addons_translates_specs(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             result = c.resolve_addons(26, ram_mb=16384, cpu=4, disk_gb=50)
             assert result == {"110": "16384", "111": "4", "112": "50"}
 
@@ -600,7 +579,6 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             with pytest.raises(ValueError, match="not available"):
                 c.resolve_addons(26, ram_mb=999999)
 
@@ -608,7 +586,6 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             with pytest.raises(ValueError, match="not found in catalog"):
                 c.resolve_addons(99999, ram_mb=16384)
 
@@ -616,7 +593,6 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             result = c.resolve_addons(26, disk_gb=50)
             assert result == {"112": "50"}
 
@@ -624,12 +600,6 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            catalog = self._mock_catalog()
-            catalog[0]["available_config_options"][0]["options"].append({
-                "option_id": 126, "name": "template",
-                "values": [{"value": "debian12-cloud", "name": "Debian 12"}],
-            })
-            c._cache_set("catalog:full", catalog)
             result = c.resolve_addons(26, template="debian12-cloud")
             assert result == {"126": "debian12-cloud"}
 
@@ -644,14 +614,8 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
             c.pay_invoice = MagicMock()
-            # _safe_credit() invalidates the credit cache before refetching
-            # (intentional for fresh balance reads in production). Without an
-            # explicit mock, order_vm() → _safe_credit() → get_available_credit()
-            # makes a real HTTP call to /billing/balance; under SHC's
-            # rate-limiter this retries with backoff and flakes the suite.
             c._safe_credit = MagicMock(return_value=100.0)
             c.order_vm(hostname="my-vm", size="nvme-2c-8gb", disk_gb=50)
             args, kwargs = c.submit_order.call_args
@@ -664,7 +628,6 @@ class TestConfigOptions:
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._cache_set("catalog:full", self._mock_catalog())
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
             c.pay_invoice = MagicMock()
             c._safe_credit = MagicMock(return_value=100.0)
@@ -684,14 +647,7 @@ class TestCostAudit:
     def _client_with_catalog(self):
         from shc_toolkit.client import SHCClient
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
-            c = SHCClient()
-        c._cache_set("catalog:full", [{
-            "package_id": 26,
-            "name": "NVMe VPS - Standard",
-            "cpu": 2, "memory_mb": 8192, "disk_gb": 16,
-            "pricing": [{"pricing_id": 56, "period": "day", "price": "0.49"}],
-        }])
-        return c
+            return SHCClient()
 
     def test_track_order_records_session(self):
         c = self._client_with_catalog()
@@ -820,7 +776,7 @@ class TestCostAudit:
 
     def test_order_vm_captures_balance_diff(self):
         c = self._client_with_catalog()
-        c._cache_set("credit", 100.0)
+        c.check_credit = MagicMock()
         c._safe_credit = MagicMock(side_effect=[100.0, 100.0, 99.51, 99.51])
         c._confirmed_request = MagicMock(return_value={
             "invoice_id": 42, "service_id": 777,

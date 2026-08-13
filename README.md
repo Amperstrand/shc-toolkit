@@ -32,7 +32,7 @@ export SHC_API_KEY="shc_live_..."
 
 shc catalog
 shc order --hostname my-vm --package-id 23 --pricing-id 55 \
-  -o 108=50 -o 126=debian12-cloud -o 167=none \
+  -o 108=50 -o 126=debian13-cloud -o 167=none \
   --ssh-key ~/.ssh/id_ed25519.pub --pay
 shc list
 shc info <service_id>
@@ -139,11 +139,10 @@ writes, spend/destructive actions with confirmation flow, and upgrades.
 
 The flagship SHC MCP server at `https://mcp.sovereignhybridcompute.com/` exposes
 157 tools over Streamable HTTP (the curated everyday subset is 35 ops marked
-`x-shc-core` in the spec). The toolkit's `TOOL_MAP` wraps 156 of the 157
-(99% of all MCP-exposed ops; 35/35 = 100% of the `x-shc-core` curated subset).
-The single unwrapped op is `buyVirtualMachine` — a deprecated alias for
-`createVirtualMachineOrder` (which IS wrapped). Every spend and destructive
-op is confirm-gated with automatic `Idempotency-Key` generation and
+`x-shc-core` in the spec). The toolkit's `TOOL_MAP` wraps 157 of the 157
+(100% of all MCP-exposed ops; 35/35 = 100% of the `x-shc-core` curated subset).
+Every spend and destructive op is confirm-gated with automatic
+`Idempotency-Key` generation and
 `X-User-Api-Confirm` handling.
 
 CI tests randomly select REST or MCP per run, ensuring both transports receive
@@ -240,6 +239,7 @@ want pay-per-minute runners on machines they control.
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. **Empirically verified 2026-07-20**: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `grep -c 'vmx|svm' /proc/cpuinfo` = 0, `/dev/kvm` absent. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo` or `shc kvm-check <service_id>`.
+- **Dev zone scheduler hang (issue #28)**: Dev VPS plans (pkg 80–84, Cherryvale, KS) may fail to provision — the scheduler never assigns an IP, VMs stay in `pending` indefinitely. This is an SHC platform issue, not a toolkit bug. NVMe/SSD/HDD VPS in Katy, TX work correctly with all templates including `debian13-cloud`. Probe with `scripts/dev-zone-probe.py`. **Still broken as of 2026-08-13.**
 - **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04.
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.
@@ -277,7 +277,7 @@ catalog = get_ordering_catalog.sync(client=client)
 ```
 
 The generated client provides type-safe raw API calls. For convenience features
-(retry with jitter, cost tracking, confirmation flow, cache, MCP transport), use
+(retry with jitter, cost tracking, confirmation flow, MCP transport), use
 `SHCClient` instead — it wraps the generated layer and adds production niceties.
 The hand-written `SHCClient` returns raw `dict` / `list[dict]`; users who want
 typed responses should reach for `shc_toolkit.generated` directly.
@@ -312,7 +312,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 - **288 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
 - **mypy type checking**: 0 errors (17 source files; generated/ excluded)
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
-- **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 156 entries (99% of all MCP-exposed ops)
+- **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 157 entries (100% of all MCP-exposed ops)
 - **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
 - **Generated typed client**: 932 files, 148 endpoint modules, 729 attrs models
 - **CI**: 7 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity, typecheck, ansible, publish) + auto-issue-creation on drift

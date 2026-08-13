@@ -18,11 +18,11 @@ _created_service_ids = []
 # Unit tests must not make real HTTP calls. Without this fixture, tests that
 # forget to mock a network method (e.g. resolve_addons → get_config_options,
 # cancel_vm → cost_tracker._ledger_refund → get_vm_payments, or anything
-# routed through _safe_credit which invalidates the credit cache before
-# refetching) silently leak to the live SHC API. The API returns 401 for the
-# fake key, the client retries with exponential backoff, and after enough
-# 401s SHC's rate-limiter upgrades to 429 — at which point time.sleep trips
-# pytest-timeout and the whole suite flakes (see commit e1ba4b2).
+# routed through _safe_credit which fetches the live balance) silently leak
+# to the live SHC API. The API returns 401 for the fake key, the client
+# retries with exponential backoff, and after enough 401s SHC's rate-limiter
+# upgrades to 429 — at which point time.sleep trips pytest-timeout and the
+# whole suite flakes (see commit e1ba4b2).
 #
 # The fixture monkeypatches both requests.Session.request (used by the
 # MCP client) and httpx.Client.request (used by SHCClient) to raise.
