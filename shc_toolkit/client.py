@@ -16,6 +16,7 @@ import socket
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -231,17 +232,65 @@ class SHCClient:
             return None
         entry = self._cache.get(key)
         if entry is None:
+            entry = self._disk_cache_get(key)
+            if entry is not None:
+                self._cache[key] = entry
+        if entry is None:
             return None
         ts, data = entry
         if time.time() - ts > self._cache_ttl:
             del self._cache[key]
+            self._disk_cache_del(key)
             return None
         return data
 
     def _cache_set(self, key: str, data: Any) -> Any:
         if self._cache_ttl > 0:
-            self._cache[key] = (time.time(), data)
+            entry = (time.time(), data)
+            self._cache[key] = entry
+            self._disk_cache_set(key, entry)
         return data
+
+    def _disk_cache_path(self) -> Path:
+        import os
+
+        cache_dir = os.environ.get(
+            "SHC_CACHE_DIR",
+            str(Path.home() / ".cache" / "shc"),
+        )
+        p = Path(cache_dir)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def _disk_cache_get(self, key: str) -> tuple[float, Any] | None:
+        import pickle
+
+        try:
+            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
+            if not p.exists():
+                return None
+            with open(p, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            return None
+
+    def _disk_cache_set(self, key: str, entry: tuple[float, Any]) -> None:
+        import pickle
+
+        try:
+            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
+            with open(p, "wb") as f:
+                pickle.dump(entry, f, protocol=pickle.HIGHEST_PROTOCOL)
+        except Exception:
+            pass
+
+    def _disk_cache_del(self, key: str) -> None:
+        try:
+            p = self._disk_cache_path() / f"{key.replace(':', '_')}.pkl"
+            if p.exists():
+                p.unlink()
+        except Exception:
+            pass
 
     def invalidate_cache(self, prefix: str | None = None):
         """Clear cached data. If prefix given, only clear keys starting with it."""

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`shc order` now sends `config_options` with every order.** Previously, orders were submitted without `config_options`, causing the SHC platform to provision VMs with minimal resources (~1GB RAM) regardless of the ordered package. Now resolves default RAM, CPU, disk, and IPv4 count from the catalog and includes them in every order submission. This fixes the long-standing issue where ordered 8GB/16GB VMs were provisioned with ~908MB RAM.
+- **Catalog responses are now cached to disk** (`~/.cache/shc/`). The `/ordering/catalog` endpoint returns 10.3MB per call. Previously, every CLI invocation fetched this fresh (5+ seconds). Now uses a pickle-based disk cache with 5-minute TTL, reducing subsequent invocations to ~0.1s.
 - **`submit_order` resolves `order_form_id` and `package_group_id` from preview instead of hardcoding Dev VPS defaults.** Previously, `submit_order` unconditionally injected `order_form_id=11` (Dev VPS storefront) for all orders without `config_options`, causing `validation_failed` errors for NVMe, SSD, and HDD packages which use different storefront IDs. Now calls `preview_order` to resolve the correct IDs from the package's storefront path, falling back to 11 only if preview fails.
 - **`shc order` defaults to `debian12-cloud` template** instead of `debian13-cloud` which deadlocks (issue #24). Added `--template` flag to the `order` subcommand to allow override.
 

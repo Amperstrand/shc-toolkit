@@ -231,13 +231,22 @@ def cmd_order(args):
         kwargs["module_group_id"] = args.module_group_id
     if ssh_key:
         kwargs["ssh_key"] = ssh_key
-    if hasattr(args, "template") and args.template:
-        try:
-            config_options = c.resolve_addons(package_id, template=args.template)
-            if config_options:
-                kwargs["config_options"] = config_options
-        except Exception:
-            pass
+
+    try:
+        opts = c.get_config_options(package_id)
+        config_options = {}
+        if hasattr(args, "template") and args.template:
+            resolved = c.resolve_addons(package_id, template=args.template)
+            if resolved:
+                config_options.update(resolved)
+        for name in ("ram", "cpu", "disk", "ipv4s"):
+            info = opts.get(name)
+            if info and str(info.get("option_id")) not in config_options:
+                config_options[str(info["option_id"])] = info["values"][0]
+        if config_options:
+            kwargs["config_options"] = config_options
+    except Exception:
+        pass
 
     if args.dry_run:
         _print(c.preview_order(**kwargs), _get_fmt(args))
