@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`docs/cross-repo-audit-prompts.md`** — Four reusable AI-agent prompts for semantic cross-repo audits: behavioral parity (defaults, readiness, retry, confirmation flow), lessons-ported (AGENTS.md cross-check), DRY boundaries (classify duplication as derivable/intentional/accidental), and live drift smoke test. Mechanical parity stays in `audit_cross_repo.py`; these prompts cover what regex can't.
+
+### Fixed
+- **`audit_cross_repo.py` resolve_addons check searched only `client.go`.** The Go client was split into domain files in v0.4.0 — `ResolveAddons` lives in `vm_client.go`. The audit now scans all non-test `provider/*.go` files. Cross-repo audit is now all-pass (5/5).
+
 ### Changed
 - **Catalog is now served from a static model — zero network calls.** The `/ordering/catalog` endpoint returns 10.3 MB per call. Previously cached to disk with a 24h TTL; now replaced entirely by `shc_toolkit/catalog_model.py`, a deterministic model derived from empirical analysis of the live catalog (prices, option IDs, pricing IDs, and value lists all follow arithmetic progressions — 160/160 checks pass with 0 mismatches). `get_catalog()` returns model data instantly; `get_catalog_live()` added for validation. Weekly CI validation against the live API auto-creates an issue on drift.
 - **Credit balance no longer cached.** Changes on every order/refund — caching it was incorrect.

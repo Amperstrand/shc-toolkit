@@ -225,18 +225,24 @@ def check_resolve_addons_parity() -> list[str]:
     issues: list[str] = []
 
     py_src_path = ROOT / "shc_toolkit" / "client.py"
-    go_src_path = TF_ROOT / "provider" / "client.go"
+    go_src_dir = TF_ROOT / "provider"
     go_test_path = TF_ROOT / "provider" / "config_options_test.go"
 
     if not py_src_path.exists():
         issues.append("[ADDONS] shc_toolkit/client.py missing — cannot check Python resolver")
         return issues
-    if not go_src_path.exists():
-        issues.append("[ADDONS] terraform-provider-shc/provider/client.go missing — cannot check Go resolver")
-        return issues
 
     py_src = py_src_path.read_text()
-    go_src = go_src_path.read_text()
+    go_srcs = {}
+    if go_src_dir.exists():
+        for f in sorted(go_src_dir.glob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            go_srcs[f.name] = f.read_text()
+    if not go_srcs:
+        issues.append("[ADDONS] terraform-provider-shc/provider/*.go missing — cannot check Go resolver")
+        return issues
+    go_src = "\n".join(go_srcs.values())
 
     # 1. Python signature: must accept all 5 conceptual parameters.
     py_sig_match = re.search(r"def resolve_addons\(([^)]*)\)", py_src, re.DOTALL)

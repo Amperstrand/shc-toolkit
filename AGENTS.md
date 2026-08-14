@@ -98,6 +98,12 @@ Entries go under `## [Unreleased]` → promoted to a version tag on release.
 1. `pyproject.toml` version matches the spec version (`<API_VERSION>.<patch>`)
 2. `ROADMAP.md` — API version, path count, test count, MCP coverage %, TOOL_MAP size
 3. `README.md` — testing status section, MCP tool count
+
+## Cross-repo audits
+
+Mechanical parity: `python3 scripts/audit_cross_repo.py` (size maps, billing claims, Dev VPS claims, resolve_addons contract — must be all-pass; it runs in cross-repo-parity CI).
+
+Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent prompts (behavioral parity, lessons-ported, DRY boundaries, live drift smoke test). Run Prompt 1+2 after every SHC API update, Prompt 3 after refactors, Prompt 4 before tagging.
 4. `CHANGELOG.md` — has an entry for the current change
 5. `test_core_tool_count` in `tests/test_unit.py` — matches `len(TOOL_MAP)`
 6. Cross-repo audit passes: `python3 scripts/audit_cross_repo.py`
