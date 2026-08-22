@@ -28,6 +28,7 @@ class EchoAPI(BaseHTTPRequestHandler):
 
     calls: list[dict] = []
     script: dict[str, tuple[int, dict]] = {}
+    sequences: dict[str, list[tuple[int, dict]]] = {}
 
     def _handle(self):
         n = int(self.headers.get("Content-Length", 0) or 0)
@@ -39,8 +40,11 @@ class EchoAPI(BaseHTTPRequestHandler):
             "body": body,
         }
         EchoAPI.calls.append(rec)
-        status, payload = EchoAPI.script.get(
-            self.path.split("?")[0], (200, {"data": {"ok": True}}))
+        key = self.path.split("?")[0]
+        if key in EchoAPI.sequences:
+            status, payload = EchoAPI.sequences[key].pop(0)
+        else:
+            status, payload = EchoAPI.script.get(key, (200, {"data": {"ok": True}}))
         out = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -59,6 +63,7 @@ def api():
     srv = HTTPServer(("127.0.0.1", 0), EchoAPI)
     EchoAPI.calls.clear()
     EchoAPI.script.clear()
+    EchoAPI.sequences.clear()
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{srv.server_address[1]}"
     srv.shutdown()
@@ -107,6 +112,35 @@ def test_topup_credit_confirmed_and_idempotent(api):
     assert call["body"]["amount"] == "1.00"  # string per live-route contract
     assert len(call["body"]["idempotency_key"]) >= 16
     assert out["invoice_id"] == 7
+
+
+def test_topup_reissues_on_expiry_and_finishes_on_paid(api, monkeypatch):
+    """Live-earned (2026-08-22): BTCPay invoices expire and SHC allows
+    one pending topup — the poll loop must reissue on 'expired' and
+    return on 'paid' instead of sitting on a dead invoice."""
+    from shc_toolkit import register as regmod
+
+    monkeypatch.setattr(regmod, "_POLL_SECONDS", 0.05)
+    monkeypatch.setattr("shc_toolkit.jit_pay.fetch_bolt11", lambda url: None)
+
+    EchoAPI.sequences["/account/credit"] = [
+        (200, {"data": {"invoice_id": 1, "checkout_url": "https://x/1"}}),
+        (200, {"data": {"invoice_id": 2, "checkout_url": "https://x/2"}}),
+    ]
+    EchoAPI.sequences["/payment/1"] = [
+        (200, {"data": {"status": "expired"}}),
+    ]
+    EchoAPI.sequences["/payment/2"] = [
+        (200, {"data": {"status": "paid"}}),
+    ]
+    logs: list[str] = []
+    c = _client(api)
+    regmod._topup(c, 1.0, browser=False, timeout=10, log=logs.append)
+
+    credits = [r for r in EchoAPI.calls if r["path"] == "/account/credit"]
+    assert len(credits) == 2, "expired invoice must trigger exactly one reissue"
+    assert any("fresh one" in l for l in logs)
+    assert any("funded" in l for l in logs)
 
 
 # ── nomail signing ─────────────────────────────────────────────────────

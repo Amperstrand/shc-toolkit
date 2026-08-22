@@ -137,41 +137,73 @@ def register_unattended(client, *, topup: float = DEFAULT_TOPUP_USD,
     return {**creds, "context_path": str(path)}
 
 
+_POLL_SECONDS = 10      # payment-status poll interval
+_PAGE_WINDOW = 20 * 60  # QR page lifetime before re-serve/reissue
+_PENDING_RETRY = 60     # wait when SHC still reports a pending top-up
+
+
 def _topup(client, amount: float, *, browser: bool, timeout: int, log) -> None:
+    """Serve a BTCPay top-up invoice and poll until paid.
+
+    Live-earned contracts this encodes (2026-08-22): BTCPay invoices
+    expire (~15-30 min) and SHC allows ONE pending top-up per account —
+    a fresh invoice 409-conflicts until the old one lapses. So the QR
+    page is served from a daemon thread (never blocking the poll) and
+    expiry triggers issue-serve-poll again until the overall timeout."""
+    import threading
+    import time
     from .jit_pay import fetch_bolt11
 
-    result = client.topup_credit(amount)
-    invoice_id = result.get("invoice_id") or (result.get("data", {}) or {}).get("invoice_id")
-    checkout_url = result.get("checkout_url") or (result.get("data", {}) or {}).get("checkout_url")
-    if not checkout_url:
-        # some shapes hand back a checkout pointer needing a POST
-        if invoice_id:
+    def issue() -> tuple:
+        result = client.topup_credit(amount)
+        invoice_id = result.get("invoice_id") or (result.get("data", {}) or {}).get("invoice_id")
+        url = result.get("checkout_url") or (result.get("data", {}) or {}).get("checkout_url")
+        if not url and invoice_id:
             pay = client._confirmed_request(
                 "POST", f"/payment/{invoice_id}/checkout",
                 json={"gateway": "btcpay_server",
                       "idempotency_key": f"topup-pay-{invoice_id}"})
-            checkout_url = pay.get("checkout_url", "")
-        if not checkout_url:
+            url = pay.get("checkout_url", "")
+        if not url:
             raise RuntimeError(f"topup returned no checkout URL: "
                                f"{json.dumps(result)[:300]}")
-    bolt11 = fetch_bolt11(checkout_url)
-    log(f"top up ${amount:.2f}: {checkout_url}")
-    if not bolt11:
-        log("could not extract bolt11 from checkout page (terminal URL only)")
-    elif browser:
-        from .qr_page import serve_and_open
-        serve_and_open(bolt11, amount_usd=amount, timeout=timeout)
-    else:
-        from .jit_pay import render_qr
-        render_qr(f"lightning:{bolt11}")
+        return invoice_id, url
 
-    import time
+    def serve(bolt11: str | None, window: int) -> None:
+        if not bolt11:
+            log("could not extract bolt11 from checkout page (terminal URL only)")
+        elif browser:
+            from .qr_page import serve_and_open
+            serve_and_open(bolt11, amount_usd=amount, timeout=window)
+        else:
+            from .jit_pay import render_qr
+            render_qr(f"lightning:{bolt11}")
+
     deadline = time.monotonic() + timeout
+    invoice_id, checkout_url = issue()
+    log(f"top up ${amount:.2f}: {checkout_url}")
     while time.monotonic() < deadline:
-        st = client._get(f"/payment/{invoice_id}") if invoice_id else {}
-        status = (st.get("data", st) or {}).get("status", "")
-        if status in ("paid", "confirmed", "complete"):
-            log("topup received — account funded")
-            return
-        time.sleep(10)
+        window = min(35 * 60, int(deadline - time.monotonic()))
+        threading.Thread(target=serve, args=(fetch_bolt11(checkout_url), window),
+                         daemon=True).start()
+        expired = False
+        while time.monotonic() < deadline:
+            time.sleep(_POLL_SECONDS)
+            st = client._get(f"/payment/{invoice_id}") if invoice_id else {}
+            status = (st.get("data", st) or {}).get("status", "")
+            if status in ("paid", "confirmed", "complete"):
+                log("topup received — account funded")
+                return
+            if status in ("expired", "invalid"):
+                expired = True
+                break
+        if time.monotonic() >= deadline or not expired:
+            break
+        try:
+            invoice_id, checkout_url = issue()
+            log(f"invoice expired — fresh one: {checkout_url}")
+        except Exception as e:
+            if "pending top-up" not in str(e):
+                raise
+            time.sleep(_PENDING_RETRY)
     log("topup not observed as paid (check `shc balance` later)")
