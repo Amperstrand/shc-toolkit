@@ -236,6 +236,40 @@ shc github-runner destroy --service-id "$SERVICE_ID"
 Intended audience: OSS maintainers with expensive / slow / custom CI who
 want pay-per-minute runners on machines they control.
 
+## Zero-GUI Onboarding — `shc register`
+
+Register a fresh SHC account from the CLI with nothing but a Lightning
+payment. One Nostr keypair is generated locally and becomes the account
+identity: `npub…@nomail.name` is the account email (a free
+[cashu.email](https://cashu.email) mailbox readable with the same key),
+and the key is linked to the account for Nostr auth.
+
+```bash
+pip install -e ".[register]"
+
+shc register                     # unattended: generates everything,
+                                 # opens a local QR page, waits for payment
+shc register --interactive       # prompts for email/amount/context name
+shc register --amount 5.00 --no-browser   # terminal QR only
+shc mail                         # read the account's nomail inbox
+shc mail --send-to a@b.c --subject hi --text "..." --cashu-token cashuB...
+```
+
+What happens (unattended): nsec generated locally → anonymous
+`POST /register` with generated password/names (hard API minimums) →
+full-scope API key minted over HTTP Basic → Nostr key linked
+(NIP-98 kind-27235) → BTCPay top-up invoice served at
+`http://127.0.0.1:<port>/` (QR + `lightning:` link) and polled until
+paid → context saved to `~/.config/shc/contexts/<name>.json` (0600:
+email, password, client_id, api_key, nsec).
+
+Any `shc` command with no key configured will offer the same wizard
+(TTY only; disable with `SHC_NO_REGISTER=1` or `--no-register`).
+
+Referral note: `/register` takes no referral field (attribution is
+web-session based). Our affiliate link stays in this README; an
+`npub…@nomail.name` address strongly implies tool registration.
+
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. **Empirically verified 2026-07-20**: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `grep -c 'vmx|svm' /proc/cpuinfo` = 0, `/dev/kvm` absent. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo` or `shc kvm-check <service_id>`.

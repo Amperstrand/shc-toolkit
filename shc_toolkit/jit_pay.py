@@ -40,15 +40,18 @@ def render_qr(data: str) -> bool:
     library, then plain text.
     """
     # Option 1: qrencode CLI (cleanest terminal output)
-    result = subprocess.run(
-        ["qrencode", "-t", "ANSIUTF8", "-o", "-", data],
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    if result.returncode == 0 and result.stdout:
-        print(result.stdout)
-        return True
+    try:
+        result = subprocess.run(
+            ["qrencode", "-t", "ANSIUTF8", "-o", "-", data],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0 and result.stdout:
+            print(result.stdout)
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
 
     # Option 2: Python qrcode library
     try:

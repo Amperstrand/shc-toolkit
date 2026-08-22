@@ -269,6 +269,25 @@ class SHCClient:
         elif "Content-Type" in self.session.headers:
             del self.session.headers["Content-Type"]
 
+        basic_auth = kwargs.pop("basic_auth", None)
+        saved_auth = None
+        if basic_auth is not None:
+            import base64
+            token = base64.b64encode(
+                f"{basic_auth[0]}:{basic_auth[1]}".encode()).decode()
+            saved_auth = self.session.headers.get("Authorization")
+            self.session.headers["Authorization"] = f"Basic {token}"
+        try:
+            return self._request_inner(method, url, **kwargs)
+        finally:
+            if basic_auth is not None:
+                if saved_auth is None:
+                    self.session.headers.pop("Authorization", None)
+                else:
+                    self.session.headers["Authorization"] = saved_auth
+
+    def _request_inner(self, method: str, url: str, **kwargs) -> dict[str, Any]:
+
         for attempt in range(self._max_retries):
             try:
                 resp = self.session.request(method, url, timeout=30, **kwargs)
@@ -349,8 +368,8 @@ class SHCClient:
         """
         return self._request(method.upper(), path, **kwargs)
 
-    def _get(self, path: str, params: dict | None = None) -> dict[str, Any]:
-        return self._request("GET", path, params=params)
+    def _get(self, path: str, params: dict | None = None, **kwargs) -> dict[str, Any]:
+        return self._request("GET", path, params=params, **kwargs)
 
     def _get_items(self, path: str, params: dict | None = None) -> list[dict]:
         return self._request("GET", path, params=params).get("items", [])
@@ -399,6 +418,74 @@ class SHCClient:
 
     def get_account(self) -> dict:
         return self._get("/account")
+
+    def register(
+        self,
+        *,
+        email: str,
+        password: str,
+        first_name: str,
+        last_name: str,
+        tos_accepted: bool = True,
+        country: str | None = None,
+        scope: str | None = None,
+    ) -> dict:
+        """Anonymous POST /register — creates the account and returns a
+        minted operate-scope API key alongside client_id. Uses no
+        authentication (a bare session without Bearer)."""
+        body: dict[str, Any] = {
+            "email": email,
+            "password": password,
+            "first_name": first_name,
+            "last_name": last_name,
+            "tos_accepted": tos_accepted,
+        }
+        if country:
+            body["country"] = country
+        if scope:
+            body["scope"] = scope
+        saved = self.session.headers.pop("Authorization", None)
+        try:
+            return self._post("/register", body)
+        finally:
+            if saved is not None:
+                self.session.headers["Authorization"] = saved
+
+    def create_api_key_basic(
+        self,
+        email: str,
+        password: str,
+        *,
+        name: str = "shc-toolkit",
+        scope: str = "full",
+        expires_in_days: int | None = None,
+    ) -> dict:
+        """POST /account/api-keys over HTTP Basic (fresh accounts have no
+        bearer key yet; 2FA off means no OTP header needed)."""
+        body: dict[str, Any] = {"name": name, "scope": scope}
+        if expires_in_days:
+            body["expires_in_days"] = expires_in_days
+        return self._post("/account/api-keys", body, basic_auth=(email, password))
+
+    def nostr_link_challenge(self, email: str, password: str) -> dict:
+        return self._get("/account/nostr/link-challenge",
+                         basic_auth=(email, password))
+
+    def nostr_link(self, email: str, password: str, event: dict) -> dict:
+        return self._post("/account/nostr/link", {"event": event},
+                          basic_auth=(email, password))
+
+    def topup_credit(self, amount: float | str) -> dict:
+        """POST /account/credit — BTCPay topup (confirmation-gated,
+        idempotency-keyed). Amount is sent as a 2-decimal STRING (the
+        live route rejects JSON numbers). Returns checkout/invoice pointers."""
+        import uuid as _uuid
+        amount_str = amount if isinstance(amount, str) else f"{amount:.2f}"
+        return self._confirmed_request(
+            "POST", "/account/credit",
+            json={"amount": amount_str,
+                  "idempotency_key": f"topup-{_uuid.uuid4().hex[:24]}"},
+        )
 
     def update_account(self, **kwargs) -> dict:
         return self._patch("/account", kwargs)

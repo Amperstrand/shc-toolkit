@@ -48,7 +48,10 @@ def _save_contexts(contexts: dict[str, str]) -> None:
 
 
 def _resolve_api_key(args) -> str:
-    """Resolve API key: --api-key flag > --context profile > SHC_API_KEY env."""
+    """Resolve API key: --api-key flag > --context profile > SHC_API_KEY env.
+
+    With no key anywhere AND a TTY (and no --no-register / SHC_NO_REGISTER),
+    offers the unattended zero-GUI registration wizard."""
     if getattr(args, "api_key", None):
         return args.api_key
     if getattr(args, "context", None):
@@ -60,7 +63,27 @@ def _resolve_api_key(args) -> str:
             file=sys.stderr,
         )
         sys.exit(1)
-    return os.environ.get("SHC_API_KEY", "")
+    key = os.environ.get("SHC_API_KEY", "")
+    if key:
+        return key
+    if (getattr(args, "no_register", False)
+            or os.environ.get("SHC_NO_REGISTER")
+            or not sys.stdin.isatty()):
+        return ""
+    try:
+        answer = input("No SHC account found. Create one now "
+                       "(needs only a Lightning payment)? [Y/n] ")
+    except EOFError:
+        return ""
+    if answer.strip().lower() in ("n", "no"):
+        return ""
+    from .register import register_unattended
+    from shc_toolkit import create_client
+
+    reg_client = create_client(api_key="anonymous-registration-only")
+    creds = register_unattended(reg_client)
+    os.environ["SHC_API_KEY"] = creds["api_key"]
+    return creds["api_key"]
 
 
 def _client(args) -> SHCClient:
@@ -501,6 +524,63 @@ def cmd_emails(args):
 def cmd_pay(args):
     c = _client(args)
     _print(c.pay_invoice(args.invoice_id, args.idempotency_key or str(uuid.uuid4())))
+
+
+def cmd_register(args):
+    from shc_toolkit import create_client
+    from .register import register_unattended
+
+    email = None
+    if args.interactive:
+        print("interactive mode: nsec still generated locally")
+        email = input("email [generate npub…@nomail.name]: ").strip() or None
+        topup = input(f"top-up USD [{args.amount:.2f}]: ").strip()
+        args.amount = float(topup) if topup else args.amount
+        name = input(f"context name [{args.context}]: ").strip()
+        args.context = name or args.context
+    reg_client = create_client(api_key="anonymous-registration-only")
+    creds = register_unattended(
+        reg_client, topup=args.amount, context=args.context,
+        browser=not args.no_browser, timeout=args.timeout, email=email)
+    print("\naccount ready:")
+    _print({k: v for k, v in creds.items() if k != "password"})
+
+
+def cmd_mail(args):
+    from .register import load_context
+    from .nomail import NomailClient
+
+    creds = load_context(args.context)
+    if not creds or not creds.get("nsec"):
+        print(f"no nsec in context '{args.context}' "
+              f"(shc register stores one)", file=sys.stderr)
+        sys.exit(1)
+    box = NomailClient.login(creds["nsec"])
+    try:
+        if args.send_to:
+            if not args.cashu_token:
+                q = box.quote_send()
+                print("pay this 100-sat invoice, then rerun with --cashu-token "
+                      "(testnut.cashu.space auto-pays it for free):")
+                print(q["invoice"])
+                return
+            _print(box.send_with_cashu(args.send_to, args.subject, args.text,
+                                       args.cashu_token))
+            return
+        if args.wait_for:
+            m = box.wait_for_message(args.wait_for)
+            _print(m or {"error": "timeout waiting for message"})
+            return
+        if args.read:
+            _print(box.message(args.read))
+            return
+        msgs = box.messages()
+        for m in msgs:
+            print(f"{m['id'][:8]}  {m['fromAddr'][:32]:<32}  {m.get('subject','')[:48]}")
+        if not msgs:
+            print("(inbox empty)")
+    finally:
+        box.close()
 
 
 # ── Snapshots ─────────────────────────────────────────────
@@ -1046,6 +1126,38 @@ def main():
     p.add_argument("invoice_id", type=int)
     p.add_argument("--idempotency-key")
     p.set_defaults(func=cmd_pay)
+
+    p = sub.add_parser(
+        "register",
+        help="Zero-GUI account onboarding: Nostr identity + nomail.email "
+             "mailbox + Lightning top-up. Unattended by default.",
+    )
+    p.add_argument("--interactive", action="store_true",
+                   help="Prompt for email/names/amount instead of generating")
+    p.add_argument("--amount", type=float, default=1.00,
+                   help="Top-up amount in USD (default 1.00; 0 skips top-up)")
+    p.add_argument("--context", default="default",
+                   help="Context name to save (default 'default')")
+    p.add_argument("--no-browser", action="store_true",
+                   help="Terminal QR/URL only, no local payment page")
+    p.add_argument("--timeout", type=int, default=900,
+                   help="Seconds to wait for the Lightning payment")
+    p.set_defaults(func=cmd_register)
+
+    p = sub.add_parser(
+        "mail",
+        help="Read the nomail.email inbox of the context's Nostr identity "
+             "(--context default). Optionally send (test-mint Cashu is free).",
+    )
+    p.add_argument("--context", default="default")
+    p.add_argument("--read", metavar="ID", help="Read one message")
+    p.add_argument("--wait-for", metavar="TEXT",
+                   help="Poll until a message matches TEXT (subject/sender)")
+    p.add_argument("--send-to", help="Send email (requires --cashu-token)")
+    p.add_argument("--subject", default="(no subject)")
+    p.add_argument("--text", default="")
+    p.add_argument("--cashu-token", help="Cashu token paying the 100-sat stamp")
+    p.set_defaults(func=cmd_mail)
 
     for name, func in [
         ("start", cmd_start),
