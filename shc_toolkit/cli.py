@@ -546,6 +546,19 @@ def cmd_register(args):
     _print({k: v for k, v in creds.items() if k != "password"})
 
 
+def cmd_topup(args):
+    from .register import load_context, _topup
+
+    creds = load_context(args.context)
+    if not creds or not creds.get("api_key"):
+        print(f"no usable context '{args.context}' "
+              f"(shc register stores one)", file=sys.stderr)
+        sys.exit(1)
+    cl = SHCClient(api_key=creds["api_key"])
+    _topup(cl, args.amount, browser=not args.no_browser,
+           timeout=args.timeout, log=print)
+
+
 def cmd_mail(args):
     from .register import load_context
     from .nomail import NomailClient
@@ -1158,6 +1171,20 @@ def main():
     p.add_argument("--text", default="")
     p.add_argument("--cashu-token", help="Cashu token paying the 100-sat stamp")
     p.set_defaults(func=cmd_mail)
+
+    p = sub.add_parser(
+        "topup",
+        help="Fund an EXISTING context's account via Lightning top-up "
+             "(register creates new accounts; this re-funds one).",
+    )
+    p.add_argument("--context", default="default")
+    p.add_argument("--amount", type=float, default=1.00,
+                   help="Top-up amount in USD (default 1.00)")
+    p.add_argument("--no-browser", action="store_true",
+                   help="Terminal QR/URL only, no local payment page")
+    p.add_argument("--timeout", type=int, default=900,
+                   help="Seconds to wait for the Lightning payment")
+    p.set_defaults(func=cmd_topup)
 
     for name, func in [
         ("start", cmd_start),
