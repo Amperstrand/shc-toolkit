@@ -474,11 +474,13 @@ class SHCClient:
     def nostr_link(self, email: str, password: str, event: dict) -> dict:
         return self._post("/account/nostr/link", {"event": event},
                           basic_auth=(email, password))
-
     def topup_credit(self, amount: float | str) -> dict:
         """POST /account/credit — BTCPay topup (confirmation-gated,
         idempotency-keyed). Amount is sent as a 2-decimal STRING (the
-        live route rejects JSON numbers). Returns checkout/invoice pointers."""
+        live route rejects JSON numbers). Only ONE pending topup per
+        account: a second call 409-conflicts with 'pending top-up' until
+        the previous invoice is paid or expires. Returns checkout/invoice
+        pointers."""
         import uuid as _uuid
         amount_str = amount if isinstance(amount, str) else f"{amount:.2f}"
         return self._confirmed_request(
