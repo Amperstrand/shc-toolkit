@@ -393,10 +393,17 @@ def test_events_feed_live():
 
 @pytest.mark.allow_network
 def test_cloud_init_validate_live():
-    """Cloud-init validate endpoint accepts a compliant config."""
+    """Cloud-init validate endpoint accepts a compliant config.
+
+    Uses the first ACTIVE VM on the account — the original hardcoded
+    1077 (a long-deleted test VM) 404'd forever after."""
     client = SHCClient()
+    vms = [v for v in client.list_vms()
+           if str(v.get("service_status", v.get("status", ""))).lower() == "active"]
+    if not vms:
+        pytest.skip("no active VM on the account to validate against")
     result = client.validate_vm_cloud_init(
-        1077,
+        int(vms[0]["id"]),
         cloud_init="#cloud-config\npackage_update: true\n",
     )
     assert isinstance(result, dict)
