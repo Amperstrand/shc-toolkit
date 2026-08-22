@@ -82,6 +82,18 @@ def client():
 
 @pytest.fixture(scope="session")
 def vm(client):
+    # self-heal first: a previous suite run whose teardown failed
+    # silently leaves pytest-test-VMs billing forever (leaked twice on
+    # 2026-08-22; caught by the readiness cost sweep)
+    try:
+        for v in client.list_vms():
+            if v.get("hostname") == "pytest-test-vm":
+                try:
+                    client.cancel_vm(int(v["id"]), immediate=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
     try:
         result = client.submit_order(
             package_id=81, pricing_id=245, hostname="pytest-test-vm"
