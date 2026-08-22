@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`scripts/testnut_faucet.py`** — Mint free testnet ecash from testnut.cashu.space (FakeWallet auto-settles NUT-04 quotes; NUT-05 blind mint via electrum_ecc). cashu.email accepts any mint for its 100-sat stamp → **free real email sending**, live-verified 2026-08-22 (`ok: true`, `/api/sent` status=sent; the wallet verifies the blind signatures — a bad token 402s). cdk-mintd gotchas encoded: quote `state: "PAID"` uppercase, BlindedMessage requires keyset `id`.
 
+- **`shc topup`** — Fund an EXISTING context's account (register only creates new ones). Recovery path for funded-account tests; reuses _topup (reissue loop, stable QR page). Runbook for the live funded test: `docs/register-live-test-runbook.md`.
 ### Fixed
 - **`_topup` survives invoice expiry; QR never blocks the poll.** Live-earned 2026-08-22: BTCPay invoices expire (~15-30 min) and SHC allows ONE pending top-up per account — the original flow sat on a dead invoice until overall timeout while the synchronous QR page blocked polling. Now: non-blocking page, reissue on `expired`, single-pending 409s waited out (60 s) rather than hammered. `topup_credit` documents the single-pending contract.
 - **Stable payment-page URL across reissues.** Ephemeral per-window ports made every printed payment URL stale within 25 minutes (observed: 4 different ports in one afternoon). `PaymentPage` serves a fixed port (`SHC_PAY_PAGE_PORT`, default 8923), updates content in place, and self-refreshes open tabs every 30 s.
