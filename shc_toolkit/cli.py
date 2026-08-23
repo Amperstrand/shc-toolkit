@@ -213,7 +213,9 @@ def cmd_reinstall(args):
 
 def cmd_cancel(args):
     c = _client(args)
-    _print(c.cancel_vm(args.service_id), _get_fmt(args))
+    immediate = not getattr(args, "end_of_term", False)
+    _print(c.cancel_vm(args.service_id, immediate=immediate),
+           _get_fmt(args))
 
 
 # ── Ordering ──────────────────────────────────────────────
@@ -1196,6 +1198,10 @@ def main():
     ]:
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
+        if name == "cancel":
+            p.add_argument("--end-of-term", action="store_true",
+                           help="cancel at term end instead of immediately "
+                                "(VM keeps its paid remaining term; no renewal)")
         p.set_defaults(func=func)
 
     p = sub.add_parser(
