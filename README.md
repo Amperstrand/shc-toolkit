@@ -266,6 +266,13 @@ email, password, client_id, api_key, nsec).
 Any `shc` command with no key configured will offer the same wizard
 (TTY only; disable with `SHC_NO_REGISTER=1` or `--no-register`).
 
+**Multiple accounts:** contexts are per-account — run `shc register`
+once per account (each stores its own nsec/npub/email/password/api_key
+at `~/.config/shc/contexts/<name>.json`, mode 0600). Switch with
+`--context <name>` on any command. The nsec is a standard Nostr key:
+portable to any other Nostr tool, and it remains the recovery/mail
+identity for that account.
+
 Referral note: `/register` takes no referral field (attribution is
 web-session based). Our affiliate link stays in this README; an
 `npub…@nomail.name` address strongly implies tool registration.
