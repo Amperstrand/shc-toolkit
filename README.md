@@ -267,12 +267,22 @@ email, password, client_id, api_key, nsec).
 Any `shc` command with no key configured will offer the same wizard
 (TTY only; disable with `SHC_NO_REGISTER=1` or `--no-register`).
 
-**Multiple accounts:** contexts are per-account — run `shc register`
-once per account (each stores its own nsec/npub/email/password/api_key
-at `~/.config/shc/contexts/<name>.json`, mode 0600). Switch with
-`--context <name>` on any command. The nsec is a standard Nostr key:
-portable to any other Nostr tool, and it remains the recovery/mail
-identity for that account.
+**Multiple accounts (profiles):** aws/gcloud-style named profiles —
+run `shc register` once per account. Identities live at
+`~/.config/shc/profiles/<name>.json` (0600) and are identified **by
+npub** (the nsec is the account identity: portable to any Nostr tool,
+and the recovery/mail key for that account).
+
+```bash
+shc profile list            # accounts by npub, * marks the active one
+shc profile use eddy-e2e    # persist the active account
+shc profile show            # full credential set of the active account
+```
+
+Resolution precedence (aws-style): `--api-key` flag > `SHC_PROFILE`
+env > `SHC_API_KEY` env > active profile. `--context <name>` still
+works as an alias; legacy `contexts.json` and register contexts
+migrate lazily and non-destructively.
 
 Referral note: `/register` takes no referral field (attribution is
 web-session based). Our affiliate link stays in this README; an
