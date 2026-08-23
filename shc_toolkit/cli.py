@@ -52,18 +52,25 @@ def _resolve_api_key(args) -> str:
 
     With no key anywhere AND a TTY (and no --no-register / SHC_NO_REGISTER),
     offers the unattended zero-GUI registration wizard."""
+    from .profiles import resolve_key, get_profile, migrate_legacy
+    flag_ctx = getattr(args, "context", None)
     if getattr(args, "api_key", None):
         return args.api_key
-    if getattr(args, "context", None):
-        contexts = _load_contexts()
-        if args.context in contexts:
-            return contexts[args.context]
+    if flag_ctx:
+        migrate_legacy()
+        d = get_profile(flag_ctx)
+        if d and d.get("api_key"):
+            return d["api_key"]
         print(
-            f"Error: context '{args.context}' not found. Run 'shc context list' to see available.",
+            f"Error: profile/context '{flag_ctx}' not found. Run 'shc profile list' to see available.",
             file=sys.stderr,
         )
         sys.exit(1)
-    key = os.environ.get("SHC_API_KEY", "")
+    key, prof = resolve_key()
+    if prof and not key:
+        print(f"Error: SHC_PROFILE='{prof}' has no usable api_key.",
+              file=sys.stderr)
+        sys.exit(1)
     if key:
         return key
     if (getattr(args, "no_register", False)
@@ -980,6 +987,36 @@ def cmd_github_runner_destroy(args):
 # ── Main ──────────────────────────────────────────────────
 
 
+def cmd_profile(args):
+    from .profiles import list_profiles, set_active, active_profile, get_profile
+
+    if args.profile_command == "list":
+        profiles = list_profiles()
+        if not profiles:
+            print("No profiles. 'shc register' creates one, or 'shc context add' imports a key.")
+            return
+        act = active_profile()
+        for p in profiles:
+            ident = p["npub"] or p["email"] or "key-only"
+            print(f"  {'*' if p['active'] else ' '} {p['name']:16s} "
+                  f"client {str(p['client_id'] or '?'):>5s}  {ident[:24]}…")
+        if not act:
+            print("\n  (no active profile — 'shc profile use <name>' to set one)")
+    elif args.profile_command == "use":
+        if not get_profile(args.name):
+            print(f"Profile '{args.name}' not found.", file=sys.stderr)
+            sys.exit(1)
+        set_active(args.name)
+        print(f"Active profile is now '{args.name}' "
+              f"(persists; override per-run with --api-key/SHC_API_KEY)")
+    elif args.profile_command == "show":
+        act = active_profile()
+        if not act:
+            print("No active profile set. 'shc profile use <name>' first.")
+            return
+        _print(get_profile(act))
+
+
 def cmd_context(args):
     contexts = _load_contexts()
     if args.ctx_command == "list":
@@ -1555,8 +1592,8 @@ def main():
     p.add_argument("shell", choices=["bash", "zsh"], help="Target shell")
     p.set_defaults(func=cmd_completion)
 
-    # ── Context management ──
-    p_ctx = sub.add_parser("context", help="Manage API key contexts")
+    # ── Context management (legacy alias of profile) ──
+    p_ctx = sub.add_parser("context", help="Manage API key contexts (legacy alias of 'profile')")
     p_ctx_sub = p_ctx.add_subparsers(dest="ctx_command", required=True)
     p_ctx_sub.add_parser("list", help="List saved contexts")
     p_ctx_add = p_ctx_sub.add_parser("add", help="Add a new context")
@@ -1566,6 +1603,18 @@ def main():
     p_ctx_use = p_ctx_sub.add_parser("use", help="Switch to a context")
     p_ctx_use.add_argument("name", help="Context name to use")
     p_ctx.set_defaults(func=cmd_context)
+
+    # ── Profile management (aws/gcloud-style, npub-identified) ──
+    p_prof = sub.add_parser(
+        "profile", help="Manage named account profiles "
+                        "(identity = npub; resolution: flag > SHC_PROFILE "
+                        "> SHC_API_KEY > active profile)")
+    p_prof_sub = p_prof.add_subparsers(dest="profile_command", required=True)
+    p_prof_list = p_prof_sub.add_parser("list", help="List profiles (by npub)")
+    p_prof_use = p_prof_sub.add_parser("use", help="Set the active profile")
+    p_prof_use.add_argument("name")
+    p_prof_sub.add_parser("show", help="Show the active profile")
+    p_prof.set_defaults(func=cmd_profile)
 
     # ── reap orphaned VMs ────────────────────────────────────
     def cmd_reap(args):

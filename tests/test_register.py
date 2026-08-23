@@ -239,7 +239,11 @@ class _NotATTY:
 def test_resolve_skips_register_when_not_tty(monkeypatch):
     from shc_toolkit import cli
     monkeypatch.delenv("SHC_API_KEY", raising=False)
+    monkeypatch.delenv("SHC_PROFILE", raising=False)
     monkeypatch.setattr("sys.stdin", _NotATTY())
+    # isolate from the developer's real active-profile pointer
+    from shc_toolkit import profiles
+    monkeypatch.setattr(profiles, "active_profile", lambda: None)
     args = type("A", (), {"api_key": None, "context": None,
                           "no_register": False})()
     assert cli._resolve_api_key(args) == ""
@@ -249,7 +253,10 @@ def test_resolve_register_gate_env(monkeypatch):
     from shc_toolkit import cli
     monkeypatch.setenv("SHC_NO_REGISTER", "1")
     monkeypatch.delenv("SHC_API_KEY", raising=False)
+    monkeypatch.delenv("SHC_PROFILE", raising=False)
     monkeypatch.setattr("sys.stdin", Path("/dev/null"))
+    from shc_toolkit import profiles
+    monkeypatch.setattr(profiles, "active_profile", lambda: None)
     args = type("A", (), {"api_key": None, "context": None,
                           "no_register": True})()
     assert cli._resolve_api_key(args) == ""
