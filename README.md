@@ -238,19 +238,19 @@ want pay-per-minute runners on machines they control.
 
 ## Zero-GUI Onboarding — `shc register`
 
-Register a fresh SHC account from the CLI with nothing but a Lightning
-payment. One Nostr keypair is generated locally and becomes the account
-identity: `npub…@nomail.name` is the account email (a free
-[cashu.email](https://cashu.email) mailbox readable with the same key),
-and the key is linked to the account for Nostr auth.
+Start from nothing — no SHC account, no browser, one Lightning payment.
+The first top-up invoice **opens as a QR in your browser by default**;
+pay it with any Lightning wallet and the account is live.
 
 ```bash
 pip install -e ".[register]"
 
-shc register                     # unattended: generates everything,
-                                 # opens a local QR page, waits for payment
+shc register                     # THE getting-started path: generates
+                                 # everything, opens the browser QR page,
+                                 # waits for your payment — done
 shc register --interactive       # prompts for email/amount/context name
-shc register --amount 5.00 --no-browser   # terminal QR only
+shc register --amount 5.00 --no-browser   # terminal QR + URL instead
+shc topup --context default      # re-fund an existing account later
 shc mail                         # read the account's nomail inbox
 shc mail --send-to a@b.c --subject hi --text "..." --cashu-token cashuB...
 ```
@@ -258,9 +258,10 @@ shc mail --send-to a@b.c --subject hi --text "..." --cashu-token cashuB...
 What happens (unattended): nsec generated locally → anonymous
 `POST /register` with generated password/names (hard API minimums) →
 full-scope API key minted over HTTP Basic → Nostr key linked
-(NIP-98 kind-27235) → BTCPay top-up invoice served at
-`http://127.0.0.1:<port>/` (QR + `lightning:` link) and polled until
-paid → context saved to `~/.config/shc/contexts/<name>.json` (0600:
+(NIP-98 kind-27235) → BTCPay top-up invoice served on a stable local
+URL (`http://127.0.0.1:8923/` by default; QR + `lightning:` link,
+auto-refreshes across invoice reissues) → polled until paid → context
+saved to `~/.config/shc/contexts/<name>.json` (0600:
 email, password, client_id, api_key, nsec).
 
 Any `shc` command with no key configured will offer the same wizard

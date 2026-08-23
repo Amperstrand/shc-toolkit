@@ -148,6 +148,43 @@ Bypass with `@pytest.mark.allow_network` or `SHC_TEST_LIVE=1` env var.
 
 The SHC API key is stored in `SHC_API_KEY` environment variable. It is separate from the portal password. We do NOT store the portal password anywhere in the codebase. The API key has full-scope access (ordering, cancellation, billing).
 
+## Zero-GUI account onboarding (2026-08-22/23, live-proven)
+
+`shc register` (default: unattended) creates a complete account with ONE
+Lightning payment and zero browser-GUI interaction. The generated Nostr
+keypair IS the account identity: email `npub…@nomail.name` (free
+cashu.email mailbox, readable via `shc mail` with the same key), nostr
+link via NIP-98. Contexts (one per account) live at
+`~/.config/shc/contexts/<name>.json` (0600): email, password,
+client_id, api_key, **nsec** — the nsec is the portable identity and the
+recovery/mail key. `shc topup --context <name>` re-funds an existing
+account (recovery path); any `shc` command on a TTY with no key offers
+the wizard (`SHC_NO_REGISTER`/`--no-register` opt-out; CI/non-TTY
+unchanged). First top-up QR **opens in the browser by default**
+(`--no-browser` for terminal QR + URL).
+
+**Live-earned SHC API contracts** (all hit during the 2026-08-22/23
+E2E; encode, don't re-earn):
+- `POST /register` is anonymous; the minted key is capped at
+  `operate` scope — mint a `full` key via `POST /account/api-keys` over
+  HTTP Basic (fresh accounts have no 2FA, so no OTP header).
+- nostr link = NIP-98 kind **27235** with `u`, `method`, `challenge`
+  tags (the challenge response's `nip98.required_tags` self-documents).
+- `POST /account/credit` amount is a 2-decimal **STRING** (JSON float
+  422s); only ONE pending top-up per account (409 conflict until the
+  prior invoice pays or lapses).
+- order invoices generate **asynchronously** — `invoice_id` is absent
+  from the order response; poll `GET /orders` then pay from credit via
+  `POST /payment/<id>/checkout` (idempotency key: 16–128 chars,
+  `[A-Za-z0-9_-]` — dots REJECTED).
+- **end-of-term cancel BEFORE the invoice settles VOIDS it** and wedges
+  the service in `pending` forever (no jobs, no invoice). Schedule
+  `cancel --end-of-term` only AFTER `provisioning_state: ready`.
+- SSH key: order-time `ssh_key` rides the cloud-init seed on every
+  tier, but `apply-live` is confirmation-gated (409→confirm) and races
+  sshd boot — verify landing via `GET /vm/<id>/ssh-keys` fingerprint,
+  retry, and STRIP trailing newlines (SHC silently no-ops otherwise).
+
 ## Known limitations
 
 - **NoDNS**: Python-only feature. Not available in the TF provider or TF bridge. Use `shc nodns --ip <ip>` CLI separately.
