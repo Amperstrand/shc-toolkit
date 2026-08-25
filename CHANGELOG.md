@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`_diagnose()` HEALTHY check could never fire.** Used `provisioning_state == "ready"` — which SHC VMs never report (lesson #1) — so healthy VMs fell through to `UNKNOWN`. Now: `service_status == "active"` + IP + SSH-reachable = HEALTHY, plus a new `ACTIVE_NO_SSH` diagnosis. Found by cross-repo behavioral parity audit (Prompt 1).
+- **`compute.py` gcloud-compat order path sent a legacy `options` block with wrong option IDs** (126/108/167 are NVMe/gui options, not Dev's 174/198; the field was silently ignored by the API anyway). Now sends `config_options` resolved from the catalog model defaults + template, and `ssh_key` as a top-level field. Also fixed a broken f-string in the error path (`print("...{e}")` without `f`). Found by DRY audit (Prompt 3).
+- **Removed dead constants** `DEV_VPS_ORDER_FORM`, `DEV_VPS_DEBIAN_OPTION`, `DEV_VPS_SSH_KEY_OPTION`, `DEV_VPS_IPV4_OPTION`.
+
+### Changed
+- **Order-form IDs moved into `catalog_model._LINES`** (`order_form` key) with an `order_form_id()` lookup — single source of truth. `generate_sizes.py` now emits Go's `lineOrderFormIDs` map from the model instead of a hand-maintained copy. Found by DRY audit (Prompt 3).
+- **`generate_sizes.py` now also emits Go's `knownTemplates`** (34 templates from the model) and `dailyPriceForPackage`/`orderFormIDForPackage` helpers into sizes.go — the entire file is generated; no hand-edited sections remain.
+
 ### Added
 - **Named profiles (aws/gcloud-style multi-account)** — `shc_toolkit/profiles.py` + `shc profile list|use|show`. One store at `~/.config/shc/profiles/<name>.json` (0600) unifying register contexts and the legacy contexts.json (lazily, non-destructively migrated). Identity = npub (our Nostr key IS the account identity); resolution precedence: `--api-key` > `SHC_PROFILE` > `SHC_API_KEY` > active pointer (`shc profile use`, gcloud-configurations-style persistence). `--context` remains as an alias. 6 offline tests incl. precedence matrix and 0600 enforcement.
 - **AGENTS.md: Zero-GUI onboarding section + live-earned API contract table** — the whole register/topup/nostr-link/SSH-key knowledge set from the 2026-08-22/23 E2E (amount-as-string, single pending topup, async order invoices, end-of-term-cancel-voids-invoice, NIP-98 shape, apply-live newline stripping).

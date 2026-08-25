@@ -1862,6 +1862,7 @@ class SHCClient:
 
         diagnosis_code, diagnosis = self._diagnose(
             provisioning_state=provisioning_state,
+            service_status=service_status,
             bootstrap_completed_at=bootstrap_completed_at,
             age_seconds=age_seconds,
             ip_assigned=ip_assigned,
@@ -1917,6 +1918,7 @@ class SHCClient:
     def _diagnose(
         *,
         provisioning_state: str,
+        service_status: str,
         bootstrap_completed_at: str | None,
         age_seconds: int,
         ip_assigned: str | None,
@@ -1948,8 +1950,16 @@ class SHCClient:
                 "No activity events recorded despite VM age > 10min. "
                 "Observability gap.",
             )
-        if provisioning_state == "ready" and port_22_reachable:
+        # SHC VMs never report provisioning_state == "ready" (lesson #1);
+        # healthy = active + IP + SSH reachable.
+        if service_status == "active" and ip_assigned and port_22_reachable:
             return ("HEALTHY", "VM is healthy and SSH-reachable.")
+        if service_status == "active" and ip_assigned and not port_22_reachable:
+            return (
+                "ACTIVE_NO_SSH",
+                "VM is active with IP but SSH is not reachable — likely "
+                "still booting or firewall issue.",
+            )
         if provisioning_state == "provisioning" and age_seconds <= 300:
             return (
                 "PROVISIONING_IN_PROGRESS",

@@ -42,3 +42,4 @@ uv.lock
 *.png
 *.jpg
 *.jpeg
+.mypy_cache/

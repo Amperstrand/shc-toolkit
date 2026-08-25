@@ -31,6 +31,7 @@ _LINES: dict[str, dict] = {
         "price_base": 55,
         "price_step": 1,
         "label": "NVMe VPS",
+        "order_form": 1,
     },
     "hdd": {
         "pkgs": [36, 37, 38, 39, 40],
@@ -38,6 +39,7 @@ _LINES: dict[str, dict] = {
         "price_base": 67,
         "price_step": 4,
         "label": "HDD VPS",
+        "order_form": 3,
     },
     "ssd": {
         "pkgs": [56, 57, 58, 59, 60],
@@ -45,6 +47,7 @@ _LINES: dict[str, dict] = {
         "price_base": 147,
         "price_step": 4,
         "label": "SSD VPS",
+        "order_form": 7,
     },
     "dev": {
         "pkgs": [80, 81, 82, 83, 84],
@@ -52,6 +55,7 @@ _LINES: dict[str, dict] = {
         "price_base": 241,
         "price_step": 4,
         "label": "Dev VPS",
+        "order_form": 11,
     },
 }
 
@@ -187,6 +191,13 @@ def option_ids(package_id: int) -> dict[str, int]:
     line, tier = r
     base = _LINES[line]["opt_base"] + tier * 4
     return {name: base + i for i, name in enumerate(_OPT_NAMES)}
+
+
+def order_form_id(package_id: int) -> int:
+    r = _resolve(package_id)
+    if r is None:
+        raise KeyError(f"Unknown package_id {package_id}")
+    return _LINES[r[0]]["order_form"]
 
 
 def template_option_id(line: str) -> int:

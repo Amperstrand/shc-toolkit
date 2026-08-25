@@ -71,8 +71,6 @@ def _parse_python_sizes(path: Path) -> dict[str, tuple[int, int]]:
 
     # Try importing the module in-package (handles relative imports)
     try:
-        import sys
-
         pkg_root = str(path.parent.parent)
         if pkg_root not in sys.path:
             sys.path.insert(0, pkg_root)

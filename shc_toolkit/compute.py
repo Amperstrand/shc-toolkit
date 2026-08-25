@@ -64,10 +64,6 @@ MACHINE_TYPE_MAP = {
     },
 }
 
-DEV_VPS_ORDER_FORM = 11
-DEV_VPS_DEBIAN_OPTION = 126
-DEV_VPS_SSH_KEY_OPTION = 108
-DEV_VPS_IPV4_OPTION = 167
 METADATA_FILE = Path.home() / ".shc-compute" / "metadata.json"
 
 
@@ -322,24 +318,37 @@ def cmd_instances(args):
         if Path(ssh_key).exists():
             ssh_key_content = Path(ssh_key).read_text().strip()
 
+        # config_options resolved from the catalog model (the legacy `options`
+        # field was silently ignored by the API — see docs/dry-architecture.md).
+        opts = client.get_config_options(mt["package_id"])
+        config_options = {
+            str(o["option_id"]): o["values"][0]
+            for o in (
+                opts.get("ram"),
+                opts.get("cpu"),
+                opts.get("disk"),
+                opts.get("ipv4s"),
+            )
+            if o
+        }
+        if "template" in opts:
+            config_options[str(opts["template"]["option_id"])] = "debian13-cloud"
+
         order_kwargs = {
             "package_id": mt["package_id"],
             "pricing_id": mt["pricing_id"],
-            "order_form_id": DEV_VPS_ORDER_FORM,
             "hostname": name,
-            "options": {
-                str(DEV_VPS_SSH_KEY_OPTION): ssh_key_content,
-                str(DEV_VPS_DEBIAN_OPTION): "debian13-cloud",
-                str(DEV_VPS_IPV4_OPTION): "none",
-            },
+            "config_options": config_options,
             "pay": False,
         }
+        if ssh_key_content:
+            order_kwargs["ssh_key"] = ssh_key_content
 
         try:
             result = client.submit_order(**order_kwargs)
             service_id = result.get("service_id") or result.get("id")
-        except SHCError:
-            print("ERROR ordering VM: {e}", file=sys.stderr)
+        except SHCError as e:
+            print(f"ERROR ordering VM: {e}", file=sys.stderr)
             sys.exit(1)
 
         md = _load_metadata()

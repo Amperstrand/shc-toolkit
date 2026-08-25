@@ -24,8 +24,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from shc_toolkit.catalog_model import _LINES as _model_lines
 from shc_toolkit.catalog_model import packages as _packages
 from shc_toolkit.catalog_model import pricing_id as _pricing_id
+from shc_toolkit.catalog_model import templates as _templates
 from shc_toolkit.sizes import spec_name
 
 
@@ -118,6 +120,35 @@ func resolveSpecs(cpu, ramMB, diskGB int64, line string) (int64, int64, error) {
 	}
 	return best.PackageID, best.PricingID, nil
 }
+
+// knownTemplates is generated from catalog_model — do not edit by hand.
+var knownTemplates = []string{
+__TEMPLATES__
+}
+
+var lineOrderFormIDs = map[string]int64{
+__ORDER_FORMS__
+}
+
+func orderFormIDForPackage(packageID int64) (int64, bool) {
+	for _, s := range sizeMap {
+		if s.PackageID == packageID {
+			if formID, ok := lineOrderFormIDs[s.Line]; ok {
+				return formID, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func dailyPriceForPackage(packageID int64) (float64, bool) {
+	for _, s := range sizeMap {
+		if s.PackageID == packageID {
+			return s.DailyPrice, true
+		}
+	}
+	return 0, false
+}
 '''
 
 
@@ -132,7 +163,15 @@ def render_go() -> str:
             f"{key}{pad}{{{r['package_id']}, {r['pricing_id']}, {r['cpu']}, "
             f"{r['ram_mb']}, {r['disk_gb']}, \"{r['line']}\", \"{r['name']}\", {r['daily_price']:.2f}}},"
         )
-    return _GO_TEMPLATE.replace("__ENTRIES__", "\n".join(lines))
+    tmpl_lines = "\n".join(f'\t"{t}",' for t in sorted(_templates("dev")))
+    form_lines = "\n".join(
+        f'\t"{line}": {info["order_form"]},' for line, info in _model_lines.items()
+    )
+    return (
+        _GO_TEMPLATE.replace("__ENTRIES__", "\n".join(lines))
+        .replace("__TEMPLATES__", tmpl_lines)
+        .replace("__ORDER_FORMS__", form_lines)
+    )
 
 
 # ── Pulumi renderer (shc-pulumi/src/shc_pulumi/sizes.py) ────────────
