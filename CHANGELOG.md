@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`scripts/live_smoke.py`** — Versioned live smoke: order → active+IP readiness → ssh_key persistence check → immediate cancel with refund verification. Live-verified (73s, $0.25 refund). Wired into `api-drift.yml` as a weekly `live-order-smoke` job with ephemeral SSH keygen, orphan reaping, and deduplicated auto-issue on failure. Catches regressions the unit suite can't (storefront triple, key persistence, zone health) — it's what exposed the Go balance-parse bug.
+
 ### Fixed
 - **Cross-repo parity CI regressed (40 false size-map issues).** `_parse_python_sizes` imported `shc_toolkit.sizes` in-package, which triggers `__init__.py` → `import httpx` — unavailable in the bare-Python CI job. Now loads `catalog_model.py` standalone (stdlib-only, dependency-free) via importlib, so the audit works in any environment.
 - **Safety scanner flagged setuptools 79.0.1 CVE (SFTY-20260721-58460).** The `pip install --upgrade setuptools>=83` pre-scan fix existed only in the pip-audit job; now applied to the safety job too.

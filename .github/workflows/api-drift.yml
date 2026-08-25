@@ -5,6 +5,9 @@ on:
     - cron: "0 8 * * 1"  # Weekly: Monday 08:00 UTC
   workflow_dispatch:
 
+permissions:
+  issues: write
+
 jobs:
   drift-check:
     name: Check SHC API for changes
@@ -244,4 +247,64 @@ jobs:
                 '3. Run tests: `python3 -m pytest tests/test_unit.py`',
               ].join('\n'),
               labels: ['catalog-model-drift', 'bug']
+            });
+
+  live-order-smoke:
+    name: Live order smoke (order, provision, cancel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - run: pip install -e .
+
+      - name: Generate ephemeral SSH key
+        run: ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+
+      - name: Run live smoke
+        id: smoke
+        run: python3 scripts/live_smoke.py > /tmp/live-smoke.txt 2>&1
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        continue-on-error: true
+
+      - name: Reap on failure
+        if: steps.smoke.outcome != 'success'
+        run: |
+          python3 - << 'PY'
+          from shc_toolkit.client import SHCClient
+          import os
+          c = SHCClient(api_key=os.environ["SHC_API_KEY"])
+          orphans = c.reap_orphans(max_age_hours=0.0, hostname_prefixes=["ci-live-smoke"], dry_run=False)
+          print(f"reaped: {len(orphans)}")
+          PY
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        continue-on-error: true
+
+      - name: Create issue on failure
+        if: steps.smoke.outcome != 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            let output = '';
+            try { output = readFileSync('/tmp/live-smoke.txt', 'utf8'); } catch (e) {}
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'live-smoke-failure'
+            });
+            if (issues.data.length > 0) {
+              core.info('Smoke failure issue already open, skipping');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Live order smoke failed (order/provision/cancel path broken)',
+              body: ['The weekly live smoke (`scripts/live_smoke.py`) failed. Full order→provision→ssh_key→cancel path against the real API.', '', '```', output, '```', '', 'Action items: re-run locally with SHC_API_KEY, check the storefront triple / ssh_key persistence / Dev vs NVMe zone.'].join('\n'),
+              labels: ['live-smoke-failure', 'bug']
             });
