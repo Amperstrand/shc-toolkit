@@ -355,3 +355,9 @@ NVMe Starter (pkg 23, Katy-TX) probed via SSH on 2026-07-20: `grep -c 'vmx|svm' 
 
 **Affected**: Firecracker PoC, QEMU/KVM-in-VM, any nested virtualization use case.
 **Fix**: Always order Dev VPS plans (pkg 80-84) for nested KVM workloads. Verify with `shc kvm-check <service_id>`.
+
+### 19. Scripted multi-file edits fail partially and silently
+Two incidents in one session: a Python edit script aborted mid-list leaving `cross-repo-parity.yml` unconverted while four sibling files converted (AGENTS.md then documented the intended-but-false state); a trigger-block replacement dropped `workflow_dispatch:` from `integration.yml`, producing valid YAML that GitHub rejects with a 0s failure. Both shipped because the edits *looked* done.
+
+**Affected**: any scripted bulk edit across workflow/config files.
+**Fix**: after a scripted multi-file edit, grep for the intended end-state across ALL targets (not the ones the script reported), and exercise the result (e.g. `gh workflow run <name>`) — YAML-valid ≠ workflow-valid.
