@@ -291,7 +291,7 @@ web-session based). Our affiliate link stays in this README; an
 ## Known Limitations
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. **Empirically verified 2026-07-20**: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `grep -c 'vmx|svm' /proc/cpuinfo` = 0, `/dev/kvm` absent. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo` or `shc kvm-check <service_id>`.
-- **Dev zone scheduler hang (issue #28)**: Dev VPS plans (pkg 80–84, Cherryvale, KS) may fail to provision — the scheduler never assigns an IP, VMs stay in `pending` indefinitely. This is an SHC platform issue, not a toolkit bug. NVMe/SSD/HDD VPS in Katy, TX work correctly with all templates including `debian13-cloud`. Probe with `scripts/dev-zone-probe.py`. **Still broken as of 2026-08-13.**
+- **Dev zone scheduler hang (issue #28) — RESOLVED**: Dev VPS plans (pkg 80–84, Cherryvale, KS) previously failed to provision (scheduler never assigned an IP). **Recovered and verified 2026-08-25** via `scripts/dev-zone-probe.py`: pkg 80 provisioned in 85s (debian12) and 102s (debian13) — confirming the old "debian13 deadlock" (#24) was purely the zone scheduler, not the template. Nested-KVM workloads (Dev plans only) are available again.
 - **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04.
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.

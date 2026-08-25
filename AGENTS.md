@@ -121,7 +121,7 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | `coverage.yml` | dispatch, tag | pytest --cov coverage reporting (baseline, no thresholds yet) |
 | `security.yml` | dispatch, tag | bandit + safety + pip-audit security scanning |
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
-| `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC Dev VPS (fails while Dev zone broken — issue #28; notifies + doubles as zone-recovery detector) |
+| `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC Dev VPS |
 | `reap-orphan-vms.yml` | hourly + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
@@ -195,7 +195,7 @@ E2E; encode, don't re-earn):
 - **SHC "ready" fires before cloud-init finishes**: Wait ~120s after `provisioning_state: ready` before assuming full VM configuration.
 - **API key lifecycle**: Keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`.
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). Empirically verified 2026-07-20: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `vmx/svm` count=0, `/dev/kvm` absent. SSD VPS in same datacenter (Cherryvale-KS) also lacks it. The limitation is plan-type-specific, not region-specific. Verify with `shc kvm-check <service_id>`.
-- **Dev zone scheduler hang**: Dev VPS plans (pkg 80–84, Cherryvale, KS) may fail to provision — the scheduler never assigns an IP. This is issue #28, unrelated to OS template. All other zones (NVMe/SSD/HDD in Katy, TX) work correctly with all templates including `debian13-cloud`. Probe with `scripts/dev-zone-probe.py`.
+- **Dev zone (issue #28) — RESOLVED 2026-08-25**: Dev VPS (Cherryvale, KS) provisioning recovered; probe verifies pkg 80 in ~90–100s with both debian12 and debian13. If it regresses, `scripts/dev-zone-probe.py` detects it.
 - **Identity-class operations**: `revokeApiKey`, `beginTwoFactorEnrollment`, `enableTwoFactor`, `disableTwoFactor`, `changePassword`, `linkNostrIdentity`, `unlinkNostrIdentity`, `updateNip05` are Basic+OTP-only — NOT callable with API keys and NOT exposed by the MCP server. Do NOT add these to TOOL_MAP (the MCP drift CI will flag them). The `x-shc-mcp-exposure: hidden` annotation (20 ops) in the spec marks these.
 
 ## Testing Protocol (MANDATORY)
@@ -321,10 +321,10 @@ SHCMCPClient methods that call `call_tool("toolName", ...)` directly work correc
 **Fix**: When adding new MCP wrappers, always add BOTH the method AND the TOOL_MAP entry.
 
 ### 13. debian13-cloud template works fine (earlier deadlock diagnosis was wrong)
-`debian13-cloud` was previously thought to deadlock (cloud-init never starts sshd). The actual problem was the **Dev zone scheduler hang** (issue #28) — VMs in Cherryvale, KS (Dev VPS, pkg 80–84) never fully provision regardless of template. debian13-cloud works correctly on NVMe/SSD/HDD VPS in Katy, TX. The default template is `debian13-cloud` everywhere.
+`debian13-cloud` was previously thought to deadlock (cloud-init never starts sshd). The actual problem was the **Dev zone scheduler hang** (issue #28). Verified in BOTH directions 2026-08-25: debian13 provisions in Katy TX (NVMe/SSD/HDD) AND in the recovered Cherryvale Dev zone (102s, pkg 80). The default template is `debian13-cloud` everywhere.
 
 **Affected**: Default template on `order_vm()`, `reinstall_with_cloud_init()`, `check_stock()`, CLI `--template` flags.
-**Fix**: No workaround needed. The Dev zone scheduler issue (#28) is tracked separately via `scripts/dev-zone-probe.py`.
+**Fix**: None needed — root cause was the zone scheduler (resolved 2026-08-25). `scripts/dev-zone-probe.py` guards against regression.
 
 ### 14. Cloud-init API uses /virtual-machines/{id} path convention
 Cloud-init endpoints use `/virtual-machines/{virtualMachineId}/cloud-init/...` — NOT the standard `/vm/{serviceId}/...` convention used everywhere else in the API. The value is the same `service_id`, only the URL path shape differs.

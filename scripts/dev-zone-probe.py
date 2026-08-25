@@ -37,7 +37,7 @@ MODULE_GROUP_ID = 7
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--timeout", type=int, default=300, help="seconds to wait for ready (default 300)")
-    parser.add_argument("--template", default="debian12-cloud", help="template to test (default debian12-cloud)")
+    parser.add_argument("--template", default="debian13-cloud", help="template to test (default debian13-cloud)")
     parser.add_argument("--package-id", type=int, default=PKG_ID, help="Dev VPS package (default 80)")
     parser.add_argument("--pricing-id", type=int, default=PRICING_ID, help="pricing tier (default 241 = daily)")
     args = parser.parse_args()

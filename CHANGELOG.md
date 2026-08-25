@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Dev zone (Cherryvale, KS) RECOVERED — all "still broken" claims corrected.** Live probe 2026-08-25: pkg 80 provisions in 85s (debian12) and 102s (**debian13 — closing the loop on lesson #13**: the old "deadlock" was purely the zone scheduler, now proven in both directions). Nested-KVM workloads (Dev plans only) available again. README/AGENTS.md updated in both repos. `dev-zone-probe.py` default template corrected debian12 → debian13 (missed in the earlier sweep — it lives in `scripts/`).
+
+### Changed
 - **CI trigger policy overhauled — nothing runs on push/PR anymore.** All test/lint/security workflows (`shc-tests`, `typecheck`, `coverage`, `security`, `ansible`, `cross-repo-parity`) are now `workflow_dispatch` (on demand, e.g. `gh workflow run <name>`) + tag push (`v*`, pre-release verification) + monthly schedule. `shc-tests` dropped its 6-hour schedule (monthly on the 1st). The API changes rarely; per-commit CI was noise. Hourly reaper unchanged.
 - **Reaper job trimmed**: 3-minute hard timeout, pip cache, concurrency guard (cancels redundant runs), and the reap+list steps merged into one interpreter pass.
 
