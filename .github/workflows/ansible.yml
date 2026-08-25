@@ -14,14 +14,9 @@
 name: ansible
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - 'ansible/**'
-      - '.github/workflows/ansible.yml'
-  pull_request:
-    paths:
-      - 'ansible/**'
-      - '.github/workflows/ansible.yml'
+    tags: ['v*']
 
 jobs:
   ansible-lint:

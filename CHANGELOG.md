@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **CI trigger policy overhauled — nothing runs on push/PR anymore.** All test/lint/security workflows (`shc-tests`, `typecheck`, `coverage`, `security`, `ansible`, `cross-repo-parity`) are now `workflow_dispatch` (on demand, e.g. `gh workflow run <name>`) + tag push (`v*`, pre-release verification) + monthly schedule. `shc-tests` dropped its 6-hour schedule (monthly on the 1st). The API changes rarely; per-commit CI was noise. Hourly reaper unchanged.
+- **Reaper job trimmed**: 3-minute hard timeout, pip cache, concurrency guard (cancels redundant runs), and the reap+list steps merged into one interpreter pass.
+
+### Changed
 - **All scheduled CI reduced from weekly to monthly.** The SHC API changes rarely; drift/validation/parity/live-smoke jobs now run staggered across the first week of each month: api-drift (1st, incl. catalog-model validation + live order smoke), cross-repo-parity (2nd), ansible-e2e (7th). Hourly reaper and 6h shc-tests unchanged. **ansible-e2e had failed silently every week for 4+ weeks** (it orders a Dev VPS — the broken zone); it now auto-creates a deduplicated issue whose success doubles as the Dev-zone-recovery signal for issue #28.
 
 ### Added

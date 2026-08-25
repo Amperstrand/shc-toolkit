@@ -1,14 +1,11 @@
 name: SHC API Tests
 
 on:
-  push:
-    branches: [main]
-    paths: ['shc_toolkit/**', 'tests/**', '.github/workflows/shc-tests.yml', 'pyproject.toml']
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
+  push:
+    tags: ['v*']
+  schedule:
+    - cron: '0 2 1 * *'  # Monthly: 1st 02:00 UTC
 
 permissions:
   contents: read

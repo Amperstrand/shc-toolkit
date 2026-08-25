@@ -2,12 +2,9 @@
 name: security
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
-    paths: ['shc_toolkit/**', '.github/workflows/security.yml', 'pyproject.toml']
-  pull_request:
-    branches: [main]
-    paths: ['shc_toolkit/**', '.github/workflows/security.yml', 'pyproject.toml']
+    tags: ['v*']
 
 jobs:
   bandit:

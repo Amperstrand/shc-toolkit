@@ -2,18 +2,9 @@
 name: coverage
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - 'shc_toolkit/**'
-      - 'tests/**'
-      - '.github/workflows/coverage.yml'
-      - 'pyproject.toml'
-  pull_request:
-    paths:
-      - 'shc_toolkit/**'
-      - 'tests/**'
-      - '.github/workflows/coverage.yml'
-      - 'pyproject.toml'
+    tags: ['v*']
 
 jobs:
   coverage:

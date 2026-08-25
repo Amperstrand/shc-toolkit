@@ -11,16 +11,9 @@
 name: typecheck
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - 'shc_toolkit/**'
-      - 'tests/**'
-      - '.github/workflows/typecheck.yml'
-  pull_request:
-    paths:
-      - 'shc_toolkit/**'
-      - 'tests/**'
-      - '.github/workflows/typecheck.yml'
+    tags: ['v*']
 
 jobs:
   mypy:

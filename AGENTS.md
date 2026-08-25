@@ -108,18 +108,21 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 5. `test_core_tool_count` in `tests/test_unit.py` — matches `len(TOOL_MAP)`
 6. Cross-repo audit passes: `python3 scripts/audit_cross_repo.py`
 
-## CI workflows (9 total)
+## CI workflows (10 total)
+
+**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. Hourly reaper is the only high-frequency job. To run any suite: `gh workflow run <name>` or ask the agent.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `shc-tests.yml` | push, PR, schedule (6h) | Unit + smoke + integration + drift detection |
-| `api-drift.yml` | schedule (monthly 1st 08:00) | OpenAPI + llms.txt drift + catalog model validation + live order smoke → auto-creates issue |
-| `cross-repo-parity.yml` | push, PR, schedule (monthly 2nd) | Size map + resolve_addons contract parity |
-| `typecheck.yml` | push, PR | mypy + ruff lint + ruff format check (3 parallel jobs) |
-| `coverage.yml` | push, PR | pytest --cov coverage reporting (baseline, no thresholds yet) |
-| `security.yml` | push, PR (main) | bandit + safety + pip-audit security scanning |
-| `ansible.yml` | push, PR | ansible-lint + molecule caddy scenario |
-| `ansible-ease.yml` | schedule (monthly 7th) | Full playbook against real SHC Dev VPS (fails while Dev zone broken — issue #28; notifies + doubles as zone-recovery detector) |
+| `shc-tests.yml` | dispatch, tag, monthly (1st) | Unit + smoke + integration + drift detection |
+| `api-drift.yml` | dispatch, monthly (1st 08:00) | OpenAPI + llms.txt drift + catalog model validation + live order smoke → auto-creates issue |
+| `cross-repo-parity.yml` | dispatch, tag, monthly (2nd) | Size map + resolve_addons contract parity |
+| `typecheck.yml` | dispatch, tag | mypy + ruff lint + ruff format check (3 parallel jobs) |
+| `coverage.yml` | dispatch, tag | pytest --cov coverage reporting (baseline, no thresholds yet) |
+| `security.yml` | dispatch, tag | bandit + safety + pip-audit security scanning |
+| `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
+| `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC Dev VPS (fails while Dev zone broken — issue #28; notifies + doubles as zone-recovery detector) |
+| `reap-orphan-vms.yml` | hourly + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation
