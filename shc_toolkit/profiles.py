@@ -8,6 +8,7 @@ listings. Resolution precedence (aws-style): flag > ``SHC_PROFILE`` env
 > ``SHC_API_KEY`` env > active profile pointer. Migration from both
 legacy stores happens lazily and non-destructively on first use.
 """
+
 from __future__ import annotations
 
 import json
@@ -59,8 +60,10 @@ def migrate_legacy() -> int:
             for name, key in legacy.items():
                 tgt = PROFILES_DIR / f"{name}.json"
                 if not tgt.exists() and isinstance(key, str) and key:
-                    _write(tgt, {"api_key": key,
-                                 **{f: None for f in FIELDS if f != "api_key"}})
+                    _write(
+                        tgt,
+                        {"api_key": key, **{f: None for f in FIELDS if f != "api_key"}},
+                    )
                     n += 1
     return n
 
@@ -72,13 +75,15 @@ def list_profiles() -> list[dict]:
     out = []
     for p in sorted(PROFILES_DIR.glob("*.json")):
         d = _read(p) or {}
-        out.append({
-            "name": p.stem,
-            "npub": d.get("npub"),
-            "email": d.get("email"),
-            "client_id": d.get("client_id"),
-            "active": p.stem == active,
-        })
+        out.append(
+            {
+                "name": p.stem,
+                "npub": d.get("npub"),
+                "email": d.get("email"),
+                "client_id": d.get("client_id"),
+                "active": p.stem == active,
+            }
+        )
     return out
 
 

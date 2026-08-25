@@ -32,6 +32,8 @@ _LINES: dict[str, dict] = {
         "price_step": 1,
         "label": "NVMe VPS",
         "order_form": 1,
+        "module_group": 4,
+        "package_group": 3,
     },
     "hdd": {
         "pkgs": [36, 37, 38, 39, 40],
@@ -40,6 +42,8 @@ _LINES: dict[str, dict] = {
         "price_step": 4,
         "label": "HDD VPS",
         "order_form": 3,
+        "module_group": 8,
+        "package_group": 5,
     },
     "ssd": {
         "pkgs": [56, 57, 58, 59, 60],
@@ -48,6 +52,8 @@ _LINES: dict[str, dict] = {
         "price_step": 4,
         "label": "SSD VPS",
         "order_form": 7,
+        "module_group": 7,
+        "package_group": 10,
     },
     "dev": {
         "pkgs": [80, 81, 82, 83, 84],
@@ -56,6 +62,8 @@ _LINES: dict[str, dict] = {
         "price_step": 4,
         "label": "Dev VPS",
         "order_form": 11,
+        "module_group": 7,
+        "package_group": 14,
     },
 }
 

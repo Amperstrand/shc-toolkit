@@ -52,7 +52,8 @@ def _resolve_api_key(args) -> str:
 
     With no key anywhere AND a TTY (and no --no-register / SHC_NO_REGISTER),
     offers the unattended zero-GUI registration wizard."""
-    from .profiles import resolve_key, get_profile, migrate_legacy
+    from .profiles import get_profile, migrate_legacy, resolve_key
+
     flag_ctx = getattr(args, "context", None)
     if getattr(args, "api_key", None):
         return args.api_key
@@ -68,24 +69,28 @@ def _resolve_api_key(args) -> str:
         sys.exit(1)
     key, prof = resolve_key()
     if prof and not key:
-        print(f"Error: SHC_PROFILE='{prof}' has no usable api_key.",
-              file=sys.stderr)
+        print(f"Error: SHC_PROFILE='{prof}' has no usable api_key.", file=sys.stderr)
         sys.exit(1)
     if key:
         return key
-    if (getattr(args, "no_register", False)
-            or os.environ.get("SHC_NO_REGISTER")
-            or not sys.stdin.isatty()):
+    if (
+        getattr(args, "no_register", False)
+        or os.environ.get("SHC_NO_REGISTER")
+        or not sys.stdin.isatty()
+    ):
         return ""
     try:
-        answer = input("No SHC account found. Create one now "
-                       "(needs only a Lightning payment)? [Y/n] ")
+        answer = input(
+            "No SHC account found. Create one now "
+            "(needs only a Lightning payment)? [Y/n] "
+        )
     except EOFError:
         return ""
     if answer.strip().lower() in ("n", "no"):
         return ""
-    from .register import register_unattended
     from shc_toolkit import create_client
+
+    from .register import register_unattended
 
     reg_client = create_client(api_key="anonymous-registration-only")
     creds = register_unattended(reg_client)
@@ -221,8 +226,7 @@ def cmd_reinstall(args):
 def cmd_cancel(args):
     c = _client(args)
     immediate = not getattr(args, "end_of_term", False)
-    _print(c.cancel_vm(args.service_id, immediate=immediate),
-           _get_fmt(args))
+    _print(c.cancel_vm(args.service_id, immediate=immediate), _get_fmt(args))
 
 
 # ── Ordering ──────────────────────────────────────────────
@@ -537,6 +541,7 @@ def cmd_pay(args):
 
 def cmd_register(args):
     from shc_toolkit import create_client
+
     from .register import register_unattended
 
     email = None
@@ -549,45 +554,60 @@ def cmd_register(args):
         args.context = name or args.context
     reg_client = create_client(api_key="anonymous-registration-only")
     creds = register_unattended(
-        reg_client, topup=args.amount, context=args.context,
-        browser=not args.no_browser, timeout=args.timeout, email=email)
+        reg_client,
+        topup=args.amount,
+        context=args.context,
+        browser=not args.no_browser,
+        timeout=args.timeout,
+        email=email,
+    )
     print("\naccount ready:")
     _print({k: v for k, v in creds.items() if k != "password"})
 
 
 def cmd_topup(args):
-    from .register import load_context, _topup
+    from .register import _topup, load_context
 
     creds = load_context(args.context)
     if not creds or not creds.get("api_key"):
-        print(f"no usable context '{args.context}' "
-              f"(shc register stores one)", file=sys.stderr)
+        print(
+            f"no usable context '{args.context}' (shc register stores one)",
+            file=sys.stderr,
+        )
         sys.exit(1)
     cl = SHCClient(api_key=creds["api_key"])
-    _topup(cl, args.amount, browser=not args.no_browser,
-           timeout=args.timeout, log=print)
+    _topup(
+        cl, args.amount, browser=not args.no_browser, timeout=args.timeout, log=print
+    )
 
 
 def cmd_mail(args):
-    from .register import load_context
     from .nomail import NomailClient
+    from .register import load_context
 
     creds = load_context(args.context)
     if not creds or not creds.get("nsec"):
-        print(f"no nsec in context '{args.context}' "
-              f"(shc register stores one)", file=sys.stderr)
+        print(
+            f"no nsec in context '{args.context}' (shc register stores one)",
+            file=sys.stderr,
+        )
         sys.exit(1)
     box = NomailClient.login(creds["nsec"])
     try:
         if args.send_to:
             if not args.cashu_token:
                 q = box.quote_send()
-                print("pay this 100-sat invoice, then rerun with --cashu-token "
-                      "(testnut.cashu.space auto-pays it for free):")
+                print(
+                    "pay this 100-sat invoice, then rerun with --cashu-token "
+                    "(testnut.cashu.space auto-pays it for free):"
+                )
                 print(q["invoice"])
                 return
-            _print(box.send_with_cashu(args.send_to, args.subject, args.text,
-                                       args.cashu_token))
+            _print(
+                box.send_with_cashu(
+                    args.send_to, args.subject, args.text, args.cashu_token
+                )
+            )
             return
         if args.wait_for:
             m = box.wait_for_message(args.wait_for)
@@ -598,7 +618,9 @@ def cmd_mail(args):
             return
         msgs = box.messages()
         for m in msgs:
-            print(f"{m['id'][:8]}  {m['fromAddr'][:32]:<32}  {m.get('subject','')[:48]}")
+            print(
+                f"{m['id'][:8]}  {m['fromAddr'][:32]:<32}  {m.get('subject', '')[:48]}"
+            )
         if not msgs:
             print("(inbox empty)")
     finally:
@@ -988,18 +1010,22 @@ def cmd_github_runner_destroy(args):
 
 
 def cmd_profile(args):
-    from .profiles import list_profiles, set_active, active_profile, get_profile
+    from .profiles import active_profile, get_profile, list_profiles, set_active
 
     if args.profile_command == "list":
         profiles = list_profiles()
         if not profiles:
-            print("No profiles. 'shc register' creates one, or 'shc context add' imports a key.")
+            print(
+                "No profiles. 'shc register' creates one, or 'shc context add' imports a key."
+            )
             return
         act = active_profile()
         for p in profiles:
             ident = p["npub"] or p["email"] or "key-only"
-            print(f"  {'*' if p['active'] else ' '} {p['name']:16s} "
-                  f"client {str(p['client_id'] or '?'):>5s}  {ident[:24]}…")
+            print(
+                f"  {'*' if p['active'] else ' '} {p['name']:16s} "
+                f"client {p['client_id'] or '?'!s:>5s}  {ident[:24]}…"
+            )
         if not act:
             print("\n  (no active profile — 'shc profile use <name>' to set one)")
     elif args.profile_command == "use":
@@ -1007,8 +1033,10 @@ def cmd_profile(args):
             print(f"Profile '{args.name}' not found.", file=sys.stderr)
             sys.exit(1)
         set_active(args.name)
-        print(f"Active profile is now '{args.name}' "
-              f"(persists; override per-run with --api-key/SHC_API_KEY)")
+        print(
+            f"Active profile is now '{args.name}' "
+            f"(persists; override per-run with --api-key/SHC_API_KEY)"
+        )
     elif args.profile_command == "show":
         act = active_profile()
         if not act:
@@ -1182,29 +1210,47 @@ def main():
     p = sub.add_parser(
         "register",
         help="Zero-GUI account onboarding: Nostr identity + nomail.email "
-             "mailbox + Lightning top-up. Unattended by default.",
+        "mailbox + Lightning top-up. Unattended by default.",
     )
-    p.add_argument("--interactive", action="store_true",
-                   help="Prompt for email/names/amount instead of generating")
-    p.add_argument("--amount", type=float, default=1.00,
-                   help="Top-up amount in USD (default 1.00; 0 skips top-up)")
-    p.add_argument("--context", default="default",
-                   help="Context name to save (default 'default')")
-    p.add_argument("--no-browser", action="store_true",
-                   help="Terminal QR/URL only, no local payment page")
-    p.add_argument("--timeout", type=int, default=900,
-                   help="Seconds to wait for the Lightning payment")
+    p.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Prompt for email/names/amount instead of generating",
+    )
+    p.add_argument(
+        "--amount",
+        type=float,
+        default=1.00,
+        help="Top-up amount in USD (default 1.00; 0 skips top-up)",
+    )
+    p.add_argument(
+        "--context", default="default", help="Context name to save (default 'default')"
+    )
+    p.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Terminal QR/URL only, no local payment page",
+    )
+    p.add_argument(
+        "--timeout",
+        type=int,
+        default=900,
+        help="Seconds to wait for the Lightning payment",
+    )
     p.set_defaults(func=cmd_register)
 
     p = sub.add_parser(
         "mail",
         help="Read the nomail.email inbox of the context's Nostr identity "
-             "(--context default). Optionally send (test-mint Cashu is free).",
+        "(--context default). Optionally send (test-mint Cashu is free).",
     )
     p.add_argument("--context", default="default")
     p.add_argument("--read", metavar="ID", help="Read one message")
-    p.add_argument("--wait-for", metavar="TEXT",
-                   help="Poll until a message matches TEXT (subject/sender)")
+    p.add_argument(
+        "--wait-for",
+        metavar="TEXT",
+        help="Poll until a message matches TEXT (subject/sender)",
+    )
     p.add_argument("--send-to", help="Send email (requires --cashu-token)")
     p.add_argument("--subject", default="(no subject)")
     p.add_argument("--text", default="")
@@ -1214,15 +1260,23 @@ def main():
     p = sub.add_parser(
         "topup",
         help="Fund an EXISTING context's account via Lightning top-up "
-             "(register creates new accounts; this re-funds one).",
+        "(register creates new accounts; this re-funds one).",
     )
     p.add_argument("--context", default="default")
-    p.add_argument("--amount", type=float, default=1.00,
-                   help="Top-up amount in USD (default 1.00)")
-    p.add_argument("--no-browser", action="store_true",
-                   help="Terminal QR/URL only, no local payment page")
-    p.add_argument("--timeout", type=int, default=900,
-                   help="Seconds to wait for the Lightning payment")
+    p.add_argument(
+        "--amount", type=float, default=1.00, help="Top-up amount in USD (default 1.00)"
+    )
+    p.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Terminal QR/URL only, no local payment page",
+    )
+    p.add_argument(
+        "--timeout",
+        type=int,
+        default=900,
+        help="Seconds to wait for the Lightning payment",
+    )
     p.set_defaults(func=cmd_topup)
 
     for name, func in [
@@ -1236,9 +1290,12 @@ def main():
         p = sub.add_parser(name, help=f"{name} VM")
         p.add_argument("service_id", type=int)
         if name == "cancel":
-            p.add_argument("--end-of-term", action="store_true",
-                           help="cancel at term end instead of immediately "
-                                "(VM keeps its paid remaining term; no renewal)")
+            p.add_argument(
+                "--end-of-term",
+                action="store_true",
+                help="cancel at term end instead of immediately "
+                "(VM keeps its paid remaining term; no renewal)",
+            )
         p.set_defaults(func=func)
 
     p = sub.add_parser(
@@ -1593,7 +1650,9 @@ def main():
     p.set_defaults(func=cmd_completion)
 
     # ── Context management (legacy alias of profile) ──
-    p_ctx = sub.add_parser("context", help="Manage API key contexts (legacy alias of 'profile')")
+    p_ctx = sub.add_parser(
+        "context", help="Manage API key contexts (legacy alias of 'profile')"
+    )
     p_ctx_sub = p_ctx.add_subparsers(dest="ctx_command", required=True)
     p_ctx_sub.add_parser("list", help="List saved contexts")
     p_ctx_add = p_ctx_sub.add_parser("add", help="Add a new context")
@@ -1606,11 +1665,13 @@ def main():
 
     # ── Profile management (aws/gcloud-style, npub-identified) ──
     p_prof = sub.add_parser(
-        "profile", help="Manage named account profiles "
-                        "(identity = npub; resolution: flag > SHC_PROFILE "
-                        "> SHC_API_KEY > active profile)")
+        "profile",
+        help="Manage named account profiles "
+        "(identity = npub; resolution: flag > SHC_PROFILE "
+        "> SHC_API_KEY > active profile)",
+    )
     p_prof_sub = p_prof.add_subparsers(dest="profile_command", required=True)
-    p_prof_list = p_prof_sub.add_parser("list", help="List profiles (by npub)")
+    p_prof_sub.add_parser("list", help="List profiles (by npub)")
     p_prof_use = p_prof_sub.add_parser("use", help="Set the active profile")
     p_prof_use.add_argument("name")
     p_prof_sub.add_parser("show", help="Show the active profile")

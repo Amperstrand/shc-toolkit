@@ -130,6 +130,19 @@ var lineOrderFormIDs = map[string]int64{
 __ORDER_FORMS__
 }
 
+// Storefront triples per line (SHC validates order_form_id together with
+// module_group_id/package_group_id against the plan's storefront path, and
+// the order-time ssh_key only survives the FULL triple — a lone form id
+// 400s (form 11) or silently drops the key (forms 1/7). Values captured
+// from live shc order --dry-run normalized_request, 2026-08-21).
+var lineModuleGroupIDs = map[string]int64{
+__MODULE_GROUPS__
+}
+
+var linePackageGroupIDs = map[string]int64{
+__PACKAGE_GROUPS__
+}
+
 func orderFormIDForPackage(packageID int64) (int64, bool) {
 	for _, s := range sizeMap {
 		if s.PackageID == packageID {
@@ -167,10 +180,20 @@ def render_go() -> str:
     form_lines = "\n".join(
         f'\t"{line}": {info["order_form"]},' for line, info in _model_lines.items()
     )
+    mg_lines = "\n".join(
+        f'\t"{line}": {info["module_group"]},'
+        for line, info in _model_lines.items()
+    )
+    pg_lines = "\n".join(
+        f'\t"{line}": {info["package_group"]},'
+        for line, info in _model_lines.items()
+    )
     return (
         _GO_TEMPLATE.replace("__ENTRIES__", "\n".join(lines))
         .replace("__TEMPLATES__", tmpl_lines)
         .replace("__ORDER_FORMS__", form_lines)
+        .replace("__MODULE_GROUPS__", mg_lines)
+        .replace("__PACKAGE_GROUPS__", pg_lines)
     )
 
 

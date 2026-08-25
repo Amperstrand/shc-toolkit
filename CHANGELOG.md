@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`submit_order` resolves the storefront triple statically — no more preview round-trip.** Previously called `preview_order` (live API) to resolve `order_form_id`/`package_group_id`. Now resolves all three storefront IDs (`order_form_id`, `module_group_id`, `package_group_id`) from `catalog_model._LINES`. One fewer API call per order. **Live-earned contract (from terraform-provider-shc SSH debugging, 2026-08-21):** SHC validates the triple together — the order-time `ssh_key` only survives the FULL triple; a lone form ID either 400s (form 11) or silently drops the key (forms 1/7). Verified live: order → provision 62s → ssh_key stored → cancel, refund $0.25.
+
+### Fixed
+- **Storefront triples added to `catalog_model._LINES`** (`module_group`, `package_group` keys per line) — single source of truth; `generate_sizes.py` emits all three Go maps (`lineOrderFormIDs`, `lineModuleGroupIDs`, `linePackageGroupIDs`) from the model.
+- **Lint/format drift in ralph-loop-added modules** (`register.py`, `profiles.py`, `nomail.py`, `qr_page.py`, `cli.py`) — 13 ruff findings + formatting normalized; the files bypassed the pre-commit hook when committed.
+- **`.mypy_cache` untracked** (was accidentally committed by a parallel agent) and added to `.gitignore`.
+
 ### Fixed
 - **`_diagnose()` HEALTHY check could never fire.** Used `provisioning_state == "ready"` — which SHC VMs never report (lesson #1) — so healthy VMs fell through to `UNKNOWN`. Now: `service_status == "active"` + IP + SSH-reachable = HEALTHY, plus a new `ACTIVE_NO_SSH` diagnosis. Found by cross-repo behavioral parity audit (Prompt 1).
 - **`compute.py` gcloud-compat order path sent a legacy `options` block with wrong option IDs** (126/108/167 are NVMe/gui options, not Dev's 174/198; the field was silently ignored by the API anyway). Now sends `config_options` resolved from the catalog model defaults + template, and `ssh_key` as a top-level field. Also fixed a broken f-string in the error path (`print("...{e}")` without `f`). Found by DRY audit (Prompt 3).

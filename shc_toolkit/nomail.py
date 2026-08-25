@@ -8,6 +8,7 @@ Cashu sends are effectively free).
 
 API reference: https://cashu.email/llms-full.txt
 """
+
 from __future__ import annotations
 
 import time
@@ -29,18 +30,20 @@ class NomailClient:
     _client: httpx.Client
 
     @classmethod
-    def login(cls, nsec: str, base_url: str = BASE_URL) -> "NomailClient":
-        from nostr_sdk import Keys, EventBuilder, Kind, Tag
+    def login(cls, nsec: str, base_url: str = BASE_URL) -> NomailClient:
+        from nostr_sdk import EventBuilder, Keys, Kind, Tag
 
         keys = Keys.parse(nsec)
         npub = keys.public_key().to_bech32()
         with httpx.Client(base_url=base_url, timeout=30) as anon:
-            nonce = anon.post("/api/auth/challenge").raise_for_status() \
-                .json()["nonce"]
-            event = EventBuilder(Kind(27235), nonce) \
-                .tags([Tag.parse(["challenge", nonce])]) \
+            nonce = anon.post("/api/auth/challenge").raise_for_status().json()["nonce"]
+            event = (
+                EventBuilder(Kind(27235), nonce)
+                .tags([Tag.parse(["challenge", nonce])])
                 .sign_with_keys(keys)
+            )
             import json as _json
+
             body = {"event": _json.loads(event.as_json())}
         client = httpx.Client(base_url=base_url, timeout=30)
         r = client.post("/api/auth/verify", json=body)
@@ -49,8 +52,7 @@ class NomailClient:
 
     # ── inbox ────────────────────────────────────────────────────────
     def messages(self, limit: int = 50, offset: int = 0) -> list[dict]:
-        r = self._client.get("/api/messages",
-                             params={"limit": limit, "offset": offset})
+        r = self._client.get("/api/messages", params={"limit": limit, "offset": offset})
         r.raise_for_status()
         return r.json().get("messages", [])
 
@@ -59,9 +61,15 @@ class NomailClient:
         r.raise_for_status()
         return r.json()
 
-    def wait_for_message(self, match: str, *, timeout: int = 600,
-                         subject: bool = True, sender: bool = True,
-                         body: bool = False) -> dict | None:
+    def wait_for_message(
+        self,
+        match: str,
+        *,
+        timeout: int = 600,
+        subject: bool = True,
+        sender: bool = True,
+        body: bool = False,
+    ) -> dict | None:
         """Poll the inbox until a message matching `match` arrives.
 
         Matches subject/sender by default (OTP codes, receipts); pass
@@ -92,12 +100,18 @@ class NomailClient:
         r.raise_for_status()
         return r.json()
 
-    def send_with_cashu(self, to: str, subject: str, text: str,
-                        cashu_token: str) -> dict:
-        r = self._client.post("/api/send", json={
-            "to": to, "subject": subject, "text": text,
-            "cashuToken": cashu_token,
-        })
+    def send_with_cashu(
+        self, to: str, subject: str, text: str, cashu_token: str
+    ) -> dict:
+        r = self._client.post(
+            "/api/send",
+            json={
+                "to": to,
+                "subject": subject,
+                "text": text,
+                "cashuToken": cashu_token,
+            },
+        )
         r.raise_for_status()
         return r.json()
 

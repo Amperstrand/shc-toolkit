@@ -273,8 +273,10 @@ class SHCClient:
         saved_auth = None
         if basic_auth is not None:
             import base64
+
             token = base64.b64encode(
-                f"{basic_auth[0]}:{basic_auth[1]}".encode()).decode()
+                f"{basic_auth[0]}:{basic_auth[1]}".encode()
+            ).decode()
             saved_auth = self.session.headers.get("Authorization")
             self.session.headers["Authorization"] = f"Basic {token}"
         try:
@@ -468,12 +470,13 @@ class SHCClient:
         return self._post("/account/api-keys", body, basic_auth=(email, password))
 
     def nostr_link_challenge(self, email: str, password: str) -> dict:
-        return self._get("/account/nostr/link-challenge",
-                         basic_auth=(email, password))
+        return self._get("/account/nostr/link-challenge", basic_auth=(email, password))
 
     def nostr_link(self, email: str, password: str, event: dict) -> dict:
-        return self._post("/account/nostr/link", {"event": event},
-                          basic_auth=(email, password))
+        return self._post(
+            "/account/nostr/link", {"event": event}, basic_auth=(email, password)
+        )
+
     def topup_credit(self, amount: float | str) -> dict:
         """POST /account/credit — BTCPay topup (confirmation-gated,
         idempotency-keyed). Amount is sent as a 2-decimal STRING (the
@@ -482,11 +485,15 @@ class SHCClient:
         the previous invoice is paid or expires. Returns checkout/invoice
         pointers."""
         import uuid as _uuid
+
         amount_str = amount if isinstance(amount, str) else f"{amount:.2f}"
         return self._confirmed_request(
-            "POST", "/account/credit",
-            json={"amount": amount_str,
-                  "idempotency_key": f"topup-{_uuid.uuid4().hex[:24]}"},
+            "POST",
+            "/account/credit",
+            json={
+                "amount": amount_str,
+                "idempotency_key": f"topup-{_uuid.uuid4().hex[:24]}",
+            },
         )
 
     def update_account(self, **kwargs) -> dict:
@@ -1065,30 +1072,18 @@ class SHCClient:
             and "options" not in kwargs
             and "order_form_id" not in kwargs
         ):
-            try:
-                preview = self.preview_order(
-                    **{
-                        k: v
-                        for k, v in kwargs.items()
-                        if k
-                        in (
-                            "package_id",
-                            "pricing_id",
-                            "hostname",
-                            "module_group_id",
-                        )
-                    }
-                )
-                norm = preview.get("normalized_request", {})
-                resolved_ofi = norm.get("order_form_id")
-                resolved_pgi = norm.get("package_group_id")
-                if resolved_ofi:
-                    kwargs["order_form_id"] = resolved_ofi
-                else:
-                    kwargs.setdefault("order_form_id", 11)
-                if resolved_pgi and "package_group_id" not in kwargs:
-                    kwargs["package_group_id"] = resolved_pgi
-            except Exception:
+            # Storefront triple from the static model. SHC validates these
+            # together; the order-time ssh_key only survives the full triple.
+            from .catalog_model import _LINES as _lines
+            from .catalog_model import _resolve as _resolve_pkg
+
+            r = _resolve_pkg(int(kwargs.get("package_id", 0) or 0))
+            if r:
+                info = _lines[r[0]]
+                kwargs["order_form_id"] = info["order_form"]
+                kwargs.setdefault("module_group_id", info["module_group"])
+                kwargs.setdefault("package_group_id", info["package_group"])
+            else:
                 kwargs.setdefault("order_form_id", 11)
         idem = idempotency_key or f"order-{uuid.uuid4().hex[:24]}"
         headers = {"Idempotency-Key": idem}

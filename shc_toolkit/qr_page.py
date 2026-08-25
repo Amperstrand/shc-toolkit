@@ -7,6 +7,7 @@ so an already-open browser tab picks up the fresh invoice — the URL a
 user is told about stays valid across reissues (live-earned 2026-08-22:
 ephemeral ports per window made every printed pointer stale).
 """
+
 from __future__ import annotations
 
 import os
@@ -43,9 +44,9 @@ def _qr_svg(data: str) -> str | None:
         import qrcode.image.svg
     except ImportError:
         return None
-    img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathImage,
-                      box_size=12)
+    img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathImage, box_size=12)
     import io
+
     buf = img.save_to_string() if hasattr(img, "save_to_string") else None
     if buf is None:
         s = io.BytesIO()  # lxml writes bytes, StringIO raises
@@ -93,8 +94,14 @@ class PaymentPage:
         self._srv.shutdown()
 
 
-def serve_and_open(bolt11: str, *, amount_usd: float, timeout: int = 900,
-                   open_browser: bool = True, port: int = 0) -> None:
+def serve_and_open(
+    bolt11: str,
+    *,
+    amount_usd: float,
+    timeout: int = 900,
+    open_browser: bool = True,
+    port: int = 0,
+) -> None:
     """Back-compat one-shot: serve one invoice for `timeout` seconds."""
     page = PaymentPage(port=port)
     page.update(bolt11, amount_usd)
