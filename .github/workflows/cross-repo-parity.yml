@@ -15,16 +15,9 @@
 name: cross-repo-parity
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - 'shc_toolkit/**'
-      - 'scripts/audit_cross_repo.py'
-      - '.github/workflows/cross-repo-parity.yml'
-  pull_request:
-    paths:
-      - 'shc_toolkit/**'
-      - 'scripts/audit_cross_repo.py'
-      - '.github/workflows/cross-repo-parity.yml'
+    tags: ['v*']
   schedule:
     - cron: '0 4 2 * *'  # Monthly: 2nd 04:00 UTC (after drift check)
 
