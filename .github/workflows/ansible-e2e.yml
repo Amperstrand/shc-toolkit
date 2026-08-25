@@ -15,8 +15,11 @@ name: ansible-e2e
 
 on:
   schedule:
-    - cron: '0 3 * * 0'  # Sunday 03:00 UTC
+    - cron: '0 3 7 * *'  # Monthly: 7th 03:00 UTC
   workflow_dispatch:
+
+permissions:
+  issues: write
 
 jobs:
   live-e2e:
@@ -65,3 +68,31 @@ jobs:
         run: |
           echo "::error::Provisioning playbook failed — see logs above"
           exit 1
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'ci-failure'
+            });
+            if (issues.data.some(i => i.title.includes('ansible-e2e failed'))) {
+              core.info('Issue already open, skipping');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'ansible-e2e failed',
+              body: [
+                `The monthly ansible live E2E failed: ${runUrl}`,
+                '',
+                'NOTE: this workflow orders a Dev VPS (pkg 80-84, Cherryvale KS).',
+                'If the order step timed out, the Dev zone scheduler is still',
+                'broken — see issue #28. A successful run means the zone recovered;',
+                'close #28 if so.'
+              ].join('\n'),
+              labels: ['ci-failure', 'bug']
+            });

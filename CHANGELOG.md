@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **All scheduled CI reduced from weekly to monthly.** The SHC API changes rarely; drift/validation/parity/live-smoke jobs now run staggered across the first week of each month: api-drift (1st, incl. catalog-model validation + live order smoke), cross-repo-parity (2nd), ansible-e2e (7th). Hourly reaper and 6h shc-tests unchanged. **ansible-e2e had failed silently every week for 4+ weeks** (it orders a Dev VPS — the broken zone); it now auto-creates a deduplicated issue whose success doubles as the Dev-zone-recovery signal for issue #28.
+
 ### Added
-- **`scripts/live_smoke.py`** — Versioned live smoke: order → active+IP readiness → ssh_key persistence check → immediate cancel with refund verification. Live-verified (73s, $0.25 refund). Wired into `api-drift.yml` as a weekly `live-order-smoke` job with ephemeral SSH keygen, orphan reaping, and deduplicated auto-issue on failure. Catches regressions the unit suite can't (storefront triple, key persistence, zone health) — it's what exposed the Go balance-parse bug.
+- **`scripts/live_smoke.py`** — Versioned live smoke: order → active+IP readiness → ssh_key persistence check → immediate cancel with refund verification. Live-verified (73s, $0.25 refund). Wired into `api-drift.yml` as a monthly `live-order-smoke` job with ephemeral SSH keygen, orphan reaping, and deduplicated auto-issue on failure. Catches regressions the unit suite can't (storefront triple, key persistence, zone health) — it's what exposed the Go balance-parse bug.
 
 ### Fixed
 - **Cross-repo parity CI regressed (40 false size-map issues).** `_parse_python_sizes` imported `shc_toolkit.sizes` in-package, which triggers `__init__.py` → `import httpx` — unavailable in the bare-Python CI job. Now loads `catalog_model.py` standalone (stdlib-only, dependency-free) via importlib, so the audit works in any environment.

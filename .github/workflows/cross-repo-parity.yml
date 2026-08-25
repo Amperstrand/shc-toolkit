@@ -26,7 +26,7 @@ on:
       - 'scripts/audit_cross_repo.py'
       - '.github/workflows/cross-repo-parity.yml'
   schedule:
-    - cron: '0 4 * * 1'  # Monday 04:00 UTC
+    - cron: '0 4 2 * *'  # Monthly: 2nd 04:00 UTC (after drift check)
 
 jobs:
   parity-audit:

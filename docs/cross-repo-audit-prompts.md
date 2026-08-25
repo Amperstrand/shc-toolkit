@@ -111,7 +111,7 @@ Report total cost — should be under $0.02.
 
 ## Maintenance
 
-- Re-run Prompt 1 and 2 after every SHC API update (monthly cadence).
+- Re-run Prompt 1 and 2 after every SHC API update.
 - Prompt 3 after any refactor that moves shared knowledge.
-- Prompt 4 before tagging any release.
+- Prompt 4 before tagging any release (it also runs monthly in CI as `live-order-smoke`).
 - When a new lesson is added to either AGENTS.md, add it to Prompt 2's list.

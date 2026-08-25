@@ -113,13 +113,13 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `shc-tests.yml` | push, PR, schedule (6h) | Unit + smoke + integration + drift detection |
-| `api-drift.yml` | schedule (weekly Mon 08:00) | OpenAPI + llms.txt drift + catalog model validation → auto-creates issue |
-| `cross-repo-parity.yml` | push, PR, schedule (weekly) | Size map + resolve_addons contract parity |
+| `api-drift.yml` | schedule (monthly 1st 08:00) | OpenAPI + llms.txt drift + catalog model validation + live order smoke → auto-creates issue |
+| `cross-repo-parity.yml` | push, PR, schedule (monthly 2nd) | Size map + resolve_addons contract parity |
 | `typecheck.yml` | push, PR | mypy + ruff lint + ruff format check (3 parallel jobs) |
 | `coverage.yml` | push, PR | pytest --cov coverage reporting (baseline, no thresholds yet) |
 | `security.yml` | push, PR (main) | bandit + safety + pip-audit security scanning |
 | `ansible.yml` | push, PR | ansible-lint + molecule caddy scenario |
-| `ansible-ease.yml` | schedule (weekly) | Full playbook against real SHC Dev VPS |
+| `ansible-ease.yml` | schedule (monthly 7th) | Full playbook against real SHC Dev VPS (fails while Dev zone broken — issue #28; notifies + doubles as zone-recovery detector) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation
