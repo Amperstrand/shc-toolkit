@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Cross-repo parity CI regressed (40 false size-map issues).** `_parse_python_sizes` imported `shc_toolkit.sizes` in-package, which triggers `__init__.py` → `import httpx` — unavailable in the bare-Python CI job. Now loads `catalog_model.py` standalone (stdlib-only, dependency-free) via importlib, so the audit works in any environment.
+- **Safety scanner flagged setuptools 79.0.1 CVE (SFTY-20260721-58460).** The `pip install --upgrade setuptools>=83` pre-scan fix existed only in the pip-audit job; now applied to the safety job too.
+
 ### Changed
 - **`submit_order` resolves the storefront triple statically — no more preview round-trip.** Previously called `preview_order` (live API) to resolve `order_form_id`/`package_group_id`. Now resolves all three storefront IDs (`order_form_id`, `module_group_id`, `package_group_id`) from `catalog_model._LINES`. One fewer API call per order. **Live-earned contract (from terraform-provider-shc SSH debugging, 2026-08-21):** SHC validates the triple together — the order-time `ssh_key` only survives the FULL triple; a lone form ID either 400s (form 11) or silently drops the key (forms 1/7). Verified live: order → provision 62s → ssh_key stored → cancel, refund $0.25.
 

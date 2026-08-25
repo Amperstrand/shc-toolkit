@@ -8,11 +8,11 @@ Usage:
     python scripts/audit_cross_repo.py          # full report
     python scripts/audit_cross_repo.py --check   # exit 1 on any mismatch
 """
+
 from __future__ import annotations
 
 import argparse
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -37,9 +37,13 @@ def check_size_map_parity() -> list[str]:
         if name in pulumi_map:
             p_pkg, p_pricing = pulumi_map[name]
             if p_pkg != pkg:
-                issues.append(f"[SIZES] {name}: toolkit pkg={pkg} but pulumi pkg={p_pkg}")
+                issues.append(
+                    f"[SIZES] {name}: toolkit pkg={pkg} but pulumi pkg={p_pkg}"
+                )
             if p_pricing and pricing and p_pricing != pricing:
-                issues.append(f"[SIZES] {name}: toolkit pricing={pricing} but pulumi pricing={p_pricing}")
+                issues.append(
+                    f"[SIZES] {name}: toolkit pricing={pricing} but pulumi pricing={p_pricing}"
+                )
         else:
             issues.append(f"[SIZES] {name}: in toolkit but missing from pulumi")
 
@@ -48,7 +52,9 @@ def check_size_map_parity() -> list[str]:
             if g_pkg != pkg:
                 issues.append(f"[SIZES] {name}: toolkit pkg={pkg} but tf pkg={g_pkg}")
             if g_pricing and pricing and g_pricing != pricing:
-                issues.append(f"[SIZES] {name}: toolkit pricing={pricing} but tf pricing={g_pricing}")
+                issues.append(
+                    f"[SIZES] {name}: toolkit pricing={pricing} but tf pricing={g_pricing}"
+                )
         else:
             issues.append(f"[SIZES] {name}: in toolkit but missing from tf")
 
@@ -63,28 +69,36 @@ def check_size_map_parity() -> list[str]:
 def _parse_python_sizes(path: Path) -> dict[str, tuple[int, int]]:
     """Extract size entries from a Python sizes module.
 
-    Tries runtime import (handles derived/computed SIZE_MAP), falls back
-    to regex parsing for modules with hardcoded entries.
+    The toolkit's sizes.py derives SIZE_MAP from catalog_model.py, so we
+    load catalog_model standalone (it is dependency-free: stdlib only) and
+    rebuild the same rows. This works in bare CI environments where the
+    toolkit's runtime deps (httpx/requests) are not installed — importing
+    shc_toolkit.sizes in-package would pull in __init__.py and fail there.
+    Falls back to regex parsing for hardcoded tables (shc-pulumi).
     """
     if not path.exists():
         return {}
 
-    # Try importing the module in-package (handles relative imports)
-    try:
-        pkg_root = str(path.parent.parent)
-        if pkg_root not in sys.path:
-            sys.path.insert(0, pkg_root)
-        mod = __import__(f"{path.parent.name}.sizes", fromlist=["SIZE_MAP"])
-        size_map = getattr(mod, "SIZE_MAP", {})
-        pricing = getattr(mod, "_PRICING_LOOKUP", {})
-        entries = {
-            name: (e.get("package_id", 0), pricing.get(e.get("package_id", 0), 0))
-            for name, e in size_map.items()
-        }
-        if entries:
-            return entries
-    except Exception:
-        pass
+    model_path = path.parent / "catalog_model.py"
+    if model_path.exists():
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("_cm_audit", model_path)
+            if spec and spec.loader:
+                cm = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(cm)
+                entries = {}
+                for pkg in cm.packages():
+                    name = f"{pkg['line']}-{pkg['cpu']}c-{pkg['memory_mb'] // 1024}gb"
+                    entries[name] = (
+                        pkg["package_id"],
+                        cm.pricing_id(pkg["package_id"]),
+                    )
+                if entries:
+                    return entries
+        except Exception:
+            pass
 
     # Fallback: regex parse for hardcoded entries (pulumi's standalone sizes.py)
     src = path.read_text()
@@ -106,7 +120,9 @@ def _parse_go_sizes(path: Path) -> dict[str, tuple[int, int]]:
     return entries
 
 
-def check_feature(name: str, repo_root: Path, patterns: list[str], file_glob: str = "**/*") -> bool:
+def check_feature(
+    name: str, repo_root: Path, patterns: list[str], file_glob: str = "**/*"
+) -> bool:
     for pattern in patterns:
         for f in repo_root.glob(file_glob):
             if not f.is_file():
@@ -178,8 +194,13 @@ def check_billing_claims() -> list[str]:
         if not readme.exists():
             continue
         content = readme.read_text()
-        if "full day even if" in content.lower() or "daily billing minimum" in content.lower():
-            issues.append(f"[BILLING] {repo_name}: still claims 'daily billing minimum' (should say hourly proration)")
+        if (
+            "full day even if" in content.lower()
+            or "daily billing minimum" in content.lower()
+        ):
+            issues.append(
+                f"[BILLING] {repo_name}: still claims 'daily billing minimum' (should say hourly proration)"
+            )
     return issues
 
 
@@ -190,8 +211,13 @@ def check_dev_vps_claims() -> list[str]:
         if not readme.exists():
             continue
         content = readme.read_text()
-        if "not available on dev vps" in content.lower() and "snapshot" in content.lower():
-            issues.append(f"[DEVVPS] {repo_name}: still claims Dev VPS snapshots don't work")
+        if (
+            "not available on dev vps" in content.lower()
+            and "snapshot" in content.lower()
+        ):
+            issues.append(
+                f"[DEVVPS] {repo_name}: still claims Dev VPS snapshots don't work"
+            )
     return issues
 
 
@@ -213,9 +239,9 @@ def check_dev_vps_claims() -> list[str]:
 PY_PARAMS_EXPECTED = {"package_id", "ram_mb", "cpu", "disk_gb", "template"}
 GO_PARAMS_EXPECTED = {"packageID", "diskGB", "ramMB", "cpu", "template"}
 EDGE_CASE_MARKERS = [
-    "not found in catalog",       # package_id missing
-    "does not expose",            # option not present on package
-    "not available",              # value not in option's value list
+    "not found in catalog",  # package_id missing
+    "does not expose",  # option not present on package
+    "not available",  # value not in option's value list
 ]
 
 
@@ -227,7 +253,9 @@ def check_resolve_addons_parity() -> list[str]:
     go_test_path = TF_ROOT / "provider" / "config_options_test.go"
 
     if not py_src_path.exists():
-        issues.append("[ADDONS] shc_toolkit/client.py missing — cannot check Python resolver")
+        issues.append(
+            "[ADDONS] shc_toolkit/client.py missing — cannot check Python resolver"
+        )
         return issues
 
     py_src = py_src_path.read_text()
@@ -238,7 +266,9 @@ def check_resolve_addons_parity() -> list[str]:
                 continue
             go_srcs[f.name] = f.read_text()
     if not go_srcs:
-        issues.append("[ADDONS] terraform-provider-shc/provider/*.go missing — cannot check Go resolver")
+        issues.append(
+            "[ADDONS] terraform-provider-shc/provider/*.go missing — cannot check Go resolver"
+        )
         return issues
     go_src = "\n".join(go_srcs.values())
 
@@ -247,44 +277,65 @@ def check_resolve_addons_parity() -> list[str]:
     if not py_sig_match:
         issues.append("[ADDONS] Python: resolve_addons definition not found")
     else:
-        py_params = {p.strip().split(":")[0].split("=")[0] for p in py_sig_match.group(1).split(",")}
+        py_params = {
+            p.strip().split(":")[0].split("=")[0]
+            for p in py_sig_match.group(1).split(",")
+        }
         py_params.discard("self")
         py_params.discard("")
         missing = PY_PARAMS_EXPECTED - py_params
         if missing:
-            issues.append(f"[ADDONS] Python resolve_addons missing params: {sorted(missing)}")
+            issues.append(
+                f"[ADDONS] Python resolve_addons missing params: {sorted(missing)}"
+            )
 
     # 2. Go signature: must accept all 5 conceptual parameters (Go naming convention).
     go_sig_match = re.search(r"func \(.*\) ResolveAddons\(([^)]*)\)", go_src, re.DOTALL)
     if not go_sig_match:
         issues.append("[ADDONS] Go: ResolveAddons definition not found")
     else:
-        go_params = {p.strip().split()[0] for p in go_sig_match.group(1).split(",") if p.strip()}
+        go_params = {
+            p.strip().split()[0] for p in go_sig_match.group(1).split(",") if p.strip()
+        }
         missing = GO_PARAMS_EXPECTED - go_params
         if missing:
-            issues.append(f"[ADDONS] Go ResolveAddons missing params: {sorted(missing)}")
+            issues.append(
+                f"[ADDONS] Go ResolveAddons missing params: {sorted(missing)}"
+            )
 
     # 3. Return type: both must be string-keyed, string-valued maps.
     if "map[string]string" not in go_src:
         issues.append("[ADDONS] Go ResolveAddons does not return map[string]string")
 
-    py_return_match = re.search(r"def resolve_addons.*?\) -> ([^:]*):", py_src, re.DOTALL)
+    py_return_match = re.search(
+        r"def resolve_addons.*?\) -> ([^:]*):", py_src, re.DOTALL
+    )
     if not py_return_match or "dict[str, str]" not in py_return_match.group(1):
         # Some style: "-> dict[str, str]"; allow that match too.
         if "-> dict[str, str]" not in py_src:
-            issues.append("[ADDONS] Python resolve_addons does not declare -> dict[str, str]")
+            issues.append(
+                "[ADDONS] Python resolve_addons does not declare -> dict[str, str]"
+            )
 
     # 4. Edge-case error markers must appear in BOTH implementations.
     for marker in EDGE_CASE_MARKERS:
         if marker.lower() not in py_src.lower():
-            issues.append(f"[ADDONS] Python resolve_addons missing error marker: '{marker}'")
+            issues.append(
+                f"[ADDONS] Python resolve_addons missing error marker: '{marker}'"
+            )
         if marker.lower() not in go_src.lower():
             issues.append(f"[ADDONS] Go ResolveAddons missing error marker: '{marker}'")
 
     # 5. Go must have tests covering the edge cases (parity of test coverage).
     if go_test_path.exists():
         go_tests = go_test_path.read_text()
-        required_test_names = ["Success", "MultipleSpecs", "InvalidValue", "PackageNotFound", "NoSpecs"]
+        required_test_names = [
+            "Success",
+            "MultipleSpecs",
+            "InvalidValue",
+            "PackageNotFound",
+            "NoSpecs",
+        ]
         for required in required_test_names:
             if f"TestResolveAddons_{required}" not in go_tests:
                 issues.append(f"[ADDONS] Go: missing TestResolveAddons_{required}")

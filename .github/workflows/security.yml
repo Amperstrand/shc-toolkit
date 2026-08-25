@@ -30,6 +30,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install safety -q
+      - run: pip install --upgrade "setuptools>=83.0.0" -q
       - run: safety check --short-report
 
   pip-audit:
