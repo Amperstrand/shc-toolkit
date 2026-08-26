@@ -2302,3 +2302,286 @@ class TestNostrOperateGrant:
         result = c.exchange_nostr_operate_grant(self._good_grant(), nsec=nsec)
         assert result == {"success": True}
         assert c.session.headers["Authorization"] == "Bearer shc_live_test"
+
+
+class TestUserAgent:
+    def test_client_sends_toolkit_ua(self):
+        c = self._mk()
+        captured = {}
+
+        def cap(method, url, **kw):
+            captured.update({k.lower(): v for k, v in (kw.get("headers") or {}).items()})
+            captured.update({k.lower(): v for k, v in dict(c.session.headers).items()})
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = '{"data": {}}'
+            return m
+
+        c.session.request = MagicMock(side_effect=cap)
+        c._get("/test")
+        assert captured.get("user-agent", "").startswith("shc-toolkit/")
+
+    def test_ua_carries_installed_version(self):
+        from importlib.metadata import PackageNotFoundError, version
+
+        c = self._mk()
+        ua = dict(c.session.headers).get("user-agent") or next(
+            v for k, v in c.session.headers.items() if k.lower() == "user-agent"
+        )
+        try:
+            expected = f"shc-toolkit/{version('shc-toolkit')}"
+        except PackageNotFoundError:
+            expected = "shc-toolkit/dev"
+        assert ua == expected
+
+    def test_standalone_exchange_sends_ua(self, monkeypatch):
+        import json as _json
+
+        import httpx
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import exchange_nostr_operate_grant
+
+        seen = {}
+
+        def fake_request(_self, method, url=None, **kwargs):
+            seen["ua"] = dict(kwargs.get("headers") or {}).get("User-Agent", "")
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = _json.dumps({"data": {"success": True}})
+            return m
+
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        now = __import__("time").time()
+        grant = {
+            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
+            "kind": 30078, "created_at": int(now), "content": "",
+            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
+                     ["area", "vm:1"], ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
+                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+        }
+        exchange_nostr_operate_grant(
+            grant, nsec=Keys.generate().secret_key().to_bech32()
+        )
+        assert seen["ua"].startswith("shc-toolkit/")
+
+    @staticmethod
+    def _mk():
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            return SHCClient()
+
+
+class TestNostrOperateGrantExtras:
+    def test_nonce_and_id_unique_per_request(self):
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import _sign_nip98_operate_request
+
+        nsec = Keys.generate().secret_key().to_bech32()
+        e1 = _sign_nip98_operate_request(nsec, "https://x.example/t")
+        e2 = _sign_nip98_operate_request(nsec, "https://x.example/t")
+        t1 = {t[0]: t[1] for t in e1["tags"]}
+        t2 = {t[0]: t[1] for t in e2["tags"]}
+        assert t1["nonce"] != t2["nonce"]
+        assert e1["id"] != e2["id"]
+
+    def test_method_delegation_uses_client_base_url(self, monkeypatch):
+        import json as _json
+
+        import httpx
+        from nostr_sdk import Keys
+
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient(base_url="https://api.example.test/user-api/v2")
+        seen = {}
+
+        def fake_request(_self, method, url=None, **kwargs):
+            seen["url"] = url
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = _json.dumps({"data": {"success": True}})
+            return m
+
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        now = __import__("time").time()
+        grant = {
+            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
+            "kind": 30078, "created_at": int(now), "content": "",
+            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
+                     ["area", "vm:1"], ["aud", "shc:https://api.example.test"],
+                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+        }
+        c.exchange_nostr_operate_grant(grant, nsec=Keys.generate().secret_key().to_bech32())
+        assert seen["url"] == "https://api.example.test/plugin/nostr_auth/main/operate_token"
+
+    def test_default_base_url_targets_production_plugin(self, monkeypatch):
+        import json as _json
+
+        import httpx
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import exchange_nostr_operate_grant
+
+        seen = {}
+
+        def fake_request(_self, method, url=None, **kwargs):
+            seen["url"] = url
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = _json.dumps({"data": {"success": True}})
+            return m
+
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        now = __import__("time").time()
+        grant = {
+            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
+            "kind": 30078, "created_at": int(now), "content": "",
+            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
+                     ["area", "vm:1"], ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
+                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+        }
+        exchange_nostr_operate_grant(
+            grant, nsec=Keys.generate().secret_key().to_bech32()
+        )
+        assert seen["url"] == (
+            "https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token"
+        )
+
+    def test_validate_rejects_non_dict(self):
+        from shc_toolkit.client import validate_operate_grant
+
+        assert validate_operate_grant("not-a-grant") == ["grant is not a JSON object"]
+
+    def test_validate_requires_aud_when_not_expected(self):
+        import time
+
+        from shc_toolkit.client import validate_operate_grant
+
+        now = int(time.time())
+        grant = {
+            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
+            "kind": 30078, "created_at": now, "content": "",
+            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
+                     ["area", "vm:1"],
+                     ["nbf", str(now)], ["exp", str(now + 900)]],
+        }
+        assert any("aud" in p for p in validate_operate_grant(grant))
+
+
+class TestPollInvoiceErrorPath:
+    def test_poll_survives_transient_errors(self, monkeypatch):
+        from shc_toolkit.jit_pay import poll_shc_invoice
+
+        monkeypatch.setattr("time.sleep", lambda *_: None)
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            c = SHCClient()
+        state = {"n": 0}
+
+        def flaky(path):
+            state["n"] += 1
+            if state["n"] < 3:
+                raise RuntimeError("transient")
+            return {"data": {"status": "paid"}}
+
+        c._get = flaky
+        assert poll_shc_invoice(c, 9, timeout=5) is True
+        assert state["n"] == 3
+
+
+class TestPaymentUriEdges:
+    def test_empty_payment_link_falls_back_to_stitch(self):
+        from shc_toolkit.jit_pay import payment_uri
+
+        assert (
+            payment_uri({"payment_link": "", "onchain_address": "bc1qx", "bolt11": "lnbcz"})
+            == "bitcoin:bc1qx?lightning=lnbcz"
+        )
+
+    def test_non_dict_returns_none(self):
+        from shc_toolkit.jit_pay import payment_uri
+
+        assert payment_uri(None) is None
+        assert payment_uri("lightning:x") is None
+
+
+class TestTopupUsesResponseRails:
+    def _grant_paid_after(self, fake_client_cls, monkeypatch):
+        from shc_toolkit import register as reg
+
+        rendered = []
+        monkeypatch.setattr(reg, "_POLL_SECONDS", 0)
+        monkeypatch.setattr("shc_toolkit.jit_pay.render_qr", lambda uri: rendered.append(uri))
+        reg._topup(
+            fake_client_cls(), 5.0, browser=False, timeout=2, log=lambda m: None
+        )
+        return rendered
+
+    def test_prefers_payment_link_without_scraping(self, monkeypatch):
+        from shc_toolkit import register as reg
+
+        def explode(url):
+            raise AssertionError("checkout HTML must not be scraped when rails present")
+
+        monkeypatch.setattr("shc_toolkit.jit_pay.fetch_bolt11", explode)
+
+        class FakeClient:
+            def topup_credit(self, amount):
+                return {
+                    "invoice_id": 5,
+                    "checkout_url": "https://btcpay.example/i/x",
+                    "payment_link": "lightning:lnbcfromresp",
+                }
+
+            def _get(self, path):
+                return {"data": {"status": "paid"}}
+
+        rendered = self._grant_paid_after(FakeClient, monkeypatch)
+        assert rendered == ["lightning:lnbcfromresp"]
+
+    def test_falls_back_to_checkout_scrape(self, monkeypatch):
+        from shc_toolkit import register as reg
+
+        monkeypatch.setattr("shc_toolkit.jit_pay.fetch_bolt11", lambda url: "lnbcscraped")
+
+        class FakeClient:
+            def topup_credit(self, amount):
+                return {"invoice_id": 5, "checkout_url": "https://btcpay.example/i/x"}
+
+            def _get(self, path):
+                return {"data": {"status": "paid"}}
+
+        rendered = self._grant_paid_after(FakeClient, monkeypatch)
+        assert rendered == ["lightning:lnbcscraped"]
+
+
+class TestErrorFromBodyStringShape:
+    """The operate_token plugin route returns a FLAT string error
+    ({"error": "Grant is not bound to this agent key"}), not the nested
+    {"error": {code, message}} shape of /user-api/v2. Found live."""
+
+    def test_string_error_403_maps_to_auth_error(self):
+        from shc_toolkit.client import SHCAuthError, _error_from_body
+
+        exc = _error_from_body({"error": "Grant is not bound to this agent key"}, "", 403)
+        assert isinstance(exc, SHCAuthError)
+        assert "not bound to this agent key" in exc.message
+
+    def test_string_error_other_status_is_generic(self):
+        from shc_toolkit.client import SHCError, _error_from_body
+
+        exc = _error_from_body({"error": "boom"}, "", 500)
+        assert type(exc) is SHCError
+        assert exc.message == "boom"
+
+    def test_nested_shape_unaffected(self):
+        from shc_toolkit.client import SHCNotFoundError, _error_from_body
+
+        exc = _error_from_body(
+            {"error": {"code": "not_found", "message": "gone"}}, "", 404
+        )
+        assert isinstance(exc, SHCNotFoundError)
+        assert exc.message == "gone"

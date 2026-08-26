@@ -29,6 +29,18 @@ log = logging.getLogger(__name__)
 
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
 
+try:
+    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+    try:
+        _VERSION = _pkg_version("shc-toolkit")
+    except PackageNotFoundError:
+        _VERSION = "dev"
+except ImportError:  # pragma: no cover
+    _VERSION = "dev"
+
+USER_AGENT = f"shc-toolkit/{_VERSION}"
+
 
 def _sign_nip98_operate_request(nsec: str, url: str, *, method: str = "POST") -> dict:
     """Sign a NIP-98 kind:27235 request event for the operate_token grant
@@ -153,7 +165,10 @@ def exchange_nostr_operate_grant(
         resp = http.request(
             "POST",
             url,
-            headers={"Authorization": f"Nostr {payload}"},
+            headers={
+                "Authorization": f"Nostr {payload}",
+                "User-Agent": USER_AGENT,
+            },
             json={"grant": grant},
         )
     try:
@@ -161,7 +176,7 @@ def exchange_nostr_operate_grant(
     except _json.JSONDecodeError:
         body = {}
     if resp.status_code >= 400:
-        raise _error_from_body(body, resp.text)
+        raise _error_from_body(body, resp.text, resp.status_code)
     return body.get("data", body)
 
 
@@ -291,9 +306,20 @@ def _raise_shc_error(
     raise exc
 
 
-def _error_from_body(body: Any, fallback_text: str) -> SHCError:
-    """Build (not raise) the most specific SHCError for an error body."""
+def _error_from_body(
+    body: Any, fallback_text: str, status_code: int | None = None
+) -> SHCError:
+    """Build (not raise) the most specific SHCError for an error body.
+
+    Handles both wire shapes: the standard ``{"error": {code, message}}``
+    object of /user-api/v2 and the flat ``{"error": "<string>"}`` of the
+    plugin routes (e.g. operate_token).
+    """
     err = body.get("error", {}) if isinstance(body, dict) else {}
+    if isinstance(err, str):
+        if status_code in (401, 403):
+            return SHCAuthError("unauthorized", err or fallback_text)
+        return SHCError("unknown", err or fallback_text)
     ec = err.get("error_code") or err.get("code", "unknown")
     cls = _ERROR_CODE_MAP.get(ec, SHCError)
     return cls(
@@ -336,6 +362,7 @@ class SHCClient:
             raise ValueError("SHC_API_KEY not set and no api_key provided")
         self.base_url = base_url
         self.session = httpx.Client(timeout=30.0)
+        self.session.headers["User-Agent"] = USER_AGENT
         self.session.headers["Authorization"] = f"Bearer {self.api_key}"
         self._max_retries = max_retries
         self._backoff_base = backoff_base
@@ -462,7 +489,7 @@ class SHCClient:
         text = resp.text
         body = _json.loads(text) if text.strip() else {}
         if resp.status_code >= 400:
-            exc = _error_from_body(body, resp.text)
+            exc = _error_from_body(body, resp.text, resp.status_code)
             conf = body.get("confirmation", {})
             if conf:
                 exc.confirmation_id = conf.get("confirmation_id") or conf.get(
