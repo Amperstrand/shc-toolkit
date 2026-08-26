@@ -228,7 +228,9 @@ class SHCTransport(Protocol):
     # ── Console ──────────────────────────────────────────────
 
     def get_console_availability(self, service_id: int) -> dict: ...
-    def create_console_session(self, service_id: int) -> dict: ...
+    def create_console_session(
+        self, service_id: int, *, ttl: int | None = None, confirm: bool = True
+    ) -> dict: ...
 
     # ── Templates ────────────────────────────────────────────
 

@@ -1425,8 +1425,13 @@ class SHCMCPClient:
     def get_console_availability(self, service_id: int) -> dict:
         return self.call_tool("getVmConsoleAvailability", {"serviceId": service_id})
 
-    def create_console_session(self, service_id: int) -> dict:
-        return self.call_tool("mintVmConsoleSession", {"serviceId": service_id})
+    def create_console_session(
+        self, service_id: int, *, ttl: int | None = None
+    ) -> dict:
+        args = {"serviceId": service_id}
+        if ttl is not None:
+            args["ttl"] = ttl
+        return self.call_tool("mintVmConsoleSession", args)
 
     # Templates
     def list_templates(self) -> list[dict]:

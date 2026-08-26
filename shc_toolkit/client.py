@@ -1740,12 +1740,14 @@ class SHCClient:
         return self._get(f"/vm/{service_id}/console")
 
     def create_console_session(
-        self, service_id: int, *, ttl: int | None = None
+        self, service_id: int, *, ttl: int | None = None, confirm: bool = True
     ) -> dict:
         body: dict[str, Any] = {}
         if ttl is not None:
             body["ttl"] = ttl
-        return self._post(f"/vm/{service_id}/console/session", body)
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/console/session", confirm=confirm, json=body
+        )
 
     # ── Templates ────────────────────────────────────────────
 

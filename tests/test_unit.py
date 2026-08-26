@@ -1756,6 +1756,10 @@ class TestCliCommandCoverage:
         mock = _run_cli(["shc", "console-session", "1077"])
         mock.create_console_session.assert_called_once()
 
+    def test_cli_console_session_ttl(self):
+        mock = _run_cli(["shc", "console-session", "1077", "--ttl", "300"])
+        mock.create_console_session.assert_called_once_with(1077, ttl=300)
+
     # ── Job detail ───────────────────────────────────────────
     def test_cli_job_get(self):
         mock = _run_cli(["shc", "job", "1077", "job-abc123"])
