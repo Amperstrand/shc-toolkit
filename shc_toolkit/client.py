@@ -54,6 +54,117 @@ def _sign_nip98_operate_request(nsec: str, url: str, *, method: str = "POST") ->
     return _json.loads(event.as_json())
 
 
+def validate_operate_grant(
+    grant: dict, *, expected_aud: str | None = None
+) -> list[str]:
+    """Check a kind:30078 operate grant against the corpus contract.
+
+    Returns a list of human-readable problems (empty = valid): event
+    kind, signature fields, and the required tags (``d=shc:agent:<pubkey>``,
+    ``scope=operate``, ``area=vm:<service_id>``, ``aud``, ``nbf``/``exp``
+    with sane timing). Validating locally turns an opaque server 403
+    "Invalid grant" into an actionable ask to the customer.
+    """
+    import time
+
+    def _int_or_none(value: Any) -> int | None:
+        try:
+            return int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
+
+    problems: list[str] = []
+    if not isinstance(grant, dict):
+        return ["grant is not a JSON object"]
+    if grant.get("kind") != 30078:
+        problems.append(f"kind must be 30078, got {grant.get('kind')!r}")
+    for field in ("id", "pubkey", "sig"):
+        if not grant.get(field):
+            problems.append(f"missing {field} (grant must be a signed event)")
+    tags: dict[str, str] = {}
+    for tag in grant.get("tags", []):
+        if isinstance(tag, (list, tuple)) and len(tag) >= 2:
+            tags[str(tag[0])] = str(tag[1])
+    if not tags.get("d", "").startswith("shc:agent:"):
+        problems.append("tag d must be shc:agent:<agent-pubkey>")
+    if tags.get("scope") != "operate":
+        problems.append(f"tag scope must be 'operate', got {tags.get('scope')!r}")
+    if not tags.get("area", "").startswith("vm:"):
+        problems.append("tag area must be vm:<service_id>")
+    if expected_aud is not None:
+        if tags.get("aud") != expected_aud:
+            problems.append(
+                f"tag aud must be {expected_aud!r}, got {tags.get('aud')!r}"
+            )
+    elif not tags.get("aud"):
+        problems.append("tag aud is required")
+    now = time.time()
+    exp = _int_or_none(tags.get("exp"))
+    if exp is None:
+        problems.append("tag exp is required (unix seconds)")
+    elif exp <= now:
+        problems.append("grant is expired (exp in the past) — ask for a re-sign")
+    nbf = _int_or_none(tags.get("nbf"))
+    if nbf is None:
+        problems.append("tag nbf is required (unix seconds)")
+    elif nbf > now + 60:
+        problems.append("grant is not yet valid (nbf in the future)")
+    return problems
+
+
+def exchange_nostr_operate_grant(
+    grant: dict, *, nsec: str, base_url: str = BASE_URL, timeout: float = 30.0
+) -> dict:
+    """Exchange a customer-signed kind:30078 grant for a short-TTL
+    operate lease — no SHC account or API key needed.
+
+    Implements the agent side of SHC's operator-skills
+    "nostr-operate-lane": the agent's nsec + the customer's signed
+    grant are the whole credential. Validates the grant locally first
+    (see :func:`validate_operate_grant`), then signs a NIP-98
+    ``kind:27235`` event (``u``/``method``/fresh-``nonce`` tags — the
+    server replay-checks), and POSTs it as ``Authorization: Nostr
+    <base64>`` with body ``{"grant": <event>}`` to
+    ``/plugin/nostr_auth/main/operate_token``.
+
+    Returns the lease: ``token`` (a 64-hex operate Bearer), ``scope``,
+    ``area`` (``vm:<service_id>``), ``service_id``, ``expires_in``
+    (~900s). Operate the ONE granted VM with ``SHCClient(api_key=resp
+    ["token"])`` — the lease 403s on any other service and any spend
+    path by design, and destructive ops still pass through the
+    confirmation gate. Re-mint from the same (unexpired) grant when the
+    lease lapses.
+    """
+    import base64
+    from urllib.parse import urlparse
+
+    origin = urlparse(base_url)
+    url = f"{origin.scheme}://{origin.netloc}/plugin/nostr_auth/main/operate_token"
+    problems = validate_operate_grant(
+        grant, expected_aud=f"shc:{origin.scheme}://{origin.netloc}"
+    )
+    if problems:
+        raise SHCError(
+            "invalid_grant", "grant rejected locally: " + "; ".join(problems)
+        )
+    event = _sign_nip98_operate_request(nsec, url)
+    payload = base64.b64encode(_json.dumps(event).encode()).decode()
+    with httpx.Client(timeout=timeout) as http:
+        resp = http.request(
+            "POST",
+            url,
+            headers={"Authorization": f"Nostr {payload}"},
+            json={"grant": grant},
+        )
+    try:
+        body: Any = _json.loads(resp.text) if resp.text.strip() else {}
+    except _json.JSONDecodeError:
+        body = {}
+    if resp.status_code >= 400:
+        raise _error_from_body(body, resp.text)
+    return body.get("data", body)
+
+
 class SHCError(Exception):
     """Base exception for all SHC API errors.
 
@@ -178,6 +289,21 @@ def _raise_shc_error(
     cls = _ERROR_CODE_MAP.get(ec, SHCError)
     exc = cls(code, message, request_id, details, error_code, retry_after_seconds)
     raise exc
+
+
+def _error_from_body(body: Any, fallback_text: str) -> SHCError:
+    """Build (not raise) the most specific SHCError for an error body."""
+    err = body.get("error", {}) if isinstance(body, dict) else {}
+    ec = err.get("error_code") or err.get("code", "unknown")
+    cls = _ERROR_CODE_MAP.get(ec, SHCError)
+    return cls(
+        err.get("code", "unknown"),
+        err.get("message", fallback_text),
+        err.get("request_id"),
+        err.get("details"),
+        err.get("error_code"),
+        err.get("retry_after_seconds"),
+    )
 
 
 class SHCClient:
@@ -336,16 +462,7 @@ class SHCClient:
         text = resp.text
         body = _json.loads(text) if text.strip() else {}
         if resp.status_code >= 400:
-            err = body.get("error", {})
-            code = err.get("code", "unknown")
-            message = err.get("message", resp.text)
-            request_id = err.get("request_id")
-            details = err.get("details")
-            error_code = err.get("error_code")
-            retry_after = err.get("retry_after_seconds")
-            ec = error_code or code
-            cls = _ERROR_CODE_MAP.get(ec, SHCError)
-            exc = cls(code, message, request_id, details, error_code, retry_after)
+            exc = _error_from_body(body, resp.text)
             conf = body.get("confirmation", {})
             if conf:
                 exc.confirmation_id = conf.get("confirmation_id") or conf.get(
@@ -503,36 +620,15 @@ class SHCClient:
 
     def exchange_nostr_operate_grant(self, grant: dict, *, nsec: str) -> dict:
         """Exchange a customer-signed kind:30078 grant for a short-TTL
-        operate lease (SHC operator-skills "nostr-operate-lane").
+        operate lease, using this client's base_url.
 
-        POSTs to the plugin endpoint
-        ``/plugin/nostr_auth/main/operate_token`` with a NIP-98
-        ``Authorization: Nostr <base64 kind:27235 event>`` header signed
-        with OUR agent nsec (fresh nonce, u/method tags bound to this
-        call). The response carries ``token`` (a 64-hex operate Bearer),
-        ``scope``, ``area`` (``vm:<service_id>``), ``service_id`` and
-        ``expires_in`` (~900s). Build a follow-on client with
-        ``SHCClient(api_key=resp["token"])`` — the lease is bound to
-        that one VM, 403s on any spend path, and destructive ops still
-        pass through the confirmation gate.
+        Delegates to the module-level
+        :func:`exchange_nostr_operate_grant` — which needs NO account
+        API key (the agent's nsec + the customer's grant are the whole
+        credential, so prefer calling it directly). See that function
+        for the full lease contract.
         """
-        import base64
-        from urllib.parse import urlparse
-
-        origin = urlparse(self.base_url)
-        url = f"{origin.scheme}://{origin.netloc}/plugin/nostr_auth/main/operate_token"
-        event = _sign_nip98_operate_request(nsec, url)
-        payload = base64.b64encode(_json.dumps(event).encode()).decode()
-
-        saved = self.session.headers.pop("Authorization", None)
-        self.session.headers["Authorization"] = f"Nostr {payload}"
-        self.session.headers["Content-Type"] = "application/json"
-        try:
-            return self._request_inner("POST", url, json={"grant": grant})
-        finally:
-            del self.session.headers["Content-Type"]
-            if saved is not None:
-                self.session.headers["Authorization"] = saved
+        return exchange_nostr_operate_grant(grant, nsec=nsec, base_url=self.base_url)
 
     def topup_credit(self, amount: float | str) -> dict:
         """POST /account/credit — BTCPay topup (confirmation-gated,

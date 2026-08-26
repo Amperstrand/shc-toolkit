@@ -14,7 +14,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 341 unit tests + 4 integration tests
+├── tests/                       — 344 unit tests + 4 integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -171,8 +171,10 @@ fingerprints). Audited 2026-08-26 against v2.4.15 of the corpus (API spec at
   agent signs NIP-98 `kind:27235` (`u`/`method`/fresh nonce), `Authorization:
   Nostr <base64>`, POST `/plugin/nostr_auth/main/operate_token` body
   `{"grant": <event>}` → short-TTL (~900s) vm-scoped cannot-spend Bearer
-  (403s other services + all spend). Implemented in
-  `SHCClient.exchange_nostr_operate_grant()` (v2.4.24.3).
+  (403s other services + all spend). Implemented as the module-level
+  `exchange_nostr_operate_grant()` (no account key needed — the lane's whole
+  point) + `validate_operate_grant()` local pre-check; guide in
+  `docs/nostr-operate-lane.md` (v2.4.24.3+).
 - **shc-pay BIP21**: credit responses may carry `payment_link` (prefer),
   `bolt11`, `onchain_address` → stitch `bitcoin:<addr>?lightning=<bolt11>` /
   `bitcoin:<addr>` / `lightning:<bolt11>`; none → checkout_url fallback.
@@ -238,7 +240,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 341 tests (unit) + 4 integration tests.
+All tests must pass. Currently 344 tests (unit) + 4 integration tests.
 
 ### 2. Lint
 ```bash

@@ -231,6 +231,7 @@ def cmd_cancel(args):
 
 # ── Ordering ──────────────────────────────────────────────
 
+
 def cmd_order(args):
     c = _client(args)
     ssh_key = None

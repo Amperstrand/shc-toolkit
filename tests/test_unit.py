@@ -2120,6 +2120,27 @@ class TestNostrOperateGrant:
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             return SHCClient()
 
+    def _good_grant(self):
+        import time
+
+        now = int(time.time())
+        return {
+            "id": "a" * 64,
+            "pubkey": "b" * 64,
+            "sig": "c" * 64,
+            "kind": 30078,
+            "created_at": now,
+            "content": "",
+            "tags": [
+                ["d", "shc:agent:" + "d" * 64],
+                ["scope", "operate"],
+                ["area", "vm:456"],
+                ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
+                ["nbf", str(now)],
+                ["exp", str(now + 900)],
+            ],
+        }
+
     def test_signer_builds_nip98_event(self):
         from nostr_sdk import Keys
 
@@ -2137,23 +2158,24 @@ class TestNostrOperateGrant:
         assert tags.get("nonce")
         assert event["sig"] and event["id"]
 
-    def test_exchange_posts_nostr_auth_to_plugin_url(self):
+    def test_standalone_exchange_posts_nostr_auth_to_plugin_url(
+        self, monkeypatch
+    ):
         import base64
         import json as _json
 
+        import httpx
         from nostr_sdk import Keys
 
-        c = self._client()
+        from shc_toolkit.client import exchange_nostr_operate_grant
+
         nsec = Keys.generate().secret_key().to_bech32()
         captured = {}
 
-        def capture_request(method, url, **kwargs):
+        def fake_request(_self, method, url=None, **kwargs):
             captured["method"] = method
             captured["url"] = url
-            captured["headers"] = {
-                **dict(c.session.headers),
-                **dict(kwargs.get("headers") or {}),
-            }
+            captured["headers"] = dict(kwargs.get("headers") or {})
             captured["json"] = kwargs.get("json")
             m = MagicMock()
             m.status_code = 200
@@ -2161,44 +2183,122 @@ class TestNostrOperateGrant:
             m.text = _json.dumps(
                 {"data": {"success": True, "token": "a" * 64, "expires_in": 900}}
             )
-            m.ok = True
             return m
 
-        c.session.request = MagicMock(side_effect=capture_request)
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
 
-        grant = {"kind": 30078, "tags": [["d", "shc:agent:abc"]], "sig": "s"}
-        result = c.exchange_nostr_operate_grant(grant, nsec=nsec)
+        grant = self._good_grant()
+        result = exchange_nostr_operate_grant(grant, nsec=nsec)
 
         assert captured["method"] == "POST"
         assert (
             captured["url"]
             == "https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token"
         )
-        hdrs = {k.lower(): v for k, v in captured["headers"].items()}
-        auth = hdrs["authorization"]
+        auth = captured["headers"]["Authorization"]
         assert auth.startswith("Nostr ")
         decoded = _json.loads(base64.b64decode(auth[len("Nostr ") :]))
         assert decoded["kind"] == 27235
         tags = {t[0]: t[1] for t in decoded["tags"]}
-        assert "u" in tags and "method" in tags
+        assert tags["u"] == captured["url"]
+        assert tags["method"] == "POST"
         assert captured["json"] == {"grant": grant}
         assert result["success"] is True
         assert result["token"] == "a" * 64
 
-    def test_exchange_restores_bearer_header(self):
+    def test_validate_operate_grant_reports_problems(self):
+        from shc_toolkit.client import validate_operate_grant
+
+        good = self._good_grant()
+        assert (
+            validate_operate_grant(
+                good, expected_aud="shc:https://blesta.sovereignhybridcompute.com"
+            )
+            == []
+        )
+
+        def problems_for(**mutate):
+            grant = self._good_grant()
+            for key, value in mutate.items():
+                if key == "drop_tag":
+                    grant["tags"] = [t for t in grant["tags"] if t[0] != value]
+                elif key == "tag":
+                    name, val = value
+                    grant["tags"] = [
+                        [name, val] if t[0] == name else t for t in grant["tags"]
+                    ]
+                else:
+                    grant[key] = value
+            return " ".join(validate_operate_grant(grant, expected_aud="shc:https://x"))
+
+        assert "kind" in problems_for(kind=1)
+        g = self._good_grant()
+        del g["sig"]
+        assert "sig" in " ".join(validate_operate_grant(g))
+        assert "tag d " in problems_for(drop_tag="d")
+        assert "tag scope" in problems_for(tag=("scope", "read"))
+        assert "tag area" in problems_for(drop_tag="area")
+        assert "tag aud" in problems_for(tag=("aud", "shc:https://evil.example"))
+        assert "expired" in problems_for(tag=("exp", str(1)))
+        assert "not yet valid" in problems_for(tag=("nbf", str(2**40)))
+
+    def test_exchange_rejects_invalid_grant_locally(self, monkeypatch):
+        import httpx
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import exchange_nostr_operate_grant
+
+        def explode(*a, **k):
+            raise AssertionError("HTTP must not be called for an invalid grant")
+
+        monkeypatch.setattr(httpx.Client, "request", explode)
+        bad = self._good_grant()
+        bad["kind"] = 7
+        with pytest.raises(SHCError, match="invalid_grant"):
+            exchange_nostr_operate_grant(
+                bad, nsec=Keys.generate().secret_key().to_bech32()
+            )
+
+    def test_exchange_maps_server_error(self, monkeypatch):
+        import json as _json
+
+        import httpx
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import exchange_nostr_operate_grant
+
+        def fake_request(*a, **k):
+            m = MagicMock()
+            m.status_code = 403
+            m.headers = {}
+            m.text = _json.dumps(
+                {"error": {"code": "forbidden", "message": "Invalid grant"}}
+            )
+            return m
+
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        with pytest.raises(SHCError, match="Invalid grant"):
+            exchange_nostr_operate_grant(
+                self._good_grant(), nsec=Keys.generate().secret_key().to_bech32()
+            )
+
+    def test_method_delegates_and_leaves_session_alone(self, monkeypatch):
+        import json as _json
+
+        import httpx
         from nostr_sdk import Keys
 
         c = self._client()
         nsec = Keys.generate().secret_key().to_bech32()
 
-        def ok(*a, **k):
+        def fake_request(*a, **k):
             m = MagicMock()
             m.status_code = 200
             m.headers = {}
-            m.text = '{"data": {"success": true}}'
-            m.ok = True
+            m.text = _json.dumps({"data": {"success": True}})
             return m
 
-        c.session.request = MagicMock(side_effect=ok)
-        c.exchange_nostr_operate_grant({"kind": 30078}, nsec=nsec)
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        result = c.exchange_nostr_operate_grant(self._good_grant(), nsec=nsec)
+        assert result == {"success": True}
         assert c.session.headers["Authorization"] == "Bearer shc_live_test"

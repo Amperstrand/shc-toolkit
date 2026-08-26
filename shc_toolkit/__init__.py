@@ -25,6 +25,8 @@ from .client import (
     SHCNotFoundError,
     SHCRateLimitError,
     SHCServerError,
+    exchange_nostr_operate_grant,
+    validate_operate_grant,
 )
 from .sizes import SIZE_MAP, list_sizes, resolve_size, resolve_specs
 from .transport import resolve_transport
@@ -46,9 +48,11 @@ __all__ = [
     "SHCTransport",
     "SupportTicket",
     "create_client",
+    "exchange_nostr_operate_grant",
     "list_sizes",
     "resolve_size",
     "resolve_specs",
+    "validate_operate_grant",
 ]
 
 # Re-export Protocol for type checking
