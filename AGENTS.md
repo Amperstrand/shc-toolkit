@@ -361,3 +361,10 @@ Two incidents in one session: a Python edit script aborted mid-list leaving `cro
 
 **Affected**: any scripted bulk edit across workflow/config files.
 **Fix**: after a scripted multi-file edit, grep for the intended end-state across ALL targets (not the ones the script reported), and exercise the result (e.g. `gh workflow run <name>`) — YAML-valid ≠ workflow-valid.
+
+### 20. VMs bill by existence — stopped is NOT free
+
+SHC charges the full daily price while a service **exists**, regardless of power state. `stop_vm`/`shutdown_vm` save nothing. Cleanup = `cancel_vm(id, immediate=True)`, which also refunds the unused part of the current day. Renewals draw down credit silently — the transaction ledger only records credits/topups (`list_transactions`), and `list_invoices` stays empty, so historical spend is not queryable via the API.
+
+**Affected**: any agent ordering VMs through this toolkit (several projects on the shared lab machine use one account).
+**Fix**: cancel every VM in the session that ordered it; never leave a VM `stopped` at task end (incident: `lightning-playground`, stopped 9 days, $3.12); give ephemeral VMs a reaper-reapable hostname prefix (see `reap_orphans()` KEEP/REAP lists); register long-lived VMs in `physical-router-test-automation/config/approved-resources.yaml` and audit with its `scripts/cost-status.py` (exit 1 on unapproved billables).
