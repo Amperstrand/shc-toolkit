@@ -46,6 +46,22 @@ they make the SAME decision. Report a table: behavior | Python | Go | match?
 Exit criteria: every mismatch is reported with file:line on both sides.
 ```
 
+## Known acceptable differences (adjudicated 2026-08-25, Prompt 1 audit)
+
+These surface as "mismatches" in a fresh Prompt-1 run. They were reviewed
+and deliberately accepted — do NOT re-flag as bugs:
+
+| Difference | Python (shc-toolkit) | Go (terraform-provider-shc) | Why acceptable |
+|---|---|---|---|
+| Retry attempt counting | `max_retries=3` = 3 total attempts | `retryablehttp RetryMax=3` = 4 total attempts | Both bounded, both back off; one extra attempt is harmless |
+| 408 retry | Python retries 408 | Go does not | 408 is rare; retryablehttp covers 429/5xx |
+| Idempotency-key format | `shc-` + 24 hex per confirmed request | `order-<UnixNano>-<rand>` per order | Both satisfy the API contract (16–128 chars, `[A-Za-z0-9_-]`); stable across confirmation resend in both |
+| Probe mode (`confirm=False`) | Supported | Not exposed | Terraform has no probe semantics; auto-confirm is the provider UX |
+| Error taxonomy | Typed exceptions (`SHCNotFoundError` etc.) | `fmt.Errorf` + diagnostics; only `ErrVMNotFound` typed | Terraform diagnostics carry the API `code` string; consumers match on that |
+
+Any NEW behavioral divergence found in a future Prompt-1 run that is not in
+this table is a real finding.
+
 ## Prompt 2: Lessons Ported Audit
 
 ```
