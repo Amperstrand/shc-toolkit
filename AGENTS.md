@@ -14,7 +14,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 311+ unit tests + 4 integration tests
+├── tests/                       — 341 unit tests + 4 integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -151,6 +151,38 @@ Bypass with `@pytest.mark.allow_network` or `SHC_TEST_LIVE=1` env var.
 
 The SHC API key is stored in `SHC_API_KEY` environment variable. It is separate from the portal password. We do NOT store the portal password anywhere in the codebase. The API key has full-scope access (ordering, cancellation, billing).
 
+## Operator-skills corpus (llms-full.txt)
+
+`https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt` is SHC's
+agent-facing contract corpus (header carries `x-shc-release` version, op_count,
+fingerprints). Audited 2026-08-26 against v2.4.15 of the corpus (API spec at
+2.4.24, 177 ops — no drift). Key contracts it defines that BOTH repos must keep:
+
+- **Confirmation gate**: spend/destructive ops 409 `confirmation_required`
+  carrying a single-use `confirmation_id`; re-send the IDENTICAL request with
+  header `X-User-Api-Confirm`. `?confirm=true` and body `confirm:true` are NOT
+  accepted. Probe mode = `confirm=False` → raise, never auto-resend.
+- **Routine ops are NOT gated** (portal parity): power on/off/restart/shutdown/
+  reset, mount/unmount ISO, add/edit firewall rule, set rDNS, create
+  backup/snapshot, ADD ssh key. Gated: reinstall, restore/delete backup or
+  snapshot, cancel, delete firewall rule/ssh key/contact.
+- **Nostr operate-lane** (agent side): customer signs `kind:30078` grant
+  (`d=shc:agent:<pubkey>`, `scope=operate`, `area=vm:<id>`, `aud`, `nbf`/`exp`);
+  agent signs NIP-98 `kind:27235` (`u`/`method`/fresh nonce), `Authorization:
+  Nostr <base64>`, POST `/plugin/nostr_auth/main/operate_token` body
+  `{"grant": <event>}` → short-TTL (~900s) vm-scoped cannot-spend Bearer
+  (403s other services + all spend). Implemented in
+  `SHCClient.exchange_nostr_operate_grant()` (v2.4.24.3).
+- **shc-pay BIP21**: credit responses may carry `payment_link` (prefer),
+  `bolt11`, `onchain_address` → stitch `bitcoin:<addr>?lightning=<bolt11>` /
+  `bitcoin:<addr>` / `lightning:<bolt11>`; none → checkout_url fallback.
+  Implemented in `jit_pay.payment_uri()`.
+- **Spend is scope-gated**: an `operate` key cannot spend; only `full` keys or
+  HTTP Basic.
+
+The terraform provider was audited the same day: confirm-gate, header-only
+confirm re-send, active+IP readiness — conformant, no changes required.
+
 ## Zero-GUI account onboarding (2026-08-22/23, live-proven)
 
 `shc register` (default: unattended) creates a complete account with ONE
@@ -206,7 +238,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 311 tests (unit) + 4 integration tests.
+All tests must pass. Currently 341 tests (unit) + 4 integration tests.
 
 ### 2. Lint
 ```bash
@@ -368,3 +400,9 @@ SHC charges the full daily price while a service **exists**, regardless of power
 
 **Affected**: any agent ordering VMs through this toolkit (several projects on the shared lab machine use one account).
 **Fix**: cancel every VM in the session that ordered it; never leave a VM `stopped` at task end (incident: `lightning-playground`, stopped 9 days, $3.12); give ephemeral VMs a reaper-reapable hostname prefix (see `reap_orphans()` KEEP/REAP lists); register long-lived VMs in `physical-router-test-automation/config/approved-resources.yaml` and audit with its `scripts/cost-status.py` (exit 1 on unapproved billables).
+
+### 21. Silent `except` blocks hide broken request paths for weeks
+`jit_pay.poll_shc_invoice()` shipped with `shc_client._get("/payment/{invoice_id}")` (f-prefix stripped by an old scripted lint pass — the same failure mode as lesson 19) and a broad `except Exception` that printed "Polling error" and kept looping. Result: every zero-balance `shc order --pay` reported a payment timeout even after the wallet paid, for weeks, because the polling loop "worked" (looped, printed, timed out) instead of crashing.
+
+**Affected**: any long-lived loop with except-swallow retry (payment/invoice/readiness polling).
+**Fix**: unit-test the exact request path such helpers hit (assert the path string), not just the loop outcome; treat a polling helper that never asserts its request shape as untested. Found by the 2026-08-26 llms-full.txt corpus audit.

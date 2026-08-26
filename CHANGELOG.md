@@ -7,8 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.24.3] — 2026-08-26
+
+### Added
+- **Nostr operate-lane (agent side) — `SHCClient.exchange_nostr_operate_grant()`.** Implements the `nostr-operate-lane` skill from SHC's operator-skills corpus (`https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt`, the audit source for this release): exchanges a customer-signed `kind:30078` grant for a short-TTL (~900s), vm-scoped, cannot-spend operate Bearer via `POST /plugin/nostr_auth/main/operate_token`. Signs a NIP-98 `kind:27235` auth event with the agent nsec (`u`/`method`/fresh-`nonce` tags — server replay-checks), sends it as `Authorization: Nostr <base64>`, body `{"grant": <event>}`. Response carries `token`/`scope`/`area`/`service_id`/`expires_in`; build a follow-on client with `SHCClient(api_key=token)`. The Bearer 403s on any other service and any spend path by design; destructive ops still pass the confirmation gate.
+- **BIP21 payment-URI stitching — `jit_pay.bip21_stitch()` / `jit_pay.payment_uri()`.** Implements the `shc-pay` skill table for `CreditTopupResponse`-shaped dicts: both rails → `bitcoin:<addr>?lightning=<bolt11>`, on-chain only → `bitcoin:<addr>`, Lightning only → `lightning:<bolt11>`, none → `None` (checkout_url fallback). `payment_uri()` prefers the server-provided `payment_link`, then falls back to the local stitch. `shc register`/`shc topup` now use the server-supplied `payment_link`/`bolt11`/`onchain_address` directly and only scrape the checkout page HTML when the response carries no rail; `PaymentPage.update()` renders any wallet-openable URI (bare BOLT11 still auto-prefixed).
+
+### Fixed
+- **`jit_pay.poll_shc_invoice()` polled a literal `/payment/{invoice_id}` path** — the f-prefix was stripped by an old scripted edit, so every `shc order --pay` (zero-balance jit payment) polled a nonexistent URL, swallowed the error, and reported a payment timeout even after the wallet paid. Now requests `f"/payment/{invoice_id}"` and unwraps the `data` envelope (also accepts `confirmed`/`complete`). ~15 display prints in `jit_pay.py` that lost their f-prefixes (literal `{data}`/`{mins}`/`{invoice_id}` output) restored. Found by the llms-full.txt corpus audit (lesson 19 pattern).
+
+## [2.4.24.2] — 2026-08-26
+
 ### Changed
 - **Dev zone (Cherryvale, KS) RECOVERED — all "still broken" claims corrected.** Live probe 2026-08-25: pkg 80 provisions in 85s (debian12) and 102s (**debian13 — closing the loop on lesson #13**: the old "deadlock" was purely the zone scheduler, now proven in both directions). Nested-KVM workloads (Dev plans only) available again. README/AGENTS.md updated in both repos. `dev-zone-probe.py` default template corrected debian12 → debian13 (missed in the earlier sweep — it lives in `scripts/`).
+
+### Added
+- **`shc console-session` + `SHCClient.create_console_session()`** — API-native VM console access (`POST /vm/{id}/console-session`, auto-confirm + `--ttl`).
+
+### Changed
 
 ### Changed
 - **CI trigger policy overhauled — nothing runs on push/PR anymore.** All test/lint/security workflows (`shc-tests`, `typecheck`, `coverage`, `security`, `ansible`, `cross-repo-parity`) are now `workflow_dispatch` (on demand, e.g. `gh workflow run <name>`) + tag push (`v*`, pre-release verification) + monthly schedule. `shc-tests` dropped its 6-hour schedule (monthly on the 1st). The API changes rarely; per-commit CI was noise. Hourly reaper unchanged.

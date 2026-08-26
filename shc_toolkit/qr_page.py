@@ -2,7 +2,7 @@
 QR (server-side, zero JS) plus a lightning: link and amount.
 
 PaymentPage is UPDATABLE on a FIXED port: an invoice-reissue loop can
-update(bolt11, amount) in place, and the page self-refreshes every 30s
+update(invoice, amount) in place, and the page self-refreshes every 30s
 so an already-open browser tab picks up the fresh invoice — the URL a
 user is told about stays valid across reissues (live-earned 2026-08-22:
 ephemeral ports per window made every printed pointer stale).
@@ -31,8 +31,8 @@ _PAGE = """<!doctype html><html><head><meta charset="utf-8">
 </style></head><body>
 <div class="amt">Top up ${amount:.2f}</div>
 {svg}
-<a class="pay" href="lightning:{bolt11}">Pay with Lightning</a>
-<div class="uri">{bolt11}</div>
+<a class="pay" href="{uri}">Pay with wallet</a>
+<div class="uri">{uri}</div>
 <div>Waiting for payment… page refreshes itself; it stops when the tool
 exits.</div>
 </body></html>"""
@@ -84,9 +84,17 @@ class PaymentPage:
     def url(self) -> str:
         return f"http://127.0.0.1:{self.port}/"
 
-    def update(self, bolt11: str, amount_usd: float) -> None:
-        svg = _qr_svg(f"lightning:{bolt11}")
-        html = _PAGE.format(amount=amount_usd, svg=svg or "", bolt11=bolt11)
+    def update(self, invoice: str, amount_usd: float) -> None:
+        """Render `invoice` — a bare BOLT11 (auto-prefixed with
+        ``lightning:``) or a full wallet URI (``lightning:`` /
+        ``bitcoin:…?lightning=`` BIP21) — as the QR + pay link."""
+        uri = (
+            invoice
+            if invoice.startswith(("lightning:", "bitcoin:"))
+            else f"lightning:{invoice}"
+        )
+        svg = _qr_svg(uri)
+        html = _PAGE.format(amount=amount_usd, svg=svg or "", uri=uri)
         with self._lock:
             self._html = html.encode()
 

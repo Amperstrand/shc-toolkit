@@ -1502,8 +1502,12 @@ def main():
 
     p = sub.add_parser("console-session", help="Create a console session for a VM")
     p.add_argument("service_id", type=int)
-    p.add_argument("--ttl", type=int, default=None,
-                   help="Session lifetime in seconds (server default if omitted)")
+    p.add_argument(
+        "--ttl",
+        type=int,
+        default=None,
+        help="Session lifetime in seconds (server default if omitted)",
+    )
     p.set_defaults(func=cmd_console_session)
 
     p = sub.add_parser("templates", help="List OS templates")

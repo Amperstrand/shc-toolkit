@@ -2019,3 +2019,183 @@ class TestMcpErrorHandling:
         mc = SHCMCPClient.__new__(SHCMCPClient)
         result = mc._extract_items(None)
         assert result == []
+
+
+# ── llms-full.txt corpus audit: jit_pay + BIP21 + nostr operate-lane ──────
+
+
+class TestJitPayInvoicePolling:
+    """Corpus audit: poll_shc_invoice must hit /payment/{id} and unwrap data."""
+
+    def _client(self):
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            return SHCClient()
+
+    def test_poll_shc_invoice_hits_payment_path(self):
+        from shc_toolkit.jit_pay import poll_shc_invoice
+
+        c = self._client()
+        calls = []
+
+        def fake_get(path):
+            calls.append(path)
+            return {"data": {"status": "paid"}}
+
+        c._get = fake_get
+        assert poll_shc_invoice(c, 42, timeout=5) is True
+        assert calls == ["/payment/42"], f"polled wrong path: {calls}"
+
+    def test_poll_shc_invoice_unwraps_data_envelope(self):
+        from shc_toolkit.jit_pay import poll_shc_invoice
+
+        c = self._client()
+        c._get = lambda path: {"data": {"status": "confirmed"}}
+        assert poll_shc_invoice(c, 7, timeout=5) is True
+
+    def test_poll_shc_invoice_stale_when_unpaid(self):
+        from shc_toolkit.jit_pay import poll_shc_invoice
+
+        c = self._client()
+        c._get = lambda path: {"data": {"status": "processing"}}
+        assert poll_shc_invoice(c, 7, timeout=0.2) is False
+
+
+class TestBip21Stitch:
+    """Corpus shc-pay skill: BIP21 stitch table for credit responses."""
+
+    def test_both_rails(self):
+        from shc_toolkit.jit_pay import bip21_stitch
+
+        assert (
+            bip21_stitch("bc1qxyz", "lnbcabc")
+            == "bitcoin:bc1qxyz?lightning=lnbcabc"
+        )
+
+    def test_onchain_only(self):
+        from shc_toolkit.jit_pay import bip21_stitch
+
+        assert bip21_stitch("bc1qxyz", None) == "bitcoin:bc1qxyz"
+
+    def test_lightning_only(self):
+        from shc_toolkit.jit_pay import bip21_stitch
+
+        assert bip21_stitch(None, "lnbcabc") == "lightning:lnbcabc"
+
+    def test_no_rail(self):
+        from shc_toolkit.jit_pay import bip21_stitch
+
+        assert bip21_stitch(None, None) is None
+
+    def test_payment_uri_prefers_server_payment_link(self):
+        from shc_toolkit.jit_pay import payment_uri
+
+        data = {
+            "payment_link": "lightning:lnbcserver",
+            "bolt11": "lnbcabc",
+            "onchain_address": "bc1qxyz",
+        }
+        assert payment_uri(data) == "lightning:lnbcserver"
+
+    def test_payment_uri_falls_back_to_stitch(self):
+        from shc_toolkit.jit_pay import payment_uri
+
+        assert payment_uri(
+            {"payment_link": None, "bolt11": "lnbcabc", "onchain_address": "bc1qxyz"}
+        ) == "bitcoin:bc1qxyz?lightning=lnbcabc"
+
+    def test_payment_uri_none_when_no_rail(self):
+        from shc_toolkit.jit_pay import payment_uri
+
+        assert payment_uri({"checkout_url": "https://x"}) is None
+
+
+class TestNostrOperateGrant:
+    """Corpus nostr-operate-lane: exchange a kind:30078 grant for a
+    short-TTL vm-scoped operate Bearer via the plugin endpoint."""
+
+    def _client(self):
+        with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
+            return SHCClient()
+
+    def test_signer_builds_nip98_event(self):
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import _sign_nip98_operate_request
+
+        nsec = Keys.generate().secret_key().to_bech32()
+        event = _sign_nip98_operate_request(
+            nsec,
+            "https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token",
+        )
+        assert event["kind"] == 27235
+        tags = {t[0]: t[1] for t in event["tags"]}
+        assert tags["u"].startswith("https://blesta.sovereignhybridcompute.com/plugin/")
+        assert tags["method"] == "POST"
+        assert tags.get("nonce")
+        assert event["sig"] and event["id"]
+
+    def test_exchange_posts_nostr_auth_to_plugin_url(self):
+        import base64
+        import json as _json
+
+        from nostr_sdk import Keys
+
+        c = self._client()
+        nsec = Keys.generate().secret_key().to_bech32()
+        captured = {}
+
+        def capture_request(method, url, **kwargs):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = {
+                **dict(c.session.headers),
+                **dict(kwargs.get("headers") or {}),
+            }
+            captured["json"] = kwargs.get("json")
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = _json.dumps(
+                {"data": {"success": True, "token": "a" * 64, "expires_in": 900}}
+            )
+            m.ok = True
+            return m
+
+        c.session.request = MagicMock(side_effect=capture_request)
+
+        grant = {"kind": 30078, "tags": [["d", "shc:agent:abc"]], "sig": "s"}
+        result = c.exchange_nostr_operate_grant(grant, nsec=nsec)
+
+        assert captured["method"] == "POST"
+        assert (
+            captured["url"]
+            == "https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token"
+        )
+        hdrs = {k.lower(): v for k, v in captured["headers"].items()}
+        auth = hdrs["authorization"]
+        assert auth.startswith("Nostr ")
+        decoded = _json.loads(base64.b64decode(auth[len("Nostr ") :]))
+        assert decoded["kind"] == 27235
+        tags = {t[0]: t[1] for t in decoded["tags"]}
+        assert "u" in tags and "method" in tags
+        assert captured["json"] == {"grant": grant}
+        assert result["success"] is True
+        assert result["token"] == "a" * 64
+
+    def test_exchange_restores_bearer_header(self):
+        from nostr_sdk import Keys
+
+        c = self._client()
+        nsec = Keys.generate().secret_key().to_bech32()
+
+        def ok(*a, **k):
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = '{"data": {"success": true}}'
+            m.ok = True
+            return m
+
+        c.session.request = MagicMock(side_effect=ok)
+        c.exchange_nostr_operate_grant({"kind": 30078}, nsec=nsec)
+        assert c.session.headers["Authorization"] == "Bearer shc_live_test"

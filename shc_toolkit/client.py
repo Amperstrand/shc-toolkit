@@ -30,6 +30,30 @@ log = logging.getLogger(__name__)
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
 
 
+def _sign_nip98_operate_request(nsec: str, url: str, *, method: str = "POST") -> dict:
+    """Sign a NIP-98 kind:27235 request event for the operate_token grant
+    exchange (u + method tags, fresh nonce — the server replay-checks)."""
+    try:
+        from nostr_sdk import EventBuilder, Keys, Kind, Tag
+    except ImportError as e:
+        raise ImportError(
+            "Nostr operate-grant exchange requires nostr-sdk. "
+            "Install with: pip install shc-toolkit[register]"
+        ) from e
+
+    import secrets
+
+    nonce = secrets.token_hex(16)
+    tags = [
+        Tag.parse(["u", url]),
+        Tag.parse(["method", method.upper()]),
+        Tag.parse(["nonce", nonce]),
+    ]
+    keys = Keys.parse(nsec)
+    event = EventBuilder(Kind(27235), nonce).tags(tags).sign_with_keys(keys)
+    return _json.loads(event.as_json())
+
+
 class SHCError(Exception):
     """Base exception for all SHC API errors.
 
@@ -476,6 +500,39 @@ class SHCClient:
         return self._post(
             "/account/nostr/link", {"event": event}, basic_auth=(email, password)
         )
+
+    def exchange_nostr_operate_grant(self, grant: dict, *, nsec: str) -> dict:
+        """Exchange a customer-signed kind:30078 grant for a short-TTL
+        operate lease (SHC operator-skills "nostr-operate-lane").
+
+        POSTs to the plugin endpoint
+        ``/plugin/nostr_auth/main/operate_token`` with a NIP-98
+        ``Authorization: Nostr <base64 kind:27235 event>`` header signed
+        with OUR agent nsec (fresh nonce, u/method tags bound to this
+        call). The response carries ``token`` (a 64-hex operate Bearer),
+        ``scope``, ``area`` (``vm:<service_id>``), ``service_id`` and
+        ``expires_in`` (~900s). Build a follow-on client with
+        ``SHCClient(api_key=resp["token"])`` — the lease is bound to
+        that one VM, 403s on any spend path, and destructive ops still
+        pass through the confirmation gate.
+        """
+        import base64
+        from urllib.parse import urlparse
+
+        origin = urlparse(self.base_url)
+        url = f"{origin.scheme}://{origin.netloc}/plugin/nostr_auth/main/operate_token"
+        event = _sign_nip98_operate_request(nsec, url)
+        payload = base64.b64encode(_json.dumps(event).encode()).decode()
+
+        saved = self.session.headers.pop("Authorization", None)
+        self.session.headers["Authorization"] = f"Nostr {payload}"
+        self.session.headers["Content-Type"] = "application/json"
+        try:
+            return self._request_inner("POST", url, json={"grant": grant})
+        finally:
+            del self.session.headers["Content-Type"]
+            if saved is not None:
+                self.session.headers["Authorization"] = saved
 
     def topup_credit(self, amount: float | str) -> dict:
         """POST /account/credit — BTCPay topup (confirmation-gated,

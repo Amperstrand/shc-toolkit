@@ -199,12 +199,9 @@ def _topup(client, amount: float, *, browser: bool, timeout: int, log) -> None:
 
     def issue() -> tuple:
         result = client.topup_credit(amount)
-        invoice_id = result.get("invoice_id") or (result.get("data", {}) or {}).get(
-            "invoice_id"
-        )
-        url = result.get("checkout_url") or (result.get("data", {}) or {}).get(
-            "checkout_url"
-        )
+        data = result.get("data", result) or {}
+        invoice_id = result.get("invoice_id") or data.get("invoice_id")
+        url = result.get("checkout_url") or data.get("checkout_url")
         if not url and invoice_id:
             pay = client._confirmed_request(
                 "POST",
@@ -219,7 +216,7 @@ def _topup(client, amount: float, *, browser: bool, timeout: int, log) -> None:
             raise RuntimeError(
                 f"topup returned no checkout URL: {json.dumps(result)[:300]}"
             )
-        return invoice_id, url
+        return invoice_id, url, data
 
     page = None
     if browser:
@@ -237,16 +234,21 @@ def _topup(client, amount: float, *, browser: bool, timeout: int, log) -> None:
     deadline = time.monotonic() + timeout
     invoice_id = checkout_url = None
     try:
-        invoice_id, checkout_url = issue()
+        invoice_id, checkout_url, data = issue()
         log(f"top up ${amount:.2f}: {checkout_url}")
         while time.monotonic() < deadline:
-            bolt11 = fetch_bolt11(checkout_url)
-            if bolt11 and page:
-                page.update(bolt11, amount)
-            elif bolt11:
+            from .jit_pay import payment_uri
+
+            uri = payment_uri(data)
+            if not uri:
+                bolt11 = fetch_bolt11(checkout_url)
+                uri = f"lightning:{bolt11}" if bolt11 else None
+            if uri and page:
+                page.update(uri, amount)
+            elif uri:
                 from .jit_pay import render_qr
 
-                render_qr(f"lightning:{bolt11}")
+                render_qr(uri)
             expired = False
             while time.monotonic() < deadline:
                 time.sleep(_POLL_SECONDS)
@@ -261,7 +263,7 @@ def _topup(client, amount: float, *, browser: bool, timeout: int, log) -> None:
             if time.monotonic() >= deadline or not expired:
                 break
             try:
-                invoice_id, checkout_url = issue()
+                invoice_id, checkout_url, data = issue()
                 log(f"invoice expired — fresh one: {checkout_url}")
             except Exception as e:
                 if "pending top-up" not in str(e):

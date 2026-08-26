@@ -66,8 +66,44 @@ def render_qr(data: str) -> bool:
         pass
 
     # Option 3: plain text fallback
-    print("\n  Lightning Invoice (copy to wallet):\n  {data}\n")
+    print(f"\n  Lightning Invoice (copy to wallet):\n  {data}\n")
     return False
+
+
+def bip21_stitch(onchain_address: str | None, bolt11: str | None) -> str | None:
+    """Stitch a wallet-openable payment URI from a credit/invoice response.
+
+    Implements the SHC operator-skills (llms-full.txt, shc-pay) table:
+
+    - both rails  -> ``bitcoin:<addr>?lightning=<bolt11>`` (chain + Lightning)
+    - on-chain    -> ``bitcoin:<addr>``
+    - Lightning   -> ``lightning:<bolt11>``
+    - neither     -> ``None`` (caller falls back to checkout_url)
+    """
+    if onchain_address and bolt11:
+        return f"bitcoin:{onchain_address}?lightning={bolt11}"
+    if onchain_address:
+        return f"bitcoin:{onchain_address}"
+    if bolt11:
+        return f"lightning:{bolt11}"
+    return None
+
+
+def payment_uri(response_data: dict) -> str | None:
+    """Best wallet-openable URI from a CreditTopupResponse-shaped dict.
+
+    Prefers the server-provided ``payment_link`` (spec: "prefers
+    lightning:…, else lightning:lnurl…, else bitcoin:…"), then falls
+    back to a locally stitched BIP21 from ``onchain_address``/``bolt11``.
+    """
+    if not isinstance(response_data, dict):
+        return None
+    link = response_data.get("payment_link")
+    if link:
+        return link
+    return bip21_stitch(
+        response_data.get("onchain_address"), response_data.get("bolt11")
+    )
 
 
 def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
@@ -109,7 +145,7 @@ def poll_btcpay_status(checkout_url: str, timeout: int = 900) -> bool:
         remaining = int(deadline - time.time())
         mins, secs = divmod(max(remaining, 0), 60)
         print(
-            "\r  Waiting for payment... {mins}:{secs:02d} remaining  ",
+            f"\r  Waiting for payment... {mins}:{secs:02d} remaining  ",
             end="",
             flush=True,
         )
@@ -128,20 +164,20 @@ def poll_shc_invoice(shc_client, invoice_id: int, timeout: int = 900) -> bool:
 
     while time.time() < deadline:
         try:
-            inv = shc_client._get("/payment/{invoice_id}")
-            status = str(inv.get("status", "")).lower()
-            if status in ("paid", "completed"):
+            inv = shc_client._get(f"/payment/{invoice_id}")
+            status = str((inv.get("data", inv) or {}).get("status", "")).lower()
+            if status in ("paid", "confirmed", "complete", "completed"):
                 return True
             remaining = int(deadline - time.time())
             mins, secs = divmod(max(remaining, 0), 60)
             print(
-                "\r  Invoice #{invoice_id} status: {status}  "
-                "({mins}:{secs:02d} remaining)  ",
+                f"\r  Invoice #{invoice_id} status: {status}  "
+                f"({mins}:{secs:02d} remaining)  ",
                 end="",
                 flush=True,
             )
-        except Exception as e:  # noqa: F841
-            print("\r  Polling error: {e}  ", end="", flush=True)
+        except Exception as e:
+            print(f"\r  Polling error: {e}  ", end="", flush=True)
         time.sleep(5)
 
     return False
@@ -166,13 +202,13 @@ def jit_pay(
     Returns:
         True if paid, False on timeout/expiry.
     """
-    print("\n{'=' * 60}")
+    print(f"\n{'=' * 60}")
     print("  JUST-IN-TIME LIGHTNING PAYMENT")
     print(f"{'=' * 60}")
-    print("  SHC Invoice:  #{invoice_id}")
+    print(f"  SHC Invoice:  #{invoice_id}")
     if btcpay_invoice_id:
-        print("  BTCPay ID:    {btcpay_invoice_id}")
-    print("  Checkout URL: {checkout_url}")
+        print(f"  BTCPay ID:    {btcpay_invoice_id}")
+    print(f"  Checkout URL: {checkout_url}")
     print()
 
     # Step 1: Fetch BOLT11
@@ -180,16 +216,16 @@ def jit_pay(
     bolt11 = fetch_bolt11(checkout_url)
     if not bolt11:
         print("  ERROR: Could not extract BOLT11 from BTCPay checkout page.")
-        print("  Pay manually: {checkout_url}")
+        print(f"  Pay manually: {checkout_url}")
         return False
 
-    print("  BOLT11: {bolt11[:60]}...")
+    print(f"  BOLT11: {bolt11[:60]}...")
     print()
 
-    # Step 2: Render QR
+    # Step 2: Render QR — lightning: URI (shc-pay skill contract; wallet-openable)
     print("  Scan with your Lightning wallet:\n")
-    render_qr(bolt11)
-    print("\n  Or open in browser: {checkout_url}")
+    render_qr(f"lightning:{bolt11}")
+    print(f"\n  Or open in browser: {checkout_url}")
     print()
 
     # Step 3: Wait for payment
