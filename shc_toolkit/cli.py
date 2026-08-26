@@ -231,26 +231,6 @@ def cmd_cancel(args):
 
 # ── Ordering ──────────────────────────────────────────────
 
-# Zones with known infrastructure issues.
-# Dev zone (Cherryvale, KS) — VMs stuck in pending, never receive IPs.
-# See: https://github.com/Amperstrand/shc-toolkit/issues/28
-_BROKEN_SIZE_PREFIXES = ("dev-",)
-
-
-def _warn_broken_zone(size: str):
-    """Warn if the selected size is in a known-broken zone."""
-    for prefix in _BROKEN_SIZE_PREFIXES:
-        if size.lower().startswith(prefix):
-            print(
-                f"⚠️  WARNING: '{size}' uses the Dev zone (Cherryvale, KS) "
-                "which is known to be broken — VMs get stuck in 'pending' "
-                "and never receive IPs. See issue #28. "
-                "Use 'nvme-*' or 'ssd-*' sizes instead.",
-                file=sys.stderr,
-            )
-            break
-
-
 def cmd_order(args):
     c = _client(args)
     ssh_key = None
@@ -264,7 +244,6 @@ def cmd_order(args):
 
     if args.size:
         package_id, pricing_id = resolve_size(args.size)
-        _warn_broken_zone(args.size)
     elif args.cpu or args.ram or args.disk:
         package_id, pricing_id = resolve_specs(
             cpu=args.cpu, ram_mb=args.ram, disk_gb=args.disk

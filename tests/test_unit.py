@@ -1240,6 +1240,8 @@ class TestReapOrphans:
              "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
             {"id": 2, "hostname": "tollgate-test-vm", "service_status": "active",
              "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+            {"id": 4, "hostname": "devprobe-6f9cea97", "service_status": "active",
+             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
             {"id": 3, "hostname": "production-server", "service_status": "active",
              "date_created": "2020-01-01T00:00:00+00:00", "package": "prod"},
         ]
@@ -1249,6 +1251,7 @@ class TestReapOrphans:
             hostnames = [o["hostname"] for o in orphans]
             assert "tf-acc-basic" in hostnames
             assert "tollgate-test-vm" in hostnames
+            assert "devprobe-6f9cea97" in hostnames
             assert "production-server" not in hostnames
 
     def test_reap_respects_age_threshold(self):

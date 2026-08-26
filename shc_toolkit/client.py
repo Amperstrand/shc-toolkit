@@ -1301,6 +1301,7 @@ class SHCClient:
                 "zone-test-",
                 "nutshell-",
                 "pytest-test-",
+                "devprobe-",
             ]
 
         if exclude_hostnames is None:

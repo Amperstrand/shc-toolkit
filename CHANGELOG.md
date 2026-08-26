@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Removed the stale "Dev zone broken" order warning** (`_BROKEN_SIZE_PREFIXES` / `_warn_broken_zone` in `cli.py`) — issue #28 was resolved and verified 2026-08-25 (2.4.24.2); the warning contradicted the recovered reality. No behavior remains blocking `dev-*` sizes.
+
+### Fixed
+- **Reaped prefix gap: `devprobe-` orphans were never cleaned up.** `scripts/dev-zone-probe.py` cancels on success, timeout, SIGINT and SIGTERM — but a SIGKILLed runner (hard tool/session timeout) leaves the probe VM alive with no key and no owner (incident 2026-08-26: `devprobe-6f9cea97` idled 7h at $0.24/day before manual cancel). Added `"devprobe-"` to `reap_orphans()` default `hostname_prefixes` so the hourly reaper collects them after the 2h age gate; test extended to pin the prefix.
+
 ## [2.4.24.3] — 2026-08-26
 
 ### Added
