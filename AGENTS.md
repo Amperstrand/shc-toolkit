@@ -426,11 +426,21 @@ Live-probed 2026-08-27: **operate-scope API keys and nostr operate leases both 4
 - Live-fire proof: VM ordered → armed 4-min timer → self-cancelled at T+216s, $0.01 total (1h minimum). Nostr leases remain exactly the wrong primitive here — poetic: the credential you'd want to leave on a box is the one that can't kill it.
 
 ### 24. API keys can READ password-reset emails — treat every key as account-takeover-capable
-`GET /emails` (Bearer-callable) returns the full body of every transactional email, including portal **Password Reset** links (verified live 2026-08-27: portal reset request → email id 54189 with the `confirmreset/?sid=…` link appears in `/emails` within seconds). Consequences:
+`GET /emails` (Bearer-callable) returns the full body of every transactional email, including portal **Password Reset** links (verified live 2026-08-27: portal reset request → email id 54189 with the `confirmreset/?sid=…` link appears in `/emails` within seconds).
 
-- A leaked API key + anyone able to trigger the portal forgot-password form = full account takeover (they read the link via the API). Store `SHC_API_KEY`/contexts with the same care as the password itself.
-- It is also the official self-recovery path when the mailbox is dead but a key still works: portal reset → `GET /emails` → newest "Password Reset" → open link → set new password. Then fix the email via `PATCH /account/contact` (`email` field, **Basic-only** — `POST /account/password` and the contact update both require the password; `PATCH /account` has no email field).
+**The full takeover chain, live-proven on our own account (legitimate self-recovery use):**
+1. Working API key (any scope with Email History area — default keys have it) — nothing else needed. Not the password, not the mailbox.
+2. Portal `/client/login/reset/` form: anonymous, only needs the account email (readable via `GET /account`).
+3. `GET /emails` → newest "Password Reset" → the `confirmreset/?sid=…` link.
+4. Open link (single-use, no old password asked) → set a NEW password → portal login succeeds.
+5. Logged in: change the account email in the portal (`/client/main/edit/` — applies immediately, **no confirmation to the old address**), mint API keys from the portal API-keys page (`/client/apikeys/`), change 2FA. Attacker now controls password, email, and keys; the owner's mailbox never sees a thing.
+
+**The logical flaw worth reporting to SHC:** identity ops are carefully Basic-gated — `POST /account/password` ("requires the current password"), `PATCH /account/contact` (the only email-changing endpoint, Basic-only), 2FA toggle. But the *effect* of all that gating is void: an API key alone yields both a password change (steps 2-4) and an email change (step 5). If an API key is not allowed to change the password (it isn't), it must not be able to read the emails that reset the password — `GET /emails` should exclude auth/security mail (password resets, 2FA enrollment, login notifications), or those messages should be redacted. Until then: **store every SHC API key with password-grade care**; a leaked key is a full account takeover, not a scoped credential.
+
+- Legitimate self-recovery runbook (dead mailbox, working key): steps 2-5 above; we then pointed the account at a fresh nomail.name mailbox (cashu.email == nomail.name, same worker; `shc mail` reads it with the nsec).
 - Portal also supports **Login with Nostr** — an account with a linked nsec can log in passwordless with one signature.
+- Quirk (this account only): user-api HTTP Basic rejects email+password ("Authentication failed") even with a correct password the portal accepts — the spec says the Basic username "is the email for many accounts but not guaranteed"; this legacy account (#1522) evidently has a distinct hidden username. Identity ops for it go through the portal; the portal API-keys page can mint keys when Basic is unavailable (that's how the CI `SHC_SUICIDE_KEY` was minted).
+- Recovered credentials live in `.env` (gitignored, 0600) + `~/.shc-account-recovery.json`.
 
 ### 25. shutdown ≠ cancel: SHC bills by service existence — a stopped VM accrues its full price
 Owner-caught 2026-08-27: the clboss-soak VM was shut down after a textbook drain contract and the session recorded as done; it sat **stopped-but-billable ~13h** until cancelled (snapshot first — snapshots survive the cancel). `stop`/`shutdown` are pauses; **only `cancel` ends billing.** Guards now standing (defense in depth):
