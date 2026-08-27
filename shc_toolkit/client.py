@@ -344,6 +344,17 @@ _ERROR_CODE_MAP: dict[str, type[SHCError]] = {
 }
 
 
+def _warn_billable_while_stopped(service_id: int) -> None:
+    """SHC bills by service existence: stop/shutdown are pauses, not cleanup."""
+    import sys
+
+    print(
+        f"note: VM {service_id} still bills while stopped (SHC charges by "
+        "existence) — cancel_vm()/`shc cancel` when the work is done",
+        file=sys.stderr,
+    )
+
+
 def _raise_shc_error(
     code: str,
     message: str,
@@ -1131,7 +1142,11 @@ class SHCClient:
         parts = ssh_key.strip().split(None, 2)
         if len(parts) < 2 or not parts[0].startswith(("ssh-", "ecdsa-", "sk-")):
             return ssh_key
-        comment = re.sub(r"\s*#shc-order=\S+", "", parts[2]).strip() if len(parts) == 3 else ""
+        comment = (
+            re.sub(r"\s*#shc-order=\S+", "", parts[2]).strip()
+            if len(parts) == 3
+            else ""
+        )
         return f"{parts[0]} {parts[1]} {f'{comment} ' if comment else ''}#shc-order={tag}".rstrip()
 
     @staticmethod
@@ -1394,12 +1409,14 @@ class SHCClient:
         return self._patch(f"/vm/{service_id}/start")
 
     def stop_vm(self, service_id: int) -> dict:
+        _warn_billable_while_stopped(service_id)
         return self._patch(f"/vm/{service_id}/stop")
 
     def restart_vm(self, service_id: int) -> dict:
         return self._patch(f"/vm/{service_id}/restart")
 
     def shutdown_vm(self, service_id: int) -> dict:
+        _warn_billable_while_stopped(service_id)
         return self._patch(f"/vm/{service_id}/shutdown")
 
     def reset_vm(self, service_id: int) -> dict:
