@@ -14,7 +14,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 367 unit tests + 5 integration tests
+├── tests/                       — 380 unit tests + 5 integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -241,7 +241,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 367 tests (unit) + 5 integration tests.
+All tests must pass. Currently 380 tests (unit) + 5 integration tests.
 
 ### 2. Lint
 ```bash
@@ -415,3 +415,12 @@ SHC charges the full daily price while a service **exists**, regardless of power
 
 **Affected**: any client code that hits plugin routes or assumes one error-envelope shape.
 **Fix**: `_error_from_body` handles both shapes (flat 401/403 strings map to `SHCAuthError`); treat a short live negative pass (expired / wrong-party / forged / replayed) as part of shipping any new API surface — the server's real error envelopes are a contract you haven't learned until you've been rejected by it.
+
+### 23. Cancel is MONEY: only full-scope can destroy; Bearer cannot mint keys; never plant the account key on a VM
+Live-probed 2026-08-27: **operate-scope API keys and nostr operate leases both 403 `cancel_vm`** (confirm-gate or not) — cancel refunds/prorates, so it sits in the spend class ("operate = ops but no money/billing"). Separately: **Bearer API keys cannot mint other keys** (`POST /account/api-keys` is forbidden for them; HTTP Basic only). Consequences for self-cleaning VMs (the "suicide token" pattern):
+
+- The token planted on a VM so it can cancel itself MUST be full-scope. Bounded exposure = pre-minted short-expiry key (`SHC_SUICIDE_KEY` secret, CI-friendly) or per-run mint over Basic (`SHC_ACCOUNT_EMAIL`/`SHC_ACCOUNT_PASSWORD`, `expires_in_days=1` minimum) — it self-revokes, since `revokeApiKey` is Basic+OTP-only and a controller key can't revoke it.
+- `shc_toolkit/selfdestruct.py` (`arm_self_destruct`) plants key file (0400) + systemd `OnBootSec` timer + stdlib-python cancel script (409→`X-User-Api-Confirm` dance) via one base64 SSH command; `shc github-runner provision --self-destruct-minutes N` wires it. NEVER arm on boxes running untrusted code (tollgate) — the key is account-wide spend for its lifetime.
+- **physical-router-test-automation shipped the anti-pattern for months**: its bootstrap planted the FULL ACCOUNT `SHC_API_KEY` on every test VM (env export, sole consumer the inline kill-switch). Now arms the bounded module when a key source is configured; legacy inline switch remains as warned fallback until `SHC_SUICIDE_KEY` is set on the runner.
+- `at`-job kill-switches die silently on reboot; systemd timers don't.
+- Live-fire proof: VM ordered → armed 4-min timer → self-cancelled at T+216s, $0.01 total (1h minimum). Nostr leases remain exactly the wrong primitive here — poetic: the credential you'd want to leave on a box is the one that can't kill it.

@@ -101,6 +101,8 @@ class ProvisionRequest:
     backend: str = "shc-vps"  # one of SUPPORTED_BACKENDS
     firecracker_host: str | None = None  # SSH target for the host VM
     firecracker_pool_path: str = DEFAULT_FC_POOL_PATH
+    self_destruct_minutes: int | None = None  # arm on-VM cancel timer
+    self_destruct_key: str | None = None  # pre-minted key; else env/mint
 
 
 @dataclass
@@ -645,6 +647,26 @@ def _provision_shc_vps(
                 f"bootstrap script did not signal completion. output tail: {out[-500:]}"
             )
         _mark(timings, "t4_runner_configured")
+
+        # ── 5.5 Arm on-VM self-destruct (optional) ──
+        # Fail-loud when requested but not armable: an unarmed VM whose
+        # controller dies mid-run leaks billing until the reaper's gate.
+        if req.self_destruct_minutes:
+            from .selfdestruct import arm_self_destruct
+
+            arm = arm_self_destruct(
+                lambda cmd: _ssh(
+                    ip, cmd, user=ssh_user, identity=identity_path, timeout=120
+                ),
+                service_id,
+                req.self_destruct_minutes,
+                key=req.self_destruct_key,
+            )
+            print(
+                f"  self-destruct armed: {arm['minutes']}min "
+                f"(key: {arm['key_source']})",
+                file=sys.stderr,
+            )
 
         # ── 6. Wait for runner to show online in GitHub ──
         online = wait_runner_online(

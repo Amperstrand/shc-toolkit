@@ -1231,6 +1231,20 @@ class TestOrderTagging:
         with patch.dict(os.environ, {"SHC_ORDER_TAG": "opencode:ses_abc"}):
             assert SHCClient.default_order_tag() == "opencode:ses_abc"
 
+    def test_order_vm_raw_string_key_is_sent_and_tagged(self):
+        """Regression: raw string ssh_key was silently dropped (only file
+        paths were honored), ordering VMs keyless without warning."""
+        from unittest.mock import patch
+        client = SHCClient(api_key="test-key")
+        raw_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest macbook@mbp"
+        with patch.object(SHCClient, "submit_order", return_value={"service_id": 1}) as so, \
+             patch.object(SHCClient, "_safe_credit", return_value=10.0):
+            client.order_vm(hostname="t", package_id=80, pricing_id=241,
+                            ssh_key=raw_key, pay=False)
+        sent = so.call_args.kwargs.get("ssh_key", "")
+        assert sent.startswith("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest")
+        assert "#shc-order=" in sent
+
 
 class TestReapOrphans:
     """Unit tests for reap_orphans method."""
@@ -2765,3 +2779,103 @@ class TestGrantOperateCLI:
 
         with _pytest.raises(SystemExit):
             cmd_grant_operate(Args())
+
+
+class TestSelfDestruct:
+    """VM-side self-destruct: minted full-scope key + systemd timer."""
+
+    def _script(self, sid=42):
+        from shc_toolkit.selfdestruct import selfdestruct_script
+
+        return selfdestruct_script(sid, "https://blesta.sovereignhybridcompute.com/user-api/v2")
+
+    def test_script_hits_cancel_with_confirm_dance(self):
+        s = self._script()
+        assert "SID = 42" in s
+        assert "/cancel" in s
+        assert '"immediate": True' in s
+        assert "X-User-Api-Confirm" in s
+        assert "confirmation_id" in s
+        assert "Idempotency-Key" in s
+        assert "IDEM" in s  # one constant shared by the original + confirm re-send
+
+    def test_script_reads_key_from_file_not_env(self):
+        s = self._script()
+        assert "/etc/shc/self-destruct.key" in s
+        assert "SHC_API_KEY" not in s and "environ" not in s
+
+    def test_timer_fires_from_boot(self):
+        from shc_toolkit.selfdestruct import selfdestruct_units
+
+        units = selfdestruct_units(37)
+        assert "OnBootSec=37min" in units["timer"]
+        assert "shc-self-destruct.service" in units["timer"]
+        assert "WantedBy=timers.target" in units["timer"]
+        assert "python3 /usr/local/sbin/shc-self-destruct.py" in units["service"]
+
+    def test_installer_is_base64_shebang_safe(self):
+        from shc_toolkit.selfdestruct import build_installer
+
+        installer = build_installer(
+            service_id=7, minutes=5, key="shc_live_testkey", base_url="https://x/v2"
+        )
+        assert installer.startswith("echo ") and "base64 -d" in installer
+        assert "shc_live_testkey" not in installer  # key only inside the b64 blob
+        import base64
+
+        blob = installer.split("echo ", 1)[1].split(" ", 1)[0]
+        decoded = base64.b64decode(blob).decode()
+        assert "/etc/shc/self-destruct.key" in decoded
+
+    def test_mint_posts_basic_with_full_scope_1day(self, monkeypatch):
+        import json as _json
+
+        import httpx
+
+        from shc_toolkit.selfdestruct import mint_suicide_key
+
+        seen = {}
+
+        def fake_request(_self, method, url=None, **kwargs):
+            seen["method"] = method
+            seen["url"] = url
+            seen["json"] = kwargs.get("json")
+            seen["auth"] = kwargs.get("auth")
+            m = MagicMock()
+            m.status_code = 200
+            m.headers = {}
+            m.text = _json.dumps({"data": {"api_key": "shc_live_minted"}})
+            return m
+
+        monkeypatch.setattr(httpx.Client, "request", fake_request)
+        key = mint_suicide_key("a@b.c", "pw", 9, base_url="https://x/v2")
+        assert key == "shc_live_minted"
+        assert seen["url"] == "https://x/v2/account/api-keys"
+        assert seen["json"] == {
+            "name": "selfdestruct-9",
+            "scope": "full",
+            "expires_in_days": 1,
+        }
+        assert seen["auth"] == ("a@b.c", "pw")
+
+    def test_arm_resolves_key_env_over_mint(self, monkeypatch):
+        from shc_toolkit.selfdestruct import arm_self_destruct
+
+        monkeypatch.setenv("SHC_SUICIDE_KEY", "shc_live_fromenv")
+        ran = []
+
+        arm_self_destruct(
+            lambda cmd: ran.append(cmd) or "SELF_DESTRUCT_ARMED", 5, 30
+        )
+        assert len(ran) == 1 and "base64 -d" in ran[0]
+
+    def test_arm_errors_without_any_key_source(self, monkeypatch):
+        import pytest as _pytest
+
+        from shc_toolkit.selfdestruct import arm_self_destruct
+
+        monkeypatch.delenv("SHC_SUICIDE_KEY", raising=False)
+        monkeypatch.delenv("SHC_ACCOUNT_EMAIL", raising=False)
+        monkeypatch.delenv("SHC_ACCOUNT_PASSWORD", raising=False)
+        with _pytest.raises(RuntimeError, match="SHC_SUICIDE_KEY"):
+            arm_self_destruct(lambda cmd: "x", 5, 30)

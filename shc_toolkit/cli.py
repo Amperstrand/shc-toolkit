@@ -976,6 +976,7 @@ def cmd_github_runner_provision(args):
         backend=backend,
         firecracker_host=args.firecracker_host,
         firecracker_pool_path=args.firecracker_pool_path,
+        self_destruct_minutes=args.self_destruct_minutes,
     )
     result = do_provision(req)
     print(json.dumps(result.to_dict(), indent=2, default=str))
@@ -1195,8 +1196,11 @@ def main():
     )
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
-    p.add_argument("--tag", default=None,
-                   help="Attribution tag embedded in the key comment (#shc-order=<tag>; default $SHC_ORDER_TAG or user@host)")
+    p.add_argument(
+        "--tag",
+        default=None,
+        help="Attribution tag embedded in the key comment (#shc-order=<tag>; default $SHC_ORDER_TAG or user@host)",
+    )
     p.add_argument(
         "--template",
         default="debian13-cloud",
@@ -1650,6 +1654,16 @@ def main():
         "--output-json",
         action="store_true",
         help="Always-on for this subcommand (JSON is the contract)",
+    )
+    p_prov.add_argument(
+        "--self-destruct-minutes",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Arm an on-VM systemd timer that cancels this VM N minutes "
+        "after boot (controller-dead failsafe). Needs SHC_SUICIDE_KEY "
+        "(pre-minted full key) or SHC_ACCOUNT_EMAIL+SHC_ACCOUNT_PASSWORD "
+        "(per-run 1-day mint) — only full scope can cancel.",
     )
     p_prov.set_defaults(func=cmd_github_runner_provision)
 

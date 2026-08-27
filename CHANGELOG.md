@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **On-VM self-destruct — `shc_toolkit/selfdestruct.py` + `--self-destruct-minutes`.** A controller-dead failsafe: a systemd `OnBootSec` timer on the VM cancels it N minutes after boot (unlike `at` jobs, survives reboot), driven by a stdlib-python script that runs the full 409 → `X-User-Api-Confirm` cancel dance with a stable Idempotency-Key. Live-earned constraints (probed): only **full-scope** credentials can cancel (operate-scope keys and nostr operate leases 403 it — cancel is money), and Bearer keys **cannot mint keys** (Basic only). Key sources, in order: `SHC_SUICIDE_KEY` (pre-minted short-expiry secret — CI-friendly), per-run mint over Basic (`SHC_ACCOUNT_EMAIL`/`SHC_ACCOUNT_PASSWORD`, 1-day self-revoking minimum). The installer ships as one base64 SSH command so the key never hits plaintext process listings. Wired into `shc github-runner provision --self-destruct-minutes N` (fail-loud when requested but not armable) and physical-router-test-automation (which previously planted the FULL ACCOUNT KEY on every test VM — now bounded, legacy path kept as a warned fallback). **Live-fire proven**: VM ordered → 4-min timer armed → self-cancelled at T+216s, $0.01 total. Never arm on boxes running untrusted code (tollgate).
+
+### Added
 - **VM-order attribution via SSH-key comment.** `order_vm()` (and `shc order --tag`) embeds `#shc-order=<tag>` in the public key comment — tag resolution: explicit `--tag`/`tag=` → `$SHC_ORDER_TAG` env → `user@hostname`. The comment is free-form (sshd ignores it) and round-trips through `get_vm_detail().ssh_key`, so "who ordered this VM" stays answerable months later (the `devprobe-`/`lightning-playground` incidents needed manual key-fingerprint forensics). Opencode agents should `export SHC_ORDER_TAG=opencode:<session>` before ordering.
 
 ### Fixed

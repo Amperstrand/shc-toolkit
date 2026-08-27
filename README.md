@@ -231,6 +231,11 @@ shc github-runner provision \
   --repo Amperstrand/tollgate-module-basic-go \
   --labels shc-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
 shc github-runner destroy --service-id "$SERVICE_ID"
+# optional controller-dead failsafe: the VM cancels ITSELF N minutes after
+# boot via an on-VM systemd timer + bounded full-scope key
+# (SHC_SUICIDE_KEY secret, or SHC_ACCOUNT_EMAIL/PASSWORD for a per-run
+# 1-day mint — only full scope can cancel). See shc_toolkit/selfdestruct.py
+shc github-runner provision --self-destruct-minutes 120 …
 ```
 
 Intended audience: OSS maintainers with expensive / slow / custom CI who
@@ -361,7 +366,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 ## Testing Status
 
 ### v2.4.24.3 (llms-full.txt corpus audit)
-- **367 unit tests** (network-isolated) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
+- **380 unit tests** (network-isolated) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
 - **Corpus audit** (2026-08-26, llms-full.txt v2.4.15): confirm-gate, gated/routine op split, register, MCP 157/157 — conformant in both repos; nostr operate-lane + BIP21 stitching added; jit_pay polling f-string bug fixed
 - **API**: v2.4.24 (148 paths, 177 operations, no spec drift); live smoke verified
 
