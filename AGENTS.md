@@ -409,3 +409,9 @@ SHC charges the full daily price while a service **exists**, regardless of power
 
 **Affected**: any long-lived loop with except-swallow retry (payment/invoice/readiness polling).
 **Fix**: unit-test the exact request path such helpers hit (assert the path string), not just the loop outcome; treat a polling helper that never asserts its request shape as untested. Found by the 2026-08-26 llms-full.txt corpus audit.
+
+### 22. Plugin routes return FLAT error bodies — and live negative testing is how you find out
+`POST /plugin/nostr_auth/main/operate_token` (and possibly other `/plugin/...` routes) errors as `{"error": "<string>"}` (e.g. `{"error": "Grant is not bound to this agent key"}`), NOT the nested `{"error": {code, message, ...}}` shape of `/user-api/v2`. `_error_from_body` assumed the nested shape and raised `AttributeError` on the real 403 — unit tests with hand-rolled mocks (which copied the nested shape) could never catch this. Found in minutes by feeding the LIVE server deliberately bad grants: expired (locally rejected pre-HTTP), wrong-agent ("Grant is not bound to this agent key"), forged sig ("Invalid grant signature").
+
+**Affected**: any client code that hits plugin routes or assumes one error-envelope shape.
+**Fix**: `_error_from_body` handles both shapes (flat 401/403 strings map to `SHCAuthError`); treat a short live negative pass (expired / wrong-party / forged / replayed) as part of shipping any new API surface — the server's real error envelopes are a contract you haven't learned until you've been rejected by it.
