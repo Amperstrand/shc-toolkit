@@ -131,6 +131,24 @@ The SHC User API has full documentation available at:
 
 This toolkit covers the most common endpoints (VM lifecycle, ordering, snapshots, billing). For operations not yet wrapped (reinstall, backups, etc.), use `SHCClient._request()` directly or open a PR.
 
+## VM Console (noVNC)
+
+API-native console access — see a VM's screen without SSH (works even when
+the guest is broken, keyless, or mid-bootstrap):
+
+```bash
+shc console 1077                       # availability check
+shc console-session 1077               # single-use noVNC URL (default 30s TTL)
+shc console-session 1077 --ttl 300     # 5-minute session
+```
+
+The response carries a `console_url` (JWT-authenticated Proxmox bridge) —
+open it in a browser immediately; tokens are single-use. Confirmation is
+auto-handled (`_confirmed_request`). For scripted typing/screenshots inside
+the console, see `shc_toolkit/console.py` (Playwright-based portal
+automation: `ConsoleSession().open_console()` → `type_text()` →
+`screenshot()`).
+
 ## MCP Transport
 
 The toolkit supports dual transport: REST v2 (default) or MCP Streamable HTTP.
