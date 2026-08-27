@@ -1205,8 +1205,7 @@ class SHCClient:
             from pathlib import Path
 
             p = Path(ssh_key).expanduser()
-            if p.exists():
-                kwargs.setdefault("ssh_key", p.read_text().strip())
+            kwargs["ssh_key"] = p.read_text().strip() if p.exists() else ssh_key
 
         if kwargs.get("ssh_key"):
             kwargs["ssh_key"] = self.augment_key_comment(
