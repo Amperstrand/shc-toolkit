@@ -150,7 +150,12 @@ Bypass with `@pytest.mark.allow_network` or `SHC_TEST_LIVE=1` env var.
 
 ## SHC account credentials
 
-The SHC API key is stored in `SHC_API_KEY` environment variable. It is separate from the portal password. We do NOT store the portal password anywhere in the codebase. The API key has full-scope access (ordering, cancellation, billing).
+Everything lives in `~/.config/shc/credentials.sh` (0600, outside all repos, sourced from `~/.zshrc`): portal/Basic password, auth username, and the key inventory. Live-earned auth facts (2026-08-27):
+
+- **HTTP Basic username is the BARE Blesta username** (`o6XPQHfhFRpoYo7ev`), NOT the account email — full-email Basic 401s identically to a wrong password. The spec's `basicAuth` description warns: "For many accounts the username is the email address, but that is not guaranteed for every account type." This trap caused a full-morning "password was rotated" misdiagnosis (and the 2026-07-16 lockout scare).
+- Account/notice email: `npub1ugz9wzvg5lc6thnvzghmxvn9swrtl7nx36lsvl3794sq0r67agls8l6ztt@nomail.name` — a mailbox on OUR OWN nomail.name infrastructure. Password loss is a non-event: trigger `/client/login/reset/`, pull the email from the nomail R2 quarantine (`cd ~/src/nomail/apps/email-worker && npx wrangler r2 object get nomail-emails/quarantine/<id>.eml --remote`), open the confirmreset link — which sets the new password AND auto-creates a logged-in portal session (the normal form-login is broken SHC-side for this account: rejects both the email and the username).
+- API key (`SHC_API_KEY` in both repo secrets + `~/.zshenv`): `ci-main` (id 404, full scope, expires 2027-02-23). Suicide key (`SHC_SUICIDE_KEY`, both repos): `ci-self-destruct` (30d, expires 2026-09-26 — re-mint monthly). `full5-domcapture` (id 218, the old CI key) expires 2026-10-01, superseded.
+- **Nostr auth cannot replace API keys**: user-api securitySchemes are `basicAuth` (+`X-User-Api-OTP` when 2FA) and API key only; the nostr plugin lane is deliberately vm-scoped cannot-spend (lesson 23). nsec buys portal-login/identity/zk-backup conveniences, not CI auth.
 
 ## Operator-skills corpus (llms-full.txt)
 
@@ -440,7 +445,7 @@ Live-probed 2026-08-27: **operate-scope API keys and nostr operate leases both 4
 - Legitimate self-recovery runbook (dead mailbox, working key): steps 2-5 above; we then pointed the account at a fresh nomail.name mailbox (cashu.email == nomail.name, same worker; `shc mail` reads it with the nsec).
 - Portal also supports **Login with Nostr** — an account with a linked nsec can log in passwordless with one signature.
 - Quirk (this account only): user-api HTTP Basic rejects email+password ("Authentication failed") even with a correct password the portal accepts — the spec says the Basic username "is the email for many accounts but not guaranteed"; this legacy account (#1522) evidently has a distinct hidden username. Identity ops for it go through the portal; the portal API-keys page can mint keys when Basic is unavailable (that's how the CI `SHC_SUICIDE_KEY` was minted).
-- Recovered credentials live in `.env` (gitignored, 0600) + `~/.shc-account-recovery.json`.
+- Recovered credentials live in `~/.config/shc/credentials.sh` (0600, outside all repos, sourced from `~/.zshrc`) — see lesson 26.
 
 ### 25. shutdown ≠ cancel: SHC bills by service existence — a stopped VM accrues its full price
 Owner-caught 2026-08-27: the clboss-soak VM was shut down after a textbook drain contract and the session recorded as done; it sat **stopped-but-billable ~13h** until cancelled (snapshot first — snapshots survive the cancel). `stop`/`shutdown` are pauses; **only `cancel` ends billing.** Guards now standing (defense in depth):
@@ -449,3 +454,9 @@ Owner-caught 2026-08-27: the clboss-soak VM was shut down after a textbook drain
 - Background: `reap_orphans` reaps stopped-and-stale VMs of ANY hostname past `--max-age-hours` (the incident VM matched no test prefix — that was the gap), fail-open on unprobeable VMs; exclude/keep lists always win (628958a).
 - Controller-dead: the on-VM self-destruct timer (lesson 23) cancels even when nothing outside the VM is alive — strictly stronger than any workstation TTL, which dies with its launcher anyway (the setsid lesson from playground #44).
 - Rule for every agent/playbook: teardown and TTL arms fire **cancel**, never shutdown. Track the class in issue #38 (open remainder: "STILL BILLING" marker in `shc list`, `shc info` cost block).
+
+### 26. Basic-auth username ≠ account email; recovery runs through our own nomail quarantine
+2026-08-27: the CI account password was declared "rotated" after a morning of 401s — wrong conclusion. The user-api Basic username is the bare Blesta login (`o6XPQHfhFRpoYo7ev`); testing with a full email (old OR new) 401s exactly like a wrong password, so wrong-username is indistinguishable from wrong-password until you try the variants. The spec's `basicAuth` description documents precisely this ("username is the email address… not guaranteed for every account type").
+
+**Affected**: any Basic-auth path — `mint_suicide_key`, `SHC_ACCOUNT_EMAIL`/`SHC_ACCOUNT_PASSWORD` envs (must carry the USERNAME form), portal Playwright scripts.
+**Fix**: before concluding "password changed", test username variants (bare local part, full email, old and new). The working username is recorded in `~/.config/shc/credentials.sh` (`SHC_USER`). Verified recovery loop when the password IS lost: portal `POST /client/login/reset/` → the email lands in OUR nomail.name R2 quarantine (unknown-recipient mail is retained readable: `npx wrangler r2 object get nomail-emails/quarantine/<id>.eml --remote` from `~/src/nomail/apps/email-worker`) → the confirmreset link sets a new password AND auto-creates a logged-in portal session — GUI access without the (currently SHC-broken) form login. The account's notice email was also re-pointed to `npub…@nomail.name`, anchoring all future reset mail to infrastructure we control. Bonus lesson: `GET /account` via Bearer is the cheapest account-identity check; `gh secret list` timestamps are the cheapest "who changed what when" forensic signal when a parallel actor is suspected.
