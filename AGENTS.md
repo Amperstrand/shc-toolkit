@@ -424,3 +424,10 @@ Live-probed 2026-08-27: **operate-scope API keys and nostr operate leases both 4
 - **physical-router-test-automation shipped the anti-pattern for months**: its bootstrap planted the FULL ACCOUNT `SHC_API_KEY` on every test VM (env export, sole consumer the inline kill-switch). Now arms the bounded module when a key source is configured; legacy inline switch remains as warned fallback until `SHC_SUICIDE_KEY` is set on the runner.
 - `at`-job kill-switches die silently on reboot; systemd timers don't.
 - Live-fire proof: VM ordered → armed 4-min timer → self-cancelled at T+216s, $0.01 total (1h minimum). Nostr leases remain exactly the wrong primitive here — poetic: the credential you'd want to leave on a box is the one that can't kill it.
+
+### 24. API keys can READ password-reset emails — treat every key as account-takeover-capable
+`GET /emails` (Bearer-callable) returns the full body of every transactional email, including portal **Password Reset** links (verified live 2026-08-27: portal reset request → email id 54189 with the `confirmreset/?sid=…` link appears in `/emails` within seconds). Consequences:
+
+- A leaked API key + anyone able to trigger the portal forgot-password form = full account takeover (they read the link via the API). Store `SHC_API_KEY`/contexts with the same care as the password itself.
+- It is also the official self-recovery path when the mailbox is dead but a key still works: portal reset → `GET /emails` → newest "Password Reset" → open link → set new password. Then fix the email via `PATCH /account/contact` (`email` field, **Basic-only** — `POST /account/password` and the contact update both require the password; `PATCH /account` has no email field).
+- Portal also supports **Login with Nostr** — an account with a linked nsec can log in passwordless with one signature.
