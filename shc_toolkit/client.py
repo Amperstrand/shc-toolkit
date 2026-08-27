@@ -124,6 +124,61 @@ def validate_operate_grant(
     return problems
 
 
+def sign_operate_grant(
+    nsec: str,
+    *,
+    service_id: int,
+    agent_pubkey: str,
+    ttl: int = 900,
+    aud: str | None = None,
+) -> dict:
+    """Sign a kind:30078 operate grant — the CUSTOMER side of the lane.
+
+    ``nsec`` is the customer's linked key (a register-created context
+    key satisfies this); ``agent_pubkey`` names the agent (npub **or**
+    64-hex). Produces the signed event to hand to the agent, who
+    exchanges it via :func:`exchange_nostr_operate_grant`. The grant
+    authorizes ``operate`` (read + VM ops, no spend) on exactly
+    ``vm:<service_id>`` for ``ttl`` seconds.
+    """
+    try:
+        from nostr_sdk import EventBuilder, Keys, Kind, PublicKey, Tag
+    except ImportError as e:
+        raise ImportError(
+            "Nostr operate-grant signing requires nostr-sdk. "
+            "Install with: pip install shc-toolkit[register]"
+        ) from e
+
+    import re
+    import time
+    from urllib.parse import urlparse
+
+    agent_hex = (
+        agent_pubkey.lower()
+        if re.fullmatch(r"[0-9a-fA-F]{64}", agent_pubkey)
+        else PublicKey.parse(agent_pubkey).to_hex()
+    )
+    if aud is None:
+        origin = urlparse(BASE_URL)
+        aud = f"shc:{origin.scheme}://{origin.netloc}"
+    now = int(time.time())
+    event = (
+        EventBuilder(Kind(30078), "")
+        .tags(
+            [
+                Tag.parse(["d", f"shc:agent:{agent_hex}"]),
+                Tag.parse(["scope", "operate"]),
+                Tag.parse(["area", f"vm:{service_id}"]),
+                Tag.parse(["aud", aud]),
+                Tag.parse(["nbf", str(now)]),
+                Tag.parse(["exp", str(now + ttl)]),
+            ]
+        )
+        .sign_with_keys(Keys.parse(nsec))
+    )
+    return _json.loads(event.as_json())
+
+
 def exchange_nostr_operate_grant(
     grant: dict, *, nsec: str, base_url: str = BASE_URL, timeout: float = 30.0
 ) -> dict:
@@ -656,6 +711,18 @@ class SHCClient:
         for the full lease contract.
         """
         return exchange_nostr_operate_grant(grant, nsec=nsec, base_url=self.base_url)
+
+    @classmethod
+    def from_operate_grant(
+        cls, grant: dict, *, nsec: str, base_url: str = BASE_URL
+    ) -> "SHCClient":
+        """One call from customer grant to an operating client:
+        exchange the grant, return an ``SHCClient`` authenticated with
+        the short-TTL vm-scoped lease token. See
+        :func:`exchange_nostr_operate_grant` for the lease contract.
+        """
+        lease = exchange_nostr_operate_grant(grant, nsec=nsec, base_url=base_url)
+        return cls(api_key=lease["token"], base_url=base_url)
 
     def topup_credit(self, amount: float | str) -> dict:
         """POST /account/credit — BTCPay topup (confirmation-gated,

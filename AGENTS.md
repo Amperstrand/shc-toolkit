@@ -14,7 +14,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 360 unit tests + 5 integration tests
+├── tests/                       — 367 unit tests + 5 integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -241,7 +241,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 360 tests (unit) + 5 integration tests.
+All tests must pass. Currently 367 tests (unit) + 5 integration tests.
 
 ### 2. Lint
 ```bash

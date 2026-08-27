@@ -361,7 +361,7 @@ FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
 ## Testing Status
 
 ### v2.4.24.3 (llms-full.txt corpus audit)
-- **360 unit tests** (network-isolated) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
+- **367 unit tests** (network-isolated) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
 - **Corpus audit** (2026-08-26, llms-full.txt v2.4.15): confirm-gate, gated/routine op split, register, MCP 157/157 — conformant in both repos; nostr operate-lane + BIP21 stitching added; jit_pay polling f-string bug fixed
 - **API**: v2.4.24 (148 paths, 177 operations, no spec drift); live smoke verified
 

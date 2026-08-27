@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Customer side of the operate lane: `shc grant-operate` + `sign_operate_grant()` + `SHCClient.from_operate_grant()`.** The lane was agent-only; issuing a grant required hand-crafting a kind:30078 event in an external signer. `shc grant-operate --context <name> --service-id N --agent-npub npub… [--ttl 900]` signs the grant with the context's linked nsec and prints the signed event JSON to hand to any agent (npub or hex accepted, TTL-capped by `exp`); `sign_operate_grant()` is the programmatic form. `SHCClient.from_operate_grant(grant, nsec=…)` is the agent-side one-liner: exchange + return the operating client. Docs gain a credential-granularity matrix: per-VM scoping exists ONLY via the nostr lane (API-key `areas` are functional Blesta areas, not per-resource); per-action scoping (e.g. destroy-only) exists nowhere — an operate lease is all-ops-except-spend on one VM, with the confirm gate as the destruction control point.
+
 ### Changed
 - **Removed the stale "Dev zone broken" order warning** (`_BROKEN_SIZE_PREFIXES` / `_warn_broken_zone` in `cli.py`) — issue #28 was resolved and verified 2026-08-25 (2.4.24.2); the warning contradicted the recovered reality. No behavior remains blocking `dev-*` sizes.
 - **Python client now sends a versioned User-Agent.** `SHCClient` (and the standalone operate-grant exchange) send `shc-toolkit/<installed-version>` (from `importlib.metadata`, `dev` fallback) instead of httpx's bare `python-httpx/x` — parity with the Go provider's build-accurate UA fix, and lets SHC support identify toolkit traffic.

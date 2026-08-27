@@ -561,6 +561,34 @@ def cmd_topup(args):
     )
 
 
+def cmd_grant_operate(args):
+    import json as _json
+
+    from .client import sign_operate_grant
+    from .register import load_context
+
+    creds = load_context(args.context)
+    if not creds or not creds.get("nsec"):
+        print(
+            f"no nsec in context '{args.context}' (shc register stores one)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    grant = sign_operate_grant(
+        creds["nsec"],
+        service_id=args.service_id,
+        agent_pubkey=args.agent_npub,
+        ttl=args.ttl,
+    )
+    print(_json.dumps(grant, indent=2))
+    print(
+        f"# hand this grant to the agent: it authorizes operate (no spend)\n"
+        f"# on VM {args.service_id} for {args.ttl}s. They exchange it with\n"
+        f"# exchange_nostr_operate_grant() or SHCClient.from_operate_grant().",
+        file=sys.stderr,
+    )
+
+
 def cmd_mail(args):
     from .nomail import NomailClient
     from .register import load_context
@@ -1258,6 +1286,26 @@ def main():
         help="Seconds to wait for the Lightning payment",
     )
     p.set_defaults(func=cmd_topup)
+
+    p = sub.add_parser(
+        "grant-operate",
+        help="Sign a kind:30078 Nostr grant authorizing ONE agent to operate "
+        "(no spend) ONE of this context's VMs (customer side of the lane)",
+    )
+    p.add_argument("--context", default="default")
+    p.add_argument("--service-id", type=int, required=True)
+    p.add_argument(
+        "--agent-npub",
+        required=True,
+        help="Agent's Nostr public key (npub… or 64-hex)",
+    )
+    p.add_argument(
+        "--ttl",
+        type=int,
+        default=900,
+        help="Grant lifetime in seconds (default 900 — keep it short)",
+    )
+    p.set_defaults(func=cmd_grant_operate)
 
     for name, func in [
         ("start", cmd_start),

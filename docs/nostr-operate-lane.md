@@ -12,6 +12,21 @@ minted by the **account owner** for one of their own agents. The operate lane
 is signed by the **customer** for an agent they trust with exactly one VM —
 no account-level credential is ever shared, in either direction.
 
+## How granular can credentials get?
+
+| Mechanism | Per-VM? | Per-action (e.g. destroy-only)? | Can spend? |
+|---|---|---|---|
+| API key `full` | no | no | yes |
+| API key `operate`/`read` + `areas` | no — `areas` are functional (Blesta: invoices, services, support…), not per-resource | no | no |
+| Agent session | no | no (scope read/operate) | no |
+| **Nostr operate lease** | **yes — exactly one VM** | no — it is *all* operate ops on that VM | no |
+
+So "a credential that can only destroy VM X" does not exist: the closest is an
+operate lease on VM X, which can read, power-cycle, reinstall (confirm-gated),
+and cancel (confirm-gated) that VM — everything except spend. The
+confirmation gate is the control point for destruction, not a permission
+boundary; hand a lease only to an agent you'd trust with the whole VM.
+
 ## What the lease is
 
 | Property | Value |
@@ -37,6 +52,14 @@ event:
 | `nbf` | unix seconds (now) |
 | `exp` | unix seconds (now + ≤ ~15 min) — required |
 
+If the customer runs this toolkit, the grant is one command (signs with the
+context's linked nsec and prints the signed event JSON):
+
+```bash
+shc grant-operate --context default --service-id 456 \
+    --agent-npub npub1… --ttl 900
+```
+
 ## The agent's step (this toolkit)
 
 ```python
@@ -49,6 +72,9 @@ lease = exchange_nostr_operate_grant(grant, nsec=nsec)   # no SHC account needed
 vm = SHCClient(api_key=lease["token"])                   # the 64-hex operate Bearer
 vm.restart_vm(lease["service_id"])                       # routine op — no confirm
 ```
+
+Or in one call: `SHCClient.from_operate_grant(grant, nsec=nsec)` exchanges and
+returns the operating client directly.
 
 The function:
 

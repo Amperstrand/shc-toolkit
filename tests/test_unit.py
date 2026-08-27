@@ -2585,3 +2585,153 @@ class TestErrorFromBodyStringShape:
         )
         assert isinstance(exc, SHCNotFoundError)
         assert exc.message == "gone"
+
+
+class TestSignOperateGrant:
+    """Customer side of the lane: sign a kind:30078 grant for one agent+VM."""
+
+    def _sign(self, **kw):
+        from shc_toolkit.client import sign_operate_grant
+
+        defaults = dict(
+            nsec=None, service_id=456, agent_pubkey=None, ttl=900
+        )
+        return defaults, kw
+
+    def test_grant_shape_and_tags(self):
+        import json as _json
+        import time
+
+        from nostr_sdk import Event, Keys
+
+        from shc_toolkit.client import sign_operate_grant
+
+        customer = Keys.generate()
+        agent_hex = Keys.generate().public_key().to_hex()
+        before = int(time.time())
+        grant = sign_operate_grant(
+            customer.secret_key().to_bech32(),
+            service_id=456,
+            agent_pubkey=agent_hex,
+            ttl=600,
+        )
+        assert grant["kind"] == 30078
+        assert Event.from_json(_json.dumps(grant)).verify()
+        tags = {t[0]: t[1] for t in grant["tags"]}
+        assert tags["d"] == f"shc:agent:{agent_hex}"
+        assert tags["scope"] == "operate"
+        assert tags["area"] == "vm:456"
+        assert tags["aud"] == "shc:https://blesta.sovereignhybridcompute.com"
+        assert before <= int(tags["nbf"]) <= int(tags["exp"]) <= before + 601
+
+    def test_accepts_npub_agent_key(self):
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import sign_operate_grant
+
+        agent = Keys.generate()
+        grant = sign_operate_grant(
+            Keys.generate().secret_key().to_bech32(),
+            service_id=1,
+            agent_pubkey=agent.public_key().to_bech32(),
+        )
+        tags = {t[0]: t[1] for t in grant["tags"]}
+        assert tags["d"] == f"shc:agent:{agent.public_key().to_hex()}"
+
+    def test_signed_grant_round_trips_through_validator(self):
+        from nostr_sdk import Keys
+
+        from shc_toolkit.client import sign_operate_grant, validate_operate_grant
+
+        agent = Keys.generate()
+        grant = sign_operate_grant(
+            Keys.generate().secret_key().to_bech32(),
+            service_id=789,
+            agent_pubkey=agent.public_key().to_hex(),
+        )
+        assert (
+            validate_operate_grant(
+                grant, expected_aud="shc:https://blesta.sovereignhybridcompute.com"
+            )
+            == []
+        )
+
+
+class TestFromOperateGrant:
+    def test_returns_operating_client(self, monkeypatch):
+        from nostr_sdk import Keys
+
+        token = "e" * 64
+        monkeypatch.setattr(
+            "shc_toolkit.client.exchange_nostr_operate_grant",
+            lambda grant, *, nsec, base_url="x": {
+                "token": token, "scope": "operate", "area": "vm:42",
+                "service_id": 42, "expires_in": 900,
+            },
+        )
+        c = SHCClient.from_operate_grant(
+            {"kind": 30078}, nsec=Keys.generate().secret_key().to_bech32()
+        )
+        assert isinstance(c, SHCClient)
+        assert c.api_key == token
+
+    def test_forwards_base_url_to_exchange(self, monkeypatch):
+        seen = {}
+
+        def fake_exchange(grant, *, nsec, base_url="x"):
+            seen["base_url"] = base_url
+            return {"token": "f" * 64}
+
+        monkeypatch.setattr(
+            "shc_toolkit.client.exchange_nostr_operate_grant", fake_exchange
+        )
+        SHCClient.from_operate_grant(
+            {"kind": 30078}, nsec="nsec", base_url="https://alt.example/v2"
+        )
+        assert seen["base_url"] == "https://alt.example/v2"
+
+
+class TestGrantOperateCLI:
+    def test_prints_valid_grant_json(self, capsys, monkeypatch):
+        import json as _json
+
+        from nostr_sdk import Keys
+
+        from shc_toolkit.cli import cmd_grant_operate
+
+        customer = Keys.generate()
+        agent = Keys.generate()
+        monkeypatch.setattr(
+            "shc_toolkit.register.load_context",
+            lambda name: {"nsec": customer.secret_key().to_bech32()},
+        )
+
+        class Args:
+            context = "default"
+            service_id = 321
+            agent_npub = agent.public_key().to_bech32()
+            ttl = 300
+
+        cmd_grant_operate(Args())
+        grant = _json.loads(capsys.readouterr().out)
+        assert grant["kind"] == 30078
+        tags = {t[0]: t[1] for t in grant["tags"]}
+        assert tags["area"] == "vm:321"
+        assert tags["d"] == f"shc:agent:{agent.public_key().to_hex()}"
+        assert int(tags["exp"]) - int(tags["nbf"]) == 300
+
+    def test_exits_without_nsec(self, monkeypatch):
+        import pytest as _pytest
+
+        from shc_toolkit.cli import cmd_grant_operate
+
+        monkeypatch.setattr("shc_toolkit.register.load_context", lambda name: None)
+
+        class Args:
+            context = "default"
+            service_id = 1
+            agent_npub = "npub1x"
+            ttl = 900
+
+        with _pytest.raises(SystemExit):
+            cmd_grant_operate(Args())
