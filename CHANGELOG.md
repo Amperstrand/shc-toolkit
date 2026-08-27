@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **VM-order attribution via SSH-key comment.** `order_vm()` (and `shc order --tag`) embeds `#shc-order=<tag>` in the public key comment — tag resolution: explicit `--tag`/`tag=` → `$SHC_ORDER_TAG` env → `user@hostname`. The comment is free-form (sshd ignores it) and round-trips through `get_vm_detail().ssh_key`, so "who ordered this VM" stays answerable months later (the `devprobe-`/`lightning-playground` incidents needed manual key-fingerprint forensics). Opencode agents should `export SHC_ORDER_TAG=opencode:<session>` before ordering.
+
+### Added
 - **Customer side of the operate lane: `shc grant-operate` + `sign_operate_grant()` + `SHCClient.from_operate_grant()`.** The lane was agent-only; issuing a grant required hand-crafting a kind:30078 event in an external signer. `shc grant-operate --context <name> --service-id N --agent-npub npub… [--ttl 900]` signs the grant with the context's linked nsec and prints the signed event JSON to hand to any agent (npub or hex accepted, TTL-capped by `exp`); `sign_operate_grant()` is the programmatic form. `SHCClient.from_operate_grant(grant, nsec=…)` is the agent-side one-liner: exchange + return the operating client. Docs gain a credential-granularity matrix: per-VM scoping exists ONLY via the nostr lane (API-key `areas` are functional Blesta areas, not per-resource); per-action scoping (e.g. destroy-only) exists nowhere — an operate lease is all-ops-except-spend on one VM, with the confirm gate as the destruction control point.
 
 ### Changed

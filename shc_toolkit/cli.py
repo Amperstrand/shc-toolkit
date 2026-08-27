@@ -267,6 +267,8 @@ def cmd_order(args):
         kwargs["module_group_id"] = args.module_group_id
     if ssh_key:
         kwargs["ssh_key"] = ssh_key
+    if getattr(args, "tag", None):
+        kwargs["tag"] = args.tag
 
     try:
         opts = c.get_config_options(package_id)
@@ -1193,6 +1195,8 @@ def main():
     )
     p.add_argument("--module-group-id", type=int)
     p.add_argument("--ssh-key", help="Path to pub key or raw key string")
+    p.add_argument("--tag", default=None,
+                   help="Attribution tag embedded in the key comment (#shc-order=<tag>; default $SHC_ORDER_TAG or user@host)")
     p.add_argument(
         "--template",
         default="debian13-cloud",

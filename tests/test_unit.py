@@ -1202,6 +1202,36 @@ class TestExceptionHierarchy:
         cls = _ERROR_CODE_MAP.get("unknown_error_code", SHCError)
         assert cls is SHCError
 
+class TestOrderTagging:
+    """SSH-key comment tagging for VM-order attribution."""
+
+    KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest macbook@old-host"
+
+    def test_tag_appended_to_existing_comment(self):
+        out = SHCClient.augment_key_comment(self.KEY, "opencode:ses_123")
+        assert out.startswith("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest ")
+        assert out.endswith("macbook@old-host #shc-order=opencode:ses_123")
+
+    def test_tag_added_to_bare_key(self):
+        bare = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest"
+        out = SHCClient.augment_key_comment(bare, "ci")
+        assert out == f"{bare} #shc-order=ci"
+
+    def test_retag_replaces_previous_tag(self):
+        once = SHCClient.augment_key_comment(self.KEY, "first")
+        twice = SHCClient.augment_key_comment(once, "second")
+        assert "#shc-order=first" not in twice
+        assert twice.endswith("macbook@old-host #shc-order=second")
+
+    def test_garbage_returned_unchanged(self):
+        assert SHCClient.augment_key_comment("not a key", "t") == "not a key"
+
+    def test_default_tag_prefers_env(self):
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"SHC_ORDER_TAG": "opencode:ses_abc"}):
+            assert SHCClient.default_order_tag() == "opencode:ses_abc"
+
+
 class TestReapOrphans:
     """Unit tests for reap_orphans method."""
 

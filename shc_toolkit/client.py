@@ -12,6 +12,7 @@ from __future__ import annotations
 import json as _json
 import logging
 import os
+import re
 import socket
 import time
 import uuid
@@ -1119,6 +1120,27 @@ class SHCClient:
 
         return out
 
+    @staticmethod
+    def augment_key_comment(ssh_key: str, tag: str) -> str:
+        """Embed an attribution tag in the public key comment.
+
+        Appends ``#shc-order=<tag>`` (replacing any previous tag) so
+        ``get_vm_detail().ssh_key`` answers "who ordered this VM" months
+        later. Comment fields are free-form and ignored by sshd.
+        """
+        parts = ssh_key.strip().split(None, 2)
+        if len(parts) < 2 or not parts[0].startswith(("ssh-", "ecdsa-", "sk-")):
+            return ssh_key
+        comment = re.sub(r"\s*#shc-order=\S+", "", parts[2]).strip() if len(parts) == 3 else ""
+        return f"{parts[0]} {parts[1]} {f'{comment} ' if comment else ''}#shc-order={tag}".rstrip()
+
+    @staticmethod
+    def default_order_tag() -> str:
+        return os.environ.get("SHC_ORDER_TAG") or "{}@{}".format(
+            os.environ.get("USER") or os.environ.get("LOGNAME") or "unknown",
+            socket.gethostname(),
+        )
+
     def order_vm(
         self,
         *,
@@ -1134,6 +1156,7 @@ class SHCClient:
         config_options: dict[str, str] | None = None,
         check_credit: bool = True,
         pay: bool = True,
+        tag: str | None = None,
         **kwargs,
     ) -> dict:
         """Order a VM with friendly parameters.
@@ -1153,6 +1176,9 @@ class SHCClient:
             config_options: Raw {option_id: value} map (overrides add-on kwargs).
             check_credit: Pre-check balance before submitting (default True).
             pay: Auto-pay after order (default True).
+            tag: Attribution tag embedded in the key comment as
+                ``#shc-order=<tag>`` (default: ``$SHC_ORDER_TAG`` env or
+                ``user@hostname``). Read back via ``get_vm_detail().ssh_key``.
         """
         from .sizes import resolve_size
 
@@ -1181,6 +1207,11 @@ class SHCClient:
             p = Path(ssh_key).expanduser()
             if p.exists():
                 kwargs.setdefault("ssh_key", p.read_text().strip())
+
+        if kwargs.get("ssh_key"):
+            kwargs["ssh_key"] = self.augment_key_comment(
+                kwargs["ssh_key"], tag if tag is not None else self.default_order_tag()
+            )
 
         order_kwargs: dict = {
             "package_id": package_id,
