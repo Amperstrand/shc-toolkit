@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **GH-side reaper eased from hourly to daily.** `reap-orphan-vms.yml` now schedules at 05:23 UTC instead of hourly: GitHub's cron skipped most hourly runs anyway (measured 4–10 executions/day), and primary cleanup now rests on the on-VM self-destruct timers plus the lab machine's local `*/30` cron — the GH workflow is a backstop, not the fast path. Reduces scheduled-workload noise against the backdrop of the org Actions outage investigation.
+
 ### Added
 - **`docs/iac-lifecycle.md` — industry-aligned lifecycle vocabulary and reasoning.** Maps SHC terms onto the IaC conventions users know from AWS/GCP — *cancel* == terminate/delete, *stop* == pause (with the load-bearing divergence: a stopped SHC VM keeps billing its full daily price, unlike AWS/GCP where compute charges pause), confirm-gate == deletion protection, hourly reaper == provider test sweepers, self-destruct timer (no cloud equivalent) — with one-paragraph reasoning per design decision. README's Pulumi-bridge and proration sections now use the same terminology and link it. Canonical provider-side table: `terraform-provider-shc/docs/lifecycle-alignment.md`.
 

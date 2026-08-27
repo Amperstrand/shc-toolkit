@@ -1,7 +1,9 @@
 ---
 # Scheduled reaper: destroys orphaned test VMs on SHC.
 #
-# Runs every hour. Destroys any VM older than 2 hours whose hostname
+# Runs daily (2026-08-27: eased from hourly — GH cron skipped most hourly runs
+# anyway, and primary cleanup is now the on-VM self-destruct timers plus the
+# lab machine's local cron). Destroys any VM older than 2 hours whose hostname
 # matches a test pattern (tf-acc-*, tollgate-*-test*, test-*, ci-*).
 # Never touches production VMs (europa-vpn-vps, etc).
 
@@ -9,7 +11,7 @@ name: Reap Orphan VMs
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour
+    - cron: '23 5 * * *'  # Daily, off the hour
   workflow_dispatch:
 
 concurrency:

@@ -110,7 +110,7 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 
 ## CI workflows (10 total)
 
-**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. Hourly reaper is the only high-frequency job. To run any suite: `gh workflow run <name>` or ask the agent.
+**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. To run any suite: `gh workflow run <name>` or ask the agent.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
@@ -122,7 +122,7 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | `security.yml` | dispatch, tag | bandit + safety + pip-audit security scanning |
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
 | `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC Dev VPS |
-| `reap-orphan-vms.yml` | hourly + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
+| `reap-orphan-vms.yml` | daily (05:23) + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation
@@ -284,7 +284,7 @@ Changes to shc-toolkit affect these projects — verify they still work:
 
 ### When to Reap Orphaned VMs
 
-The hourly reaper workflow runs automatically. But after manual testing:
+The daily reaper workflow runs automatically (eased from hourly 2026-08-27; the lab machine's local cron is the fast path). But after manual testing:
 ```bash
 shc reap  # destroys test VMs older than 2 hours
 shc reap --max-age-hours 0  # destroy ALL test VMs immediately
