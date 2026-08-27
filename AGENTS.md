@@ -431,3 +431,11 @@ Live-probed 2026-08-27: **operate-scope API keys and nostr operate leases both 4
 - A leaked API key + anyone able to trigger the portal forgot-password form = full account takeover (they read the link via the API). Store `SHC_API_KEY`/contexts with the same care as the password itself.
 - It is also the official self-recovery path when the mailbox is dead but a key still works: portal reset → `GET /emails` → newest "Password Reset" → open link → set new password. Then fix the email via `PATCH /account/contact` (`email` field, **Basic-only** — `POST /account/password` and the contact update both require the password; `PATCH /account` has no email field).
 - Portal also supports **Login with Nostr** — an account with a linked nsec can log in passwordless with one signature.
+
+### 25. shutdown ≠ cancel: SHC bills by service existence — a stopped VM accrues its full price
+Owner-caught 2026-08-27: the clboss-soak VM was shut down after a textbook drain contract and the session recorded as done; it sat **stopped-but-billable ~13h** until cancelled (snapshot first — snapshots survive the cancel). `stop`/`shutdown` are pauses; **only `cancel` ends billing.** Guards now standing (defense in depth):
+
+- Point-of-error: `stop_vm`/`shutdown_vm` print "still bills while stopped" (client.py `_warn_billable_while_stopped`, pinned in tests/test_billing_semantics.py).
+- Background: `reap_orphans` reaps stopped-and-stale VMs of ANY hostname past `--max-age-hours` (the incident VM matched no test prefix — that was the gap), fail-open on unprobeable VMs; exclude/keep lists always win (628958a).
+- Controller-dead: the on-VM self-destruct timer (lesson 23) cancels even when nothing outside the VM is alive — strictly stronger than any workstation TTL, which dies with its launcher anyway (the setsid lesson from playground #44).
+- Rule for every agent/playbook: teardown and TTL arms fire **cancel**, never shutdown. Track the class in issue #38 (open remainder: "STILL BILLING" marker in `shc list`, `shc info` cost block).
