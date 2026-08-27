@@ -1511,6 +1511,10 @@ class SHCClient:
 
         Identifies VMs whose hostname starts with a known test prefix and
         whose age exceeds max_age_hours, then cancels them immediately.
+        Additionally cancels ANY VM past max_age whose runtime is stopped
+        (stopped VMs keep billing regardless of hostname — zombie class),
+        with exclude_hostnames/keep_patterns as the protection for
+        intentional VMs.
 
         Args:
             max_age_hours: Destroy VMs older than this (default: 2 hours).
@@ -1539,6 +1543,8 @@ class SHCClient:
                 "nutshell-",
                 "pytest-test-",
                 "devprobe-",
+                "clboss-",
+                "lab-",
             ]
 
         if exclude_hostnames is None:
@@ -1575,9 +1581,6 @@ class SHCClient:
                 continue
 
             is_test_vm = any(hostname.startswith(p) for p in hostname_prefixes)
-            if not is_test_vm:
-                log.debug(f"reap: skipping non-test hostname {hostname}")
-                continue
 
             created_str = vm.get("date_created", "")
             try:
@@ -1599,12 +1602,35 @@ class SHCClient:
                 )
                 continue
 
+            if is_test_vm:
+                reason = "test-pattern"
+            else:
+                # Stopped-but-billable zombie (clboss-soak class, 2026-08-26):
+                # SHC bills by service existence, so a VM past max-age whose
+                # runtime is stopped keeps accruing charges no matter its
+                # hostname. Reap exists exactly for this; the exclude/keep
+                # lists above remain the protection for intentional VMs.
+                try:
+                    rt = (self.get_vm_summary(vm_id) or {}).get("runtime") or {}
+                    runtime_status = str(
+                        rt.get("raw_status") or rt.get("state") or ""
+                    ).lower()
+                except Exception as e:
+                    # Fail-open: never cancel a VM we cannot inspect.
+                    log.debug(f"reap: cannot probe runtime of {hostname}: {e}")
+                    continue
+                if "stop" not in runtime_status and "shut" not in runtime_status:
+                    log.debug(f"reap: skipping non-test running VM {hostname}")
+                    continue
+                reason = "stopped-but-billable"
+
             orphan = {
                 "id": vm_id,
                 "hostname": hostname,
                 "age_hours": round(age_hours, 1),
                 "status": status,
                 "package": vm.get("package", "?"),
+                "reason": reason,
             }
             orphans.append(orphan)
 

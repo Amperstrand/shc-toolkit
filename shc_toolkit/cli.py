@@ -1747,7 +1747,16 @@ def main():
         else:
             print("No orphaned VMs found", file=sys.stderr)
 
-    p_reap = sub.add_parser("reap", help="Destroy orphaned test VMs")
+    p_reap = sub.add_parser(
+        "reap",
+        help="Destroy orphaned test VMs",
+        description=(
+            "Destroy orphaned VMs: test-pattern hostnames past max-age, plus "
+            "ANY VM past max-age whose runtime is stopped (stopped VMs keep "
+            "billing — zombie class). Excluded hostnames and keep patterns "
+            "always win."
+        ),
+    )
     p_reap.add_argument(
         "--max-age-hours",
         type=float,
