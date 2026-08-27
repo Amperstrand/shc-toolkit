@@ -315,7 +315,7 @@ web-session based). Our affiliate link stays in this README; an
 
 - **Nested KVM**: Available ONLY on **Dev VPS plans** (pkg 80–84, Cherryvale, KS). NVMe/SSD/HDD VPS plans do NOT expose VMX/SVM to guests — QEMU runs in TCG (software emulation) only. **Empirically verified 2026-07-20**: NVMe Starter (pkg 23, Katy-TX) probed via SSH — `grep -c 'vmx|svm' /proc/cpuinfo` = 0, `/dev/kvm` absent. Verify after ordering with `grep -E 'vmx|svm' /proc/cpuinfo` or `shc kvm-check <service_id>`.
 - **Dev zone scheduler hang (issue #28) — RESOLVED**: Dev VPS plans (pkg 80–84, Cherryvale, KS) previously failed to provision (scheduler never assigned an IP). **Recovered and verified 2026-08-25** via `scripts/dev-zone-probe.py`: pkg 80 provisioned in 85s (debian12) and 102s (debian13) — confirming the old "debian13 deadlock" (#24) was purely the zone scheduler, not the template. Nested-KVM workloads (Dev plans only) are available again.
-- **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04.
+- **Hourly proration**: You're charged the full daily rate at order time, but get refunded for unused hours when you cancel (minimum 1 hour charge). A 2-hour session on a $0.49/day plan costs ~$0.04. Industry terms: *cancel* = terminate/delete (billing ends); *stop* = pause — which on SHC still bills the full daily price. See [docs/iac-lifecycle.md](docs/iac-lifecycle.md).
 - **Single location**: Katy, Texas only.
 - **API key lifecycle**: API keys expire after 90 days (max 730). A 401 on a working key means it expired — mint a new one at `/account/api-keys`. Maximum 25 active keys per account.
 - **Snapshot/backup limit**: All VPS plans (including Dev VPS) support 1 snapshot and 1 backup concurrently (`snapshot_limit: 1`, `backup_limit: 1` per package). Verified working on Dev VPS via front-door E2E (2026-07-01).
@@ -374,6 +374,16 @@ pulumi package add terraform-provider ./terraform-provider-shc --language python
 
 The generated Pulumi SDK includes all resources (Vm, Snapshot, Backup,
 FirewallRule, Rdns) + the `term` attribute (v2.4.3 VM term management).
+
+**Lifecycle semantics through the bridge** (industry-aligned terminology):
+`pulumi destroy` / `terraform destroy` → *terminate* (SHC: immediate cancel +
+prorated refund, billing ends) — never a mere stop; `power_state = "stopped"`
+maps to GCP's `desired_status` pattern and pauses without destroying, but
+unlike AWS/GPC a stopped SHC VM **keeps billing its full daily price**.
+Deletion protection = SHC's server-side confirm-gate + Terraform-native
+`prevent_destroy`. Full mapping and reasoning:
+[docs/iac-lifecycle.md](docs/iac-lifecycle.md) and
+[terraform-provider-shc/docs/lifecycle-alignment.md](https://github.com/Amperstrand/terraform-provider-shc/blob/main/docs/lifecycle-alignment.md).
 
 → **[Migration guide from shc-pulumi](https://github.com/Amperstrand/shc-pulumi/blob/main/MIGRATION-TO-BRIDGE.md)**
 
