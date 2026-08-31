@@ -2384,6 +2384,7 @@ class TestUserAgent:
         assert ua == expected
 
     def test_standalone_exchange_sends_ua(self, monkeypatch):
+        pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
         import json as _json
 
         import httpx
@@ -2642,6 +2643,10 @@ class TestErrorFromBodyStringShape:
 class TestSignOperateGrant:
     """Customer side of the lane: sign a kind:30078 grant for one agent+VM."""
 
+    @pytest.fixture(autouse=True)
+    def _requires_nostr_sdk(self):
+        pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
+
     def _sign(self, **kw):
         from shc_toolkit.client import sign_operate_grant
 
@@ -2744,6 +2749,10 @@ class TestFromOperateGrant:
 
 
 class TestGrantOperateCLI:
+    @pytest.fixture(autouse=True)
+    def _requires_nostr_sdk(self):
+        pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
+
     def test_prints_valid_grant_json(self, capsys, monkeypatch):
         import json as _json
 
