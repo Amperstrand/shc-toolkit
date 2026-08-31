@@ -12,6 +12,7 @@ Two layers:
    data, assert the emitted inventory shape. This is where the audit found
    a stale docstring and missing tests.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -174,6 +175,7 @@ def test_build_inventory_hostname_falls_back_to_service_id() -> None:
 # --------------------------------------------------------------------------------------
 # Docstring / comment contracts.
 # --------------------------------------------------------------------------------------
+
 
 def test_inventory_docstring_does_not_promise_os_groups() -> None:
     """The script must NOT advertise OS-based groups (e.g. shc_debian13) in

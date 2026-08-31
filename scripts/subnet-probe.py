@@ -11,13 +11,14 @@ ticket with the recovery timestamp and total monitored outage duration.
 Runs in the foreground. For background use:
     nohup python3 scripts/subnet-probe.py --service-id 1077 --ticket-id 235 &
 """
+
 from __future__ import annotations
 
 import argparse
 import socket
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 sys.path.insert(0, ".")
 from shc_toolkit import SHCClient
@@ -30,7 +31,7 @@ def probe(ip: str, port: int = 22, timeout: int = 10) -> bool:
         s.connect((ip, port))
         s.close()
         return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
+    except (TimeoutError, ConnectionRefusedError, OSError):
         return False
 
 
@@ -46,16 +47,14 @@ def main() -> None:
     vm = c.get_vm(args.service_id)
     hostname = vm.get("hostname", "?")
     ips = [
-        i.get("ip")
-        for i in vm.get("ips", [])
-        if isinstance(i, dict) and i.get("ip")
+        i.get("ip") for i in vm.get("ips", []) if isinstance(i, dict) and i.get("ip")
     ]
     if not ips:
         print(f"VM {args.service_id} has no IPs — nothing to probe", file=sys.stderr)
         sys.exit(1)
 
     ip = ips[0]
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     print(f"Monitoring VM {args.service_id} ({hostname}) @ {ip}:{args.port}")
     print(f"Started: {start.isoformat()}")
     print(f"Polling every {args.interval}s. Ctrl+C to stop.")
@@ -65,13 +64,13 @@ def main() -> None:
     while True:
         attempt += 1
         reachable = probe(ip, args.port)
-        elapsed = (datetime.now(timezone.utc) - start).total_seconds() / 60
+        elapsed = (datetime.now(UTC) - start).total_seconds() / 60
         status = "✅ REACHABLE" if reachable else "❌ unreachable"
-        ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+        ts = datetime.now(UTC).strftime("%H:%M:%S")
         print(f"  [{ts}] attempt {attempt} ({elapsed:.0f}m): {status}")
 
         if reachable:
-            recovered = datetime.now(timezone.utc)
+            recovered = datetime.now(UTC)
             outage_min = (recovered - start).total_seconds() / 60
             reply = (
                 f"VM {args.service_id} ({hostname}) @ {ip} is reachable on TCP/{args.port} "
@@ -82,7 +81,9 @@ def main() -> None:
             )
             try:
                 r = c.reply_support_ticket(args.ticket_id, message=reply)
-                print(f"\n✅ Recovery detected! Posted reply to ticket #{args.ticket_id}")
+                print(
+                    f"\n✅ Recovery detected! Posted reply to ticket #{args.ticket_id}"
+                )
                 print(f"   Reply id: {r.get('reply', {}).get('id', '?')}")
             except Exception as e:
                 print(f"\n✅ Recovery detected but reply failed: {e}")

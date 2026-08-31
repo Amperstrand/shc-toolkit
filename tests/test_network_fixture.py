@@ -10,9 +10,9 @@ Each test deliberately exercises one bypass path. They MUST run under
 the autouse fixture (no opt-out marker on the test functions themselves)
 to prove the fixture's branches work as advertised.
 """
+
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import httpx

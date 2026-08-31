@@ -6,29 +6,27 @@ the ensure_api_key TTY gate.
 Run: python3 -m pytest tests/test_register.py -v
 """
 
-import pytest
-
-pytestmark = pytest.mark.allow_network
-
 import base64
 import json
-import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
 
 from shc_toolkit.client import SHCClient
 
+pytestmark = pytest.mark.allow_network
+
 
 class EchoAPI(BaseHTTPRequestHandler):
     """Records requests; replies from a scripted {path: (status, body)}."""
 
-    calls: list[dict] = []
-    script: dict[str, tuple[int, dict]] = {}
-    sequences: dict[str, list[tuple[int, dict]]] = {}
+    calls: ClassVar[list[dict]] = []
+    script: ClassVar[dict[str, tuple[int, dict]]] = {}
+    sequences: ClassVar[dict[str, list[tuple[int, dict]]]] = {}
 
     def _handle(self):
         n = int(self.headers.get("Content-Length", 0) or 0)
@@ -75,17 +73,28 @@ def _client(api):
 
 # ── client wrappers ────────────────────────────────────────────────────
 
+
 def test_register_sends_minimum_fields_and_no_auth(api):
-    EchoAPI.script["/register"] = (200, {"data": {
-        "client_id": 42,
-        "api_key": {"key": "shc_live_reg"}}})
+    EchoAPI.script["/register"] = (
+        200,
+        {"data": {"client_id": 42, "api_key": {"key": "shc_live_reg"}}},
+    )
     c = _client(api)
-    out = c.register(email="npub1x@nomail.name", password="pw123456",
-                     first_name="shc", last_name="abcd1234")
+    out = c.register(
+        email="npub1x@nomail.name",
+        password="pw123456",
+        first_name="shc",
+        last_name="abcd1234",
+    )
     call = next(r for r in EchoAPI.calls if r["path"] == "/register")
     assert call["auth"] == ""  # anonymous — bearer must NOT leak
     assert set(call["body"].keys()) == {
-        "email", "password", "first_name", "last_name", "tos_accepted"}
+        "email",
+        "password",
+        "first_name",
+        "last_name",
+        "tos_accepted",
+    }
     assert call["body"]["tos_accepted"] is True
     assert out["client_id"] == 42  # _request unwraps "data"
 
@@ -104,8 +113,10 @@ def test_basic_auth_used_and_restored(api):
 
 
 def test_topup_credit_confirmed_and_idempotent(api):
-    EchoAPI.script["/account/credit"] = (200, {
-        "data": {"invoice_id": 7, "checkout_url": "https://btcpay/x"}})
+    EchoAPI.script["/account/credit"] = (
+        200,
+        {"data": {"invoice_id": 7, "checkout_url": "https://btcpay/x"}},
+    )
     c = _client(api)
     out = c.topup_credit(1.0)
     call = next(r for r in EchoAPI.calls if r["path"] == "/account/credit")
@@ -139,14 +150,16 @@ def test_topup_reissues_on_expiry_and_finishes_on_paid(api, monkeypatch):
 
     credits = [r for r in EchoAPI.calls if r["path"] == "/account/credit"]
     assert len(credits) == 2, "expired invoice must trigger exactly one reissue"
-    assert any("fresh one" in l for l in logs)
-    assert any("funded" in l for l in logs)
+    assert any("fresh one" in entry for entry in logs)
+    assert any("funded" in entry for entry in logs)
 
 
 # ── nomail signing ─────────────────────────────────────────────────────
 
+
 def test_sign_challenge_shape():
-    from shc_toolkit.register import sign_challenge, generate_identity
+    from shc_toolkit.register import generate_identity, sign_challenge
+
     nsec, npub, email = generate_identity()
     assert nsec.startswith("nsec1") and npub.startswith("npub1")
     assert email == f"{npub}@nomail.name"
@@ -159,12 +172,14 @@ def test_sign_challenge_shape():
     assert len(ev["sig"]) == 128 and len(ev["id"]) == 64
     pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
     from nostr_sdk import Keys
+
     assert ev["pubkey"] == Keys.parse(nsec).public_key().to_hex()
 
 
 def test_nomail_login_flow(api):
     from shc_toolkit.nomail import NomailClient
     from shc_toolkit.register import generate_identity
+
     EchoAPI.script["/api/auth/challenge"] = (200, {"nonce": "ab" * 32})
     EchoAPI.script["/api/auth/verify"] = (200, {"pubkey": "x"})
     nsec, npub, email = generate_identity()
@@ -178,30 +193,42 @@ def test_nomail_login_flow(api):
 
 # ── wizard state machine ───────────────────────────────────────────────
 
+
 def test_register_unattended_end_to_end(api, tmp_path, monkeypatch):
     from shc_toolkit import register as regmod
 
     monkeypatch.setenv("SHC_CONTEXTS_DIR", str(tmp_path / "ctx"))
     regmod.CONTEXTS_DIR = tmp_path / "ctx"
 
-    EchoAPI.script.update({
-        "/register": (200, {"data": {"client_id": 99, "api_key": None}}),
-        "/account/api-keys": (200, {"data": {"api_key": "shc_live_full"}}),
-        "/account/nostr/link-challenge": (200, {"data": {
-            "challenge": "cd" * 32, "linked": False, "npub": None}}),
-        "/account/nostr/link": (200, {"data": {"ok": True}}),
-        "/account/credit": (200, {"data": {
-            "invoice_id": 5, "checkout_url": "https://pay.invalid/x"}}),
-    })
+    EchoAPI.script.update(
+        {
+            "/register": (200, {"data": {"client_id": 99, "api_key": None}}),
+            "/account/api-keys": (200, {"data": {"api_key": "shc_live_full"}}),
+            "/account/nostr/link-challenge": (
+                200,
+                {"data": {"challenge": "cd" * 32, "linked": False, "npub": None}},
+            ),
+            "/account/nostr/link": (200, {"data": {"ok": True}}),
+            "/account/credit": (
+                200,
+                {"data": {"invoice_id": 5, "checkout_url": "https://pay.invalid/x"}},
+            ),
+        }
+    )
     logs = []
     c = _client(api)
     from shc_toolkit.register import generate_identity
+
     nsec, npub, email = generate_identity()
-    with patch.object(regmod, "_topup"), \
-         patch.object(regmod, "generate_identity",
-                      side_effect=lambda: (nsec, npub, email)):
-        creds = regmod.register_unattended(c, topup=1.0, context="test",
-                                           log=logs.append)
+    with (
+        patch.object(regmod, "_topup"),
+        patch.object(
+            regmod, "generate_identity", side_effect=lambda: (nsec, npub, email)
+        ),
+    ):
+        creds = regmod.register_unattended(
+            c, topup=1.0, context="test", log=logs.append
+        )
     assert creds["api_key"] == "shc_live_full"
     assert creds["client_id"] == 99
     assert creds["email"] == email and creds["nsec"] == nsec
@@ -211,26 +238,31 @@ def test_register_unattended_end_to_end(api, tmp_path, monkeypatch):
     assert stored["api_key"] == "shc_live_full"
     mode = (tmp_path / "ctx" / "test.json").stat().st_mode & 0o777
     assert mode == 0o600
-    assert any("client_id 99" in l for l in logs)
+    assert any("client_id 99" in entry for entry in logs)
 
 
 def test_nostr_link_failure_is_best_effort(api, tmp_path, monkeypatch):
     from shc_toolkit import register as regmod
+
     monkeypatch.setenv("SHC_CONTEXTS_DIR", str(tmp_path / "ctx"))
     regmod.CONTEXTS_DIR = tmp_path / "ctx"
-    EchoAPI.script.update({
-        "/register": (200, {"data": {"client_id": 1, "api_key": None}}),
-        "/account/api-keys": (200, {"data": {"api_key": "k"}}),
-        "/account/nostr/link-challenge": (500, {"error": {"code": "boom"}}),
-    })
+    EchoAPI.script.update(
+        {
+            "/register": (200, {"data": {"client_id": 1, "api_key": None}}),
+            "/account/api-keys": (200, {"data": {"api_key": "k"}}),
+            "/account/nostr/link-challenge": (500, {"error": {"code": "boom"}}),
+        }
+    )
     c = _client(api)
     with patch.object(regmod, "_topup"):
-        creds = regmod.register_unattended(c, topup=0, context="t2",
-                                           log=lambda *a: None)
+        creds = regmod.register_unattended(
+            c, topup=0, context="t2", log=lambda *a: None
+        )
     assert creds["api_key"] == "k"
 
 
 # ── ensure_api_key TTY gate ────────────────────────────────────────────
+
 
 class _NotATTY:
     def isatty(self):
@@ -239,25 +271,27 @@ class _NotATTY:
 
 def test_resolve_skips_register_when_not_tty(monkeypatch):
     from shc_toolkit import cli
+
     monkeypatch.delenv("SHC_API_KEY", raising=False)
     monkeypatch.delenv("SHC_PROFILE", raising=False)
     monkeypatch.setattr("sys.stdin", _NotATTY())
     # isolate from the developer's real active-profile pointer
     from shc_toolkit import profiles
+
     monkeypatch.setattr(profiles, "active_profile", lambda: None)
-    args = type("A", (), {"api_key": None, "context": None,
-                          "no_register": False})()
+    args = type("A", (), {"api_key": None, "context": None, "no_register": False})()
     assert cli._resolve_api_key(args) == ""
 
 
 def test_resolve_register_gate_env(monkeypatch):
     from shc_toolkit import cli
+
     monkeypatch.setenv("SHC_NO_REGISTER", "1")
     monkeypatch.delenv("SHC_API_KEY", raising=False)
     monkeypatch.delenv("SHC_PROFILE", raising=False)
     monkeypatch.setattr("sys.stdin", Path("/dev/null"))
     from shc_toolkit import profiles
+
     monkeypatch.setattr(profiles, "active_profile", lambda: None)
-    args = type("A", (), {"api_key": None, "context": None,
-                          "no_register": True})()
+    args = type("A", (), {"api_key": None, "context": None, "no_register": True})()
     assert cli._resolve_api_key(args) == ""

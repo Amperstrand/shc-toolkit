@@ -19,20 +19,21 @@ Usage:
     sudo python3 firecracker_pool.py list
     sudo python3 firecracker_pool.py bench --count 4 --repo ... --token-file ...
 """
+
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
-import signal
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 FC_BINARY = "/usr/local/bin/firecracker"
@@ -57,7 +58,7 @@ class MicroVM:
         (STATE_DIR / f"{self.name}.json").write_text(json.dumps(asdict(self), indent=2))
 
     @classmethod
-    def load(cls, name: str) -> "MicroVM | None":
+    def load(cls, name: str) -> MicroVM | None:
         f = STATE_DIR / f"{name}.json"
         if not f.exists():
             return None
@@ -67,7 +68,6 @@ class MicroVM:
         (STATE_DIR / f"{self.name}.json").unlink(missing_ok=True)
 
 
-import itertools
 _TAP_COUNTER = itertools.count(100)
 
 
@@ -83,16 +83,17 @@ def tap_up(name: str) -> str:
     # Format: fctapNNN — fits in 15-char IFNAMSIZ, monotonic counter
     tap = f"fctap{next(_TAP_COUNTER):04d}"
     # Idempotent: delete any stale TAP from a previous failed spawn first
-    subprocess.run(["ip", "link", "delete", tap],
-                   check=False, capture_output=True)
-    subprocess.run(["/usr/local/bin/fc-tap-up.sh", tap], check=True,
-                   capture_output=True)
+    subprocess.run(["ip", "link", "delete", tap], check=False, capture_output=True)
+    subprocess.run(
+        ["/usr/local/bin/fc-tap-up.sh", tap], check=True, capture_output=True
+    )
     return tap
 
 
 def tap_down(tap: str) -> None:
-    subprocess.run(["/usr/local/bin/fc-tap-down.sh", tap], check=False,
-                   capture_output=True)
+    subprocess.run(
+        ["/usr/local/bin/fc-tap-down.sh", tap], check=False, capture_output=True
+    )
 
 
 def spawn_one(
@@ -147,21 +148,25 @@ def spawn_one(
                 "kernel_image_path": KERNEL,
                 "boot_args": boot_args,
             },
-            "drives": [{
-                "drive_id": "rootfs",
-                "path_on_host": str(rootfs),
-                "is_root_device": True,
-                "is_read_only": False,
-            }],
+            "drives": [
+                {
+                    "drive_id": "rootfs",
+                    "path_on_host": str(rootfs),
+                    "is_root_device": True,
+                    "is_read_only": False,
+                }
+            ],
             "machine-config": {
                 "vcpu_count": vcpu,
                 "mem_size_mib": mem_mib,
                 "smt": False,
             },
-            "network-interfaces": [{
-                "iface_id": "eth0",
-                "host_dev_name": tap,
-            }],
+            "network-interfaces": [
+                {
+                    "iface_id": "eth0",
+                    "host_dev_name": tap,
+                }
+            ],
         }
         cfg = workdir / "boot.json"
         cfg.write_text(json.dumps(config))
@@ -170,7 +175,8 @@ def spawn_one(
         with open(console, "wb") as f:
             proc = subprocess.Popen(
                 [FC_BINARY, "--no-api", "--config-file", str(cfg)],
-                stdout=f, stderr=subprocess.STDOUT,
+                stdout=f,
+                stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
             )
         vm.pid = proc.pid
@@ -189,7 +195,7 @@ def spawn_one(
                         vm.boot_to_init_s = round(time.monotonic() - t0, 3)
                         break
                     if "Kernel panic" in chunk or "not syncing" in chunk:
-                        raise RuntimeError(f"kernel panic in μVM console")
+                        raise RuntimeError("kernel panic in μVM console")
             except Exception as e:
                 if "panic" in str(e).lower():
                     raise
@@ -198,7 +204,9 @@ def spawn_one(
         if vm.boot_to_init_s is not None:
             runner_online_at = None
             if poll_github and github_token:
-                import urllib.request, urllib.error
+                import urllib.error
+                import urllib.request
+
                 api_url = f"https://api.github.com/repos/{repo}/actions/runners"
                 api_headers = {
                     "Authorization": f"Bearer {github_token}",
@@ -209,15 +217,22 @@ def spawn_one(
                     try:
                         req = urllib.request.Request(api_url, headers=api_headers)
                         import ssl
+
                         try:
                             import certifi
+
                             ctx = ssl.create_default_context(cafile=certifi.where())
                         except ImportError:
                             ctx = ssl.create_default_context()
-                        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                        with urllib.request.urlopen(
+                            req, timeout=10, context=ctx
+                        ) as resp:
                             data = json.loads(resp.read().decode())
                         for r in data.get("runners", []):
-                            if r.get("name") == name and (r.get("status") or "").lower() == "online":
+                            if (
+                                r.get("name") == name
+                                and (r.get("status") or "").lower() == "online"
+                            ):
                                 runner_online_at = time.monotonic()
                                 vm.ip = static_ip or "(dhcp)"
                                 break
@@ -250,7 +265,7 @@ def spawn_one(
         vm.save()
         return vm
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         vm.error = f"{type(e).__name__}: {e}"
         vm.save()
         if vm.tap:
@@ -287,8 +302,14 @@ def list_vms() -> list[MicroVM]:
 
 
 def bench(
-    count: int, repo: str, token: str, labels_prefix: str,
-    *, vcpu: int = 1, mem_mib: int = 512, github_token: str | None = None,
+    count: int,
+    repo: str,
+    token: str,
+    labels_prefix: str,
+    *,
+    vcpu: int = 1,
+    mem_mib: int = 512,
+    github_token: str | None = None,
 ) -> list[MicroVM]:
     """Spawn N μVMs concurrently, return all results. Uses static IPs
     10.0.0.10 + index to avoid DHCP contention."""
@@ -300,23 +321,37 @@ def bench(
             name = f"bench-{i:02d}-{int(time.time())}"
             labels = f"{labels_prefix},{name}"
             static_ip = f"10.0.0.{10 + i}"
-            futs[pool.submit(spawn_one, name, repo, token, labels,
-                             timeout_s=120, static_ip=static_ip,
-                             vcpu=vcpu, mem_mib=mem_mib,
-                             poll_github=bool(github_token),
-                             github_token=github_token)] = i
+            futs[
+                pool.submit(
+                    spawn_one,
+                    name,
+                    repo,
+                    token,
+                    labels,
+                    timeout_s=120,
+                    static_ip=static_ip,
+                    vcpu=vcpu,
+                    mem_mib=mem_mib,
+                    poll_github=bool(github_token),
+                    github_token=github_token,
+                )
+            ] = i
         for fut in as_completed(futs):
             results.append(fut.result())
             r = results[-1]
             boot = r.boot_to_init_s if r.boot_to_init_s else "FAIL"
-            print(f"  [{futs[fut]+1:2d}/{count}] {r.name}: boot={boot}s "
-                  f"err={r.error or 'none'}")
+            print(
+                f"  [{futs[fut] + 1:2d}/{count}] {r.name}: boot={boot}s "
+                f"err={r.error or 'none'}"
+            )
     wall = time.monotonic() - t0
     boots = [r.boot_to_init_s for r in results if r.boot_to_init_s]
     print(f"\n=== {count} μVMs in {wall:.2f}s ===")
     if boots:
-        print(f"  spawn-to-online: min={min(boots):.3f}  avg={sum(boots)/len(boots):.3f}  max={max(boots):.3f}")
-    print(f"  throughput: {count/wall:.2f} μVMs/sec")
+        print(
+            f"  spawn-to-online: min={min(boots):.3f}  avg={sum(boots) / len(boots):.3f}  max={max(boots):.3f}"
+        )
+    print(f"  throughput: {count / wall:.2f} μVMs/sec")
 
     for r in results:
         kill_one(r.name)
@@ -337,8 +372,11 @@ def main() -> int:
     p_spawn.add_argument("--mem-mib", type=int, default=2048)
     p_spawn.add_argument("--timeout", type=int, default=90)
     p_spawn.add_argument("--static-ip", help="e.g. 10.0.0.10; uses kernel ip= param")
-    p_spawn.add_argument("--poll-github", action="store_true",
-                         help="Poll GitHub for runner online; kill as soon as registered")
+    p_spawn.add_argument(
+        "--poll-github",
+        action="store_true",
+        help="Poll GitHub for runner online; kill as soon as registered",
+    )
     p_spawn.add_argument("--github-token", help="PAT with actions:read on repo")
 
     p_kill = sub.add_parser("kill", help="Kill a μVM by name")
@@ -353,16 +391,25 @@ def main() -> int:
     p_bench.add_argument("--labels-prefix", default="shc,fc")
     p_bench.add_argument("--vcpu", type=int, default=1)
     p_bench.add_argument("--mem-mib", type=int, default=512)
-    p_bench.add_argument("--github-token", help="if set, polls GitHub for runner online")
+    p_bench.add_argument(
+        "--github-token", help="if set, polls GitHub for runner online"
+    )
 
     args = ap.parse_args()
 
     if args.cmd == "spawn":
-        vm = spawn_one(args.name, args.repo, args.token, args.labels,
-                       vcpu=args.vcpu, mem_mib=args.mem_mib, timeout_s=args.timeout,
-                       static_ip=args.static_ip,
-                       poll_github=args.poll_github,
-                       github_token=args.github_token)
+        vm = spawn_one(
+            args.name,
+            args.repo,
+            args.token,
+            args.labels,
+            vcpu=args.vcpu,
+            mem_mib=args.mem_mib,
+            timeout_s=args.timeout,
+            static_ip=args.static_ip,
+            poll_github=args.poll_github,
+            github_token=args.github_token,
+        )
         print(json.dumps(asdict(vm), indent=2))
         return 0 if vm.error is None else 1
 
@@ -377,14 +424,22 @@ def main() -> int:
             print("(no μVMs)")
             return 0
         for vm in vms:
-            print(f"  {vm.name:30s} tap={vm.tap:15s} pid={vm.pid} "
-                  f"boot={vm.boot_to_init_s}s err={vm.error}")
+            print(
+                f"  {vm.name:30s} tap={vm.tap:15s} pid={vm.pid} "
+                f"boot={vm.boot_to_init_s}s err={vm.error}"
+            )
         return 0
 
     if args.cmd == "bench":
-        results = bench(args.count, args.repo, args.token, args.labels_prefix,
-                        vcpu=args.vcpu, mem_mib=args.mem_mib,
-                        github_token=args.github_token)
+        results = bench(
+            args.count,
+            args.repo,
+            args.token,
+            args.labels_prefix,
+            vcpu=args.vcpu,
+            mem_mib=args.mem_mib,
+            github_token=args.github_token,
+        )
         ok = sum(1 for r in results if r.error is None)
         print(f"\n{ok}/{args.count} succeeded")
         return 0 if ok == args.count else 1

@@ -12,6 +12,7 @@ a cashuA (v3) token at zero cost. cashu.email accepts ANY mint for its
 cdk-mintd specifics handled: quote state is {"state": "PAID"} (uppercase,
 not a `paid` bool) and each BlindedMessage must carry the keyset `id`.
 """
+
 import base64
 import hashlib
 import json
@@ -39,14 +40,20 @@ def mint_token(amount_sats: int) -> str:
     c = httpx.Client(timeout=30)
 
     keys_resp = c.get(f"{MINT}/v1/keys").raise_for_status().json()
-    ks = next(k for k in keys_resp["keysets"] if k.get("unit") == "sat"
-              and k.get("active", True))
+    ks = next(
+        k
+        for k in keys_resp["keysets"]
+        if k.get("unit") == "sat" and k.get("active", True)
+    )
     keyset_id = ks["id"]
-    keys = {int(a): p for a, p in ks["keys"].items()}
 
-    quote = c.post(f"{MINT}/v1/mint/quote/bolt11",
-                   json={"amount": amount_sats, "unit": "sat"}) \
-        .raise_for_status().json()
+    quote = (
+        c.post(
+            f"{MINT}/v1/mint/quote/bolt11", json={"amount": amount_sats, "unit": "sat"}
+        )
+        .raise_for_status()
+        .json()
+    )
     qid = quote["quote"]
     for _ in range(60):
         st = c.get(f"{MINT}/v1/mint/quote/bolt11/{qid}").raise_for_status().json()
@@ -72,12 +79,19 @@ def mint_token(amount_sats: int) -> str:
         r = secrets.randbelow(N - 1) + 1
         B_ = P * pow(r, -1, N)
         blindings[a] = (secret, r, P)
-        outputs.append({"amount": a, "id": keyset_id,
-                        "B_": B_.get_public_key_bytes(compressed=True).hex()})
+        outputs.append(
+            {
+                "amount": a,
+                "id": keyset_id,
+                "B_": B_.get_public_key_bytes(compressed=True).hex(),
+            }
+        )
 
-    sigs = c.post(f"{MINT}/v1/mint/bolt11",
-                  json={"quote": qid, "outputs": outputs}) \
-        .raise_for_status().json()["signatures"]
+    sigs = (
+        c.post(f"{MINT}/v1/mint/bolt11", json={"quote": qid, "outputs": outputs})
+        .raise_for_status()
+        .json()["signatures"]
+    )
 
     proofs = []
     for s in sigs:
@@ -85,15 +99,21 @@ def mint_token(amount_sats: int) -> str:
         secret, r, P = blindings[a]
         C_ = ECPubkey(bytes.fromhex(s["C_"]))
         C = C_ * r
-        assert (C.get_public_key_bytes(compressed=True) !=
-                b"\x00")  # point exists
-        proofs.append({"amount": a, "secret": secret,
-                       "C": C.get_public_key_bytes(compressed=True).hex()})
+        assert C.get_public_key_bytes(compressed=True) != b"\x00"  # point exists
+        proofs.append(
+            {
+                "amount": a,
+                "secret": secret,
+                "C": C.get_public_key_bytes(compressed=True).hex(),
+            }
+        )
 
-    token = {"token": [{"mint": MINT, "proofs": proofs}],
-             "unit": "sat", "memo": "shc-toolkit testnut faucet"}
-    return "cashuA" + base64.b64encode(
-        json.dumps(token).encode()).decode()
+    token = {
+        "token": [{"mint": MINT, "proofs": proofs}],
+        "unit": "sat",
+        "memo": "shc-toolkit testnut faucet",
+    }
+    return "cashuA" + base64.b64encode(json.dumps(token).encode()).decode()
 
 
 if __name__ == "__main__":

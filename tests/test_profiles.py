@@ -2,6 +2,7 @@
 
 Run: python3 -m pytest tests/test_profiles.py -v
 """
+
 import json
 
 import pytest
@@ -17,8 +18,7 @@ def home(tmp_path, monkeypatch):
     monkeypatch.setattr(P, "PROFILES_DIR", tmp_path / ".config/shc/profiles")
     monkeypatch.setattr(P, "ACTIVE_PTR", tmp_path / ".config/shc/active_profile")
     monkeypatch.setattr(P, "_LEGACY_KEYS", tmp_path / ".config/shc/contexts.json")
-    monkeypatch.setattr(P, "_LEGACY_CTX_DIR",
-                        tmp_path / ".config/shc/contexts")
+    monkeypatch.setattr(P, "_LEGACY_CTX_DIR", tmp_path / ".config/shc/contexts")
     return tmp_path
 
 
@@ -26,19 +26,36 @@ def _write_profile(home, name, npub=None, key=None, client=None):
     d = home / ".config/shc/profiles"
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"{name}.json"
-    p.write_text(json.dumps({
-        "email": f"{npub}@nomail.name" if npub else None,
-        "password": "pw", "client_id": client,
-        "api_key": key or f"shc_live_{name}", "nsec": None, "npub": npub}))
+    p.write_text(
+        json.dumps(
+            {
+                "email": f"{npub}@nomail.name" if npub else None,
+                "password": "pw",
+                "client_id": client,
+                "api_key": key or f"shc_live_{name}",
+                "nsec": None,
+                "npub": npub,
+            }
+        )
+    )
     return p
 
 
 def test_migrate_from_register_contexts(home):
     ctx = home / ".config/shc/contexts"
     ctx.mkdir(parents=True)
-    (ctx / "acct1.json").write_text(json.dumps(
-        {"email": "a@nomail.name", "password": "p", "client_id": 1,
-         "api_key": "shc_live_a", "nsec": "nsec1x", "npub": "npub1a"}))
+    (ctx / "acct1.json").write_text(
+        json.dumps(
+            {
+                "email": "a@nomail.name",
+                "password": "p",
+                "client_id": 1,
+                "api_key": "shc_live_a",
+                "nsec": "nsec1x",
+                "npub": "npub1a",
+            }
+        )
+    )
     n = P.migrate_legacy()
     assert n == 1
     got = P.get_profile("acct1")
@@ -48,7 +65,8 @@ def test_migrate_from_register_contexts(home):
 def test_migrate_from_legacy_keymap(home):
     (home / ".config/shc").mkdir(parents=True)
     (home / ".config/shc/contexts.json").write_text(
-        json.dumps({"prod": "shc_live_prod", "old": "shc_live_old"}))
+        json.dumps({"prod": "shc_live_prod", "old": "shc_live_old"})
+    )
     n = P.migrate_legacy()
     assert n == 2
     assert P.get_profile("prod")["api_key"] == "shc_live_prod"
@@ -90,6 +108,5 @@ def test_broken_env_profile_surfaces_name(home, monkeypatch):
 
 def test_file_modes_are_0600(home):
     # go through the library writer — the enforcement under test
-    P._write(P.PROFILES_DIR / "sec.json",
-             {"api_key": "k", "npub": "npub1s"})
+    P._write(P.PROFILES_DIR / "sec.json", {"api_key": "k", "npub": "npub1s"})
     assert (P.PROFILES_DIR / "sec.json").stat().st_mode & 0o777 == 0o600

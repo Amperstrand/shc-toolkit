@@ -29,7 +29,9 @@ pytestmark = pytest.mark.skipif(
 AUD = "shc:https://blesta.sovereignhybridcompute.com"
 
 
-def _make_grant(customer_keys, agent_pub_hex: str, service_id: int, ttl: int = 900) -> dict:
+def _make_grant(
+    customer_keys, agent_pub_hex: str, service_id: int, ttl: int = 900
+) -> dict:
     from nostr_sdk import EventBuilder, Kind, Tag
 
     now = int(time.time())
@@ -65,8 +67,11 @@ def test_operate_lane_grant_to_lease():
     service_id = int(vms[0].get("service_id") or vms[0].get("id"))
 
     agent = Keys.generate()
-    grant = _make_grant(customer_keys=Keys.parse(ctx["nsec"]),
-                        agent_pub_hex=agent.public_key().to_hex(), service_id=service_id)
+    grant = _make_grant(
+        customer_keys=Keys.parse(ctx["nsec"]),
+        agent_pub_hex=agent.public_key().to_hex(),
+        service_id=service_id,
+    )
     assert validate_operate_grant(grant, expected_aud=AUD) == []
 
     lease = exchange_nostr_operate_grant(grant, nsec=agent.secret_key().to_bech32())

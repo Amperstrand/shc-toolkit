@@ -12,12 +12,32 @@ PATTERNS = [
     (re.compile(r"\bsk-[a-zA-Z0-9]{40,}\b"), "openai-key"),
     (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "pem-private-key"),
     (re.compile(r"cashu[AB][a-zA-Z0-9+/=]{20,}"), "cashu-token"),
-    (re.compile(r"(?:password|passwd|pwd)\s*[=:]\s*['\"]([^'\"]{6,})['\"]", re.IGNORECASE), "password-assignment"),
-    (re.compile(r"(?:NOSTR_SECRET_KEY|BOT_NSEC|nsec_hex)\s*[=:]\s*['\"]?([a-f0-9]{64})['\"]?"), "nostr-hex-key"),
-    (re.compile(r"\bHCLOUD_TOKEN\s*[=:]\s*['\"]?([A-Za-z0-9]{64})['\"]?"), "hetzner-token"),
+    (
+        re.compile(
+            r"(?:password|passwd|pwd)\s*[=:]\s*['\"]([^'\"]{6,})['\"]", re.IGNORECASE
+        ),
+        "password-assignment",
+    ),
+    (
+        re.compile(
+            r"(?:NOSTR_SECRET_KEY|BOT_NSEC|nsec_hex)\s*[=:]\s*['\"]?([a-f0-9]{64})['\"]?"
+        ),
+        "nostr-hex-key",
+    ),
+    (
+        re.compile(r"\bHCLOUD_TOKEN\s*[=:]\s*['\"]?([A-Za-z0-9]{64})['\"]?"),
+        "hetzner-token",
+    ),
 ]
 
-BLOCKLIST_FILES = {".env", "credentials.sh", ".env.local", ".env.production", "id_rsa", "id_ed25519"}
+BLOCKLIST_FILES = {
+    ".env",
+    "credentials.sh",
+    ".env.local",
+    ".env.production",
+    "id_rsa",
+    "id_ed25519",
+}
 BLOCKLIST_EXTENSIONS = {".pem", ".key", ".p12", ".keystore"}
 
 
@@ -35,8 +55,16 @@ def scan_file(path: Path) -> list[str]:
         if matches:
             if name == "password-assignment":
                 for m in matches:
-                    if m and not m.startswith("$") and not m.startswith("<") and m.lower() not in ("none", "null", "true", "false", "changeme"):
-                        findings.append(f"{name}: password-like assignment in {path.name}")
+                    if (
+                        m
+                        and not m.startswith("$")
+                        and not m.startswith("<")
+                        and m.lower()
+                        not in ("none", "null", "true", "false", "changeme")
+                    ):
+                        findings.append(
+                            f"{name}: password-like assignment in {path.name}"
+                        )
             else:
                 findings.append(f"{name}: {path.name}")
     return findings
@@ -45,7 +73,12 @@ def scan_file(path: Path) -> list[str]:
 def main():
     staged = []
     import subprocess
-    result = subprocess.run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"], capture_output=True, text=True)
+
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        capture_output=True,
+        text=True,
+    )
     for line in result.stdout.strip().split("\n"):
         if line:
             staged.append(Path(line))

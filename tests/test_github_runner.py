@@ -14,8 +14,8 @@ import pytest
 
 from shc_toolkit.client import SHCError
 from shc_toolkit.github_runner import (
-    ProvisionRequest,
     SUPPORTED_BACKENDS,
+    ProvisionRequest,
     _build_fc_spawn_command,
     _parse_fc_spawn_output,
     default_labels,
@@ -27,19 +27,18 @@ from shc_toolkit.github_runner import (
     provision,
 )
 
-
 # ── parse_labels ───────────────────────────────────────────────
 
 
 class TestParseLabels:
     def test_string_csv(self):
-        assert parse_labels("shc,benchmark,shc-123") == [
-            "shc", "benchmark", "shc-123"
-        ]
+        assert parse_labels("shc,benchmark,shc-123") == ["shc", "benchmark", "shc-123"]
 
     def test_string_with_whitespace(self):
         assert parse_labels(" shc , benchmark , shc-123 ") == [
-            "shc", "benchmark", "shc-123"
+            "shc",
+            "benchmark",
+            "shc-123",
         ]
 
     def test_list_input(self):
@@ -76,13 +75,16 @@ class TestDefaultLabels:
 
 
 class TestIdempotentCancel:
-    @pytest.mark.parametrize("msg", [
-        "service not found",
-        "VM already cancelled",
-        "Already canceled",
-        "service does not exist",
-        "no active service",
-    ])
+    @pytest.mark.parametrize(
+        "msg",
+        [
+            "service not found",
+            "VM already cancelled",
+            "Already canceled",
+            "service does not exist",
+            "no active service",
+        ],
+    )
     def test_recognizes_idempotent_phrases(self, msg):
         err = SHCError("not_found", msg)
         assert is_idempotent_cancel_error(err) is True
@@ -129,8 +131,7 @@ class TestDestroy:
 
     def test_real_failure_propagates(self):
         client = MagicMock()
-        client.cancel_vm.side_effect = SHCError("server_error",
-                                                "internal server error")
+        client.cancel_vm.side_effect = SHCError("server_error", "internal server error")
         result = destroy(789, client=client)
         assert result["ok"] is False
         assert result["action"] == "failed"
@@ -157,8 +158,10 @@ class TestProvisionDryRun:
             labels=["shc-run-1-1"],
             dry_run=True,
         )
-        with patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh, \
-             patch("shc_toolkit.github_runner.SHCClient") as m_client_cls:
+        with (
+            patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh,
+            patch("shc_toolkit.github_runner.SHCClient") as m_client_cls,
+        ):
             result = provision(req, client=MagicMock())
             m_gh.assert_not_called()
             m_client_cls.assert_not_called()
@@ -192,10 +195,16 @@ class TestProvisionErrors:
     def test_failed_order_returns_not_ok_with_timing(self):
         client = MagicMock()
         client.order_vm.side_effect = RuntimeError("insufficient credit")
-        with patch("shc_toolkit.github_runner.fetch_registration_token",
-                   return_value={"token": "x", "expires_at": ""}), \
-             patch("shc_toolkit.github_runner.fetch_runner_binary_url",
-                   return_value="https://example/runner.tar.gz"):
+        with (
+            patch(
+                "shc_toolkit.github_runner.fetch_registration_token",
+                return_value={"token": "x", "expires_at": ""},
+            ),
+            patch(
+                "shc_toolkit.github_runner.fetch_runner_binary_url",
+                return_value="https://example/runner.tar.gz",
+            ),
+        ):
             req = ProvisionRequest(
                 repo="Amperstrand/tollgate-module-basic-go",
                 github_token="ghp_test",
@@ -216,9 +225,9 @@ class TestProvisionErrors:
 class TestGitHubAPIHelpers:
     def test_fetch_registration_token_returns_token(self):
         from io import BytesIO
+
         fake_resp = BytesIO(
-            json.dumps({"token": "ABC", "expires_at": "2030-01-01T00:00:00Z"})
-            .encode()
+            json.dumps({"token": "ABC", "expires_at": "2030-01-01T00:00:00Z"}).encode()
         )
 
         class FakeUrlopen:
@@ -248,27 +257,39 @@ class TestGitHubAPIHelpers:
             def __init__(self):
                 super().__init__(
                     "https://api.github.com/fake",
-                    403, "Forbidden", {}, BytesIO(b'{"message":"no"}'),
+                    403,
+                    "Forbidden",
+                    {},
+                    BytesIO(b'{"message":"no"}'),
                 )
 
         def fake_urlopen(req, **kw):
             raise FakeHTTPError()
 
-        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            with pytest.raises(RuntimeError, match="HTTP 403"):
-                fetch_registration_token("o/r", "ghp_x")
+        with (
+            patch("urllib.request.urlopen", side_effect=fake_urlopen),
+            pytest.raises(RuntimeError, match="HTTP 403"),
+        ):
+            fetch_registration_token("o/r", "ghp_x")
 
     def test_fetch_runner_binary_url_picks_x64_asset(self):
         from io import BytesIO
+
         payload = {
             "tag_name": "v2.322.0",
             "assets": [
-                {"name": "actions-runner-osx-arm64-2.322.0.tar.gz",
-                 "browser_download_url": "https://x/osx-arm64.tar.gz"},
-                {"name": "actions-runner-linux-x64-2.322.0.tar.gz",
-                 "browser_download_url": "https://x/linux-x64.tar.gz"},
-                {"name": "actions-runner-linux-arm64-2.322.0.tar.gz",
-                 "browser_download_url": "https://x/linux-arm64.tar.gz"},
+                {
+                    "name": "actions-runner-osx-arm64-2.322.0.tar.gz",
+                    "browser_download_url": "https://x/osx-arm64.tar.gz",
+                },
+                {
+                    "name": "actions-runner-linux-x64-2.322.0.tar.gz",
+                    "browser_download_url": "https://x/linux-x64.tar.gz",
+                },
+                {
+                    "name": "actions-runner-linux-arm64-2.322.0.tar.gz",
+                    "browser_download_url": "https://x/linux-arm64.tar.gz",
+                },
             ],
         }
         fake_resp = BytesIO(json.dumps(payload).encode())
@@ -293,10 +314,16 @@ class TestGitHubAPIHelpers:
 
     def test_fetch_runner_binary_url_raises_when_no_x64_asset(self):
         from io import BytesIO
-        payload = {"tag_name": "v1.0.0", "assets": [
-            {"name": "actions-runner-osx-arm64-1.0.0.tar.gz",
-             "browser_download_url": "https://x/osx.tar.gz"},
-        ]}
+
+        payload = {
+            "tag_name": "v1.0.0",
+            "assets": [
+                {
+                    "name": "actions-runner-osx-arm64-1.0.0.tar.gz",
+                    "browser_download_url": "https://x/osx.tar.gz",
+                },
+            ],
+        }
         fake_resp = BytesIO(json.dumps(payload).encode())
 
         class FakeUrlopen:
@@ -312,9 +339,11 @@ class TestGitHubAPIHelpers:
             def read(self):
                 return self.buf.read()
 
-        with patch("urllib.request.urlopen", side_effect=FakeUrlopen):
-            with pytest.raises(RuntimeError, match="No actions-runner-linux-x64"):
-                fetch_runner_binary_url()
+        with (
+            patch("urllib.request.urlopen", side_effect=FakeUrlopen),
+            pytest.raises(RuntimeError, match="No actions-runner-linux-x64"),
+        ):
+            fetch_runner_binary_url()
 
 
 # ── CLI surface smoke ──────────────────────────────────────────
@@ -323,12 +352,19 @@ class TestGitHubAPIHelpers:
 class TestCLISmoke:
     def test_dry_run_via_main(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = [
-            "shc", "github-runner", "provision",
-            "--repo", "Amperstrand/tollgate-module-basic-go",
-            "--size", "dev-4c-16gb",
-            "--template", "ubuntu2404-cloud",
-            "--labels", "shc-cli-test",
+            "shc",
+            "github-runner",
+            "provision",
+            "--repo",
+            "Amperstrand/tollgate-module-basic-go",
+            "--size",
+            "dev-4c-16gb",
+            "--template",
+            "ubuntu2404-cloud",
+            "--labels",
+            "shc-cli-test",
             "--dry-run",
         ]
         main()
@@ -341,6 +377,7 @@ class TestCLISmoke:
 
     def test_destroy_no_service_id_via_main(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = ["shc", "github-runner", "destroy"]
         main()
         captured = capsys.readouterr()
@@ -386,8 +423,10 @@ class TestShcVpsDispatch:
         req = ProvisionRequest(
             repo="o/r", github_token="ghp_x", labels=["t"], dry_run=True
         )
-        with patch("shc_toolkit.github_runner._provision_firecracker") as m_fc, \
-             patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps:
+        with (
+            patch("shc_toolkit.github_runner._provision_firecracker") as m_fc,
+            patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps,
+        ):
             m_vps.return_value = MagicMock(ok=True, backend="shc-vps")
             provision(req, client=MagicMock())
             m_fc.assert_not_called()
@@ -395,8 +434,11 @@ class TestShcVpsDispatch:
 
     def test_explicit_shc_vps_backend_dry_run(self):
         req = ProvisionRequest(
-            repo="o/r", github_token="", labels=["t"],
-            backend="shc-vps", dry_run=True,
+            repo="o/r",
+            github_token="",
+            labels=["t"],
+            backend="shc-vps",
+            dry_run=True,
         )
         result = provision(req, client=MagicMock())
         assert result.ok is True
@@ -405,20 +447,22 @@ class TestShcVpsDispatch:
 
 class TestFirecrackerProvision:
     def _fc_req(self, **kw) -> ProvisionRequest:
-        defaults = dict(
-            repo="o/r",
-            github_token="ghp_x",
-            backend="firecracker",
-            firecracker_host="host.example.com",
-            labels=["fc-1"],
-        )
+        defaults: dict = {
+            "repo": "o/r",
+            "github_token": "ghp_x",
+            "backend": "firecracker",
+            "firecracker_host": "host.example.com",
+            "labels": ["fc-1"],
+        }
         defaults.update(kw)
         return ProvisionRequest(**defaults)
 
     def test_firecracker_dispatch_avoids_shc_path(self):
         req = self._fc_req()
-        with patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps, \
-             patch("shc_toolkit.github_runner._provision_firecracker") as m_fc:
+        with (
+            patch("shc_toolkit.github_runner._provision_shc_vps") as m_vps,
+            patch("shc_toolkit.github_runner._provision_firecracker") as m_fc,
+        ):
             m_fc.return_value = MagicMock(ok=True, backend="firecracker")
             provision(req, client=MagicMock())
             m_vps.assert_not_called()
@@ -426,8 +470,10 @@ class TestFirecrackerProvision:
 
     def test_dry_run_returns_firecracker_backend_no_io(self):
         req = self._fc_req(dry_run=True)
-        with patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh, \
-             patch("shc_toolkit.github_runner._ssh") as m_ssh:
+        with (
+            patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh,
+            patch("shc_toolkit.github_runner._ssh") as m_ssh,
+        ):
             result = provision(req, client=MagicMock())
             m_gh.assert_not_called()
             m_ssh.assert_not_called()
@@ -440,8 +486,10 @@ class TestFirecrackerProvision:
 
     def test_missing_host_returns_error(self):
         req = self._fc_req(firecracker_host=None)
-        with patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh, \
-             patch("shc_toolkit.github_runner._ssh") as m_ssh:
+        with (
+            patch("shc_toolkit.github_runner.fetch_registration_token") as m_gh,
+            patch("shc_toolkit.github_runner._ssh") as m_ssh,
+        ):
             result = provision(req, client=MagicMock())
             m_gh.assert_not_called()
             m_ssh.assert_not_called()
@@ -450,21 +498,26 @@ class TestFirecrackerProvision:
         assert "firecracker_host" in (result.error or "")
 
     def test_successful_spawn_parses_pool_json(self):
-        pool_output = json.dumps({
-            "name": "fc-abc",
-            "workdir": "/tmp/fc-fc-abc-x",
-            "tap": "fctap0100",
-            "pid": 12345,
-            "started_at": 1.0,
-            "boot_to_init_s": 22.1,
-            "ip": "10.0.0.5",
-            "error": None,
-        })
+        pool_output = json.dumps(
+            {
+                "name": "fc-abc",
+                "workdir": "/tmp/fc-fc-abc-x",
+                "tap": "fctap0100",
+                "pid": 12345,
+                "started_at": 1.0,
+                "boot_to_init_s": 22.1,
+                "ip": "10.0.0.5",
+                "error": None,
+            }
+        )
         req = self._fc_req()
-        with patch("shc_toolkit.github_runner.fetch_registration_token",
-                   return_value={"token": "regtok", "expires_at": ""}), \
-             patch("shc_toolkit.github_runner._ssh",
-                   return_value=pool_output) as m_ssh:
+        with (
+            patch(
+                "shc_toolkit.github_runner.fetch_registration_token",
+                return_value={"token": "regtok", "expires_at": ""},
+            ),
+            patch("shc_toolkit.github_runner._ssh", return_value=pool_output) as m_ssh,
+        ):
             result = provision(req, client=MagicMock())
             m_ssh.assert_called_once()
             invoked_cmd = m_ssh.call_args.args[1]
@@ -482,47 +535,68 @@ class TestFirecrackerProvision:
         assert result.error is None
 
     def test_pool_returned_error_propagates(self):
-        pool_output = json.dumps({
-            "name": "fc-abc",
-            "workdir": "",
-            "tap": "",
-            "pid": None,
-            "started_at": 0.0,
-            "boot_to_init_s": None,
-            "ip": None,
-            "error": "kernel panic in μVM console",
-        })
+        pool_output = json.dumps(
+            {
+                "name": "fc-abc",
+                "workdir": "",
+                "tap": "",
+                "pid": None,
+                "started_at": 0.0,
+                "boot_to_init_s": None,
+                "ip": None,
+                "error": "kernel panic in μVM console",
+            }
+        )
         req = self._fc_req()
-        with patch("shc_toolkit.github_runner.fetch_registration_token",
-                   return_value={"token": "regtok", "expires_at": ""}), \
-             patch("shc_toolkit.github_runner._ssh",
-                   return_value=pool_output):
+        with (
+            patch(
+                "shc_toolkit.github_runner.fetch_registration_token",
+                return_value={"token": "regtok", "expires_at": ""},
+            ),
+            patch("shc_toolkit.github_runner._ssh", return_value=pool_output),
+        ):
             result = provision(req, client=MagicMock())
         assert result.ok is False
         assert "kernel panic" in (result.error or "")
 
     def test_ssh_failure_returns_error_result(self):
         req = self._fc_req()
-        with patch("shc_toolkit.github_runner.fetch_registration_token",
-                   return_value={"token": "regtok", "expires_at": ""}), \
-             patch("shc_toolkit.github_runner._ssh",
-                   side_effect=RuntimeError("SSH command failed")):
+        with (
+            patch(
+                "shc_toolkit.github_runner.fetch_registration_token",
+                return_value={"token": "regtok", "expires_at": ""},
+            ),
+            patch(
+                "shc_toolkit.github_runner._ssh",
+                side_effect=RuntimeError("SSH command failed"),
+            ),
+        ):
             result = provision(req, client=MagicMock())
         assert result.ok is False
         assert "SSH command failed" in (result.error or "")
         assert result.backend == "firecracker"
 
     def test_custom_pool_path_used(self):
-        pool_output = json.dumps({
-            "name": "x", "workdir": "", "tap": "", "pid": 1,
-            "started_at": 0.0, "boot_to_init_s": 1.0,
-            "ip": "10.0.0.6", "error": None,
-        })
+        pool_output = json.dumps(
+            {
+                "name": "x",
+                "workdir": "",
+                "tap": "",
+                "pid": 1,
+                "started_at": 0.0,
+                "boot_to_init_s": 1.0,
+                "ip": "10.0.0.6",
+                "error": None,
+            }
+        )
         req = self._fc_req(firecracker_pool_path="/custom/pool")
-        with patch("shc_toolkit.github_runner.fetch_registration_token",
-                   return_value={"token": "regtok", "expires_at": ""}), \
-             patch("shc_toolkit.github_runner._ssh",
-                   return_value=pool_output) as m_ssh:
+        with (
+            patch(
+                "shc_toolkit.github_runner.fetch_registration_token",
+                return_value={"token": "regtok", "expires_at": ""},
+            ),
+            patch("shc_toolkit.github_runner._ssh", return_value=pool_output) as m_ssh,
+        ):
             provision(req, client=MagicMock())
             invoked_cmd = m_ssh.call_args.args[1]
             assert "/custom/pool/firecracker_pool.py" in invoked_cmd
@@ -537,18 +611,23 @@ class TestFirecrackerDestroy:
 
     def test_missing_host_returns_failure(self):
         result = destroy(
-            None, backend="firecracker",
-            runner_name="fc-1", firecracker_host=None,
+            None,
+            backend="firecracker",
+            runner_name="fc-1",
+            firecracker_host=None,
         )
         assert result["ok"] is False
         assert result["backend"] == "firecracker"
         assert "firecracker_host" in result["error"]
 
     def test_successful_kill_calls_pool(self):
-        with patch("shc_toolkit.github_runner._ssh",
-                   return_value='{"killed": true, "name": "fc-1"}') as m_ssh:
+        with patch(
+            "shc_toolkit.github_runner._ssh",
+            return_value='{"killed": true, "name": "fc-1"}',
+        ) as m_ssh:
             result = destroy(
-                None, backend="firecracker",
+                None,
+                backend="firecracker",
                 runner_name="fc-1",
                 firecracker_host="host.example.com",
             )
@@ -561,10 +640,13 @@ class TestFirecrackerDestroy:
         assert "--name fc-1" in invoked_cmd
 
     def test_ssh_failure_is_failure(self):
-        with patch("shc_toolkit.github_runner._ssh",
-                   side_effect=RuntimeError("connection refused")):
+        with patch(
+            "shc_toolkit.github_runner._ssh",
+            side_effect=RuntimeError("connection refused"),
+        ):
             result = destroy(
-                None, backend="firecracker",
+                None,
+                backend="firecracker",
                 runner_name="fc-1",
                 firecracker_host="host.example.com",
             )
@@ -586,12 +668,12 @@ class TestParseFcSpawnOutput:
 
     def test_indented_json_with_prefix_logs(self):
         out = (
-            'log line\n'
-            '{\n'
+            "log line\n"
+            "{\n"
             '  "name": "z",\n'
             '  "boot_to_init_s": 22.1,\n'
             '  "ip": "10.0.0.3"\n'
-            '}\n'
+            "}\n"
         )
         parsed = _parse_fc_spawn_output(out)
         assert parsed["name"] == "z"
@@ -655,11 +737,17 @@ class TestBuildFcSpawnCommand:
 class TestCLIFirecracker:
     def test_fc_dry_run_via_main(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = [
-            "shc", "github-runner", "provision",
-            "--repo", "o/r",
-            "--backend", "firecracker",
-            "--labels", "fc-cli-test",
+            "shc",
+            "github-runner",
+            "provision",
+            "--repo",
+            "o/r",
+            "--backend",
+            "firecracker",
+            "--labels",
+            "fc-cli-test",
             "--dry-run",
         ]
         main()
@@ -672,11 +760,17 @@ class TestCLIFirecracker:
 
     def test_fc_provision_without_host_errors(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = [
-            "shc", "github-runner", "provision",
-            "--repo", "o/r",
-            "--backend", "firecracker",
-            "--github-token", "faketoken",
+            "shc",
+            "github-runner",
+            "provision",
+            "--repo",
+            "o/r",
+            "--backend",
+            "firecracker",
+            "--github-token",
+            "faketoken",
         ]
         with pytest.raises(SystemExit) as exc:
             main()
@@ -686,9 +780,13 @@ class TestCLIFirecracker:
 
     def test_fc_destroy_noop_via_main(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = [
-            "shc", "github-runner", "destroy",
-            "--backend", "firecracker",
+            "shc",
+            "github-runner",
+            "destroy",
+            "--backend",
+            "firecracker",
         ]
         main()
         captured = capsys.readouterr()
@@ -699,6 +797,7 @@ class TestCLIFirecracker:
 
     def test_shc_vps_destroy_default_unchanged(self, capsys):
         from shc_toolkit.cli import main
+
         sys.argv = ["shc", "github-runner", "destroy"]
         main()
         captured = capsys.readouterr()

@@ -16,6 +16,7 @@ Usage:
 The Python toolkit's sizes.py derives from catalog_model.py at import time —
 no generation needed for Python.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -54,7 +55,7 @@ def _rows() -> list[dict]:
 
 # ── Go renderer (terraform-provider-shc/provider/sizes.go) ──────────
 
-_GO_TEMPLATE = '''package provider
+_GO_TEMPLATE = """package provider
 
 import "fmt"
 
@@ -162,7 +163,7 @@ func dailyPriceForPackage(packageID int64) (float64, bool) {
 	}
 	return 0, false
 }
-'''
+"""
 
 
 def render_go() -> str:
@@ -174,19 +175,17 @@ def render_go() -> str:
         pad = " " * (max_key - len(key.strip()) + 1)
         lines.append(
             f"{key}{pad}{{{r['package_id']}, {r['pricing_id']}, {r['cpu']}, "
-            f"{r['ram_mb']}, {r['disk_gb']}, \"{r['line']}\", \"{r['name']}\", {r['daily_price']:.2f}}},"
+            f'{r["ram_mb"]}, {r["disk_gb"]}, "{r["line"]}", "{r["name"]}", {r["daily_price"]:.2f}}},'
         )
     tmpl_lines = "\n".join(f'\t"{t}",' for t in sorted(_templates("dev")))
     form_lines = "\n".join(
         f'\t"{line}": {info["order_form"]},' for line, info in _model_lines.items()
     )
     mg_lines = "\n".join(
-        f'\t"{line}": {info["module_group"]},'
-        for line, info in _model_lines.items()
+        f'\t"{line}": {info["module_group"]},' for line, info in _model_lines.items()
     )
     pg_lines = "\n".join(
-        f'\t"{line}": {info["package_group"]},'
-        for line, info in _model_lines.items()
+        f'\t"{line}": {info["package_group"]},' for line, info in _model_lines.items()
     )
     return (
         _GO_TEMPLATE.replace("__ENTRIES__", "\n".join(lines))
@@ -266,10 +265,9 @@ def render_pulumi() -> str:
             f'"ram_mb": {r["ram_mb"]}, "disk_gb": {r["disk_gb"]}, "line": "{r["line"]}", '
             f'"name": "{r["name"]}", "daily_price": "{r["daily_price"]:.2f}"}},'
         )
-        pricing.append(f'    {r["package_id"]}: {r["pricing_id"]},')
-    return (
-        _PULUMI_TEMPLATE.replace("__ENTRIES__", "\n".join(entries))
-        .replace("__PRICING__", "\n".join(pricing))
+        pricing.append(f"    {r['package_id']}: {r['pricing_id']},")
+    return _PULUMI_TEMPLATE.replace("__ENTRIES__", "\n".join(entries)).replace(
+        "__PRICING__", "\n".join(pricing)
     )
 
 

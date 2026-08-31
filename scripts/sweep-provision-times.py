@@ -12,6 +12,7 @@ Usage:
     python3 scripts/sweep-provision-times.py --size dev-1c-4gb --template alpine323-cloud
     python3 scripts/sweep-provision-times.py --repeat 2
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,7 +24,6 @@ from pathlib import Path
 
 from shc_toolkit import SHCClient
 from shc_toolkit.client import SHCError
-
 
 DEFAULT_COMBOS: list[tuple[str, str]] = [
     ("dev-1c-4gb", "ubuntu2404-cloud"),
@@ -55,8 +55,12 @@ def sweep_one(client: SHCClient, size: str, template: str) -> dict:
             [order["service_id"]] if order.get("service_id") else []
         )
         if not service_ids:
-            return {"size": size, "template": template, "ok": False,
-                    "error": f"no service_id: {order}"}
+            return {
+                "size": size,
+                "template": template,
+                "ok": False,
+                "error": f"no service_id: {order}",
+            }
         service_id = int(service_ids[0])
         print(f"  ordered service_id={service_id}, waiting for ready...", flush=True)
 
@@ -69,16 +73,23 @@ def sweep_one(client: SHCClient, size: str, template: str) -> dict:
         print(f"  ready at {ip} ({order_to_ready}s order→ready)", flush=True)
 
         return {
-            "size": size, "template": template, "ok": True,
-            "service_id": service_id, "ip": ip,
+            "size": size,
+            "template": template,
+            "ok": True,
+            "service_id": service_id,
+            "ip": ip,
             "hostname": hostname,
             "order_to_ready_s": order_to_ready,
             "total_wall_s": round(time.time() - t0, 2),
         }
-    except Exception as e:  # noqa: BLE001
-        return {"size": size, "template": template, "ok": False,
-                "service_id": service_id,
-                "error": f"{type(e).__name__}: {e}"}
+    except Exception as e:
+        return {
+            "size": size,
+            "template": template,
+            "ok": False,
+            "service_id": service_id,
+            "error": f"{type(e).__name__}: {e}",
+        }
     finally:
         if service_id is not None:
             try:
@@ -95,8 +106,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--size", help="single size to test (overrides defaults)")
     ap.add_argument("--template", default="ubuntu2404-cloud")
-    ap.add_argument("--repeat", type=int, default=1,
-                    help="run each combo N times to amortize variance")
+    ap.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="run each combo N times to amortize variance",
+    )
     args = ap.parse_args()
 
     if args.size:
@@ -116,17 +131,23 @@ def main() -> int:
             results.append(r)
 
     print("\n" + "=" * 78)
-    print(f"{'size':18s} {'template':22s} {'order→ready':>14s} {'total wall':>12s}  status")
+    print(
+        f"{'size':18s} {'template':22s} {'order→ready':>14s} {'total wall':>12s}  status"
+    )
     print("-" * 78)
     for r in results:
         if r.get("ok"):
-            print(f"{r['size']:18s} {r['template']:22s} "
-                  f"{r['order_to_ready_s']:>11.2f} s  "
-                  f"{r['total_wall_s']:>9.2f} s  ok")
+            print(
+                f"{r['size']:18s} {r['template']:22s} "
+                f"{r['order_to_ready_s']:>11.2f} s  "
+                f"{r['total_wall_s']:>9.2f} s  ok"
+            )
         else:
-            err = (r.get('error') or '')[:40]
-            print(f"{r['size']:18s} {r['template']:22s} "
-                  f"{'-':>14s} {'-':>12s}  FAIL: {err}")
+            err = (r.get("error") or "")[:40]
+            print(
+                f"{r['size']:18s} {r['template']:22s} "
+                f"{'-':>14s} {'-':>12s}  FAIL: {err}"
+            )
 
     print("\nJSON:")
     print(json.dumps(results, indent=2, default=str))

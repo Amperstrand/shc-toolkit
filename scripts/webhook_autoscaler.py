@@ -33,13 +33,13 @@ Test mode (no GitHub setup):
          -H 'X-Hub-Signature-256: sha256=<computed>' \\
          -d @test-payload.json http://localhost:8443/github
 """
+
 from __future__ import annotations
 
 import argparse
 import hashlib
 import hmac
 import json
-import os
 import sys
 import threading
 import time
@@ -73,10 +73,13 @@ def log(msg: str) -> None:
 
 def refresh_runner_token() -> str:
     """Mint a fresh repo-level runner registration token from GitHub API."""
-    import urllib.request, ssl
+    import ssl
+    import urllib.request
+
     url = f"https://api.github.com/repos/{REPO}/actions/runners/registration-token"
     req = urllib.request.Request(
-        url, method="POST",
+        url,
+        method="POST",
         headers={
             "Authorization": f"Bearer {GH_TOKEN}",
             "Accept": "application/vnd.github+json",
@@ -86,6 +89,7 @@ def refresh_runner_token() -> str:
     )
     try:
         import certifi
+
         ctx = ssl.create_default_context(cafile=certifi.where())
     except ImportError:
         ctx = ssl.create_default_context()
@@ -101,7 +105,8 @@ def spawn_for_label(runner_label: str, runner_name: str) -> None:
         token = refresh_runner_token()
         # Import lazily so this script can run standalone for testing
         sys.path.insert(0, str(Path(__file__).parent))
-        from firecracker_pool import spawn_one, kill_one
+        from firecracker_pool import spawn_one
+
         # Static IP pool: 10.0.0.100 + counter (avoids collisions with bench IPs)
         global _ip_counter
         _ip_counter = getattr(_ip_counter_module(), "_counter", 100) + 1
@@ -109,23 +114,28 @@ def spawn_for_label(runner_label: str, runner_name: str) -> None:
         static_ip = f"10.0.0.{_ip_counter}"
         vm = spawn_one(
             name=runner_name,
-            repo=REPO, token=token,
+            repo=REPO,
+            token=token,
             labels=f"shc,fc,{runner_label}",
-            vcpu=2, mem_mib=2048,
+            vcpu=2,
+            mem_mib=2048,
             timeout_s=300,
             static_ip=static_ip,
             poll_github=True,
             github_token=GH_TOKEN,
             leave_running=True,
         )
-        log(f"spawn_for_label done: name={runner_name} boot={vm.boot_to_init_s}s err={vm.error}")
-    except Exception as e:  # noqa: BLE001
+        log(
+            f"spawn_for_label done: name={runner_name} boot={vm.boot_to_init_s}s err={vm.error}"
+        )
+    except Exception as e:
         log(f"spawn_for_label FAILED: {type(e).__name__}: {e}")
 
 
 # Cheap IP counter (module-level)
 def _ip_counter_module():
     import sys
+
     mod = sys.modules.get("__main__")
     if not hasattr(mod, "_counter"):
         mod._counter = 100
@@ -189,7 +199,11 @@ class Handler(BaseHTTPRequestHandler):
             if "shc" in labels or "fc" in labels:
                 # Extract a runner name from labels (unique per-run marker)
                 runner_label = next(
-                    (l for l in labels if l.startswith("shc-") or l.startswith("fc-")),
+                    (
+                        lab
+                        for lab in labels
+                        if lab.startswith("shc-") or lab.startswith("fc-")
+                    ),
                     f"webhook-{int(time.time())}",
                 )
                 runner_name = f"auto-{runner_label}"
@@ -202,8 +216,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(
-                    json.dumps({"spawned": True, "label": runner_label,
-                                "name": runner_name}).encode()
+                    json.dumps(
+                        {"spawned": True, "label": runner_label, "name": runner_name}
+                    ).encode()
                 )
                 return
 
@@ -227,12 +242,20 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8443)
     ap.add_argument("--host", default="0.0.0.0")
-    ap.add_argument("--webhook-secret-file",
-                    help="path to file containing the GitHub webhook secret")
-    ap.add_argument("--gh-token-file", required=True,
-                    help="path to file with a PAT (runners:write on repo)")
-    ap.add_argument("--repo", required=True,
-                    help="owner/repo (e.g. Amperstrand/tollgate-module-basic-go)")
+    ap.add_argument(
+        "--webhook-secret-file",
+        help="path to file containing the GitHub webhook secret",
+    )
+    ap.add_argument(
+        "--gh-token-file",
+        required=True,
+        help="path to file with a PAT (runners:write on repo)",
+    )
+    ap.add_argument(
+        "--repo",
+        required=True,
+        help="owner/repo (e.g. Amperstrand/tollgate-module-basic-go)",
+    )
     args = ap.parse_args()
 
     GH_TOKEN = Path(args.gh_token_file).read_text().strip()
@@ -242,7 +265,9 @@ def main() -> int:
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     log(f"autoscaler listening on {args.host}:{args.port} (repo={REPO})")
-    log(f"webhook secret: {'set' if WEBHOOK_SECRET else 'NONE (signature checks disabled)'}")
+    log(
+        f"webhook secret: {'set' if WEBHOOK_SECRET else 'NONE (signature checks disabled)'}"
+    )
     log(f"healthz: curl http://{args.host}:{args.port}/healthz")
     log(f"endpoint: POST http://{args.host}:{args.port}/github")
     try:

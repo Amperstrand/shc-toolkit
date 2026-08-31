@@ -8,16 +8,14 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
-import httpx
-
-from shc_toolkit.transport import SHCTransport, resolve_transport
 from shc_toolkit.client import SHCClient, SHCError
-
+from shc_toolkit.transport import SHCTransport, resolve_transport
 
 # ── Transport Selection ────────────────────────────────────
 
@@ -50,20 +48,24 @@ class TestCreateClient:
     def test_rest_returns_shcclient(self):
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             from shc_toolkit import create_client
+
             c = create_client(transport="rest")
             assert isinstance(c, SHCClient)
 
     def test_mcp_transport_creates_mcp_client(self):
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             from shc_toolkit import create_client
+
             c = create_client(transport="mcp")
             from shc_toolkit.mcp_client import SHCMCPClient
+
             assert isinstance(c, SHCMCPClient)
 
     def test_no_api_key_raises(self):
         env = {k: v for k, v in os.environ.items() if k != "SHC_API_KEY"}
         with patch.dict(os.environ, env, clear=True):
             from shc_toolkit import create_client
+
             with pytest.raises(ValueError, match="SHC_API_KEY not set"):
                 create_client(transport="rest")
 
@@ -76,9 +78,18 @@ class TestProtocolCompliance:
 
     def test_protocol_has_core_methods(self):
         expected = [
-            "list_vms", "get_vm", "get_vm_summary", "start_vm",
-            "stop_vm", "restart_vm", "cancel_vm", "get_catalog",
-            "submit_order", "list_backups", "list_jobs", "get_account",
+            "list_vms",
+            "get_vm",
+            "get_vm_summary",
+            "start_vm",
+            "stop_vm",
+            "restart_vm",
+            "cancel_vm",
+            "get_catalog",
+            "submit_order",
+            "list_backups",
+            "list_jobs",
+            "get_account",
         ]
         for method in expected:
             assert hasattr(SHCTransport, method), f"Protocol missing {method}"
@@ -90,6 +101,7 @@ class TestProtocolCompliance:
 class TestClientBugFixes:
     def test_no_duplicate_billing_methods(self):
         import inspect
+
         src = inspect.getsource(SHCClient)
         assert src.count("def list_invoices(") == 1
         assert src.count("def get_invoice(") == 1
@@ -98,6 +110,7 @@ class TestClientBugFixes:
     def test_get_catalog_has_no_view_param(self):
         """get_catalog() uses the static model — no view parameter needed."""
         import inspect
+
         sig = inspect.signature(SHCClient.get_catalog)
         assert "view" not in sig.parameters
         assert "self" in sig.parameters
@@ -106,7 +119,9 @@ class TestClientBugFixes:
 # ── MCP Client (mocked HTTP) ───────────────────────────────
 
 
-def _mock_response(status_code=200, content_type="application/json", text="", headers=None):
+def _mock_response(
+    status_code=200, content_type="application/json", text="", headers=None
+):
     """Build a mock requests.Response."""
     resp = MagicMock()
     resp.status_code = status_code
@@ -149,6 +164,7 @@ def _jsonrpc_error(code, message, rpc_id=1, structured=None):
 class TestMcpResponseParser:
     def test_parses_plain_json(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = _mock_response(
             content_type="application/json",
             text='{"jsonrpc":"2.0","id":1,"result":{}}',
@@ -158,6 +174,7 @@ class TestMcpResponseParser:
 
     def test_parses_json_with_log_prefix(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = _mock_response(
             content_type="application/json",
             text='Authorized access only.\n{"jsonrpc":"2.0","id":1,"result":{}}',
@@ -167,6 +184,7 @@ class TestMcpResponseParser:
 
     def test_returns_empty_for_non_json_content_type(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = _mock_response(
             status_code=202,
             content_type="text/html",
@@ -177,7 +195,10 @@ class TestMcpResponseParser:
 
     def test_parses_sse(self):
         from shc_toolkit.mcp_client import SHCMCPClient
-        sse_text = 'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"tools":[]}}\n\n'
+
+        sse_text = (
+            'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"tools":[]}}\n\n'
+        )
         resp = _mock_response(content_type="text/event-stream", text=sse_text)
         body = SHCMCPClient._parse_mcp_response(resp)
         assert body["jsonrpc"] == "2.0"
@@ -186,26 +207,37 @@ class TestMcpResponseParser:
 class TestMcpUnwrapResult:
     def test_extracts_structured_content_data(self):
         from shc_toolkit.mcp_client import SHCMCPClient
-        resp = {"result": {"isError": False, "structuredContent": {"data": {"credit": []}}}}
+
+        resp = {
+            "result": {"isError": False, "structuredContent": {"data": {"credit": []}}}
+        }
         data = SHCMCPClient._unwrap_tool_result(resp)
         assert data == {"credit": []}
 
     def test_unwraps_double_wrapped_data(self):
         from shc_toolkit.mcp_client import SHCMCPClient
-        resp = {"result": {"isError": False, "structuredContent": {
-            "data": {"data": {"service_ids": [123], "order": {"id": 1}}}
-        }}}
+
+        resp = {
+            "result": {
+                "isError": False,
+                "structuredContent": {
+                    "data": {"data": {"service_ids": [123], "order": {"id": 1}}}
+                },
+            }
+        }
         data = SHCMCPClient._unwrap_tool_result(resp)
         assert data == {"service_ids": [123], "order": {"id": 1}}
 
     def test_extracts_text_content_fallback(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {"result": {"content": [{"type": "text", "text": '{"key": "val"}'}]}}
         data = SHCMCPClient._unwrap_tool_result(resp)
         assert data == {"key": "val"}
 
     def test_raises_on_is_error(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {
             "result": {
                 "isError": True,
@@ -220,6 +252,7 @@ class TestMcpUnwrapResult:
 
     def test_returns_result_dict_for_empty_content(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {"result": {}}
         data = SHCMCPClient._unwrap_tool_result(resp)
         assert data == {}
@@ -228,26 +261,31 @@ class TestMcpUnwrapResult:
 class TestMcpConvertArgs:
     def test_snake_to_camel(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         result = SHCMCPClient._convert_args({"service_id": 123, "package_id": 456})
         assert result == {"serviceId": 123, "packageId": 456}
 
     def test_passthrough_no_underscore(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         result = SHCMCPClient._convert_args({"name": "test", "limit": 10})
         assert result == {"name": "test", "limit": 10}
 
     def test_empty_kwargs(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         assert SHCMCPClient._convert_args({}) == {}
 
 
 class TestMcpToolMap:
     def test_core_tool_count(self):
         from shc_toolkit.mcp_client import TOOL_MAP
+
         assert len(TOOL_MAP) == 157
 
     def test_key_mappings(self):
         from shc_toolkit.mcp_client import TOOL_MAP
+
         assert TOOL_MAP["list_vms"] == "listVirtualMachines"
         assert TOOL_MAP["get_account"] == "getAccount"
         assert TOOL_MAP["cancel_vm"] == "cancelVirtualMachine"
@@ -255,21 +293,36 @@ class TestMcpToolMap:
 
     def test_reverse_map(self):
         from shc_toolkit.mcp_client import METHOD_MAP
+
         assert METHOD_MAP["listVirtualMachines"] == "list_vms"
         assert METHOD_MAP["getAccount"] == "get_account"
 
     def test_v243_tool_map_entries(self):
         """All 25 new v2.4.3 MCP tools must be in TOOL_MAP."""
         from shc_toolkit.mcp_client import TOOL_MAP
+
         v243_entries = {
-            "list_vm_addons", "get_vm_addon_options", "create_vm_addon",
-            "preview_vm_addon", "get_vm_term_options", "change_vm_term",
-            "preview_vm_term_change", "list_orders", "get_order",
-            "cancel_pending_order", "list_quotations", "get_quotation",
-            "approve_quotation", "list_quotation_invoices",
-            "list_documents", "download_document", "list_downloads",
-            "download_file", "get_support_ticket_attachment",
-            "submit_support_ticket_feedback", "get_invoice_electronic",
+            "list_vm_addons",
+            "get_vm_addon_options",
+            "create_vm_addon",
+            "preview_vm_addon",
+            "get_vm_term_options",
+            "change_vm_term",
+            "preview_vm_term_change",
+            "list_orders",
+            "get_order",
+            "cancel_pending_order",
+            "list_quotations",
+            "get_quotation",
+            "approve_quotation",
+            "list_quotation_invoices",
+            "list_documents",
+            "download_document",
+            "list_downloads",
+            "download_file",
+            "get_support_ticket_attachment",
+            "submit_support_ticket_feedback",
+            "get_invoice_electronic",
         }
         missing = v243_entries - set(TOOL_MAP.keys())
         assert not missing, f"Missing v2.4.3 TOOL_MAP entries: {missing}"
@@ -277,16 +330,26 @@ class TestMcpToolMap:
     def test_v243_mcp_methods_exist(self):
         """Every TOOL_MAP entry must have a corresponding SHCMCPClient method."""
         from shc_toolkit.mcp_client import TOOL_MAP, SHCMCPClient
+
         missing = [name for name in TOOL_MAP if not hasattr(SHCMCPClient, name)]
-        assert not missing, f"SHCMCPClient missing methods for TOOL_MAP entries: {missing}"
+        assert not missing, (
+            f"SHCMCPClient missing methods for TOOL_MAP entries: {missing}"
+        )
 
     def test_v243_rest_methods_exist(self):
         """Tier 1+2 new endpoints must have REST methods on SHCClient."""
         from shc_toolkit.client import SHCClient
+
         v243_methods = [
-            "list_vm_addons", "get_vm_addon_options", "create_vm_addon",
-            "preview_vm_addon", "get_vm_term_options", "change_vm_term",
-            "preview_vm_term_change", "list_orders", "get_order",
+            "list_vm_addons",
+            "get_vm_addon_options",
+            "create_vm_addon",
+            "preview_vm_addon",
+            "get_vm_term_options",
+            "change_vm_term",
+            "preview_vm_term_change",
+            "list_orders",
+            "get_order",
             "cancel_pending_order",
         ]
         missing = [m for m in v243_methods if not hasattr(SHCClient, m)]
@@ -298,6 +361,7 @@ class TestMcpClientMocked:
 
     def _make_client(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             client = SHCMCPClient()
         client._initialized = True
@@ -335,10 +399,19 @@ class TestMcpClientMocked:
 
     def test_tool_call_raises_on_error(self):
         client = self._make_client()
-        client.session.post = MagicMock(return_value=_jsonrpc_error(
-            "unauthorized", "Authentication failed",
-            structured={"http_status": 401, "error": {"code": "unauthorized", "message": "Authentication failed"}},
-        ))
+        client.session.post = MagicMock(
+            return_value=_jsonrpc_error(
+                "unauthorized",
+                "Authentication failed",
+                structured={
+                    "http_status": 401,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Authentication failed",
+                    },
+                },
+            )
+        )
         with pytest.raises(SHCError, match="Authentication failed"):
             client.get_account()
 
@@ -353,21 +426,27 @@ class TestMcpClientMocked:
             "confirmation": {"confirmation_id": "conf-123"},
         }
         error_resp = _jsonrpc_error(
-            "confirmation_required", "Confirmation required for this action",
+            "confirmation_required",
+            "Confirmation required for this action",
             structured=confirmation_sc,
         )
-        success_resp = _jsonrpc_result({"id": 123, "hostname": "test", "service_status": "canceled"})
+        success_resp = _jsonrpc_result(
+            {"id": 123, "hostname": "test", "service_status": "canceled"}
+        )
         client.session.post = MagicMock(side_effect=[error_resp, success_resp])
-        result = client.call_tool("cancelVirtualMachine", {"serviceId": 123})
+        client.call_tool("cancelVirtualMachine", {"serviceId": 123})
         assert client.session.post.call_count == 2
 
     def test_sse_response_parsed(self):
         client = self._make_client()
         sse_data = {"items": [{"id": 1}]}
-        sse_text = f'event: message\ndata: {json.dumps({"jsonrpc":"2.0","id":1,"result":{"isError":False,"structuredContent":{"data":sse_data}}})}\n\n'
-        client.session.post = MagicMock(return_value=_mock_response(
-            content_type="text/event-stream", text=sse_text,
-        ))
+        sse_text = f"event: message\ndata: {json.dumps({'jsonrpc': '2.0', 'id': 1, 'result': {'isError': False, 'structuredContent': {'data': sse_data}}})}\n\n"
+        client.session.post = MagicMock(
+            return_value=_mock_response(
+                content_type="text/event-stream",
+                text=sse_text,
+            )
+        )
         result = client.list_vms()
         assert isinstance(result, list)
 
@@ -377,29 +456,41 @@ class TestMcpClientMocked:
 
 class TestCliParsers:
     def test_reset_command_exists(self):
-        import shc_toolkit.cli as cli
         import inspect
+
+        from shc_toolkit import cli
+
         assert "cmd_reset" in inspect.getsource(cli)
 
     def test_new_commands_exist(self):
-        import shc_toolkit.cli as cli
         import inspect
+
+        from shc_toolkit import cli
+
         src = inspect.getsource(cli)
         for cmd in [
-            "cmd_upgrade", "cmd_jobs", "cmd_ssh_keys",
-            "cmd_iso", "cmd_rdns", "cmd_console", "cmd_templates",
+            "cmd_upgrade",
+            "cmd_jobs",
+            "cmd_ssh_keys",
+            "cmd_iso",
+            "cmd_rdns",
+            "cmd_console",
+            "cmd_templates",
         ]:
             assert cmd in src, f"Missing {cmd}"
 
     def test_cli_imports_clean(self):
         from shc_toolkit.cli import main
+
         assert callable(main)
 
 
 class TestComputeWiring:
     def test_compute_uses_create_client(self):
         import inspect
+
         from shc_toolkit import compute
+
         src = inspect.getsource(compute)
         assert "_create_client" in src or "create_client" in src
 
@@ -407,6 +498,7 @@ class TestComputeWiring:
 class TestCatalogModel:
     def test_get_catalog_returns_20_packages(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             catalog = c.get_catalog()
@@ -415,14 +507,18 @@ class TestCatalogModel:
     def test_get_catalog_no_network(self):
         """get_catalog() must not make any network calls."""
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
-            c._get = MagicMock(side_effect=AssertionError("get_catalog must not call _get"))
+            c._get = MagicMock(
+                side_effect=AssertionError("get_catalog must not call _get")
+            )
             catalog = c.get_catalog()
             assert len(catalog) == 20
 
     def test_get_catalog_has_all_four_lines(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             lines = {p["line"] for p in c.get_catalog()}
@@ -430,6 +526,7 @@ class TestCatalogModel:
 
     def test_get_catalog_daily_price_matches_formula(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             for pkg in c.get_catalog():
@@ -441,6 +538,7 @@ class TestCatalogModel:
 
     def test_invalidate_cache_is_noop(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             c.invalidate_cache()
@@ -450,6 +548,7 @@ class TestCatalogModel:
 class TestCreditCheck:
     def test_insufficient_credit_error_message(self):
         from shc_toolkit.client import InsufficientCreditError
+
         err = InsufficientCreditError(required=0.50, available=0.12)
         assert err.required == 0.50
         assert err.available == 0.12
@@ -457,7 +556,8 @@ class TestCreditCheck:
         assert "0.12" in str(err)
 
     def test_check_credit_raises_when_low(self):
-        from shc_toolkit.client import SHCClient, InsufficientCreditError
+        from shc_toolkit.client import InsufficientCreditError, SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             c.get_available_credit = MagicMock(return_value=0.10)
@@ -466,6 +566,7 @@ class TestCreditCheck:
 
     def test_check_credit_passes_when_sufficient(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             c.get_available_credit = MagicMock(return_value=5.00)
@@ -478,71 +579,86 @@ class TestCreditCheck:
 class TestSizes:
     def test_size_map_has_20_entries(self):
         from shc_toolkit.sizes import SIZE_MAP
+
         assert len(SIZE_MAP) == 20
 
     def test_size_map_covers_all_four_lines(self):
         from shc_toolkit.sizes import SIZE_MAP
+
         lines = {e["line"] for e in SIZE_MAP.values()}
         assert lines == {"nvme", "ssd", "hdd", "dev"}
 
     def test_resolve_size_nvme(self):
         from shc_toolkit.sizes import resolve_size
+
         assert resolve_size("nvme-2c-8gb") == (26, 56)
 
     def test_resolve_size_hdd(self):
         from shc_toolkit.sizes import resolve_size
+
         assert resolve_size("hdd-1c-4gb") == (36, 67)
 
     def test_resolve_size_dev(self):
         from shc_toolkit.sizes import resolve_size
+
         assert resolve_size("dev-4c-16gb") == (82, 249)
 
     def test_resolve_size_case_insensitive(self):
         from shc_toolkit.sizes import resolve_size
+
         assert resolve_size("NVME-2C-8GB") == (26, 56)
 
     def test_resolve_size_rejects_legacy_alias(self):
         from shc_toolkit.sizes import resolve_size
+
         with pytest.raises(ValueError, match="Unknown size"):
             resolve_size("standard")
 
     def test_resolve_size_rejects_unknown(self):
         from shc_toolkit.sizes import resolve_size
+
         with pytest.raises(ValueError, match="Unknown size"):
             resolve_size("nvme-99c-999gb")
 
     def test_resolve_specs_finds_cheapest_across_all_lines(self):
         from shc_toolkit.sizes import resolve_specs
+
         pkg, _ = resolve_specs(cpu=4, ram_mb=16384)
         assert pkg in (38, 58)  # HDD/SSD Pro tie at $0.90/day
 
     def test_resolve_specs_line_filter_nvme(self):
         from shc_toolkit.sizes import resolve_specs
+
         pkg, _ = resolve_specs(cpu=4, ram_mb=16384, line="nvme")
         assert pkg == 29  # NVMe Pro
 
     def test_resolve_specs_line_filter(self):
         from shc_toolkit.sizes import resolve_specs
+
         pkg, _ = resolve_specs(cpu=2, line="ssd")
         assert pkg == 57  # SSD Standard
 
     def test_resolve_specs_no_match(self):
         from shc_toolkit.sizes import resolve_specs
+
         with pytest.raises(ValueError, match="No plan matches"):
             resolve_specs(cpu=999)
 
     def test_spec_name(self):
         from shc_toolkit.sizes import spec_name
+
         assert spec_name("nvme", 2, 8192) == "nvme-2c-8gb"
         assert spec_name("hdd", 16, 65536) == "hdd-16c-64gb"
 
     def test_list_sizes_all(self):
         from shc_toolkit.sizes import list_sizes
+
         all_sizes = list_sizes()
         assert len(all_sizes) == 20
 
     def test_list_sizes_filter_line(self):
         from shc_toolkit.sizes import list_sizes
+
         hdd = list_sizes("hdd")
         assert len(hdd) == 5
         assert all(s["line"] == "hdd" for s in hdd)
@@ -554,6 +670,7 @@ class TestSizes:
 class TestConfigOptions:
     def test_get_config_options_returns_option_ids(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             opts = c.get_config_options(26)
@@ -564,12 +681,14 @@ class TestConfigOptions:
 
     def test_get_config_options_empty_for_unknown_package(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             assert c.get_config_options(999) == {}
 
     def test_resolve_addons_translates_specs(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             result = c.resolve_addons(26, ram_mb=16384, cpu=4, disk_gb=50)
@@ -577,6 +696,7 @@ class TestConfigOptions:
 
     def test_resolve_addons_rejects_invalid_value(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             with pytest.raises(ValueError, match="not available"):
@@ -584,6 +704,7 @@ class TestConfigOptions:
 
     def test_resolve_addons_rejects_unknown_package(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             with pytest.raises(ValueError, match="not found in catalog"):
@@ -591,6 +712,7 @@ class TestConfigOptions:
 
     def test_resolve_addons_partial(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             result = c.resolve_addons(26, disk_gb=50)
@@ -598,6 +720,7 @@ class TestConfigOptions:
 
     def test_resolve_addons_template(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             result = c.resolve_addons(26, template="debian12-cloud")
@@ -605,6 +728,7 @@ class TestConfigOptions:
 
     def test_order_vm_requires_size_or_package_id(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             with pytest.raises(ValueError, match="size.*package_id"):
@@ -612,6 +736,7 @@ class TestConfigOptions:
 
     def test_order_vm_translates_size_to_ids(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
@@ -626,6 +751,7 @@ class TestConfigOptions:
 
     def test_order_vm_passes_raw_config_options(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient()
             c.submit_order = MagicMock(return_value={"invoice_id": 42})
@@ -633,7 +759,8 @@ class TestConfigOptions:
             c._safe_credit = MagicMock(return_value=100.0)
             c.order_vm(
                 hostname="raw",
-                package_id=26, pricing_id=56,
+                package_id=26,
+                pricing_id=56,
                 config_options={"999": "custom"},
             )
             _, kwargs = c.submit_order.call_args
@@ -646,6 +773,7 @@ class TestConfigOptions:
 class TestCostAudit:
     def _client_with_catalog(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             return SHCClient()
 
@@ -677,25 +805,28 @@ class TestCostAudit:
 
     def test_current_burn_computes_prorated_cost(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=3)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=3)
         burn = c.cost_tracker.current_burn(123)
         assert burn == 0.06
 
     def test_current_burn_enforces_min_charge(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+        session.ordered_at = datetime.now(UTC) - timedelta(minutes=5)
         burn = c.cost_tracker.current_burn(123)
         assert burn == 0.02
 
     def test_audit_cancel_computes_expected_refund(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
         report = c.cost_tracker.audit_cancel(123, actual_refund=None)
         assert report is not None
         assert report.duration_hours == 6.0
@@ -705,18 +836,20 @@ class TestCostAudit:
 
     def test_audit_cancel_matches_actual_refund(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.37)
         assert report.actual_refund == 0.37
         assert report.mismatch is False
 
     def test_audit_cancel_flags_refund_mismatch(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
         c.get_vm_payments = MagicMock(return_value=[{"total": "0.49"}])
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is True
@@ -724,13 +857,16 @@ class TestCostAudit:
 
     def test_audit_cancel_disambiguates_concurrent_activity(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
-        c.get_vm_payments = MagicMock(return_value=[
-            {"total": "0.49"},
-            {"total": "-0.37"},
-        ])
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(
+            return_value=[
+                {"total": "0.49"},
+                {"total": "-0.37"},
+            ]
+        )
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is False
         assert report.ledger_refund == 0.37
@@ -738,22 +874,26 @@ class TestCostAudit:
 
     def test_audit_cancel_ledger_confirms_real_mismatch(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
-        c.get_vm_payments = MagicMock(return_value=[
-            {"total": "0.49"},
-            {"total": "-0.01"},
-        ])
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
+        c.get_vm_payments = MagicMock(
+            return_value=[
+                {"total": "0.49"},
+                {"total": "-0.01"},
+            ]
+        )
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is True
         assert "ledger_confirms_mismatch" in report.notes
 
     def test_audit_cancel_ledger_unavailable_keeps_warning(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=6)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=6)
         c.get_vm_payments = MagicMock(side_effect=Exception("API down"))
         report = c.cost_tracker.audit_cancel(123, actual_refund=0.01)
         assert report.mismatch is True
@@ -765,9 +905,10 @@ class TestCostAudit:
 
     def test_session_report_for_running_vm(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(123, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=2)
         report = c.cost_tracker.session_report(123)
         assert report["service_id"] == 123
         assert report["daily_price"] == 0.49
@@ -778,9 +919,12 @@ class TestCostAudit:
         c = self._client_with_catalog()
         c.check_credit = MagicMock()
         c._safe_credit = MagicMock(side_effect=[100.0, 100.0, 99.51, 99.51])
-        c._confirmed_request = MagicMock(return_value={
-            "invoice_id": 42, "service_id": 777,
-        })
+        c._confirmed_request = MagicMock(
+            return_value={
+                "invoice_id": 42,
+                "service_id": 777,
+            }
+        )
         c.pay_invoice = MagicMock()
         c.order_vm(hostname="test", size="nvme-2c-8gb")
         session = c.cost_tracker._sessions.get(777)
@@ -789,9 +933,10 @@ class TestCostAudit:
 
     def test_cancel_vm_captures_refund_diff(self):
         from datetime import timedelta
+
         c = self._client_with_catalog()
         session = c.cost_tracker.track_order(777, 26, actual_charge=0.49)
-        session.ordered_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        session.ordered_at = datetime.now(UTC) - timedelta(hours=1)
         c._confirmed_request = MagicMock(return_value={})
         # cost_tracker._ledger_refund() calls get_vm_payments() to disambiguate
         # this VM's refund from concurrent activity. Without this mock the test
@@ -806,7 +951,9 @@ class TestCostAudit:
         assert report is not None
 
     def test_no_absolute_balance_logged(self):
-        import io, logging as pylog
+        import io
+        import logging as pylog
+
         buf = io.StringIO()
         handler = pylog.StreamHandler(buf)
         handler.setLevel(pylog.DEBUG)
@@ -829,6 +976,7 @@ class TestMcpArgumentFormat:
 
     def _mock_mcp_client(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCMCPClient()
         c._ensure_initialized = MagicMock()
@@ -900,7 +1048,9 @@ class TestMcpArgumentFormat:
 
     def test_list_ssh_keys_calls_correct_tool(self):
         c = self._mock_mcp_client()
-        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {"items": []}}}}
+        c._send_jsonrpc.return_value = {
+            "result": {"structuredContent": {"result": {"items": []}}}
+        }
         c.list_ssh_keys(123)
         call_args = c._send_jsonrpc.call_args
         params = call_args.kwargs.get("params") or call_args[0][1]
@@ -925,7 +1075,9 @@ class TestMcpArgumentFormat:
 
     def test_get_vm_payments_calls_correct_tool(self):
         c = self._mock_mcp_client()
-        c._send_jsonrpc.return_value = {"result": {"structuredContent": {"result": {"items": []}}}}
+        c._send_jsonrpc.return_value = {
+            "result": {"structuredContent": {"result": {"items": []}}}
+        }
         c.get_vm_payments(123)
         call_args = c._send_jsonrpc.call_args
         params = call_args.kwargs.get("params") or call_args[0][1]
@@ -933,18 +1085,21 @@ class TestMcpArgumentFormat:
 
     def test_unwrap_prefers_structuredContent_result(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {"result": {"structuredContent": {"result": {"key": "value"}}}}
         unwrapped = SHCMCPClient._unwrap_tool_result(resp)
         assert unwrapped == {"key": "value"}
 
     def test_unwrap_falls_back_to_data(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {"result": {"structuredContent": {"data": {"key": "value"}}}}
         unwrapped = SHCMCPClient._unwrap_tool_result(resp)
         assert unwrapped == {"key": "value"}
 
     def test_unwrap_double_nested_data(self):
         from shc_toolkit.mcp_client import SHCMCPClient
+
         resp = {"result": {"structuredContent": {"data": {"data": {"key": "value"}}}}}
         unwrapped = SHCMCPClient._unwrap_tool_result(resp)
         assert unwrapped == {"key": "value"}
@@ -1008,6 +1163,7 @@ class TestMcpArgumentFormat:
 class TestBackoffRetry:
     def _client(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             return SHCClient()
 
@@ -1034,6 +1190,7 @@ class TestBackoffRetry:
 
     def test_custom_backoff_config(self):
         from shc_toolkit.client import SHCClient
+
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             c = SHCClient(max_retries=5, backoff_base=0.5, backoff_cap=10.0)
         for i in range(10):
@@ -1060,7 +1217,7 @@ class TestBackoffRetry:
         c = self._client()
         mock_resp = MagicMock()
         mock_resp.headers = {}
-        mock_resp.text = '{}'
+        mock_resp.text = "{}"
         result = c._parse_retry_after(mock_resp, 0)
         assert 0 < result <= 60.0
 
@@ -1070,7 +1227,7 @@ class TestBackoffRetry:
         mock_408 = MagicMock()
         mock_408.status_code = 408
         mock_408.headers = {}
-        mock_408.text = '{}'
+        mock_408.text = "{}"
         mock_408.ok = False
         mock_200 = MagicMock()
         mock_200.status_code = 200
@@ -1092,9 +1249,11 @@ class TestBackoffRetry:
         mock_resp.text = '{"data": {"ok": true}}'
         mock_resp.ok = True
         captured_headers = []
+
         def capture_request(*args, **kwargs):
             captured_headers.append(dict(kwargs.get("headers", {})))
             return mock_resp
+
         c.session.request = MagicMock(side_effect=capture_request)
         c._confirmed_request("POST", "/test", json={"key": "value"})
         assert len(captured_headers) == 1
@@ -1116,11 +1275,13 @@ class TestBackoffRetry:
         mock_200.text = '{"data": {"ok": true}}'
         mock_200.ok = True
         captured_headers = []
+
         def capture_request(*args, **kwargs):
             captured_headers.append(dict(kwargs.get("headers", {})))
             if len(captured_headers) == 1:
                 return mock_409
             return mock_200
+
         c.session.request = MagicMock(side_effect=capture_request)
         c._confirmed_request("POST", "/test", json={"key": "value"})
         assert len(captured_headers) == 2
@@ -1140,9 +1301,11 @@ class TestBackoffRetry:
         mock_resp.text = '{"data": {"ok": true}}'
         mock_resp.ok = True
         captured_headers = []
+
         def capture_request(*args, **kwargs):
             captured_headers.append(dict(kwargs.get("headers", {})))
             return mock_resp
+
         c.session.request = MagicMock(side_effect=capture_request)
         c._get("/test")
         assert len(captured_headers) == 1
@@ -1153,7 +1316,8 @@ class TestExceptionHierarchy:
     """Tests for the SHCError exception hierarchy."""
 
     def test_not_found_error(self):
-        from shc_toolkit.client import SHCNotFoundError, SHCError
+        from shc_toolkit.client import SHCError, SHCNotFoundError
+
         exc = SHCNotFoundError("not_found", "VM not found")
         assert isinstance(exc, SHCError)
         assert exc.error_code is None
@@ -1161,29 +1325,35 @@ class TestExceptionHierarchy:
 
     def test_auth_error(self):
         from shc_toolkit.client import SHCAuthError, SHCError
+
         exc = SHCAuthError("unauthorized", "Invalid token")
         assert isinstance(exc, SHCError)
 
     def test_rate_limit_error(self):
-        from shc_toolkit.client import SHCRateLimitError, SHCError
-        exc = SHCRateLimitError("rate_limited", "Too many requests",
-                                retry_after_seconds=30)
+        from shc_toolkit.client import SHCError, SHCRateLimitError
+
+        exc = SHCRateLimitError(
+            "rate_limited", "Too many requests", retry_after_seconds=30
+        )
         assert isinstance(exc, SHCError)
         assert exc.retry_after_seconds == 30
 
     def test_confirmation_required_error(self):
         from shc_toolkit.client import SHCConfirmationRequiredError, SHCError
+
         exc = SHCConfirmationRequiredError("confirmation_required", "Confirm needed")
         assert isinstance(exc, SHCError)
 
     def test_server_error(self):
-        from shc_toolkit.client import SHCServerError, SHCError
+        from shc_toolkit.client import SHCError, SHCServerError
+
         exc = SHCServerError("upstream_failure", "Internal error")
         assert isinstance(exc, SHCError)
 
     def test_catch_specific_vs_base(self):
         """Users can catch specific errors OR the base SHCError."""
-        from shc_toolkit.client import SHCNotFoundError, SHCError
+        from shc_toolkit.client import SHCError, SHCNotFoundError
+
         exc = SHCNotFoundError("not_found", "Not found")
         # Catching base works
         try:
@@ -1198,9 +1368,11 @@ class TestExceptionHierarchy:
 
     def test_generic_fallback(self):
         """Unknown error codes still produce a plain SHCError."""
-        from shc_toolkit.client import SHCError, _ERROR_CODE_MAP
+        from shc_toolkit.client import _ERROR_CODE_MAP, SHCError
+
         cls = _ERROR_CODE_MAP.get("unknown_error_code", SHCError)
         assert cls is SHCError
+
 
 class TestOrderTagging:
     """SSH-key comment tagging for VM-order attribution."""
@@ -1228,6 +1400,7 @@ class TestOrderTagging:
 
     def test_default_tag_prefers_env(self):
         from unittest.mock import patch
+
         with patch.dict(os.environ, {"SHC_ORDER_TAG": "opencode:ses_abc"}):
             assert SHCClient.default_order_tag() == "opencode:ses_abc"
 
@@ -1235,12 +1408,18 @@ class TestOrderTagging:
         """Regression: raw string ssh_key was silently dropped (only file
         paths were honored), ordering VMs keyless without warning."""
         from unittest.mock import patch
+
         client = SHCClient(api_key="test-key")
         raw_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest macbook@mbp"
-        with patch.object(SHCClient, "submit_order", return_value={"service_id": 1}) as so, \
-             patch.object(SHCClient, "_safe_credit", return_value=10.0):
-            client.order_vm(hostname="t", package_id=80, pricing_id=241,
-                            ssh_key=raw_key, pay=False)
+        with (
+            patch.object(
+                SHCClient, "submit_order", return_value={"service_id": 1}
+            ) as so,
+            patch.object(SHCClient, "_safe_credit", return_value=10.0),
+        ):
+            client.order_vm(
+                hostname="t", package_id=80, pricing_id=241, ssh_key=raw_key, pay=False
+            )
         sent = so.call_args.kwargs.get("ssh_key", "")
         assert sent.startswith("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/CoI0Wtest")
         assert "#shc-order=" in sent
@@ -1251,10 +1430,11 @@ class TestReapOrphans:
 
     def test_reap_dry_run_returns_list(self):
         """reap_orphans with dry_run returns a list."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
-        with patch.object(SHCClient, 'list_vms', return_value=[]):
+        with patch.object(SHCClient, "list_vms", return_value=[]):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(dry_run=True)
             assert isinstance(orphans, list)
@@ -1262,14 +1442,20 @@ class TestReapOrphans:
 
     def test_reap_excludes_production(self):
         """reap_orphans never destroys production VMs."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         fake_vms = [
-            {"id": 1, "hostname": "europa-vpn-vps", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "prod"},
+            {
+                "id": 1,
+                "hostname": "europa-vpn-vps",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "prod",
+            },
         ]
-        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
             assert len(orphans) == 0  # europa-vpn-vps excluded
@@ -1277,19 +1463,40 @@ class TestReapOrphans:
     def test_reap_matches_test_prefixes(self):
         """reap_orphans matches VMs with test prefixes."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         fake_vms = [
-            {"id": 1, "hostname": "tf-acc-basic", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
-            {"id": 2, "hostname": "tollgate-test-vm", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
-            {"id": 4, "hostname": "devprobe-6f9cea97", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
-            {"id": 3, "hostname": "production-server", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "prod"},
+            {
+                "id": 1,
+                "hostname": "tf-acc-basic",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "dev",
+            },
+            {
+                "id": 2,
+                "hostname": "tollgate-test-vm",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "dev",
+            },
+            {
+                "id": 4,
+                "hostname": "devprobe-6f9cea97",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "dev",
+            },
+            {
+                "id": 3,
+                "hostname": "production-server",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "prod",
+            },
         ]
-        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
             hostnames = [o["hostname"] for o in orphans]
@@ -1300,21 +1507,32 @@ class TestReapOrphans:
 
     def test_reap_respects_age_threshold(self):
         """reap_orphans respects max_age_hours."""
+        from datetime import datetime, timedelta
         from unittest.mock import patch
-        from shc_toolkit.client import SHCClient
-        from datetime import datetime, timezone, timedelta
 
-        now = datetime.now(timezone.utc)
+        from shc_toolkit.client import SHCClient
+
+        now = datetime.now(UTC)
         recent = (now - timedelta(minutes=30)).isoformat()
         old = (now - timedelta(hours=5)).isoformat()
 
         fake_vms = [
-            {"id": 1, "hostname": "tf-acc-recent", "service_status": "active",
-             "date_created": recent, "package": "dev"},
-            {"id": 2, "hostname": "tf-acc-old", "service_status": "active",
-             "date_created": old, "package": "dev"},
+            {
+                "id": 1,
+                "hostname": "tf-acc-recent",
+                "service_status": "active",
+                "date_created": recent,
+                "package": "dev",
+            },
+            {
+                "id": 2,
+                "hostname": "tf-acc-old",
+                "service_status": "active",
+                "date_created": old,
+                "package": "dev",
+            },
         ]
-        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(max_age_hours=2.0, dry_run=True)
             hostnames = [o["hostname"] for o in orphans]
@@ -1324,13 +1542,19 @@ class TestReapOrphans:
     def test_reap_skips_canceled_vms(self):
         """reap_orphans skips already-canceled VMs."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         fake_vms = [
-            {"id": 1, "hostname": "tf-acc-dead", "service_status": "canceled",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+            {
+                "id": 1,
+                "hostname": "tf-acc-dead",
+                "service_status": "canceled",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "dev",
+            },
         ]
-        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
             assert len(orphans) == 0
@@ -1338,13 +1562,19 @@ class TestReapOrphans:
     def test_reap_custom_exclusions(self):
         """reap_orphans respects custom exclude_hostnames."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         fake_vms = [
-            {"id": 1, "hostname": "tf-acc-keep", "service_status": "active",
-             "date_created": "2020-01-01T00:00:00+00:00", "package": "dev"},
+            {
+                "id": 1,
+                "hostname": "tf-acc-keep",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "dev",
+            },
         ]
-        with patch.object(SHCClient, 'list_vms', return_value=fake_vms):
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(
                 max_age_hours=0.0,
@@ -1367,11 +1597,14 @@ class TestCloudInitRestWrappers:
         """validate_vm_cloud_init POSTs to /virtual-machines/{id}/cloud-init/validate
         with the {cloudInit: ...} body shape. Read-only, no confirmation."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
         with patch.object(client, "_post", return_value={"accepted": True}) as mock:
-            result = client.validate_vm_cloud_init(1077, cloud_init="#cloud-config\npackages: [nginx]\n")
+            result = client.validate_vm_cloud_init(
+                1077, cloud_init="#cloud-config\npackages: [nginx]\n"
+            )
             assert result == {"accepted": True}
             mock.assert_called_once()
             args, kwargs = mock.call_args
@@ -1381,11 +1614,16 @@ class TestCloudInitRestWrappers:
     def test_update_vm_cloud_init_uses_confirmation_flow(self):
         """update_vm_cloud_init is confirm-gated via _confirmed_request (PATCH)."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
-            result = client.update_vm_cloud_init(1077, cloud_init="#cloud-config\nruncmd: []\n")
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
+            result = client.update_vm_cloud_init(
+                1077, cloud_init="#cloud-config\nruncmd: []\n"
+            )
             assert result == {"ok": True}
             mock.assert_called_once()
             args, kwargs = mock.call_args
@@ -1397,21 +1635,29 @@ class TestCloudInitRestWrappers:
     def test_update_vm_cloud_init_probe_mode(self):
         """update_vm_cloud_init(confirm=False) probes — raises on 409 instead of auto-confirming."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
-            client.update_vm_cloud_init(1077, cloud_init="#cloud-config\n", confirm=False)
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
+            client.update_vm_cloud_init(
+                1077, cloud_init="#cloud-config\n", confirm=False
+            )
             kwargs = mock.call_args.kwargs
             assert kwargs["confirm"] is False
 
     def test_delete_vm_cloud_init_uses_confirmation_flow(self):
         """delete_vm_cloud_init is confirm-gated via _confirmed_request (DELETE)."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
             result = client.delete_vm_cloud_init(1077)
             assert result == {"ok": True}
             mock.assert_called_once()
@@ -1433,10 +1679,13 @@ class TestCloseSupportTicketConfirmationFlow:
 
     def test_close_support_ticket_uses_confirmation_flow(self):
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
             client.close_support_ticket(221)
             mock.assert_called_once()
             args, kwargs = mock.call_args
@@ -1447,10 +1696,13 @@ class TestCloseSupportTicketConfirmationFlow:
     def test_close_support_ticket_probe_mode(self):
         """confirm=False surfaces the 409 instead of auto-confirming."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
             client.close_support_ticket(221, confirm=False)
             kwargs = mock.call_args.kwargs
             assert kwargs["confirm"] is False
@@ -1465,9 +1717,13 @@ class TestIssue22ConfirmationFlowWiring:
 
     def _mock_and_call(self, method_name, *args, **kwargs):
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
+
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
             getattr(client, method_name)(*args, **kwargs)
             return mock
 
@@ -1509,14 +1765,20 @@ class TestIssue22ConfirmationFlowWiring:
         mock = self._mock_and_call("set_snapshot_protection", 1077, "snap-1", True)
         assert mock.call_args.args[0] == "PATCH"
         assert mock.call_args.args[1] == "/vm/1077/snapshots/protection"
-        assert mock.call_args.kwargs["json"] == {"snapshot_id": "snap-1", "protected": True}
+        assert mock.call_args.kwargs["json"] == {
+            "snapshot_id": "snap-1",
+            "protected": True,
+        }
         assert mock.call_args.kwargs["confirm"] is True
 
     def test_set_backup_protection_uses_confirmed_request(self):
         mock = self._mock_and_call("set_backup_protection", 1077, "bk-1", False)
         assert mock.call_args.args[0] == "PATCH"
         assert mock.call_args.args[1] == "/vm/1077/backups/protection"
-        assert mock.call_args.kwargs["json"] == {"backup_id": "bk-1", "protected": False}
+        assert mock.call_args.kwargs["json"] == {
+            "backup_id": "bk-1",
+            "protected": False,
+        }
         assert mock.call_args.kwargs["confirm"] is True
 
     def test_get_vm_credentials_uses_confirmed_request(self):
@@ -1529,7 +1791,10 @@ class TestIssue22ConfirmationFlowWiring:
         mock = self._mock_and_call("set_stored_ssh_key", 1077, "ssh-ed25519 AAAA...")
         assert mock.call_args.args[0] == "POST"
         assert mock.call_args.args[1] == "/ssh-key"
-        assert mock.call_args.kwargs["json"] == {"service_id": 1077, "public_key": "ssh-ed25519 AAAA..."}
+        assert mock.call_args.kwargs["json"] == {
+            "service_id": 1077,
+            "public_key": "ssh-ed25519 AAAA...",
+        }
         assert mock.call_args.kwargs["confirm"] is True
 
     def test_delete_stored_ssh_key_uses_confirmed_request(self):
@@ -1548,9 +1813,13 @@ class TestIssue22ConfirmationFlowWiring:
     def test_probe_mode_surfaces_409_for_get_vm_credentials(self):
         """confirm=False probes — the 409 propagates instead of auto-confirming."""
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
+
         client = SHCClient(api_key="test-key")
-        with patch.object(client, "_confirmed_request", return_value={"ok": True}) as mock:
+        with patch.object(
+            client, "_confirmed_request", return_value={"ok": True}
+        ) as mock:
             client.get_vm_credentials(1077, confirm=False)
             assert mock.call_args.kwargs["confirm"] is False
 
@@ -1560,6 +1829,7 @@ class TestMcpProbeMode:
 
     def test_confirm_false_passed_through_to_call_tool(self):
         from unittest.mock import patch
+
         from shc_toolkit.mcp_client import SHCMCPClient
 
         mc = SHCMCPClient.__new__(SHCMCPClient)
@@ -1569,8 +1839,9 @@ class TestMcpProbeMode:
 
     def test_call_tool_probe_mode_raises_on_confirmation_required(self):
         from unittest.mock import patch
-        from shc_toolkit.mcp_client import SHCMCPClient
+
         from shc_toolkit.client import SHCConfirmationRequiredError
+        from shc_toolkit.mcp_client import SHCMCPClient
 
         mc = SHCMCPClient.__new__(SHCMCPClient)
         mc._initialized = True
@@ -1583,12 +1854,15 @@ class TestMcpProbeMode:
                 }
             }
         }
-        with patch.object(mc, "_send_jsonrpc", return_value=confirmation_response):
-            with pytest.raises(SHCConfirmationRequiredError):
-                mc.call_tool("cancelVirtualMachine", {"serviceId": 123}, confirm=False)
+        with (
+            patch.object(mc, "_send_jsonrpc", return_value=confirmation_response),
+            pytest.raises(SHCConfirmationRequiredError),
+        ):
+            mc.call_tool("cancelVirtualMachine", {"serviceId": 123}, confirm=False)
 
     def test_call_tool_default_auto_confirms(self):
         from unittest.mock import patch
+
         from shc_toolkit.mcp_client import SHCMCPClient
 
         mc = SHCMCPClient.__new__(SHCMCPClient)
@@ -1616,6 +1890,7 @@ class TestBatchHelper:
 
     def test_batch_single_request(self):
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
@@ -1627,6 +1902,7 @@ class TestBatchHelper:
 
     def test_batch_preserves_order(self):
         from unittest.mock import patch
+
         from shc_toolkit.client import SHCClient
 
         client = SHCClient(api_key="test-key")
@@ -1659,15 +1935,19 @@ def _run_cli(argv):
     """Run a CLI command with a mocked client. Returns the mock."""
     mock_client = MagicMock()
     mock_client.reap_orphans.return_value = []
-    with patch("shc_toolkit.cli._client", return_value=mock_client), patch(
-        "shc_toolkit.cli._print"
-    ), patch("shc_toolkit.cli._get_fmt", return_value="json"), patch("builtins.print"):
-        with patch("sys.argv", argv):
-            try:
-                from shc_toolkit.cli import main
-                main()
-            except SystemExit:
-                pass
+    with (
+        patch("shc_toolkit.cli._client", return_value=mock_client),
+        patch("shc_toolkit.cli._print"),
+        patch("shc_toolkit.cli._get_fmt", return_value="json"),
+        patch("builtins.print"),
+        patch("sys.argv", argv),
+    ):
+        try:
+            from shc_toolkit.cli import main
+
+            main()
+        except SystemExit:
+            pass
     return mock_client
 
 
@@ -1677,58 +1957,67 @@ class TestCliCommandCoverage:
     real API calls are made."""
 
     # ── No-arg read commands ─────────────────────────────────
-    @pytest.mark.parametrize("cmd,method", [
-        ("account", "get_account"),
-        ("balance", "get_billing_balance"),
-        ("catalog", "get_catalog"),
-        ("templates", "list_templates"),
-        ("sizes", None),
-        ("contacts", "list_contacts"),
-        ("quotations", "list_quotations"),
-        ("downloads", "list_downloads"),
-        ("transactions", "list_transactions"),
-        ("emails", "list_emails"),
-        ("events", "list_events"),
-    ])
+    @pytest.mark.parametrize(
+        "cmd,method",
+        [
+            ("account", "get_account"),
+            ("balance", "get_billing_balance"),
+            ("catalog", "get_catalog"),
+            ("templates", "list_templates"),
+            ("sizes", None),
+            ("contacts", "list_contacts"),
+            ("quotations", "list_quotations"),
+            ("downloads", "list_downloads"),
+            ("transactions", "list_transactions"),
+            ("emails", "list_emails"),
+            ("events", "list_events"),
+        ],
+    )
     def test_cli_no_arg_read(self, cmd, method):
         mock = _run_cli(["shc", cmd])
         if method:
             getattr(mock, method).assert_called_once()
 
     # ── VM-specific read commands (service_id) ───────────────
-    @pytest.mark.parametrize("cmd,method", [
-        ("info", "get_vm_summary"),
-        ("detail", "get_vm_detail"),
-        ("metrics", "get_vm_metrics"),
-        ("bandwidth", "get_vm_bandwidth"),
-        ("health", "check_vm_health"),
-        ("snapshots", "list_snapshots"),
-        ("backups", "list_backups"),
-        ("jobs", "list_jobs"),
-        ("network", "get_vm_network"),
-        ("payments", "get_vm_payments"),
-        ("console", "get_console_availability"),
-        ("iso", "list_isos"),
-        ("rdns", "list_rdns"),
-        ("ssh-keys", "list_ssh_keys"),
-        ("upgrade-options", "list_upgrade_options"),
-        ("addons", "list_vm_addons"),
-        ("term-options", "get_vm_term_options"),
-    ])
+    @pytest.mark.parametrize(
+        "cmd,method",
+        [
+            ("info", "get_vm_summary"),
+            ("detail", "get_vm_detail"),
+            ("metrics", "get_vm_metrics"),
+            ("bandwidth", "get_vm_bandwidth"),
+            ("health", "check_vm_health"),
+            ("snapshots", "list_snapshots"),
+            ("backups", "list_backups"),
+            ("jobs", "list_jobs"),
+            ("network", "get_vm_network"),
+            ("payments", "get_vm_payments"),
+            ("console", "get_console_availability"),
+            ("iso", "list_isos"),
+            ("rdns", "list_rdns"),
+            ("ssh-keys", "list_ssh_keys"),
+            ("upgrade-options", "list_upgrade_options"),
+            ("addons", "list_vm_addons"),
+            ("term-options", "get_vm_term_options"),
+        ],
+    )
     def test_cli_vm_read(self, cmd, method):
         mock = _run_cli(["shc", cmd, "1077"])
         getattr(mock, method).assert_called_once()
 
     # ── VM action commands (service_id, confirm-gated) ───────
-    @pytest.mark.parametrize("cmd,method", [
-        ("start", "start_vm"),
-        ("stop", "stop_vm"),
-        ("shutdown", "shutdown_vm"),
-        ("reset", "reset_vm"),
-        ("restart", "restart_vm"),
-        ("cancel", "cancel_vm"),
-        ("reinstall", "reinstall_vm"),
-    ])
+    @pytest.mark.parametrize(
+        "cmd,method",
+        [
+            ("start", "start_vm"),
+            ("stop", "stop_vm"),
+            ("shutdown", "shutdown_vm"),
+            ("reset", "reset_vm"),
+            ("restart", "restart_vm"),
+            ("cancel", "cancel_vm"),
+            ("reinstall", "reinstall_vm"),
+        ],
+    )
     def test_cli_vm_action(self, cmd, method):
         mock = _run_cli(["shc", cmd, "1077"])
         getattr(mock, method).assert_called_once()
@@ -1791,7 +2080,9 @@ class TestCliCommandCoverage:
 
     # ── rDNS set/clear ───────────────────────────────────────
     def test_cli_rdns_set(self):
-        mock = _run_cli(["shc", "rdns-set", "1077", "--ip", "1.2.3.4", "--ptr", "host.example.com"])
+        mock = _run_cli(
+            ["shc", "rdns-set", "1077", "--ip", "1.2.3.4", "--ptr", "host.example.com"]
+        )
         mock.set_rdns.assert_called_once()
 
     def test_cli_rdns_clear(self):
@@ -1833,81 +2124,128 @@ class TestRetryBackoff:
 
     def test_retry_on_network_error_then_success(self):
         client = SHCClient(api_key="test-key")
-        with patch.object(client.session, "request", side_effect=[
-            httpx.ConnectError("refused"),
-            self._make_resp(200, {"data": {"ok": True}}),
-        ]), patch("time.sleep"):
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=[
+                    httpx.ConnectError("refused"),
+                    self._make_resp(200, {"data": {"ok": True}}),
+                ],
+            ),
+            patch("time.sleep"),
+        ):
             result = client._get("/test")
         assert result == {"ok": True}
 
     def test_retry_on_500_then_success(self):
         client = SHCClient(api_key="test-key")
-        with patch.object(client.session, "request", side_effect=[
-            self._make_resp(500, {"error": {"code": "upstream_failure"}}),
-            self._make_resp(200, {"data": {"ok": True}}),
-        ]), patch("time.sleep"):
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=[
+                    self._make_resp(500, {"error": {"code": "upstream_failure"}}),
+                    self._make_resp(200, {"data": {"ok": True}}),
+                ],
+            ),
+            patch("time.sleep"),
+        ):
             result = client._get("/test")
         assert result == {"ok": True}
 
     def test_retry_on_408_then_success(self):
         client = SHCClient(api_key="test-key")
-        with patch.object(client.session, "request", side_effect=[
-            self._make_resp(408, {"error": {"code": "timeout"}}),
-            self._make_resp(200, {"data": {"ok": True}}),
-        ]), patch("time.sleep"):
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=[
+                    self._make_resp(408, {"error": {"code": "timeout"}}),
+                    self._make_resp(200, {"data": {"ok": True}}),
+                ],
+            ),
+            patch("time.sleep"),
+        ):
             result = client._get("/test")
         assert result == {"ok": True}
 
     def test_retry_on_429_with_retry_after_header(self):
         client = SHCClient(api_key="test-key")
-        with patch.object(client.session, "request", side_effect=[
-            self._make_resp(429, {"error": {"code": "rate_limited"}},
-                            headers={"Retry-After": "1"}),
-            self._make_resp(200, {"data": {"ok": True}}),
-        ]), patch("time.sleep"):
+        with (
+            patch.object(
+                client.session,
+                "request",
+                side_effect=[
+                    self._make_resp(
+                        429,
+                        {"error": {"code": "rate_limited"}},
+                        headers={"Retry-After": "1"},
+                    ),
+                    self._make_resp(200, {"data": {"ok": True}}),
+                ],
+            ),
+            patch("time.sleep"),
+        ):
             result = client._get("/test")
         assert result == {"ok": True}
 
     def test_max_retries_exhausted_on_network_error(self):
         client = SHCClient(api_key="test-key")
         client._max_retries = 3
-        with patch.object(client.session, "request",
-                          side_effect=httpx.ConnectError("refused")), patch("time.sleep"):
-            with pytest.raises(httpx.ConnectError):
-                client._get("/test")
+        with (
+            patch.object(
+                client.session, "request", side_effect=httpx.ConnectError("refused")
+            ),
+            patch("time.sleep"),
+            pytest.raises(httpx.ConnectError),
+        ):
+            client._get("/test")
 
     def test_max_retries_exhausted_on_500(self):
         client = SHCClient(api_key="test-key")
         client._max_retries = 3
-        with patch.object(client.session, "request", return_value=self._make_resp(
-            500, {"error": {"code": "upstream_failure"}}
-        )), patch("time.sleep"):
-            with pytest.raises(SHCError):
-                client._get("/test")
+        with (
+            patch.object(
+                client.session,
+                "request",
+                return_value=self._make_resp(
+                    500, {"error": {"code": "upstream_failure"}}
+                ),
+            ),
+            patch("time.sleep"),
+            pytest.raises(SHCError),
+        ):
+            client._get("/test")
 
     def test_no_retry_on_404(self):
         client = SHCClient(api_key="test-key")
-        call_count = 0
         resp = self._make_resp(404, {"error": {"code": "not_found", "message": "gone"}})
-        with patch.object(client.session, "request", return_value=resp) as mock_req:
-            with pytest.raises(SHCError):
-                client._get("/test")
+        with (
+            patch.object(client.session, "request", return_value=resp) as mock_req,
+            pytest.raises(SHCError),
+        ):
+            client._get("/test")
         assert mock_req.call_count == 1
 
     def test_no_retry_on_401(self):
         client = SHCClient(api_key="test-key")
         resp = self._make_resp(401, {"error": {"code": "invalid_token"}})
-        with patch.object(client.session, "request", return_value=resp) as mock_req:
-            with pytest.raises(SHCError):
-                client._get("/test")
+        with (
+            patch.object(client.session, "request", return_value=resp) as mock_req,
+            pytest.raises(SHCError),
+        ):
+            client._get("/test")
         assert mock_req.call_count == 1
 
     def test_no_retry_on_400(self):
         client = SHCClient(api_key="test-key")
         resp = self._make_resp(400, {"error": {"code": "validation_failed"}})
-        with patch.object(client.session, "request", return_value=resp) as mock_req:
-            with pytest.raises(SHCError):
-                client._get("/test")
+        with (
+            patch.object(client.session, "request", return_value=resp) as mock_req,
+            pytest.raises(SHCError),
+        ):
+            client._get("/test")
         assert mock_req.call_count == 1
 
     def test_backoff_is_exponential_with_jitter(self):
@@ -1931,10 +2269,13 @@ class TestRetryBackoff:
 
     def test_rate_limit_error_has_retry_after(self):
         client = SHCClient(api_key="test-key")
-        resp = self._make_resp(429, {
-            "error": {"code": "rate_limited", "retry_after_seconds": 30}
-        })
-        with patch.object(client.session, "request", return_value=resp), patch("time.sleep"):
+        resp = self._make_resp(
+            429, {"error": {"code": "rate_limited", "retry_after_seconds": 30}}
+        )
+        with (
+            patch.object(client.session, "request", return_value=resp),
+            patch("time.sleep"),
+        ):
             with pytest.raises(SHCError) as exc_info:
                 client._request("GET", "/test")
             assert hasattr(exc_info.value, "retry_after_seconds")
@@ -1942,23 +2283,27 @@ class TestRetryBackoff:
     def test_409_confirmation_error_has_confirmation_id(self):
         client = SHCClient(api_key="test-key")
         client._max_retries = 1
-        resp = self._make_resp(409, {
-            "error": {"code": "confirmation_required"},
-            "confirmation": {"confirmation_id": "cnf_test123"},
-        })
+        resp = self._make_resp(
+            409,
+            {
+                "error": {"code": "confirmation_required"},
+                "confirmation": {"confirmation_id": "cnf_test123"},
+            },
+        )
         with patch.object(client.session, "request", return_value=resp):
             with pytest.raises(Exception) as exc_info:
                 client._request("GET", "/test")
-            assert hasattr(exc_info.value, "confirmation_id") or \
-                   hasattr(exc_info.value, "details")
+            assert hasattr(exc_info.value, "confirmation_id") or hasattr(
+                exc_info.value, "details"
+            )
 
 
 class TestMcpErrorHandling:
     """SHCMCPClient error handling — isError responses, malformed data, edge cases."""
 
     def test_iserror_response_raises_shc_error(self):
-        from shc_toolkit.mcp_client import SHCMCPClient
         from shc_toolkit.client import SHCError
+        from shc_toolkit.mcp_client import SHCMCPClient
 
         mc = SHCMCPClient.__new__(SHCMCPClient)
         mc._initialized = True
@@ -2113,10 +2458,7 @@ class TestBip21Stitch:
     def test_both_rails(self):
         from shc_toolkit.jit_pay import bip21_stitch
 
-        assert (
-            bip21_stitch("bc1qxyz", "lnbcabc")
-            == "bitcoin:bc1qxyz?lightning=lnbcabc"
-        )
+        assert bip21_stitch("bc1qxyz", "lnbcabc") == "bitcoin:bc1qxyz?lightning=lnbcabc"
 
     def test_onchain_only(self):
         from shc_toolkit.jit_pay import bip21_stitch
@@ -2146,9 +2488,16 @@ class TestBip21Stitch:
     def test_payment_uri_falls_back_to_stitch(self):
         from shc_toolkit.jit_pay import payment_uri
 
-        assert payment_uri(
-            {"payment_link": None, "bolt11": "lnbcabc", "onchain_address": "bc1qxyz"}
-        ) == "bitcoin:bc1qxyz?lightning=lnbcabc"
+        assert (
+            payment_uri(
+                {
+                    "payment_link": None,
+                    "bolt11": "lnbcabc",
+                    "onchain_address": "bc1qxyz",
+                }
+            )
+            == "bitcoin:bc1qxyz?lightning=lnbcabc"
+        )
 
     def test_payment_uri_none_when_no_rail(self):
         from shc_toolkit.jit_pay import payment_uri
@@ -2206,9 +2555,7 @@ class TestNostrOperateGrant:
         assert tags.get("nonce")
         assert event["sig"] and event["id"]
 
-    def test_standalone_exchange_posts_nostr_auth_to_plugin_url(
-        self, monkeypatch
-    ):
+    def test_standalone_exchange_posts_nostr_auth_to_plugin_url(self, monkeypatch):
         import base64
         import json as _json
 
@@ -2358,7 +2705,9 @@ class TestUserAgent:
         captured = {}
 
         def cap(method, url, **kw):
-            captured.update({k.lower(): v for k, v in (kw.get("headers") or {}).items()})
+            captured.update(
+                {k.lower(): v for k, v in (kw.get("headers") or {}).items()}
+            )
             captured.update({k.lower(): v for k, v in dict(c.session.headers).items()})
             m = MagicMock()
             m.status_code = 200
@@ -2405,11 +2754,20 @@ class TestUserAgent:
         monkeypatch.setattr(httpx.Client, "request", fake_request)
         now = __import__("time").time()
         grant = {
-            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
-            "kind": 30078, "created_at": int(now), "content": "",
-            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
-                     ["area", "vm:1"], ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
-                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+            "id": "a" * 64,
+            "pubkey": "b" * 64,
+            "sig": "c" * 64,
+            "kind": 30078,
+            "created_at": int(now),
+            "content": "",
+            "tags": [
+                ["d", "shc:agent:" + "d" * 64],
+                ["scope", "operate"],
+                ["area", "vm:1"],
+                ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
+                ["nbf", str(int(now))],
+                ["exp", str(int(now) + 900)],
+            ],
         }
         exchange_nostr_operate_grant(
             grant, nsec=Keys.generate().secret_key().to_bech32()
@@ -2461,14 +2819,28 @@ class TestNostrOperateGrantExtras:
         monkeypatch.setattr(httpx.Client, "request", fake_request)
         now = __import__("time").time()
         grant = {
-            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
-            "kind": 30078, "created_at": int(now), "content": "",
-            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
-                     ["area", "vm:1"], ["aud", "shc:https://api.example.test"],
-                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+            "id": "a" * 64,
+            "pubkey": "b" * 64,
+            "sig": "c" * 64,
+            "kind": 30078,
+            "created_at": int(now),
+            "content": "",
+            "tags": [
+                ["d", "shc:agent:" + "d" * 64],
+                ["scope", "operate"],
+                ["area", "vm:1"],
+                ["aud", "shc:https://api.example.test"],
+                ["nbf", str(int(now))],
+                ["exp", str(int(now) + 900)],
+            ],
         }
-        c.exchange_nostr_operate_grant(grant, nsec=Keys.generate().secret_key().to_bech32())
-        assert seen["url"] == "https://api.example.test/plugin/nostr_auth/main/operate_token"
+        c.exchange_nostr_operate_grant(
+            grant, nsec=Keys.generate().secret_key().to_bech32()
+        )
+        assert (
+            seen["url"]
+            == "https://api.example.test/plugin/nostr_auth/main/operate_token"
+        )
 
     def test_default_base_url_targets_production_plugin(self, monkeypatch):
         import json as _json
@@ -2491,11 +2863,20 @@ class TestNostrOperateGrantExtras:
         monkeypatch.setattr(httpx.Client, "request", fake_request)
         now = __import__("time").time()
         grant = {
-            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
-            "kind": 30078, "created_at": int(now), "content": "",
-            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
-                     ["area", "vm:1"], ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
-                     ["nbf", str(int(now))], ["exp", str(int(now) + 900)]],
+            "id": "a" * 64,
+            "pubkey": "b" * 64,
+            "sig": "c" * 64,
+            "kind": 30078,
+            "created_at": int(now),
+            "content": "",
+            "tags": [
+                ["d", "shc:agent:" + "d" * 64],
+                ["scope", "operate"],
+                ["area", "vm:1"],
+                ["aud", "shc:https://blesta.sovereignhybridcompute.com"],
+                ["nbf", str(int(now))],
+                ["exp", str(int(now) + 900)],
+            ],
         }
         exchange_nostr_operate_grant(
             grant, nsec=Keys.generate().secret_key().to_bech32()
@@ -2516,11 +2897,19 @@ class TestNostrOperateGrantExtras:
 
         now = int(time.time())
         grant = {
-            "id": "a" * 64, "pubkey": "b" * 64, "sig": "c" * 64,
-            "kind": 30078, "created_at": now, "content": "",
-            "tags": [["d", "shc:agent:" + "d" * 64], ["scope", "operate"],
-                     ["area", "vm:1"],
-                     ["nbf", str(now)], ["exp", str(now + 900)]],
+            "id": "a" * 64,
+            "pubkey": "b" * 64,
+            "sig": "c" * 64,
+            "kind": 30078,
+            "created_at": now,
+            "content": "",
+            "tags": [
+                ["d", "shc:agent:" + "d" * 64],
+                ["scope", "operate"],
+                ["area", "vm:1"],
+                ["nbf", str(now)],
+                ["exp", str(now + 900)],
+            ],
         }
         assert any("aud" in p for p in validate_operate_grant(grant))
 
@@ -2550,7 +2939,9 @@ class TestPaymentUriEdges:
         from shc_toolkit.jit_pay import payment_uri
 
         assert (
-            payment_uri({"payment_link": "", "onchain_address": "bc1qx", "bolt11": "lnbcz"})
+            payment_uri(
+                {"payment_link": "", "onchain_address": "bc1qx", "bolt11": "lnbcz"}
+            )
             == "bitcoin:bc1qx?lightning=lnbcz"
         )
 
@@ -2567,14 +2958,13 @@ class TestTopupUsesResponseRails:
 
         rendered = []
         monkeypatch.setattr(reg, "_POLL_SECONDS", 0)
-        monkeypatch.setattr("shc_toolkit.jit_pay.render_qr", lambda uri: rendered.append(uri))
-        reg._topup(
-            fake_client_cls(), 5.0, browser=False, timeout=2, log=lambda m: None
+        monkeypatch.setattr(
+            "shc_toolkit.jit_pay.render_qr", lambda uri: rendered.append(uri)
         )
+        reg._topup(fake_client_cls(), 5.0, browser=False, timeout=2, log=lambda m: None)
         return rendered
 
     def test_prefers_payment_link_without_scraping(self, monkeypatch):
-        from shc_toolkit import register as reg
 
         def explode(url):
             raise AssertionError("checkout HTML must not be scraped when rails present")
@@ -2596,9 +2986,10 @@ class TestTopupUsesResponseRails:
         assert rendered == ["lightning:lnbcfromresp"]
 
     def test_falls_back_to_checkout_scrape(self, monkeypatch):
-        from shc_toolkit import register as reg
 
-        monkeypatch.setattr("shc_toolkit.jit_pay.fetch_bolt11", lambda url: "lnbcscraped")
+        monkeypatch.setattr(
+            "shc_toolkit.jit_pay.fetch_bolt11", lambda url: "lnbcscraped"
+        )
 
         class FakeClient:
             def topup_credit(self, amount):
@@ -2619,7 +3010,9 @@ class TestErrorFromBodyStringShape:
     def test_string_error_403_maps_to_auth_error(self):
         from shc_toolkit.client import SHCAuthError, _error_from_body
 
-        exc = _error_from_body({"error": "Grant is not bound to this agent key"}, "", 403)
+        exc = _error_from_body(
+            {"error": "Grant is not bound to this agent key"}, "", 403
+        )
         assert isinstance(exc, SHCAuthError)
         assert "not bound to this agent key" in exc.message
 
@@ -2648,11 +3041,13 @@ class TestSignOperateGrant:
         pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
 
     def _sign(self, **kw):
-        from shc_toolkit.client import sign_operate_grant
 
-        defaults = dict(
-            nsec=None, service_id=456, agent_pubkey=None, ttl=900
-        )
+        defaults: dict = {
+            "nsec": None,
+            "service_id": 456,
+            "agent_pubkey": None,
+            "ttl": 900,
+        }
         return defaults, kw
 
     def test_grant_shape_and_tags(self):
@@ -2725,8 +3120,11 @@ class TestFromOperateGrant:
         monkeypatch.setattr(
             "shc_toolkit.client.exchange_nostr_operate_grant",
             lambda grant, *, nsec, base_url="x": {
-                "token": token, "scope": "operate", "area": "vm:42",
-                "service_id": 42, "expires_in": 900,
+                "token": token,
+                "scope": "operate",
+                "area": "vm:42",
+                "service_id": 42,
+                "expires_in": 900,
             },
         )
         c = SHCClient.from_operate_grant(
@@ -2808,7 +3206,9 @@ class TestSelfDestruct:
     def _script(self, sid=42):
         from shc_toolkit.selfdestruct import selfdestruct_script
 
-        return selfdestruct_script(sid, "https://blesta.sovereignhybridcompute.com/user-api/v2")
+        return selfdestruct_script(
+            sid, "https://blesta.sovereignhybridcompute.com/user-api/v2"
+        )
 
     def test_script_hits_cancel_with_confirm_dance(self):
         s = self._script()
@@ -2885,9 +3285,7 @@ class TestSelfDestruct:
         monkeypatch.setenv("SHC_SUICIDE_KEY", "shc_live_fromenv")
         ran = []
 
-        arm_self_destruct(
-            lambda cmd: ran.append(cmd) or "SELF_DESTRUCT_ARMED", 5, 30
-        )
+        arm_self_destruct(lambda cmd: ran.append(cmd) or "SELF_DESTRUCT_ARMED", 5, 30)
         assert len(ran) == 1 and "base64 -d" in ran[0]
 
     def test_arm_errors_without_any_key_source(self, monkeypatch):

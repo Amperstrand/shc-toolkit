@@ -29,7 +29,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--size", default="nvme-1c-4gb", help="size to order")
     parser.add_argument("--hostname", default="ci-live-smoke")
-    parser.add_argument("--timeout", type=int, default=180, help="provision wait seconds")
+    parser.add_argument(
+        "--timeout", type=int, default=180, help="provision wait seconds"
+    )
     args = parser.parse_args()
 
     api_key = os.environ.get("SHC_API_KEY", "")
@@ -57,7 +59,9 @@ def main() -> int:
         if not sid:
             print(f"FAIL: no service_id in order result: {str(result)[:200]}")
             return 1
-        print(f"[{time.time()-t0:5.1f}s] ordered sid={sid} (static storefront triple)")
+        print(
+            f"[{time.time() - t0:5.1f}s] ordered sid={sid} (static storefront triple)"
+        )
 
         deadline = time.time() + args.timeout
         ip = None
@@ -81,7 +85,7 @@ def main() -> int:
         if ssh_key and not vm.get("ssh_key"):
             failures.append("ssh_key not stored — storefront triple regression?")
         elif ssh_key:
-            print(f"[{time.time()-t0:5.1f}s] ssh_key stored: yes")
+            print(f"[{time.time() - t0:5.1f}s] ssh_key stored: yes")
 
         tmpl = vm.get("os_template")
         if tmpl != "debian13-cloud":
@@ -91,16 +95,16 @@ def main() -> int:
         if sid:
             try:
                 cancel = client.cancel_vm(sid, immediate=True, confirm=True)
-                refund = (cancel.get("cancel_credit") or {}).get("amount") or cancel.get(
-                    "expected_refund"
-                )
-                print(f"[{time.time()-t0:5.1f}s] cancelled, refund=${refund}")
+                refund = (cancel.get("cancel_credit") or {}).get(
+                    "amount"
+                ) or cancel.get("expected_refund")
+                print(f"[{time.time() - t0:5.1f}s] cancelled, refund=${refund}")
             except Exception as e:
                 failures.append(f"cancel failed: {e}")
 
     for f in failures:
         print(f"FAIL: {f}")
-    print(f"[{time.time()-t0:5.1f}s] smoke {'PASSED' if ok else 'FAILED'}")
+    print(f"[{time.time() - t0:5.1f}s] smoke {'PASSED' if ok else 'FAILED'}")
     return 0 if ok else 1
 
 

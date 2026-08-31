@@ -5,10 +5,13 @@ Message 2 (reply): FYI observations from testing — not blockers.
 
 Saves exact posted text to notes/posted-ticket-<timestamp>/ for the record.
 """
+
 from __future__ import annotations
+
 import json
 import time
 from pathlib import Path
+
 from shc_toolkit import SHCClient
 
 NOTES = Path(__file__).resolve().parent.parent / "notes"
@@ -113,13 +116,15 @@ def main():
     (outdir / "create-result.json").write_text(json.dumps(result, indent=2))
 
     if ticket_id:
-        print(f"\n=== posting follow-up reply (message 2) ===")
+        print("\n=== posting follow-up reply (message 2) ===")
         reply = c.reply_support_ticket(ticket_id, MESSAGE_2)
         print(f"reply posted: {json.dumps(reply, indent=2)[:200]}")
         (outdir / "reply-result.json").write_text(json.dumps(reply, indent=2))
 
     print(f"\n=== done. artifacts in {outdir} ===")
-    print(f"ticket URL: https://blesta.sovereignhybridcompute.com/client/support/tickets/{ticket_id}/")
+    print(
+        f"ticket URL: https://blesta.sovereignhybridcompute.com/client/support/tickets/{ticket_id}/"
+    )
     return 0
 
 

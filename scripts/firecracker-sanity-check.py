@@ -23,9 +23,9 @@ Cost: ~$0.05 (10-15 min of dev-4c-16gb + refund on cancel).
 Usage:
     python3 scripts/firecracker-sanity-check.py
 """
+
 from __future__ import annotations
 
-import json
 import shlex
 import subprocess
 import sys
@@ -36,7 +36,6 @@ from pathlib import Path
 from shc_toolkit import SHCClient
 from shc_toolkit.client import SHCError
 
-
 SSH_PUB = Path.home() / ".ssh" / "id_ed25519.pub"
 SSH_PRIVATE = Path.home() / ".ssh" / "id_ed25519"
 
@@ -46,19 +45,35 @@ FC_KERNEL_URL = "https://s3.amazonaws.com/spec.ccfc.min/img/hello-vmlinux.bin"
 FC_ROOTFS_URL = "https://s3.amazonaws.com/spec.ccfc.min/img/hello-rootfs.ext4"
 
 
-def ssh(host: str, cmd: str, *, user: str = "ubuntu", timeout: int = 60) -> tuple[int, str]:
+def ssh(
+    host: str, cmd: str, *, user: str = "ubuntu", timeout: int = 60
+) -> tuple[int, str]:
     """Run a command on the host VM via SSH. Returns (rc, combined_output)."""
     result = subprocess.run(
-        ["ssh", "-i", str(SSH_PRIVATE),
-         "-o", "StrictHostKeyChecking=no",
-         "-o", "UserKnownHostsFile=/dev/null",
-         "-o", "LogLevel=ERROR",
-         "-o", "BatchMode=yes",
-         "-o", f"ConnectTimeout={min(timeout, 15)}",
-         f"{user}@{host}", cmd],
-        capture_output=True, text=True, timeout=timeout,
+        [
+            "ssh",
+            "-i",
+            str(SSH_PRIVATE),
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "LogLevel=ERROR",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            f"ConnectTimeout={min(timeout, 15)}",
+            f"{user}@{host}",
+            cmd,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
-    out = result.stdout + ("\n--- STDERR ---\n" + result.stderr if result.stderr else "")
+    out = result.stdout + (
+        "\n--- STDERR ---\n" + result.stderr if result.stderr else ""
+    )
     return result.returncode, out.strip()
 
 
@@ -69,14 +84,14 @@ def wait_ssh(host: str, timeout: int = 180) -> bool:
             rc, _ = ssh(host, "echo READY", timeout=15)
             if rc == 0:
                 return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         time.sleep(5)
     return False
 
 
 # Inline Firecracker test — runs on the SHC VM as root
-FIRECRACKER_TEST = r'''
+FIRECRACKER_TEST = r"""
 set -e
 
 echo "=== Host kernel + KVM sanity ==="
@@ -169,27 +184,31 @@ grep -E 'Started VMM|vmm_seccomp|Boot source|Block device|Kernel loaded|VMM' /tm
 
 echo
 echo "=== DONE ==="
-'''
+"""
 
 
 def main() -> int:
     if not SSH_PUB.exists():
-        print(f"ERROR: need {SSH_PUB}", file=sys.stderr); return 2
+        print(f"ERROR: need {SSH_PUB}", file=sys.stderr)
+        return 2
 
     client = SHCClient()
     hostname = f"fc-test-{uuid.uuid4().hex[:6]}"
     service_id = None
 
-    print(f"=== Phase B: Firecracker sanity check on dev-4c-16gb ===")
+    print("=== Phase B: Firecracker sanity check on dev-4c-16gb ===")
     print(f"Start: {time.strftime('%FT%TZ', time.gmtime())}")
 
     try:
         print(f"\n--- provisioning {hostname} ---")
         ssh_key = SSH_PUB.read_text().strip()
         order = client.order_vm(
-            hostname=hostname, size="dev-4c-16gb",
-            template="ubuntu2404-cloud", ssh_key=ssh_key,
-            pay=True, check_credit=True,
+            hostname=hostname,
+            size="dev-4c-16gb",
+            template="ubuntu2404-cloud",
+            ssh_key=ssh_key,
+            pay=True,
+            check_credit=True,
         )
         service_ids = order.get("service_ids") or (
             [order["service_id"]] if order.get("service_id") else []
@@ -206,16 +225,17 @@ def main() -> int:
         client.apply_ssh_key_live(service_id, ssh_key)
         print("waiting for SSH...")
         if not wait_ssh(ip, timeout=180):
-            print("ERROR: SSH never came up", file=sys.stderr); return 5
+            print("ERROR: SSH never came up", file=sys.stderr)
+            return 5
 
         # Need root for /dev/kvm and apt installs. ubuntu user has sudo.
         # Run the test as root via sudo.
         print("\n--- running Firecracker test ---")
-        rendered = (FIRECRACKER_TEST
-                    .replace("__FC_VERSION__", FC_VERSION))
+        rendered = FIRECRACKER_TEST.replace("__FC_VERSION__", FC_VERSION)
         # SSH in as the os_user, then sudo bash to get root for /dev/kvm + apt.
-        rc, out = ssh(ip, f"sudo bash -c {shlex.quote(rendered)}",
-                      user=user, timeout=300)
+        rc, out = ssh(
+            ip, f"sudo bash -c {shlex.quote(rendered)}", user=user, timeout=300
+        )
         print(out)
         if rc != 0:
             print(f"\nFirecracker test exited rc={rc}", file=sys.stderr)

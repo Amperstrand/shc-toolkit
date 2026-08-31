@@ -17,21 +17,29 @@ Usage:
     python scripts/reap_orphan_vms.py --execute              # cancel
     python scripts/reap_orphan_vms.py --execute --max-age 2  # >2h old
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 KEEP_HOSTNAMES = {"europa-vpn-vps"}
 KEEP_PATTERNS = ["tollgate-main-", "europa-vpn"]
 
 CI_HOSTNAME_PATTERNS = [
-    "pytest", "test", "ci-", "shc-runner-", "debug-",
-    "e2e-host-", "europa-test-", "pool-host-",
-    "europa-isp-", "europa-mptcp-",
+    "pytest",
+    "test",
+    "ci-",
+    "shc-runner-",
+    "debug-",
+    "e2e-host-",
+    "europa-test-",
+    "pool-host-",
+    "europa-isp-",
+    "europa-mptcp-",
 ]
 
 DEFAULT_MAX_AGE_HOURS = 6
@@ -58,8 +66,8 @@ def vm_age_hours(vm: dict) -> float:
     if not created:
         return 0
     try:
-        dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-        return (datetime.now(timezone.utc) - dt).total_seconds() / 3600
+        dt = datetime.fromisoformat(created)
+        return (datetime.now(UTC) - dt).total_seconds() / 3600
     except (ValueError, TypeError):
         return 0
 
@@ -103,7 +111,9 @@ def main() -> int:
         candidates.append((vm["id"], hostname, age, status, reason))
 
     if not candidates:
-        print(f"No orphaned VMs (checked {len(vms)}, keep={len(KEEP_HOSTNAMES)} permanent)")
+        print(
+            f"No orphaned VMs (checked {len(vms)}, keep={len(KEEP_HOSTNAMES)} permanent)"
+        )
         return 0
 
     print(f"Found {len(candidates)} orphaned VM(s):")

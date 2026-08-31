@@ -398,8 +398,11 @@ def test_cloud_init_validate_live():
     Uses the first ACTIVE VM on the account — the original hardcoded
     1077 (a long-deleted test VM) 404'd forever after."""
     client = SHCClient()
-    vms = [v for v in client.list_vms()
-           if str(v.get("service_status", v.get("status", ""))).lower() == "active"]
+    vms = [
+        v
+        for v in client.list_vms()
+        if str(v.get("service_status", v.get("status", ""))).lower() == "active"
+    ]
     if not vms:
         pytest.skip("no active VM on the account to validate against")
     result = client.validate_vm_cloud_init(
@@ -413,8 +416,8 @@ def test_cloud_init_validate_live():
 @pytest.mark.allow_network
 def test_mcp_probe_mode_live():
     """MCP transport confirm=False surfaces 409 on destructive ops."""
-    from shc_toolkit.mcp_client import SHCMCPClient
     from shc_toolkit.client import SHCConfirmationRequiredError
+    from shc_toolkit.mcp_client import SHCMCPClient
 
     mc = SHCMCPClient()
     with pytest.raises(SHCConfirmationRequiredError):

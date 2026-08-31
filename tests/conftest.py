@@ -5,8 +5,8 @@ import httpx
 import pytest
 import requests
 
-from shc_toolkit.client import SHCClient
 from shc_toolkit import create_client
+from shc_toolkit.client import SHCClient
 
 _created_service_ids = []
 
@@ -26,6 +26,7 @@ _created_service_ids = []
 #
 # The fixture monkeypatches both requests.Session.request (used by the
 # MCP client) and httpx.Client.request (used by SHCClient) to raise.
+
 
 @pytest.fixture(autouse=True)
 def block_network_by_default(request):
@@ -103,9 +104,7 @@ def vm(client):
 
     service_ids = result.get("service_ids", [])
     sid = (
-        service_ids[0]
-        if service_ids
-        else result.get("service_id") or result.get("id")
+        service_ids[0] if service_ids else result.get("service_id") or result.get("id")
     )
     if not sid:
         pytest.skip(f"No service_id in order response: {list(result.keys())}")
@@ -159,7 +158,7 @@ def _cleanup_vms():
         c = SHCClient()
     except Exception:
         return
-    for sid in list(_created_service_ids):
+    for sid in _created_service_ids:
         try:
             c.cancel_vm(sid, immediate=True)
         except Exception:

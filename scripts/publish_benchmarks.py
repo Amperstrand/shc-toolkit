@@ -25,13 +25,16 @@ import hashlib
 import json
 import os
 import re
+import ssl
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
+
+import certifi
 
 # --- Constants ---
 
@@ -42,8 +45,8 @@ FREE_TIER_SIZE_LIMIT = 1_000_000  # 1 MB — files under this are free on blosso
 # Kind 30078 = NIP-78 application-specific data (parameterized replaceable).
 KIND_APP_DATA = 30078
 
-import certifi
-import ssl
+
+
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 
@@ -87,12 +90,18 @@ def _sign_blossom_auth_event(
 
     label = "Upload" if action == "upload" else action.title()
     cmd = [
-        "nak", "event",
-        "-k", "24242",
-        "-c", f"{label} Blob",
-        "-t", f"t={action}",
-        "-t", f"x={sha256_hash}",
-        "-t", f"expiration={expiration}",
+        "nak",
+        "event",
+        "-k",
+        "24242",
+        "-c",
+        f"{label} Blob",
+        "-t",
+        f"t={action}",
+        "-t",
+        f"x={sha256_hash}",
+        "-t",
+        f"expiration={expiration}",
     ]
 
     env = os.environ.copy()
@@ -159,7 +168,9 @@ def upload_to_blossom(
     }
 
     upload_url = f"{blossom_server.rstrip('/')}/upload"
-    req = urllib.request.Request(upload_url, data=file_data, headers=headers, method="PUT")
+    req = urllib.request.Request(
+        upload_url, data=file_data, headers=headers, method="PUT"
+    )
 
     try:
         with urllib.request.urlopen(req, timeout=60, context=_SSL_CTX) as response:
@@ -200,7 +211,7 @@ def _fetch_shc_pricing() -> dict[str, Any]:
         "currency": "USD",
         "billing_model": "pro-rata",
         "source": "static catalog model (catalog_model.py)",
-        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -220,7 +231,7 @@ def _derive_run_id(results: dict[str, Any], file_path: str) -> str:
     ts_compact = ""
     if ts_raw:
         try:
-            dt = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(ts_raw)
             ts_compact = dt.strftime("%Y%m%d%H%M%S")
         except (ValueError, TypeError):
             pass
@@ -262,7 +273,9 @@ def _parse_nak_publish_output(stderr: str) -> dict[str, Any]:
         }
     any_accepted = any(r["accepted"] for r in relay_results.values())
     all_rejected_reasons = [
-        f"{relay}: {r['message']}" for relay, r in relay_results.items() if not r["accepted"]
+        f"{relay}: {r['message']}"
+        for relay, r in relay_results.items()
+        if not r["accepted"]
     ]
     return {
         "relay_results": relay_results,
@@ -328,9 +341,12 @@ def publish_benchmark_event(
         nsec_hex = f.read().strip()
 
     cmd = [
-        "nak", "event",
-        "-k", str(KIND_APP_DATA),
-        "-c", content,
+        "nak",
+        "event",
+        "-k",
+        str(KIND_APP_DATA),
+        "-c",
+        content,
     ]
 
     for tag in tags:
@@ -362,7 +378,10 @@ def publish_benchmark_event(
         pass
 
     if not nak_status["any_accepted"]:
-        reasons = "; ".join(nak_status["all_rejected_reasons"]) or "all relays rejected (no detail)"
+        reasons = (
+            "; ".join(nak_status["all_rejected_reasons"])
+            or "all relays rejected (no detail)"
+        )
         return {
             "success": False,
             "error": f"Event signed but rejected by all relays: {reasons}",
@@ -468,7 +487,9 @@ Example:
     if not args.skip_blossom:
         print(f"\n--- Blossom Upload ({args.blossom_server}) ---")
         try:
-            upload_result = upload_to_blossom(upload_file, args.nsec_file, args.blossom_server)
+            upload_result = upload_to_blossom(
+                upload_file, args.nsec_file, args.blossom_server
+            )
             blossom_url = upload_result["url"]
         except RuntimeError as e:
             print(f"\nERROR: Blossom upload failed: {e}", file=sys.stderr)
@@ -478,7 +499,9 @@ Example:
             return 1
 
     # --- Publish Nostr event ---
-    print(f"\n--- Nostr Publish ({len(relays)} relay{'s' if len(relays) != 1 else ''}) ---")
+    print(
+        f"\n--- Nostr Publish ({len(relays)} relay{'s' if len(relays) != 1 else ''}) ---"
+    )
     run_id = args.run_id or _derive_run_id(results, args.benchmark_file)
     print(f"  Run ID: {run_id}")
 
@@ -494,14 +517,20 @@ Example:
         print(f"  Published: event {nostr_result.get('event_id', '?')}")
         relay_status = nostr_result.get("relay_status", {})
         for relay_url, status in relay_status.get("relay_results", {}).items():
-            state = "accepted" if status["accepted"] else f"rejected: {status['message']}"
+            state = (
+                "accepted" if status["accepted"] else f"rejected: {status['message']}"
+            )
             print(f"    {relay_url}: {state}")
     else:
-        print(f"\nERROR: Nostr publish failed: {nostr_result.get('error', 'unknown')}",
-              file=sys.stderr)
+        print(
+            f"\nERROR: Nostr publish failed: {nostr_result.get('error', 'unknown')}",
+            file=sys.stderr,
+        )
         if nostr_result.get("event_id"):
-            print(f"  Event was signed (id: {nostr_result['event_id']}) but rejected.",
-                  file=sys.stderr)
+            print(
+                f"  Event was signed (id: {nostr_result['event_id']}) but rejected.",
+                file=sys.stderr,
+            )
         if temp_file and os.path.exists(temp_file):
             os.remove(temp_file)
         return 1
