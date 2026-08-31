@@ -2,23 +2,31 @@
 """Dev zone (Cherryvale, KS) health probe.
 
 Orders the smallest Dev VPS, polls until it reaches active+IP or times out,
-then cancels. Exit 0 = zone healthy, exit 1 = zone broken (stuck pending).
+then — since 2026-08-28 (issue #39) — ALSO verifies the VM is actually
+reachable (TCP/22 + best-effort ICMP) before cancelling. Billing-state
+"active with IP" is NOT proof of a network-attached VM: post-#28 Dev VMs
+reported ready while being unroutable from every vantage, including
+cross-zone from inside SHC itself.
 
-Used to verify whether SHC issue #28 (Dev zone scheduler hang) is resolved.
-Pairs with the NVMe (Katy, TX) zone as the known-good control.
+Exit 0 = zone healthy (provisioned AND TCP/22 reachable), exit 1 = broken
+(stuck pending, failed, or provisioned-but-unreachable — the #39 pattern).
 
 Usage:
-    python3 scripts/dev-zone-probe.py                    # default: 300s timeout
-    python3 scripts/dev-zone-probe.py --timeout 120      # shorter wait
+    python3 scripts/dev-zone-probe.py                    # 300s ready + 120s net timeout
+    python3 scripts/dev-zone-probe.py --timeout 120      # shorter ready wait
     python3 scripts/dev-zone-probe.py --template debian13-cloud  # test specific template
+    python3 scripts/dev-zone-probe.py --net-timeout 0    # API-state-only (legacy behavior)
 
 Requires: SHC_API_KEY env var. Costs ~$0.01-0.24 per run (prorated on cancel).
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import signal
+import socket
+import subprocess
 import sys
 import time
 import uuid
@@ -34,12 +42,60 @@ PACKAGE_GROUP_ID = 14
 MODULE_GROUP_ID = 7
 
 
+def _wait_tcp22(ip: str, timeout: int) -> tuple[bool, float]:
+    """Poll TCP/22 until open or deadline. Returns (reachable, seconds_waited)."""
+    t0 = time.time()
+    deadline = t0 + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((ip, 22), timeout=5):
+                return True, time.time() - t0
+        except OSError:
+            time.sleep(5)
+    return False, time.time() - t0
+
+
+def _icmp_probe(ip: str) -> None:
+    """Best-effort ICMP echo (informational only — some paths deprioritize ICMP)."""
+    ts = time.strftime("%H:%M:%S")
+    try:
+        r = subprocess.run(
+            ["ping", "-c", "1", "-W", "3", ip], capture_output=True, timeout=8
+        )
+        verdict = "reply" if r.returncode == 0 else "no reply"
+    except Exception:
+        verdict = "unavailable"
+    print(f"[{ts}] ICMP {ip}: {verdict} (informational)")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--timeout", type=int, default=300, help="seconds to wait for ready (default 300)")
-    parser.add_argument("--template", default="debian13-cloud", help="template to test (default debian13-cloud)")
-    parser.add_argument("--package-id", type=int, default=PKG_ID, help="Dev VPS package (default 80)")
-    parser.add_argument("--pricing-id", type=int, default=PRICING_ID, help="pricing tier (default 241 = daily)")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="seconds to wait for ready (default 300)",
+    )
+    parser.add_argument(
+        "--template",
+        default="debian13-cloud",
+        help="template to test (default debian13-cloud)",
+    )
+    parser.add_argument(
+        "--package-id", type=int, default=PKG_ID, help="Dev VPS package (default 80)"
+    )
+    parser.add_argument(
+        "--pricing-id",
+        type=int,
+        default=PRICING_ID,
+        help="pricing tier (default 241 = daily)",
+    )
+    parser.add_argument(
+        "--net-timeout",
+        type=int,
+        default=120,
+        help="seconds to wait for TCP/22 reachability after ready (default 120; 0 = skip the network check)",
+    )
     args = parser.parse_args()
 
     if not os.environ.get("SHC_API_KEY"):
@@ -64,7 +120,9 @@ def main() -> int:
     signal.signal(signal.SIGINT, _cancel)
     signal.signal(signal.SIGTERM, _cancel)
 
-    print(f"[{time.strftime('%H:%M:%S')}] Dev zone probe: pkg {args.package_id}, template={args.template}, timeout={args.timeout}s")
+    print(
+        f"[{time.strftime('%H:%M:%S')}] Dev zone probe: pkg {args.package_id}, template={args.template}, timeout={args.timeout}s"
+    )
 
     try:
         result = c.submit_order(
@@ -82,16 +140,21 @@ def main() -> int:
         print(f"[{time.strftime('%H:%M:%S')}] ORDER FAILED: {type(e).__name__}: {e}")
         return 2
 
-    sids = result.get("service_ids") or ([result["service_id"]] if result.get("service_id") else [])
+    sids = result.get("service_ids") or (
+        [result["service_id"]] if result.get("service_id") else []
+    )
     if not sids:
-        print(f"[{time.strftime('%H:%M:%S')}] ORDER returned no service_id: {list(result.keys())}")
+        print(
+            f"[{time.strftime('%H:%M:%S')}] ORDER returned no service_id: {list(result.keys())}"
+        )
         return 2
     sid = int(sids[0])
-    print(f"[{time.strftime('%H:%M:%S')}] Ordered sid={sid} ({time.time()-t0:.1f}s)")
+    print(f"[{time.strftime('%H:%M:%S')}] Ordered sid={sid} ({time.time() - t0:.1f}s)")
 
     deadline = time.time() + args.timeout
     outcome = "TIMEOUT"
     last = ""
+    ip: str | None = None
     while time.time() < deadline:
         try:
             vm = c.get_vm(sid)
@@ -101,7 +164,7 @@ def main() -> int:
             ip = ips[0]["ip"] if ips else None
             cur = f"prov={prov} svc={svc} ip={ip}"
             if cur != last:
-                print(f"[{time.strftime('%H:%M:%S')}] {cur} ({time.time()-t0:.0f}s)")
+                print(f"[{time.strftime('%H:%M:%S')}] {cur} ({time.time() - t0:.0f}s)")
                 last = cur
             if prov == "ready":
                 outcome = "READY"
@@ -116,6 +179,24 @@ def main() -> int:
             print(f"[{time.strftime('%H:%M:%S')}] get_vm error: {e}")
         time.sleep(8)
 
+    # Reachability phase (issue #39): billing-state "active with IP" proved
+    # to be a lie on 2026-08-27/28 — 15 Dev VMs reported ready while
+    # unroutable from every vantage, including cross-zone from inside SHC.
+    # "Ready" is a billing state, not a running, network-attached VM.
+    net_ok: bool | None = None
+    net_wait = 0.0
+    if (
+        (outcome == "READY" or outcome.startswith("ACTIVE"))
+        and ip
+        and args.net_timeout > 0
+    ):
+        print(
+            f"[{time.strftime('%H:%M:%S')}] provisioned — probing TCP/22 on {ip} "
+            f"(up to {args.net_timeout}s; sshd may lag ready by ~120s)"
+        )
+        _icmp_probe(ip)
+        net_ok, net_wait = _wait_tcp22(ip, args.net_timeout)
+
     try:
         c.cancel_vm(sid, immediate=True)
         print(f"[{time.strftime('%H:%M:%S')}] CANCELLED sid={sid}")
@@ -123,11 +204,29 @@ def main() -> int:
         print(f"[{time.strftime('%H:%M:%S')}] CANCEL FAILED: {e}")
 
     elapsed = time.time() - t0
-    if outcome == "READY" or outcome.startswith("ACTIVE"):
-        print(f"\n✅ PASS — Dev zone healthy ({outcome}) in {elapsed:.0f}s")
+    provisioned = outcome == "READY" or outcome.startswith("ACTIVE")
+    if provisioned and (net_ok is None or net_ok):
+        if net_ok is None:
+            print(
+                f"\n✅ PASS — provisioned ({outcome}) in {elapsed:.0f}s (network check skipped)"
+            )
+        else:
+            print(
+                f"\n✅ PASS — Dev zone healthy: {outcome} + TCP/22 reachable "
+                f"in {net_wait:.0f}s (total {elapsed:.0f}s)"
+            )
         return 0
+    if provisioned:
+        print(
+            f"\n❌ FAIL — provisioned ({outcome}) but TCP/22 unreachable after "
+            f"{args.net_timeout}s — issue #39 pattern (billing-state ready, no network attach)"
+        )
+        print("   Tracked in: https://github.com/Amperstrand/shc-toolkit/issues/39")
+        return 1
     print(f"\n❌ FAIL — Dev zone broken ({outcome}) after {elapsed:.0f}s")
-    print("   Tracked in: https://github.com/Amperstrand/shc-toolkit/issues/28")
+    print(
+        "   Scheduler hang class: https://github.com/Amperstrand/shc-toolkit/issues/28"
+    )
     return 1
 
 
