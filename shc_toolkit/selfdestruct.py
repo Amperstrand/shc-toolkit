@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import base64
 import json as _json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .client import BASE_URL, USER_AGENT, _error_from_body
 

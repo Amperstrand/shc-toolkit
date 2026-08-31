@@ -31,7 +31,8 @@ log = logging.getLogger(__name__)
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
 
 try:
-    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _pkg_version
 
     try:
         _VERSION = _pkg_version("shc-toolkit")
@@ -727,7 +728,7 @@ class SHCClient:
     @classmethod
     def from_operate_grant(
         cls, grant: dict, *, nsec: str, base_url: str = BASE_URL
-    ) -> "SHCClient":
+    ) -> SHCClient:
         """One call from customer grant to an operating client:
         exchange the grant, return an ``SHCClient`` authenticated with
         the short-TTL vm-scoped lease token. See
