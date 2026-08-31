@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Fixed
+- **Drift-issue template fired on fetch failures, not just real drift.** During the SHC DNS outage (#40) the OpenAPI drift job couldn't fetch the spec and auto-filed a spurious "API spec has changed" issue with `(diff not available)` (#41, closed). Both drift jobs now distinguish the cases: fetch/unreachable failures exit 2 and file NOTHING; only a measured diff/version change sets a `drift` step output that gates the issue step. Same failure class as lesson 22 — the server's absence is not a contract change.
 - **Unit CI broke on environments without the `nostr-sdk` extra** (found by the v2.4.24.3 tag run: unit + coverage jobs failed `ModuleNotFoundError: No module named 'nostr_sdk'` — the nostr-lane tests, added 2026-08-26, had never run in CI and hard-error instead of skipping). The nostr-dependent test classes now `pytest.importorskip("nostr_sdk")` (clean skips in a bare env), and the unit + coverage workflows install `.[nodns]` so CI exercises them for real. The tag's remaining red jobs (MCP drift, OpenAPI drift, integration) were the SHC DNS outage (#40), not code.
 - **`nostr-sdk` pinned to `>=0.44,<0.45`.** Fresh installs resolved 0.45.1, where `EventBuilder.sign_with_keys` no longer exists — every nostr-lane test failed on CI while passing locally (0.44.2). The 0.44 line is what the operate-lane code was written and live-proven against; migration to the 0.45 signing API is tracked separately. Verified green at 0.44.8 (what a fresh install now resolves to).
 

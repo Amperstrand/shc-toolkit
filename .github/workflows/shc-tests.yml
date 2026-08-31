@@ -84,12 +84,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Fetch live OpenAPI spec
+        id: spec-drift
         run: |
-          curl -s https://blesta.sovereignhybridcompute.com/user-api/openapi.json > /tmp/live-spec.json
+          curl -fsS https://blesta.sovereignhybridcompute.com/user-api/openapi.json > /tmp/live-spec.json || {
+            echo '::error::Spec fetch failed (network/HTTP) — NOT drift; no issue will be filed'
+            exit 2
+          }
           python3 -c "
-          import json
-          with open('/tmp/live-spec.json') as f:
-              live = json.load(f)
+          import json, os, sys
+          try:
+              with open('/tmp/live-spec.json') as f:
+                  live = json.load(f)
+          except Exception as e:
+              print(f'::error::Live spec unparseable ({e}) — NOT drift; no issue will be filed')
+              sys.exit(2)
           with open('shc_toolkit/openapi.json') as f:
               cached = json.load(f)
 
@@ -123,12 +131,15 @@ jobs:
                          f.write(f'\nRemoved endpoints ({len(removed_paths)}):\n')
                          for p in sorted(removed_paths):
                               f.write(f'  - {p}\n')
-               exit(1)
+               with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                    f.write('drift=true\n')
+               print('::error::Real spec drift detected — filing issue')
+               sys.exit(1)
           print('No drift detected ✅')
           "
 
       - name: Create issue on OpenAPI drift
-        if: failure() && github.event_name != 'pull_request'
+        if: steps.spec-drift.outputs.drift == 'true' && github.event_name != 'pull_request'
         uses: actions/github-script@v9
         with:
           script: |
@@ -168,13 +179,18 @@ jobs:
           python-version: '3.11'
       - run: pip install -e . -q
       - name: Compare client tool names against live MCP server
+        id: mcp-drift
         run: |
           python3 -c "
-          import re, sys
+          import os, re, sys
           from shc_toolkit.mcp_client import SHCMCPClient, TOOL_MAP
 
-          c = SHCMCPClient()
-          tools = c.list_tools()
+          try:
+              c = SHCMCPClient()
+              tools = c.list_tools()
+          except Exception as e:
+              print(f'::error::MCP server unreachable ({type(e).__name__}: {e}) — NOT drift; no issue will be filed')
+              sys.exit(2)
           if isinstance(tools, dict):
               tools = tools.get('tools', tools.get('items', []))
           server_names = {t['name'] for t in tools}
@@ -199,6 +215,8 @@ jobs:
                   f.write(f'Broken tools ({len(broken)}):\n')
                   for name in sorted(broken):
                       f.write(f'  ❌ {name}\n')
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write('drift=true\n')
               sys.exit(1)
 
           if unwrapped:
@@ -210,7 +228,7 @@ jobs:
           "
 
       - name: Create issue on MCP drift
-        if: failure() && github.event_name != 'pull_request'
+        if: steps.mcp-drift.outputs.drift == 'true' && github.event_name != 'pull_request'
         uses: actions/github-script@v9
         with:
           script: |
