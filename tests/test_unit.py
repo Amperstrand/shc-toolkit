@@ -2679,7 +2679,10 @@ class TestSignOperateGrant:
         assert tags["scope"] == "operate"
         assert tags["area"] == "vm:456"
         assert tags["aud"] == "shc:https://blesta.sovereignhybridcompute.com"
-        assert before <= int(tags["nbf"]) <= int(tags["exp"]) <= before + 601
+        assert before - 30 <= int(tags["nbf"]) <= int(tags["exp"]) <= before + 601
+        # nbf is backdated 30s: the server rejects nbf == signing-time with
+        # "Grant not yet valid" (live-earned 2026-08-31)
+        assert int(tags["nbf"]) <= before - 29
 
     def test_accepts_npub_agent_key(self):
         from nostr_sdk import Keys
@@ -2779,7 +2782,8 @@ class TestGrantOperateCLI:
         tags = {t[0]: t[1] for t in grant["tags"]}
         assert tags["area"] == "vm:321"
         assert tags["d"] == f"shc:agent:{agent.public_key().to_hex()}"
-        assert int(tags["exp"]) - int(tags["nbf"]) == 300
+        # validity window = ttl + the 30s nbf skew margin (see sign_operate_grant)
+        assert int(tags["exp"]) - int(tags["nbf"]) == 300 + 30
 
     def test_exits_without_nsec(self, monkeypatch):
         import pytest as _pytest

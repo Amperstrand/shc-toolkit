@@ -167,6 +167,10 @@ def sign_operate_grant(
         origin = urlparse(BASE_URL)
         aud = f"shc:{origin.scheme}://{origin.netloc}"
     now = int(time.time())
+    # 30s backdate margin: the server rejects nbf == signing-time with
+    # "Grant not yet valid" (clock skew; live-earned 2026-08-31 — the
+    # exchange authenticated fine and the grant itself was the reject).
+    nbf = now - 30
     keys = Keys.parse(nsec)
     unsigned = (
         EventBuilder(Kind(30078), "")
@@ -176,7 +180,7 @@ def sign_operate_grant(
                 Tag.parse(["scope", "operate"]),
                 Tag.parse(["area", f"vm:{service_id}"]),
                 Tag.parse(["aud", aud]),
-                Tag.parse(["nbf", str(now)]),
+                Tag.parse(["nbf", str(nbf)]),
                 Tag.parse(["exp", str(now + ttl)]),
             ]
         )
