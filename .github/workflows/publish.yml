@@ -5,6 +5,14 @@
 # (OIDC — no API token needed). Configure at:
 # https://pypi.org/manage/project/shc-toolkit/settings/publishing/
 #
+# ⚠ OWNER ACTION REQUIRED (known-broken since first tag — v2.4.3.1, v2.4.24.1,
+# v2.4.24.2 all failed with `invalid-publisher`): register the trusted
+# publisher on pypi.org ONCE — account → Publishing → "Add a new pending
+# publisher": owner=Amperstrand, repo=shc-toolkit, workflow=publish.yml,
+# environment=pypi. Until then every tag's publish job fails after the
+# build succeeds; the tag + sdist/wheel artifact are still valid releases
+# for GitHub consumers.
+#
 # To release:
 #   git tag v0.6.0
 #   git push origin v0.6.0

@@ -1,11 +1,15 @@
-# Changelog
-
-All notable changes to shc-toolkit are documented here.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
+
+(nothing yet — cut from `main` as v2.4.24.3 on 2026-08-31)
+
+## [2.4.24.3] — 2026-08-31
+
+### Added
+- **Nostr operate-lane (agent side) — `SHCClient.exchange_nostr_operate_grant()`.** Implements the `nostr-operate-lane` skill from SHC's operator-skills corpus (`https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt`, the audit source for this release): exchanges a customer-signed `kind:30078` grant for a short-TTL (~900s), vm-scoped, cannot-spend operate Bearer via `POST /plugin/nostr_auth/main/operate_token`. Signs a NIP-98 `kind:27235` auth event with the agent nsec (`u`/`method`/fresh-`nonce` tags — server replay-checks), sends it as `Authorization: Nostr <base64>`, body `{"grant": <event>}`. Response carries `token`/`scope`/`area`/`service_id`/`expires_in`; build a follow-on client with `SHCClient(api_key=token)`. The Bearer 403s on any other service and any spend path by design; destructive ops still pass the confirmation gate.
+- **BIP21 payment-URI stitching — `jit_pay.bip21_stitch()` / `jit_pay.payment_uri()`.** Implements the `shc-pay` skill table for `CreditTopupResponse`-shaped dicts: both rails → `bitcoin:<addr>?lightning=<bolt11>`, on-chain only → `bitcoin:<addr>`, Lightning only → `lightning:<bolt11>`, none → `None` (checkout_url fallback). `payment_uri()` prefers the server-provided `payment_link`, then falls back to the local stitch. `shc register`/`shc topup` now use the server-supplied `payment_link`/`bolt11`/`onchain_address` directly and only scrape the checkout page HTML when the response carries no rail; `PaymentPage.update()` renders any wallet-openable URI (bare BOLT11 still auto-prefixed).
+
+### Fixed
+- **`jit_pay.poll_shc_invoice()` polled a literal `/payment/{invoice_id}` path** — the f-prefix was stripped by an old scripted edit, so every `shc order --pay` (zero-balance jit payment) polled a nonexistent URL, swallowed the error, and reported a payment timeout even after the wallet paid. Now requests `f"/payment/{invoice_id}"` and unwraps the `data` envelope (also accepts `confirmed`/`complete`). ~15 display prints in `jit_pay.py` that lost their f-prefixes (literal `{data}`/`{mins}`/`{invoice_id}` output) restored. Found by the llms-full.txt corpus audit (lesson 19 pattern).
 
 ### Added
 - **`scripts/dev-zone-probe.py` now verifies reachability, not billing state.** Post-#28 Dev VMs reported `active` with an IP while being unroutable from every vantage (#39) — "ready" is a billing state, not a running VM. The probe now polls TCP/22 for up to `--net-timeout` seconds (default 120 — sshd can lag `ready` by ~120s) plus a best-effort ICMP check, and FAILs on provisioned-but-unreachable (the #39 pattern); the old PASS criterion would have called those VMs healthy. `--net-timeout 0` restores the API-state-only behavior. FAIL messages now point at #39 (unreachable) vs #28 (scheduler hang).
@@ -41,21 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Plugin-route error bodies crashed the error mapper** (found by live negative testing). The `operate_token` plugin returns a flat `{"error": "<string>"}` (e.g. `{"error": "Grant is not bound to this agent key"}`), not the nested `{"error": {code, message}}` shape of `/user-api/v2` — `_error_from_body` raised `AttributeError` instead of the API error. It now handles both shapes and maps flat 401/403 strings to `SHCAuthError`.
 
 ### Added
-- **+22 unit tests over the new corpus surface** (360 total now): User-Agent on both request paths, NIP-98 nonce/id uniqueness per request, method delegation honoring client `base_url`, default-URL targeting, grant-validation edges (non-dict, missing `aud`), invoice-poll error-path resilience, `payment_uri` edge cases (empty `payment_link` falls back to stitch, non-dict → `None`), and `register._topup` rail preference (server `payment_link` used with **zero** checkout-HTML scraping; scrape only when no rails).
+- **+22 unit tests over the new corpus surface**: User-Agent on both request paths, NIP-98 nonce/id uniqueness per request, method delegation honoring client `base_url`, default-URL targeting, grant-validation edges (non-dict, missing `aud`), invoice-poll error-path resilience, `payment_uri` edge cases (empty `payment_link` falls back to stitch, non-dict → `None`), and `register._topup` rail preference (server `payment_link` used with **zero** checkout-HTML scraping; scrape only when no rails).
 - **`tests/test_nostr_operate_lane.py`** — live integration test (gated on `SHC_OPERATE_LIVE` context env, `allow_network`): customer-signed grant → lease → vm-scoped read → 403 on other service and spend. Verified live (eddy-e2e account, VM 2242) alongside negative cases: expired grant (local reject), wrong-agent grant (server: "Grant is not bound to this agent key"), forged signature (server: "Invalid grant signature"). A real `CreditTopupResponse` from a throwaway registered account also confirmed `payment_uri()` prefers the server `payment_link`.
 - **Nostr operate-lane: standalone `exchange_nostr_operate_grant()` + local grant validation.** The exchange is now a module-level function (exported from `shc_toolkit`) so an agent needs **no SHC account or API key** — its nsec plus the customer's signed `kind:30078` grant are the whole credential (the method form required constructing an `SHCClient`, i.e. faking a key the lane is designed not to need). The `SHCClient` method remains and delegates. New `validate_operate_grant()` checks the corpus contract locally (kind, signature fields, `d`/`scope`/`area`/`aud`/`nbf`/`exp` with sane timing) and returns actionable problem strings, so a malformed or expired grant fails before any HTTP with "tag scope must be 'operate'" instead of an opaque server 403. Guide: `docs/nostr-operate-lane.md`.
 
 ### Fixed
 - **Reaped prefix gap: `devprobe-` orphans were never cleaned up.** `scripts/dev-zone-probe.py` cancels on success, timeout, SIGINT and SIGTERM — but a SIGKILLed runner (hard tool/session timeout) leaves the probe VM alive with no key and no owner (incident 2026-08-26: `devprobe-6f9cea97` idled 7h at $0.24/day before manual cancel). Added `"devprobe-"` to `reap_orphans()` default `hostname_prefixes` so the hourly reaper collects them after the 2h age gate; test extended to pin the prefix.
-
-## [2.4.24.3] — 2026-08-26
-
-### Added
-- **Nostr operate-lane (agent side) — `SHCClient.exchange_nostr_operate_grant()`.** Implements the `nostr-operate-lane` skill from SHC's operator-skills corpus (`https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt`, the audit source for this release): exchanges a customer-signed `kind:30078` grant for a short-TTL (~900s), vm-scoped, cannot-spend operate Bearer via `POST /plugin/nostr_auth/main/operate_token`. Signs a NIP-98 `kind:27235` auth event with the agent nsec (`u`/`method`/fresh-`nonce` tags — server replay-checks), sends it as `Authorization: Nostr <base64>`, body `{"grant": <event>}`. Response carries `token`/`scope`/`area`/`service_id`/`expires_in`; build a follow-on client with `SHCClient(api_key=token)`. The Bearer 403s on any other service and any spend path by design; destructive ops still pass the confirmation gate.
-- **BIP21 payment-URI stitching — `jit_pay.bip21_stitch()` / `jit_pay.payment_uri()`.** Implements the `shc-pay` skill table for `CreditTopupResponse`-shaped dicts: both rails → `bitcoin:<addr>?lightning=<bolt11>`, on-chain only → `bitcoin:<addr>`, Lightning only → `lightning:<bolt11>`, none → `None` (checkout_url fallback). `payment_uri()` prefers the server-provided `payment_link`, then falls back to the local stitch. `shc register`/`shc topup` now use the server-supplied `payment_link`/`bolt11`/`onchain_address` directly and only scrape the checkout page HTML when the response carries no rail; `PaymentPage.update()` renders any wallet-openable URI (bare BOLT11 still auto-prefixed).
-
-### Fixed
-- **`jit_pay.poll_shc_invoice()` polled a literal `/payment/{invoice_id}` path** — the f-prefix was stripped by an old scripted edit, so every `shc order --pay` (zero-balance jit payment) polled a nonexistent URL, swallowed the error, and reported a payment timeout even after the wallet paid. Now requests `f"/payment/{invoice_id}"` and unwraps the `data` envelope (also accepts `confirmed`/`complete`). ~15 display prints in `jit_pay.py` that lost their f-prefixes (literal `{data}`/`{mins}`/`{invoice_id}` output) restored. Found by the llms-full.txt corpus audit (lesson 19 pattern).
 
 ## [2.4.24.2] — 2026-08-26
 

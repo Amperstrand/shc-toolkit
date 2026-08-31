@@ -3,7 +3,7 @@
 Goal: Make SHC the easiest bitcoin-native VPS to manage with infrastructure-as-code.
 Target: parity with DigitalOcean/Hetzner/Vultr tooling quality.
 
-## Current State (2026-07-20)
+## Current State (2026-08-31)
 
 | Repo | Tests | CI | Key Features |
 |------|-------|----|-------------|
