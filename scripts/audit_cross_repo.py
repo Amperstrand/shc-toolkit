@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -24,6 +25,34 @@ REPOS = {
     "terraform-provider-shc": TF_ROOT,
     "shc-pulumi": PULUMI_ROOT,
 }
+
+
+def check_catalog_artifact_parity() -> list[str]:
+    """The Go provider embeds a copy of our catalog.json artifact; a stale
+    copy would silently serve wrong sizes/prices. Compare the embedded copy
+    against a fresh generation from the current catalog model."""
+    import importlib.util
+
+    artifact = TF_ROOT / "provider" / "catalog.json"
+    if not artifact.exists():
+        return [
+            "[CATALOG-ARTIFACT] terraform-provider-shc/provider/catalog.json is missing"
+        ]
+
+    spec = importlib.util.spec_from_file_location(
+        "tf_catalog_artifact", ROOT / "scripts" / "generate-catalog-json.py"
+    )
+    gen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gen)
+
+    issues: list[str] = []
+    if gen.render(gen.build()) != artifact.read_text():
+        issues.append(
+            "[CATALOG-ARTIFACT] terraform-provider-shc/provider/catalog.json differs from "
+            "the current catalog model — regenerate (shc-toolkit: python3 scripts/generate-catalog-json.py) "
+            "and copy it to the provider"
+        )
+    return issues
 
 
 def check_size_map_parity() -> list[str]:
@@ -111,13 +140,26 @@ def _parse_python_sizes(path: Path) -> dict[str, tuple[int, int]]:
 
 
 def _parse_go_sizes(path: Path) -> dict[str, tuple[int, int]]:
-    if not path.exists():
-        return {}
-    src = path.read_text()
-    entries = {}
-    for m in re.finditer(r'"([\w-]+)":\s*\{(\d+),\s*(\d+),', src):
-        entries[m.group(1)] = (int(m.group(2)), int(m.group(3)))
-    return entries
+    """Go provider sizes. Since 2026-08-31 the provider derives its size map
+    at runtime from an embedded copy of our catalog.json artifact
+    (provider/catalog.json, schema shc-catalog/1) — so the audit reads the
+    artifact directly. Parity of the artifact itself vs our model is checked
+    by the dedicated catalog-artifact check below."""
+    artifact = path.parent / "catalog.json"
+    if artifact.exists():
+        doc = json.loads(artifact.read_text())
+        return {
+            p["spec"]: (p["package_id"], p["pricing_id_daily"])
+            for p in doc.get("packages", [])
+        }
+    # Fallback for pre-artifact checkouts: regex the old Go literals.
+    if path.exists():
+        src = path.read_text()
+        entries = {}
+        for m in re.finditer(r'"([\w-]+)":\s*\{(\d+),\s*(\d+),', src):
+            entries[m.group(1)] = (int(m.group(2)), int(m.group(3)))
+        return entries
+    return {}
 
 
 def check_feature(
@@ -364,6 +406,7 @@ def main() -> int:
 
     for check_name, check_fn in [
         ("Size Map Parity", check_size_map_parity),
+        ("Catalog Artifact Parity", check_catalog_artifact_parity),
         ("Feature Matrix", check_feature_matrix),
         ("Billing Claims", check_billing_claims),
         ("Dev VPS Claims", check_dev_vps_claims),
