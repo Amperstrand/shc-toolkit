@@ -1,0 +1,75 @@
+---
+# SHC DNS outage watch (temporary — remove after recovery, see the linked issue).
+#
+# sovereignhybridcompute.com stopped resolving from public resolvers on
+# 2026-08-31 (SERVFAIL / EDE-22 "no reachable authority" from Google and
+# Cloudflare DoH, cert-verified genuine). Until the delegation is fixed,
+# every DNS-dependent client (toolkit, MCP transport, portal) is dark.
+#
+# This probe runs from GitHub's network — a vantage no local middlebox can
+# touch — and:
+#   * unhealthy: logs one timestamped line (exit 0 — no red-X noise)
+#   * healthy:   comments the evidence on the tracking issue and closes it
+#
+# Recovered == blesta HTTP 200 on the OpenAPI spec fetch (DNS + origin).
+
+name: SHC DNS Watch
+
+on:
+  schedule:
+    - cron: "23 */6 * * *" # every 6 hours, off the hour
+  workflow_dispatch:
+
+concurrency:
+  group: shc-dns-watch
+  cancel-in-progress: true
+
+env:
+  WATCH_ISSUE: "40" # tracking issue for this outage
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - name: Probe SHC DNS + API reachability
+        id: probe
+        run: |
+          set -u
+          TS="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          API="blesta.sovereignhybridcompute.com"
+          MCP="mcp.sovereignhybridcompute.com"
+
+          dns_google="$(curl -sS --max-time 15 "https://dns.google/resolve?name=${API}&type=A" || echo '{"curl":"failed"}')"
+          dns_cf="$(curl -sS --max-time 15 "https://1.1.1.1/dns-query?name=${API}&type=A" -H 'accept: application/dns-json' || echo '{"curl":"failed"}')"
+          http_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://${API}/user-api/openapi.json" || echo 000)"
+          mcp_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://${MCP}/" || echo 000)"
+
+          echo "timestamp_utc=${TS}"
+          echo "google_doh=${dns_google}"
+          echo "cloudflare_doh=${dns_cf}"
+          echo "api_http=${http_code}"
+          echo "mcp_http=${mcp_code}"
+
+          if [ "${http_code}" = "200" ]; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "[${TS}] SHC still dark (api_http=${http_code}) — no action."
+          fi
+
+      - name: Comment + close tracking issue on recovery
+        if: steps.probe.outputs.healthy == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ env.WATCH_ISSUE }}
+        run: |
+          STATE="$(gh issue view "$ISSUE" --json state --jq .state 2>/dev/null || echo missing)"
+          if [ "$STATE" = "open" ]; then
+            gh issue comment "$ISSUE" --body "✅ **Recovered** — DNS + API healthy from GitHub's network at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (OpenAPI spec fetch → HTTP 200). Auto-closing. Remove or disable the \`shc-dns-watch\` workflow (it now no-ops silently while this issue is closed)."
+            gh issue close "$ISSUE"
+          else
+            echo "Healthy and issue already ${STATE} — nothing to do."
+          fi

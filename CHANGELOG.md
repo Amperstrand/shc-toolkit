@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`shc-dns-watch.yml` — SHC DNS outage monitor (temporary, issue #40).** `sovereignhybridcompute.com` went dark on 2026-08-31 (SERVFAIL / EDE-22 "no reachable authority" from Google and Cloudflare DoH, cert-verified genuine — not a local MITM). The watch probes from GitHub's network (a vantage local middleboxes cannot touch) every 6h + on dispatch: DoH ×2, HTTP 200 on the OpenAPI spec, MCP host. While dark it logs one line and exits 0 (no red-X noise); on recovery it comments evidence on and auto-closes #40. Remove/disable after recovery.
+
 ### Changed
 - **GH-side reaper eased from hourly to daily.** `reap-orphan-vms.yml` now schedules at 05:23 UTC instead of hourly: GitHub's cron skipped most hourly runs anyway (measured 4–10 executions/day), and primary cleanup now rests on the on-VM self-destruct timers plus the lab machine's local `*/30` cron — the GH workflow is a backstop, not the fast path. Reduces scheduled-workload noise against the backdrop of the org Actions outage investigation.
 
