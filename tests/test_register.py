@@ -157,6 +157,7 @@ def test_sign_challenge_shape():
     assert ["method", "POST"] in ev["tags"]
     assert len(ev["sig"]) == 128 and len(ev["id"]) == 64
     assert len(ev["sig"]) == 128 and len(ev["id"]) == 64
+    pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
     from nostr_sdk import Keys
     assert ev["pubkey"] == Keys.parse(nsec).public_key().to_hex()
 

@@ -1,6 +1,7 @@
 ## [Unreleased]
 
-(nothing yet — cut from `main` as v2.4.24.3 on 2026-08-31)
+### Fixed
+- **Unit CI broke on environments without the `nostr-sdk` extra** (found by the v2.4.24.3 tag run: unit + coverage jobs failed `ModuleNotFoundError: No module named 'nostr_sdk'` — the nostr-lane tests, added 2026-08-26, had never run in CI and hard-error instead of skipping). The nostr-dependent test classes now `pytest.importorskip("nostr_sdk")` (11 clean skips in a bare env), and the unit + coverage workflows install `.[nodns]` so CI exercises them for real. The tag's remaining red jobs (MCP drift, OpenAPI drift, integration) were the SHC DNS outage (#40), not code.
 
 ## [2.4.24.3] — 2026-08-31
 

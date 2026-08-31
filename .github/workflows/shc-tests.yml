@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - run: pip install -e . -q && pip install pytest -q
+      - run: pip install -e ".[nodns]" -q && pip install pytest -q
       - run: python -m pytest tests/test_unit.py -v --tb=short
 
   smoke-tests:

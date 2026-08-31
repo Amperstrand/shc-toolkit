@@ -2160,6 +2160,10 @@ class TestNostrOperateGrant:
     """Corpus nostr-operate-lane: exchange a kind:30078 grant for a
     short-TTL vm-scoped operate Bearer via the plugin endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def _requires_nostr_sdk(self):
+        pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
+
     def _client(self):
         with patch.dict(os.environ, {"SHC_API_KEY": "shc_live_test"}):
             return SHCClient()
@@ -2418,6 +2422,10 @@ class TestUserAgent:
 
 
 class TestNostrOperateGrantExtras:
+    @pytest.fixture(autouse=True)
+    def _requires_nostr_sdk(self):
+        pytest.importorskip("nostr_sdk", reason="nostr extra not installed")
+
     def test_nonce_and_id_unique_per_request(self):
         from nostr_sdk import Keys
 
