@@ -394,19 +394,19 @@ Deletion protection = SHC's server-side confirm-gate + Terraform-native
 ## Testing Status
 
 ### v2.4.24.3 (llms-full.txt corpus audit)
-- **380 unit tests** (network-isolated) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
+- **Unit suite** (network-isolated by a conftest fixture that blocks all real HTTP; grows with the API surface — `pytest --collect-only -q` prints the current count) — incl. nostr operate-lane grant exchange, BIP21 stitch table, invoice-polling path regression
 - **Corpus audit** (2026-08-26, llms-full.txt v2.4.15): confirm-gate, gated/routine op split, register, MCP 157/157 — conformant in both repos; nostr operate-lane + BIP21 stitching added; jit_pay polling f-string bug fixed
 - **API**: v2.4.24 (148 paths, 177 operations, no spec drift); live smoke verified
 
 ### v2.4.24.0 Release
-- **288 unit tests** (network-isolated, zero flakes across 5 consecutive runs)
+- **Unit suite** (network-isolated, zero flakes across 5 consecutive runs at release time)
 - **mypy type checking**: 0 errors (17 source files; generated/ excluded)
 - **Cross-repo parity**: 5/5 checks pass (size map, feature matrix, resolve_addons contract, billing claims, Dev VPS claims)
 - **API**: v2.4.24 (148 paths, 197 schemas, 177 operations); live MCP server exposes 157 tools; curated x-shc-core subset is 35; `TOOL_MAP` wraps 157 entries (100% of all MCP-exposed ops)
 - **API resilience**: 408 retry, exponential backoff with ±20% jitter, auto-generated Idempotency-Key on all confirmed requests
 - **Generated typed client**: 932 files, 148 endpoint modules, 729 attrs models
-- **CI**: 7 workflows (unit, smoke, integration, OpenAPI drift, MCP drift, cross-repo parity, typecheck, ansible, publish) + auto-issue-creation on drift
-- **Ansible**: 13 unit tests + ansible-lint CI + molecule caddy scenario + weekly live E2E
+- **CI**: dispatch/tag/monthly workflows (unit+smoke+integration, OpenAPI+MCP drift, cross-repo parity, typecheck, coverage, security, ansible, reaper, publish) + auto-issue-creation on drift
+- **Ansible**: ansible-lint CI + molecule caddy scenario + monthly live E2E
 
 ### MCP Transport (Verified 2026-06-30)
 - READS: All working (getAccount, getBillingBalance, listVirtualMachines, getOrderingCatalog)

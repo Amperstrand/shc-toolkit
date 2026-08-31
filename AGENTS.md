@@ -14,7 +14,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── shc_toolkit/transport.py     — SHCTransport Protocol (ABC both transports implement)
 ├── shc_toolkit/generated/       — Auto-generated client from OpenAPI (932 files, 729 attrs models)
 ├── shc_toolkit/openapi.json     — Cached OpenAPI spec (single source of truth)
-├── tests/                       — 380 unit tests + 5 integration tests
+├── tests/                       — network-isolated unit tests + gated integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
 ├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
@@ -132,7 +132,7 @@ Both drift jobs in `shc-tests.yml` and the catalog model validation in `api-drif
 ## Testing rules
 
 - **Network-blocking fixture** (`tests/conftest.py`): unit tests cannot make real HTTP calls. Mock or use `@pytest.mark.allow_network`.
-- **Integration tests** (`tests/test_shc_api.py`): require `SHC_API_KEY` secret, create + destroy real VMs. Run on push and schedule.
+- **Integration tests** (`tests/test_shc_api.py`): require `SHC_API_KEY` secret, create + destroy real VMs. Run on tag push and monthly schedule.
 - **Operate-lane integration test** (`tests/test_nostr_operate_lane.py`): gated on `SHC_OPERATE_LIVE` (a context name owning a VM); read-only — exchanges a grant, reads the VM, asserts 403s. Skips everywhere else.
 - **MCP drift detection**: compares `TOOL_MAP` values against live MCP server tool names. Zero broken tools required.
 
@@ -246,7 +246,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 ```bash
 python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
-All tests must pass. Currently 380 tests (unit) + 5 integration tests.
+All tests must pass. (Exact test counts are deliberately not pinned here — they drift within days; `python3 -m pytest tests/ --collect-only -q` prints the current number.)
 
 ### 2. Lint
 ```bash
