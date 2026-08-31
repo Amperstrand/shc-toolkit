@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -148,6 +149,20 @@ def _get_fmt(args) -> str:
 # ── VM Lifecycle ──────────────────────────────────────────
 
 
+def _runtime_state(c, vm_id: int) -> str:
+    """Runtime power state via the per-VM summary probe (reap's proven path).
+
+    Fail-soft: '?' when the VM cannot be inspected — display only, never a
+    hard error mid-listing (reap uses the same probe and treats VMs it
+    cannot inspect as off-limits).
+    """
+    try:
+        rt = (c.get_vm_summary(vm_id) or {}).get("runtime") or {}
+        return str(rt.get("raw_status") or rt.get("state") or "?")
+    except Exception:
+        return "?"
+
+
 def cmd_list(args):
     c = _client(args)
     vms = c.list_vms()
@@ -158,16 +173,85 @@ def cmd_list(args):
     if not vms:
         print("No VMs found.")
         return
+    billing = 0
+    stopped_billable = 0
     for vm in vms:
         ip = vm.get("ips", [{}])[0].get("ip", "no-ip") if vm.get("ips") else "no-ip"
+        status = vm.get("service_status", "?")
+        runtime = "?"
+        if status not in ("canceled", "suspended"):
+            billing += 1
+            runtime = _runtime_state(c, vm["id"]).lower() or "?"
+        marker = ""
+        if "stop" in runtime or "shut" in runtime:
+            marker = "  ← STILL BILLING"
+            stopped_billable += 1
         print(
-            f"  id={vm['id']:>5}  {vm['hostname']:30s}  {vm['service_status']:10s}  {vm.get('runtime_status', '?'):10s}  {ip}"
+            f"  id={vm['id']:>5}  {vm['hostname']:30s}  {status:10s}  {runtime:12s}{marker}  {ip}"
         )
+    print()
+    if stopped_billable:
+        print(
+            f"⚠  {stopped_billable} stopped VM(s) STILL BILLING — SHC bills by existence;"
+            " billing stops only at cancel (not shutdown)."
+        )
+    if billing:
+        print(
+            f"{billing} of {len(vms)} VMs accruing charges — 'shc cancel <id>' ends billing."
+        )
+
+
+def _billing_block(vm: dict) -> str | None:
+    """Human billing footer for `shc info -o table` (issue #38).
+
+    SHC exposes no accrued-cost ledger (the transaction list only records
+    topups), so accrued-to-date is an estimate: rate × days since creation.
+    The headline fact is that billing continues at the FULL rate while
+    stopped.
+    """
+    pricing = (vm or {}).get("pricing") or {}
+    raw_rate = pricing.get("price")
+    if raw_rate is None:
+        return None
+    try:
+        rate = float(raw_rate)
+    except (TypeError, ValueError):
+        return None
+    currency = pricing.get("currency", "USD")
+    period = pricing.get("period", "day")
+    lines = [
+        "billing:",
+        f"  rate: {rate:g} {currency}/{period} — continues at FULL rate while stopped",
+    ]
+    created = str(vm.get("date_created") or "")
+    if created:
+        try:
+            dt = datetime.fromisoformat(
+                created.replace("Z", "+00:00").replace(" ", "T")
+            )
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UTC)
+            days = max((datetime.now(UTC) - dt).total_seconds() / 86400, 0.0)
+            lines.append(
+                f"  accrued ≈ {rate * days:.2f} {currency} "
+                f"({days:.1f} days × {rate:g}; estimate — SHC exposes no cost ledger)"
+            )
+        except ValueError:
+            pass
+    lines.append("  billing stops ONLY at: shc cancel <id>")
+    return "\n".join(lines)
 
 
 def cmd_info(args):
     c = _client(args)
-    _print(c.get_vm_summary(args.service_id), _get_fmt(args))
+    summary = c.get_vm_summary(args.service_id)
+    fmt = _get_fmt(args)
+    _print(summary, fmt)
+    if fmt == "table":
+        block = _billing_block(summary)
+        if block:
+            print()
+            print(block)
 
 
 def cmd_metrics(args):
