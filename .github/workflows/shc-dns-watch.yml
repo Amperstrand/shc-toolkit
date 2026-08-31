@@ -73,6 +73,7 @@ jobs:
             exit 1
           fi
           STATE="$(gh issue view "$ISSUE" --json state --jq .state)"
+          STATE="${STATE,,}"
           if [ "$STATE" = "open" ]; then
             gh issue comment "$ISSUE" --body "✅ **Recovered** — DNS + API healthy from GitHub's network at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (OpenAPI spec fetch → HTTP 200). Auto-closing. Remove or disable the \`shc-dns-watch\` workflow (it now no-ops silently while this issue is closed)."
             gh issue close "$ISSUE"
