@@ -67,13 +67,18 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ISSUE: ${{ env.WATCH_ISSUE }}
         run: |
-          STATE="$(gh issue view "$ISSUE" --json state --jq .state 2>/dev/null || echo missing)"
+          ERR="$(gh issue view "$ISSUE" --json state --jq .state 2>&1 >/dev/null)" && RC=0 || RC=$?
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::gh issue view #$ISSUE failed (rc=$RC): $ERR"
+            exit 1
+          fi
+          STATE="$(gh issue view "$ISSUE" --json state --jq .state)"
           if [ "$STATE" = "open" ]; then
             gh issue comment "$ISSUE" --body "✅ **Recovered** — DNS + API healthy from GitHub's network at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (OpenAPI spec fetch → HTTP 200). Auto-closing. Remove or disable the \`shc-dns-watch\` workflow (it now no-ops silently while this issue is closed)."
             gh issue close "$ISSUE"
           elif [ "$STATE" = "closed" ]; then
             echo "Healthy and issue already closed — nothing to do."
           else
-            echo "::error::Cannot read issue #$ISSUE state (repo ${GH_REPO:-unset}) — recovery detected but auto-close failed; close manually."
+            echo "::error::Unexpected issue state '$STATE' for #$ISSUE — close manually."
             exit 1
           fi
