@@ -28,8 +28,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-nodns = ["nostr-sdk>=0.44,<0.45"]
-register = ["nostr-sdk>=0.44,<0.45", "qrcode>=7.0"]
+nodns = ["nostr-sdk>=0.45,<0.46"]
+register = ["nostr-sdk>=0.45,<0.46", "qrcode>=7.0"]
 console = ["playwright>=1.40"]
 tunnel = ["playwright>=1.40", "pytesseract>=0.3", "Pillow>=10.0"]
 mcp = ["mcp>=1.0"]

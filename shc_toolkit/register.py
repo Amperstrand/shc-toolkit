@@ -58,7 +58,12 @@ def sign_challenge(
     if url:
         tags.append(Tag.parse(["u", url]))
     tags.append(Tag.parse(["method", method.upper()]))
-    event = EventBuilder(Kind(kind), challenge).tags(tags).sign_with_keys(keys)
+    unsigned = (
+        EventBuilder(Kind(kind), challenge)
+        .tags(tags)
+        .finalize_unsigned(keys.public_key())
+    )
+    event = keys.sign_event(unsigned)
     return json.loads(event.as_json())
 
 

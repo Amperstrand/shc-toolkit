@@ -37,11 +37,12 @@ class NomailClient:
         npub = keys.public_key().to_bech32()
         with httpx.Client(base_url=base_url, timeout=30) as anon:
             nonce = anon.post("/api/auth/challenge").raise_for_status().json()["nonce"]
-            event = (
+            unsigned = (
                 EventBuilder(Kind(27235), nonce)
                 .tags([Tag.parse(["challenge", nonce])])
-                .sign_with_keys(keys)
+                .finalize_unsigned(keys.public_key())
             )
+            event = keys.sign_event(unsigned)
             import json as _json
 
             body = {"event": _json.loads(event.as_json())}

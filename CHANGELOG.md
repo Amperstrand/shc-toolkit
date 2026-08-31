@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Changed
+- **Migrated to nostr-sdk 0.45 (pin now `>=0.45,<0.46`, was `>=0.44,<0.45`) — closes #42.** 0.45 removed `EventBuilder.sign_with_keys`; all four signing sites (`client.py` NIP-98 + grant signing, `nomail.py` login, `register.py` challenge) now use the new flow: `builder.finalize_unsigned(keys.public_key())` → `keys.sign_event(unsigned)`. Other 0.45 changes audited: `add_relay` requires `RelayUrl` (nodns.py already correct), `fetch_events` takes a `ReqTarget` (unused by the toolkit). Verified in two environments (fresh 0.45.1 venv: unit suite green; main env upgraded to 0.45.1: full 400-test suite green) and live: `shc mail` completed a full NIP-98 login + inbox read through the ported code during the SHC DNS outage.
 - **README "Single location: Katy, Texas only" corrected** — SHC operates two sites: Katy, TX (NVMe/SSD/HDD VPS) and Cherryvale, KS (Dev VPS plans). The same README's nested-KVM bullet already documented Cherryvale; the locations bullet predated Dev plans. Found by the final doc-audit sweep.
 
 ### Fixed

@@ -64,7 +64,10 @@ def _sign_nip98_operate_request(nsec: str, url: str, *, method: str = "POST") ->
         Tag.parse(["nonce", nonce]),
     ]
     keys = Keys.parse(nsec)
-    event = EventBuilder(Kind(27235), nonce).tags(tags).sign_with_keys(keys)
+    unsigned = (
+        EventBuilder(Kind(27235), nonce).tags(tags).finalize_unsigned(keys.public_key())
+    )
+    event = keys.sign_event(unsigned)
     return _json.loads(event.as_json())
 
 
@@ -164,7 +167,8 @@ def sign_operate_grant(
         origin = urlparse(BASE_URL)
         aud = f"shc:{origin.scheme}://{origin.netloc}"
     now = int(time.time())
-    event = (
+    keys = Keys.parse(nsec)
+    unsigned = (
         EventBuilder(Kind(30078), "")
         .tags(
             [
@@ -176,8 +180,9 @@ def sign_operate_grant(
                 Tag.parse(["exp", str(now + ttl)]),
             ]
         )
-        .sign_with_keys(Keys.parse(nsec))
+        .finalize_unsigned(keys.public_key())
     )
+    event = keys.sign_event(unsigned)
     return _json.loads(event.as_json())
 
 
