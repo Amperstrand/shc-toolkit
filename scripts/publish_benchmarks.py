@@ -46,7 +46,6 @@ FREE_TIER_SIZE_LIMIT = 1_000_000  # 1 MB — files under this are free on blosso
 KIND_APP_DATA = 30078
 
 
-
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 
