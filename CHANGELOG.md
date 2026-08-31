@@ -1,6 +1,10 @@
 ## [Unreleased]
 
+### Added
+- **`catalog.json` — machine-readable catalog artifact (issue #37, dry/static).** `scripts/generate-catalog-json.py` dumps the static catalog model into a stable JSON document for cross-language consumers (Go provider, Pulumi bridge): per-line storefront triples, per-package specs/spec-name/daily-price/pricing-id/option-ids/templates, schema `shc-catalog/1` with api+toolkit versions. Stdlib-only (loads `catalog_model` standalone — no httpx), deterministic (sorted keys, byte-identical re-runs), `--check` flag doubles as a drift gate. Committed at repo root; shape pinned by `tests/test_catalog_artifact.py`. TF/Pulumi consumption of the artifact is future work.
+
 ### Changed
+- **CI ruff gate widened to `tests/` + `scripts/` and pinned (`ruff==0.16.5`).** Both directories carried ~60 accumulated lint errors outside the old `shc_toolkit/`-only gate; all cleared (auto-fixes, dead assignments removed, shebang chmods, import relocations, combined `with` statements, `ClassVar` annotations), and the pin prevents the unpinned-install version-skew surprise that red-flagged the v2.4.24.3 tag run.
 - **Migrated to nostr-sdk 0.45 (pin now `>=0.45,<0.46`, was `>=0.44,<0.45`) — closes #42.** 0.45 removed `EventBuilder.sign_with_keys`; all four signing sites (`client.py` NIP-98 + grant signing, `nomail.py` login, `register.py` challenge) now use the new flow: `builder.finalize_unsigned(keys.public_key())` → `keys.sign_event(unsigned)`. Other 0.45 changes audited: `add_relay` requires `RelayUrl` (nodns.py already correct), `fetch_events` takes a `ReqTarget` (unused by the toolkit). Verified in two environments (fresh 0.45.1 venv: unit suite green; main env upgraded to 0.45.1: full 400-test suite green) and live: `shc mail` completed a full NIP-98 login + inbox read through the ported code during the SHC DNS outage.
 - **README "Single location: Katy, Texas only" corrected** — SHC operates two sites: Katy, TX (NVMe/SSD/HDD VPS) and Cherryvale, KS (Dev VPS plans). The same README's nested-KVM bullet already documented Cherryvale; the locations bullet predated Dev plans. Found by the final doc-audit sweep.
 
