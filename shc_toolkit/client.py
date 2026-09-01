@@ -1326,29 +1326,42 @@ class SHCClient:
     def preview_order(self, **kwargs) -> dict:
         return self._post("/ordering/preview", kwargs)
 
-    def check_stock(self, template: str = "debian13-cloud") -> list[dict]:
+    def check_stock(
+        self, template: str = "debian13-cloud", lines: list[str] | None = None
+    ) -> list[dict]:
         """Check VM availability across all catalog packages.
 
         Uses preview_order as a non-binding probe to check stock without
-        placing an order. Returns only packages that are currently in stock.
+        placing an order. Probes run in parallel (each preview costs the
+        API ~5-15s; serial probing of 20 packages took >4 minutes —
+        measured 2026-09-01).
 
         Args:
             template: OS template to check availability for.
+            lines: Optional catalog-line filter (e.g. ["nvme"]) — skips
+                out-of-scope packages entirely instead of paying their
+                probe cost.
 
         Returns:
             List of dicts with keys: package_id, name, specs, price_per_day,
             pricing_id, available, reason.
         """
+        from concurrent.futures import ThreadPoolExecutor
+
         catalog = self.get_catalog()
-        results = []
+        probes = []
         for pkg in catalog:
-            pid = pkg["package_id"]
+            if lines and not pkg["name"].lower().startswith(tuple(f"{l} " for l in lines)):
+                continue
             daily = next(
                 (p for p in pkg.get("pricing", []) if p.get("period") == "day"),
                 None,
             )
-            if not daily:
-                continue
+            if daily:
+                probes.append((pkg, daily))
+
+        def _probe(pkg, daily):
+            pid = pkg["package_id"]
             try:
                 preview = self.preview_order(
                     hostname="stock-probe",
@@ -1357,26 +1370,25 @@ class SHCClient:
                     template=template,
                 )
                 avail = preview.get("availability", {})
-                results.append(
-                    {
-                        "package_id": pid,
-                        "name": pkg["name"],
-                        "specs": f"{pkg['cpu']}cpu/{pkg['memory_mb'] // 1024}GB/{pkg['disk_gb']}GB",
-                        "price_per_day": daily["price"],
-                        "pricing_id": daily["pricing_id"],
-                        "available": avail.get("available", False),
-                        "reason": avail.get("reason", ""),
-                    }
-                )
+                return {
+                    "package_id": pid,
+                    "name": pkg["name"],
+                    "specs": f"{pkg['cpu']}cpu/{pkg['memory_mb'] // 1024}GB/{pkg['disk_gb']}GB",
+                    "price_per_day": daily["price"],
+                    "pricing_id": daily["pricing_id"],
+                    "available": avail.get("available", False),
+                    "reason": avail.get("reason", ""),
+                }
             except Exception as e:
-                results.append(
-                    {
-                        "package_id": pid,
-                        "name": pkg["name"],
-                        "available": False,
-                        "reason": str(e)[:100],
-                    }
-                )
+                return {
+                    "package_id": pid,
+                    "name": pkg["name"],
+                    "available": False,
+                    "reason": str(e)[:100],
+                }
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            results = list(ex.map(lambda pd: _probe(*pd), probes))
         return results
 
     def find_cheapest_available(
@@ -2343,14 +2355,20 @@ class SHCClient:
             return (
                 "CLOUD_INIT_DISABLED_DEADLOCK",
                 "VM stuck in provisioning; cloud-init likely disabled or "
-                "failed. Bootstrap signal never fired.",
+                "failed. Bootstrap signal never fired. If port 22 is ALSO "
+                "unreachable from your location, suspect the FACILITY "
+                "rather than the VM (Cherryvale hosts the ssd/dev lines "
+                "and was unreachable from EU routes — two dead orders, "
+                "2026-09-01); see `shc sizes` for the zone map.",
             )
         if ip_assigned and not port_22_reachable and runtime_status == "running":
             return (
                 "NETWORK_UNREACHABLE",
                 "VM is running and has an IP assigned, but port 22 is "
                 "unreachable from outside. Likely network/bridge/hypervisor "
-                "issue.",
+                "issue — or the facility is unreachable from your route "
+                "(Cherryvale/ssd+dev lines from EU, 2026-09-01); see "
+                "`shc sizes` for the zone map.",
             )
         if activity_count == 0 and age_seconds > 600:
             return (

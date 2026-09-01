@@ -14,6 +14,7 @@ from typing import Any
 from .benchmark import print_results as print_bench_results
 from .benchmark import run_full_suite
 from .client import SHCClient, SHCError
+from .client import REAP_TAG_RE
 from .client import normalize_reap_tag
 
 try:
@@ -317,20 +318,36 @@ def cmd_cancel(args):
 # ── Ordering ──────────────────────────────────────────────
 
 
+def apply_reap_tag(hostname: str, reap: str | None) -> tuple[str, bool]:
+    """Append the '-reap<value>' deadline tag unless one is already present.
+
+    Returns (hostname, appended). Earned 2026-09-01: ordering with
+    --hostname tg-x-reap8h --reap 8h produced tg-x-reap8h-reap8h —
+    a double tag where the hostname lies about its own deadline.
+    """
+    if not reap:
+        return hostname, False
+    tag = normalize_reap_tag(reap)
+    if REAP_TAG_RE.search(hostname.lower()):
+        return hostname, False
+    return f"{hostname}-reap{tag}", True
+
+
 def cmd_order(args):
     c = _client(args)
-    hostname = args.hostname
+    try:
+        hostname, appended = apply_reap_tag(args.hostname, getattr(args, "reap", None))
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     if getattr(args, "reap", None):
-        # Deadline tag: the reaper spares this VM until the deadline, then
-        # reaps it (client.py REAP_TAG_RE grammar). Short tags for short
-        # work, reap3d/reap48h-class tags for multi-day campaigns.
-        try:
-            tag = normalize_reap_tag(args.reap)
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-        hostname = f"{hostname}-reap{tag}"
-        print(f"hostname: {hostname} (reaper deadline tag applied)", file=sys.stderr)
+        if appended:
+            print(f"hostname: {hostname} (reaper deadline tag applied)", file=sys.stderr)
+        else:
+            print(
+                f"hostname: {hostname} (already carries a reap tag — not double-appending)",
+                file=sys.stderr,
+            )
     ssh_key = None
     if args.ssh_key:
         if os.path.isfile(os.path.expanduser(args.ssh_key)):
@@ -354,6 +371,22 @@ def cmd_order(args):
             file=sys.stderr,
         )
         sys.exit(1)
+
+    from .sizes import SIZE_MAP, FACILITIES
+
+    line = next((e["line"] for e in SIZE_MAP.values() if e["package_id"] == package_id), None)
+    fac = FACILITIES.get(line)
+    if fac:
+        print(
+            f"facility: {fac['facility']} (module group {fac['module_group_id']})",
+            file=sys.stderr,
+        )
+        if fac["reachability"] != "ok":
+            print(
+                f"WARNING: this line's facility is flagged {fac['reachability']} "
+                f"— verify reachability before ordering (see `shc sizes`)",
+                file=sys.stderr,
+            )
 
     kwargs: dict[str, Any] = {
         "hostname": hostname,
@@ -1012,10 +1045,78 @@ def cmd_templates(args):
 def cmd_sizes(args):
     from .sizes import list_sizes
 
-    for s in list_sizes():
+    stock_by_pkg = None
+    if getattr(args, "available", False):
+        c = _client(args)
+        template = getattr(args, "template", None) or "debian13-cloud"
+        line = getattr(args, "line", None)
         print(
-            f"  {s['size']:20s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB  ${s.get('name', ''):30s}  pkg={s['package_id']}"
+            f"probing stock ({template}{f', line {line}' if line else ''}) — parallel, up to a few minutes...",
+            file=sys.stderr,
         )
+        stock_by_pkg = {
+            s["package_id"]: s
+            for s in c.check_stock(template=template, lines=[line] if line else None)
+        }
+
+    for s in list_sizes(getattr(args, "line", None)):
+        zone = f"{s.get('facility') or '?'} (g{s.get('module_group_id') or '?'})"
+        reach = s.get("reachability") or "ok"
+        zone_flag = "" if reach == "ok" else f"  << {reach}"
+        avail = ""
+        if stock_by_pkg is not None:
+            st = stock_by_pkg.get(s["package_id"]) or {}
+            avail = "  in-stock" if st.get("available") else "  OUT-OF-STOCK"
+        print(
+            f"  {s['size']:18s}  {s['cpu']:>2}C/{s['ram_mb']:>6}MB/{s['disk_gb']:>3}GB"
+            f"  ${s['daily_price']:>5}/day  pkg={s['package_id']:>3}  {zone}{avail}{zone_flag}"
+        )
+
+
+def cmd_stock(args):
+    c = _client(args)
+    template = getattr(args, "template", None) or "debian13-cloud"
+    line = getattr(args, "line", None)
+    print(
+        f"probing stock ({template}{f', line {line}' if line else ''}) — parallel, up to a few minutes...",
+        file=sys.stderr,
+    )
+    from .sizes import FACILITIES
+
+    rows = c.check_stock(template=template, lines=[line] if line else None)
+    in_stock = [r for r in rows if r.get("available")]
+    out = [r for r in rows if not r.get("available")]
+    print(f"  IN STOCK ({len(in_stock)}):")
+    for r in sorted(in_stock, key=lambda r: float(r["price_per_day"])):
+        fac = next(
+            (fac for ln, fac in FACILITIES.items() if r["name"].lower().startswith(f"{ln} ")),
+            None,
+        )
+        where = f"  {fac['facility']}" if fac else ""
+        warn = "" if not fac or fac["reachability"] == "ok" else f"  << {fac['reachability']}"
+        print(f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r['specs']:16s}  ${r['price_per_day']}/day{where}{warn}")
+    print(f"  OUT OF STOCK ({len(out)}):")
+    for r in sorted(out, key=lambda r: r["name"]):
+        print(f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r.get('reason', '')[:70]}")
+
+
+def cmd_reinstall(args):
+    c = _client(args)
+    template = getattr(args, "template", None) or "debian13-cloud"
+    try:
+        _print(c.reinstall_vm(args.service_id, template=template), _get_fmt(args))
+    except SHCError as e:
+        if "stopped" in str(e).lower():
+            print(
+                f"Error: {e}\n"
+                f"reinstall requires a STOPPED VM — sequence:\n"
+                f"  shc stop {args.service_id}\n"
+                f"  shc reinstall {args.service_id} --template {template}\n"
+                f"  shc start {args.service_id}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        raise
 
 
 # ── GitHub ephemeral runner ───────────────────────────────
@@ -1657,8 +1758,22 @@ def main():
     p = sub.add_parser("templates", help="List OS templates")
     p.set_defaults(func=cmd_templates)
 
-    p = sub.add_parser("sizes", help="List named VM sizes")
+    p = sub.add_parser("sizes", help="List named VM sizes (with facility/zone)")
+    p.add_argument("--line", help="Filter by catalog line (nvme/ssd/hdd/dev)")
+    p.add_argument(
+        "--available",
+        action="store_true",
+        help="Also probe live stock per package (~20 API calls)",
+    )
+    p.add_argument("--template", default="debian13-cloud", help="OS template for --available")
     p.set_defaults(func=cmd_sizes)
+
+    p = sub.add_parser(
+        "stock", help="Live stock across the catalog (~20 API calls, sorted in-stock first)"
+    )
+    p.add_argument("--line", help="Filter by catalog line (nvme/ssd/hdd/dev)")
+    p.add_argument("--template", default="debian13-cloud", help="OS template")
+    p.set_defaults(func=cmd_stock)
 
     p = sub.add_parser("contextvm", help="Install ContextVM MCP server on a VM")
     p.add_argument("--host", required=True, help="VM IP address")

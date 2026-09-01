@@ -18,11 +18,46 @@ def spec_name(line: str, cpu: int, ram_mb: int) -> str:
     return f"{line}-{cpu}c-{ram_mb // 1024}gb"
 
 
+# Physical facility (SHC module group) per catalog line. Earned live
+# 2026-09-01 (lightning-playground #96 fuzz campaign): the "SSD VPS"
+# and "Dev VPS" lines both land in the Cherryvale, Kansas facility,
+# which was UNREACHABLE from the EU lab route — two fresh orders sat
+# with port 22 closed and the cloud-init bootstrap signal unfired
+# (health diagnosed it as a cloud-init deadlock; the real cause was the
+# facility), both canceled with refund. The Katy, Texas facility
+# (NVMe + HDD lines) provisioned SSH-reachable in under a minute.
+# Ordering an ssd-* or dev-* size is therefore a trap for EU-route
+# sessions — the CLI surfaces this so nobody re-derives it by burn.
+FACILITIES: dict[str, dict] = {
+    "nvme": {
+        "module_group_id": 4,
+        "facility": "Katy, Texas",
+        "reachability": "ok",
+    },
+    "hdd": {
+        "module_group_id": 8,
+        "facility": "Katy, Texas (HDD)",
+        "reachability": "ok",
+    },
+    "ssd": {
+        "module_group_id": 7,
+        "facility": "Cherryvale, Kansas",
+        "reachability": "unreachable-eu-2026-09-01",
+    },
+    "dev": {
+        "module_group_id": 7,
+        "facility": "Cherryvale, Kansas",
+        "reachability": "unreachable-eu-2026-09-01",
+    },
+}
+
+
 def _build_size_map() -> dict[str, dict]:
     result: dict[str, dict] = {}
     for pkg in _model_packages():
         key = spec_name(pkg["line"], pkg["cpu"], pkg["memory_mb"])
         daily = next(p["price"] for p in pkg["pricing"] if p["period"] == "day")
+        fac = FACILITIES.get(pkg["line"], {})
         result[key] = {
             "package_id": pkg["package_id"],
             "cpu": pkg["cpu"],
@@ -31,6 +66,9 @@ def _build_size_map() -> dict[str, dict]:
             "line": pkg["line"],
             "name": pkg["name"],
             "daily_price": daily,
+            "module_group_id": fac.get("module_group_id"),
+            "facility": fac.get("facility"),
+            "reachability": fac.get("reachability"),
         }
     return result
 

@@ -34,6 +34,11 @@ shc-pulumi (Python, maintenance mode)
 1. **The drift detection CI will auto-create a GitHub issue** with the diff.
 2. Refresh the spec: `curl -sS https://blesta.sovereignhybridcompute.com/user-api/openapi.json > shc_toolkit/openapi.json`
 3. Wrap new endpoints in `shc_toolkit/client.py` (REST methods).
+   - **New catalog line → extend `FACILITIES` in `sizes.py`** with the
+     module group + facility + reachability. The API does not expose
+     zone data (verified 2026-09-01); the map is hand-maintained
+     evidence (ssd/dev = Cherryvale g7, unreachable from EU routes —
+     two dead orders; nvme = Katy g4, hdd = Katy-HDD g8).
 4. Add MCP tools to `TOOL_MAP` in `shc_toolkit/mcp_client.py` + add SHCMCPClient methods. **Check `x-shc-mcp-exposure`** — 20 ops are `hidden` (identity-class, not API-key callable, not MCP-exposed). Do NOT add these to TOOL_MAP.
 5. Add method signatures to `shc_toolkit/transport.py` (the Protocol ABC).
 6. Add Go methods to `terraform-provider-shc/provider/client.go`.

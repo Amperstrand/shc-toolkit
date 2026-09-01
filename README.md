@@ -39,6 +39,36 @@ shc info <service_id>
 shc cancel <service_id>
 ```
 
+## Zones & Facilities (read before ordering)
+
+Catalog lines live in different physical facilities, and reachability
+differs per route (earned 2026-09-01: two fresh **ssd** orders were
+dead on arrival from an EU route — port 22 closed, cloud-init
+bootstrap never fired — while a Katy **hdd** order provisioned
+SSH-reachable in under a minute):
+
+| Line | Facility (module group) | Notes |
+|---|---|---|
+| `nvme-*` | Katy, Texas (g4) | default recommendation |
+| `hdd-*` | Katy, Texas — HDD (g8) | same facility, spinning disk |
+| `ssd-*` | **Cherryvale, Kansas (g7)** | unreachable from EU routes 2026-09-01 |
+| `dev-*` | **Cherryvale, Kansas (g7)** | same facility as ssd |
+
+```bash
+shc sizes                 # every size with its facility + reachability flag
+shc sizes --available     # + live stock probe (~20 API calls)
+shc stock                 # live stock across the catalog, in-stock first
+shc order --size nvme-4c-16gb --reap 8h ...   # warns when the line's facility is flagged
+```
+
+Notes:
+- `shc order --hostname x-reap8h --reap 8h` no longer double-tags; the
+  existing tag wins and the CLI says so.
+- `provisioning_state` may stay `"provisioning"` forever on a healthy
+  VM — the real health signal is SSH reachability (port 22).
+- `shc reinstall` requires a STOPPED VM (`shc stop` → `reinstall` →
+  `start`); the CLI prints the exact sequence on conflict.
+
 ## Python Library
 
 ```python
