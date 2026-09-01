@@ -16,7 +16,7 @@ import re
 import socket
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -29,6 +29,71 @@ from .catalog_model import packages as _model_packages
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
+
+# ── reaper deadline tags ─────────────────────────────────────────────
+# A VM may declare its own reap deadline in its HOSTNAME (end-anchored,
+# so it never collides with ordinary name tokens like "-r2d2"):
+#
+#     <prefix>-<name>-reap<VALUE>
+#
+# VALUE is either an absolute unix epoch (>= 10 digits, e.g.
+# "-reap1767225600") or a duration relative to the VM's creation
+# ("<digits><m|h|d>", e.g. "-reap6h", "-reap90m", "-reap3d"). The
+# reaper spares a tagged VM until its deadline, then reaps it —
+# overriding max-age in BOTH directions, and opting the VM into
+# reapability even without a test prefix. Earned 2026-09-01: the
+# overnight reaper ate tg-vls-splice WITH its 124-mutant campaign
+# results because "reapable" was all-or-nothing (lightning-playground
+# LESSONS-2026-09-01-VM-PIVOT-SELF-REVIEW.md).
+REAP_TAG_RE = re.compile(
+    r"-reap(?:(?P<epoch>\d{10,})|(?P<n>\d{1,6})(?P<unit>[mhd]))$"
+)
+REAP_UNITS = {"m": 60, "h": 3600, "d": 86400}
+
+
+def parse_reap_deadline(hostname: str, created: datetime | None) -> datetime | None:
+    """Parse a '-reap<value>' end-of-hostname tag into a UTC deadline.
+
+    Returns None when the hostname carries no (valid) tag — callers fall
+    back to their default reap semantics. A relative tag requires
+    ``created``; without it the tag is treated as absent (the caller's
+    normal age handling already refuses VMs with unparsable creation).
+    Malformed tags (right keyword, wrong shape) also return None after a
+    warning — the safer failure is the well-understood default behavior.
+    """
+    m = REAP_TAG_RE.search(hostname.lower())
+    if not m:
+        return None
+    if m.group("epoch"):
+        return datetime.fromtimestamp(int(m.group("epoch")), tz=UTC)
+    if created is None:
+        log.warning(
+            "reap: %s carries a relative deadline tag but no creation time; "
+            "ignoring the tag",
+            hostname,
+        )
+        return None
+    n, unit = int(m.group("n")), m.group("unit")
+    return created + timedelta(seconds=n * REAP_UNITS[unit])
+
+
+def normalize_reap_tag(value: str) -> str:
+    """Validate a user-supplied --reap value and return the canonical tag
+    body (without the '-reap' prefix): "<n><m|h|d>" or an epoch string.
+
+    Raises ValueError with a usage hint on anything else.
+    """
+    v = value.strip().lower()
+    m = re.fullmatch(r"(\d{1,6})([mhd])", v)
+    if m:
+        return f"{int(m.group(1))}{m.group(2)}"
+    if re.fullmatch(r"\d{10,}", v):
+        return v
+    raise ValueError(
+        f"invalid --reap value {value!r}: use <n><m|h|d> (6h, 90m, 3d) or a "
+        "unix-epoch deadline"
+    )
+
 
 try:
     from importlib.metadata import PackageNotFoundError
@@ -1606,33 +1671,48 @@ class SHCClient:
                 continue
 
             age_hours = (now - created).total_seconds() / 3600
-            if age_hours < max_age_hours:
-                log.debug(
-                    f"reap: {hostname} is {age_hours:.1f}h old (< {max_age_hours}h threshold)"
-                )
-                continue
 
-            if is_test_vm:
-                reason = "test-pattern"
+            # A '-reap<deadline>' hostname tag overrides everything below:
+            # spared until its deadline (even past max-age), reaped at it
+            # (even without a test prefix or a stopped runtime — the tag
+            # is an explicit opt-in to reapability).
+            deadline = parse_reap_deadline(hostname, created)
+            if deadline is not None:
+                if now < deadline:
+                    log.debug(
+                        f"reap: {hostname} spared until tag deadline "
+                        f"{deadline.isoformat()}"
+                    )
+                    continue
+                reason = "reap-deadline"
             else:
-                # Stopped-but-billable zombie (clboss-soak class, 2026-08-26):
-                # SHC bills by service existence, so a VM past max-age whose
-                # runtime is stopped keeps accruing charges no matter its
-                # hostname. Reap exists exactly for this; the exclude/keep
-                # lists above remain the protection for intentional VMs.
-                try:
-                    rt = (self.get_vm_summary(vm_id) or {}).get("runtime") or {}
-                    runtime_status = str(
-                        rt.get("raw_status") or rt.get("state") or ""
-                    ).lower()
-                except Exception as e:
-                    # Fail-open: never cancel a VM we cannot inspect.
-                    log.debug(f"reap: cannot probe runtime of {hostname}: {e}")
+                if age_hours < max_age_hours:
+                    log.debug(
+                        f"reap: {hostname} is {age_hours:.1f}h old (< {max_age_hours}h threshold)"
+                    )
                     continue
-                if "stop" not in runtime_status and "shut" not in runtime_status:
-                    log.debug(f"reap: skipping non-test running VM {hostname}")
-                    continue
-                reason = "stopped-but-billable"
+
+                if is_test_vm:
+                    reason = "test-pattern"
+                else:
+                    # Stopped-but-billable zombie (clboss-soak class, 2026-08-26):
+                    # SHC bills by service existence, so a VM past max-age whose
+                    # runtime is stopped keeps accruing charges no matter its
+                    # hostname. Reap exists exactly for this; the exclude/keep
+                    # lists above remain the protection for intentional VMs.
+                    try:
+                        rt = (self.get_vm_summary(vm_id) or {}).get("runtime") or {}
+                        runtime_status = str(
+                            rt.get("raw_status") or rt.get("state") or ""
+                        ).lower()
+                    except Exception as e:
+                        # Fail-open: never cancel a VM we cannot inspect.
+                        log.debug(f"reap: cannot probe runtime of {hostname}: {e}")
+                        continue
+                    if "stop" not in runtime_status and "shut" not in runtime_status:
+                        log.debug(f"reap: skipping non-test running VM {hostname}")
+                        continue
+                    reason = "stopped-but-billable"
 
             orphan = {
                 "id": vm_id,

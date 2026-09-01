@@ -72,6 +72,15 @@ def vm_age_hours(vm: dict) -> float:
         return 0
 
 
+def vm_created(vm: dict) -> datetime | None:
+    created = vm.get("date_created", "")
+    try:
+        dt = datetime.fromisoformat(created)
+        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+    except (ValueError, TypeError):
+        return None
+
+
 def has_cancel_scheduled(vm_detail: dict) -> bool:
     return vm_detail.get("date_canceled") is not None
 
@@ -83,7 +92,7 @@ def main() -> int:
     args = parser.parse_args()
 
     sys.path.insert(0, ".")
-    from shc_toolkit.client import SHCClient, SHCError
+    from shc_toolkit.client import SHCClient, SHCError, parse_reap_deadline
 
     c = SHCClient()
     vms = c.list_vms()
@@ -93,6 +102,21 @@ def main() -> int:
         hostname = vm.get("hostname", "")
         if should_keep(hostname):
             continue
+
+        # '-reap<deadline>' hostname tags override both layers below:
+        # spared until the deadline, reaped at it — and the tag alone
+        # opts a VM in (no CI-pattern needed; explicit self-declared
+        # ephemerality). Grammar: shc_toolkit.client.REAP_TAG_RE.
+        deadline = parse_reap_deadline(hostname, vm_created(vm))
+        if deadline is not None:
+            if datetime.now(UTC) < deadline:
+                continue
+            candidates.append(
+                (vm["id"], hostname, vm_age_hours(vm), vm.get("service_status", "?"),
+                 "reap-deadline tag")
+            )
+            continue
+
         if not is_ci_vm(hostname):
             continue
 

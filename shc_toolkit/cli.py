@@ -14,6 +14,7 @@ from typing import Any
 from .benchmark import print_results as print_bench_results
 from .benchmark import run_full_suite
 from .client import SHCClient, SHCError
+from .client import normalize_reap_tag
 
 try:
     from .nodns import (
@@ -318,6 +319,18 @@ def cmd_cancel(args):
 
 def cmd_order(args):
     c = _client(args)
+    hostname = args.hostname
+    if getattr(args, "reap", None):
+        # Deadline tag: the reaper spares this VM until the deadline, then
+        # reaps it (client.py REAP_TAG_RE grammar). Short tags for short
+        # work, reap3d/reap48h-class tags for multi-day campaigns.
+        try:
+            tag = normalize_reap_tag(args.reap)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        hostname = f"{hostname}-reap{tag}"
+        print(f"hostname: {hostname} (reaper deadline tag applied)", file=sys.stderr)
     ssh_key = None
     if args.ssh_key:
         if os.path.isfile(os.path.expanduser(args.ssh_key)):
@@ -343,7 +356,7 @@ def cmd_order(args):
         sys.exit(1)
 
     kwargs: dict[str, Any] = {
-        "hostname": args.hostname,
+        "hostname": hostname,
         "package_id": package_id,
         "pricing_id": pricing_id,
     }
@@ -1284,6 +1297,17 @@ def main():
         "--tag",
         default=None,
         help="Attribution tag embedded in the key comment (#shc-order=<tag>; default $SHC_ORDER_TAG or user@host)",
+    )
+    p.add_argument(
+        "--reap",
+        default=None,
+        metavar="DURATION",
+        help=(
+            "Append a reaper deadline tag to the hostname: <n><m|h|d> "
+            "(6h, 90m, 3d) or a unix-epoch deadline. The reaper spares the "
+            "VM until the deadline, then reaps it — use short tags for "
+            "short work, long tags for hours/days campaigns."
+        ),
     )
     p.add_argument(
         "--template",
