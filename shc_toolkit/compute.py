@@ -344,6 +344,15 @@ def cmd_instances(args):
         if ssh_key_content:
             order_kwargs["ssh_key"] = ssh_key_content
 
+        # Same fail-early policy as `shc order`: refuse to bill into a
+        # facility flagged unreachable (Cherryvale ssd/dev — issue #39).
+        from .sizes import unstable_order_refusal
+
+        refusal = unstable_order_refusal(mt["package_id"], allow=False)
+        if refusal:
+            print(refusal, file=sys.stderr)
+            sys.exit(1)
+
         try:
             result = client.submit_order(**order_kwargs)
             service_id = result.get("service_id") or result.get("id")

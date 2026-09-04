@@ -372,19 +372,30 @@ def cmd_order(args):
         )
         sys.exit(1)
 
-    from .sizes import SIZE_MAP, FACILITIES
+    from .sizes import facility_for_package, unstable_order_refusal
 
-    line = next((e["line"] for e in SIZE_MAP.values() if e["package_id"] == package_id), None)
-    fac = FACILITIES.get(line)
+    fac = facility_for_package(package_id)
     if fac:
         print(
             f"facility: {fac['facility']} (module group {fac['module_group_id']})",
             file=sys.stderr,
         )
+        # Fail early into a flagged facility (2026-09-04): waiting out the
+        # provisioning timeout cannot fix a facility that never attaches
+        # VMs to the network — refuse the order before it bills.
+        refusal = unstable_order_refusal(
+            package_id,
+            allow=bool(getattr(args, "allow_unstable_zone", False)),
+            dry_run=bool(getattr(args, "dry_run", False)),
+        )
+        if refusal:
+            print(refusal, file=sys.stderr)
+            sys.exit(1)
         if fac["reachability"] != "ok":
             print(
-                f"WARNING: this line's facility is flagged {fac['reachability']} "
-                f"— verify reachability before ordering (see `shc sizes`)",
+                f"WARNING: proceeding into flagged facility "
+                f"'{fac['reachability']}' (dry-run or --allow-unstable-zone) "
+                f"— expect an unroutable VM",
                 file=sys.stderr,
             )
 
@@ -1417,6 +1428,15 @@ def main():
     )
     p.add_argument("--idempotency-key", help="Client-generated idempotency key")
     p.add_argument("--dry-run", action="store_true", help="Preview only")
+    p.add_argument(
+        "--allow-unstable-zone",
+        action="store_true",
+        help=(
+            "Proceed even if the size's facility is flagged unreachable "
+            "(debugging path — expect an unroutable VM; the probe script "
+            "has long-wait knobs)"
+        ),
+    )
     p.add_argument(
         "--pay", action="store_true", help="Auto-pay and wait for provisioning"
     )

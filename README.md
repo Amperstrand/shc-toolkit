@@ -58,10 +58,19 @@ SSH-reachable in under a minute):
 shc sizes                 # every size with its facility + reachability flag
 shc sizes --available     # + live stock probe (~20 API calls)
 shc stock                 # live stock across the catalog, in-stock first
-shc order --size nvme-4c-16gb --reap 8h ...   # warns when the line's facility is flagged
+shc order --size nvme-4c-16gb --reap 8h ...   # Katy line — no guard
 ```
 
 Notes:
+- **`shc order` REFUSES flagged facilities by default** (fail-early,
+  2026-09-04): an order into `ssd-*`/`dev-*` exits 1 before submitting —
+  those VMs go billing-active and then never attach to the network
+  (issue #39, still failing 2026-09-04), so waiting out the provisioning
+  timeout cannot help. Debugging the zone deliberately?
+  `--allow-unstable-zone` opts in (or `--dry-run`, which only previews),
+  and `scripts/dev-zone-probe.py` carries the long-wait knobs
+  (`--timeout`, `--net-timeout`). The same guard covers `shc contextvm`
+  orders.
 - `shc order --hostname x-reap8h --reap 8h` no longer double-tags; the
   existing tag wins and the CLI says so.
 - `provisioning_state` may stay `"provisioning"` forever on a healthy

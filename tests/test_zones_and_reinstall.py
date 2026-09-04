@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from shc_toolkit.cli import apply_reap_tag, cmd_reinstall
+from shc_toolkit.cli import apply_reap_tag, cmd_order, cmd_reinstall
 from shc_toolkit.client import SHCClient
 from shc_toolkit.sizes import FACILITIES, SIZE_MAP
 
@@ -95,3 +95,108 @@ class _Args:
 
 def _ns():
     return _Args()
+
+
+def _order_ns(**over):
+    """argparse.Namespace for cmd_order (network-free via _client stub)."""
+    import argparse
+
+    defaults = dict(
+        hostname="tg-test",
+        reap=None,
+        ssh_key=None,
+        size=None,
+        cpu=None,
+        ram=None,
+        disk=None,
+        package_id=None,
+        pricing_id=None,
+        module_group_id=None,
+        tag=None,
+        template=None,
+        dry_run=False,
+        pay=False,
+        pay_qr=False,
+        idempotency_key=None,
+        allow_unstable_zone=False,
+        api_key="test-key",
+        context=None,
+        format="json",
+    )
+    defaults.update(over)
+    return argparse.Namespace(**defaults)
+
+
+class TestUnstableFacilityRefusal:
+    """`shc order` must FAIL EARLY into a flagged facility (2026-09-04).
+
+    A stderr warning was not enough: an order into the flagged Cherryvale
+    facility goes billing-active and then never attaches to the network
+    (issue #39, live-FAIL again 2026-09-04) — waiting 300s cannot help.
+    Default = refuse before spending; --dry-run and --allow-unstable-zone
+    are the debugging paths.
+    """
+
+    def _client_stub(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        import shc_toolkit.cli as cli
+
+        client = MagicMock()
+        client.get_config_options.return_value = {}
+        client.preview_order.return_value = {"preview": True}
+        client.submit_order.return_value = {"service_ids": [1]}
+        monkeypatch.setattr(cli, "_client", lambda args: client)
+        return client
+
+    def test_dev_size_refused_by_default(self, monkeypatch, capsys):
+        client = self._client_stub(monkeypatch)
+        with pytest.raises(SystemExit) as excinfo:
+            cmd_order(_order_ns(size="dev-1c-4gb"))
+        assert excinfo.value.code == 1
+        err = capsys.readouterr().err
+        assert "--allow-unstable-zone" in err, "refusal must name the opt-in"
+        assert "Cherryvale" in err
+        client.submit_order.assert_not_called()
+        client.preview_order.assert_not_called()
+
+    def test_dev_size_allowed_with_opt_in(self, monkeypatch):
+        client = self._client_stub(monkeypatch)
+        cmd_order(_order_ns(size="dev-1c-4gb", allow_unstable_zone=True))
+        client.submit_order.assert_called_once()
+
+    def test_dry_run_warns_but_previews(self, monkeypatch, capsys):
+        client = self._client_stub(monkeypatch)
+        cmd_order(_order_ns(size="dev-1c-4gb", dry_run=True))
+        client.preview_order.assert_called_once()
+        err = capsys.readouterr().err
+        assert "flagged" in err, "dry-run keeps the warning"
+
+    def test_nvme_size_never_refused(self, monkeypatch):
+        client = self._client_stub(monkeypatch)
+        cmd_order(_order_ns(size="nvme-2c-8gb"))
+        client.submit_order.assert_called_once()
+
+    def test_refusal_helper_gates_on_allow_and_dry_run(self):
+        from shc_toolkit.sizes import unstable_order_refusal
+
+        dev_pkg = next(
+            e["package_id"] for e in SIZE_MAP.values() if e["line"] == "dev"
+        )
+        nvme_pkg = next(
+            e["package_id"] for e in SIZE_MAP.values() if e["line"] == "nvme"
+        )
+        assert unstable_order_refusal(dev_pkg, allow=False) is not None
+        assert "--allow-unstable-zone" in unstable_order_refusal(dev_pkg, allow=False)
+        assert unstable_order_refusal(dev_pkg, allow=True) is None
+        assert unstable_order_refusal(dev_pkg, allow=False, dry_run=True) is None
+        assert unstable_order_refusal(nvme_pkg, allow=False) is None
+
+    def test_unknown_package_has_no_refusal(self):
+        from shc_toolkit.sizes import unstable_order_refusal
+
+        assert unstable_order_refusal(999999, allow=False) is None
+
+    def test_flagged_entries_carry_issue_reference(self):
+        for line in ("ssd", "dev"):
+            assert FACILITIES[line].get("issue"), f"{line} must reference its issue"

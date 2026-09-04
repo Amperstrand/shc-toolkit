@@ -43,11 +43,13 @@ FACILITIES: dict[str, dict] = {
         "module_group_id": 7,
         "facility": "Cherryvale, Kansas",
         "reachability": "unreachable-eu-2026-09-01",
+        "issue": "shc-toolkit issue #39",
     },
     "dev": {
         "module_group_id": 7,
         "facility": "Cherryvale, Kansas",
         "reachability": "unreachable-eu-2026-09-01",
+        "issue": "shc-toolkit issue #39",
     },
 }
 
@@ -91,6 +93,42 @@ def resolve_size(size: str) -> tuple[int, int]:
         valid = ", ".join(SIZE_MAP)
         raise ValueError(f'Unknown size "{size}". Valid sizes: {valid}')
     return entry["package_id"], _PRICING_LOOKUP[entry["package_id"]]
+
+
+def facility_for_package(package_id: int) -> dict | None:
+    """FACILITIES record for a package's catalog line (None if unmapped)."""
+    entry = next(
+        (e for e in SIZE_MAP.values() if e["package_id"] == package_id), None
+    )
+    if entry is None:
+        return None
+    return FACILITIES.get(entry["line"])
+
+
+def unstable_order_refusal(
+    package_id: int, *, allow: bool, dry_run: bool = False
+) -> str | None:
+    """Refusal message for ordering into a flagged facility, else None.
+
+    Fail-early policy (earned 2026-09-04, still-#39 evening): a flagged
+    facility is not worth a real order — VMs go billing-active within
+    ~80s and then never attach to the network from the affected routes;
+    waiting cannot fix that, so refuse BEFORE spending. Dry runs and
+    explicit opt-ins (``--allow-unstable-zone``) are exempt — they are
+    the debugging paths, alongside ``scripts/dev-zone-probe.py``.
+    """
+    fac = facility_for_package(package_id)
+    if not fac or fac.get("reachability") == "ok" or allow or dry_run:
+        return None
+    issue = fac.get("issue", "facility flagged")
+    return (
+        f"Error: refusing to order into {fac['facility']} — this line is "
+        f"flagged '{fac['reachability']}' ({issue}: orders go billing-active "
+        f"but never attach to the network; waiting will not help). "
+        f"Use a Katy line (nvme-*, hdd-*), or pass --allow-unstable-zone "
+        f"to debug the zone deliberately (scripts/dev-zone-probe.py has the "
+        f"long-wait knobs)."
+    )
 
 
 def resolve_specs(
