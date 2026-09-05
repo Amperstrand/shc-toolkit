@@ -3298,3 +3298,35 @@ class TestSelfDestruct:
         monkeypatch.delenv("SHC_ACCOUNT_PASSWORD", raising=False)
         with _pytest.raises(RuntimeError, match="SHC_SUICIDE_KEY"):
             arm_self_destruct(lambda cmd: "x", 5, 30)
+
+    def test_reap_defaults_cover_bcr_workers(self):
+        """bcr-agent harness VMs are named bcr-worker-<epoch>-reap<dur>.
+
+        The harness documents its -reap tags as the orphan safety net,
+        but a prefix outside the reaper's defaults makes those tags
+        inert: a controller crash mid-run would leak the VM forever
+        (billing per day) because no prefix gate matches it."""
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        fake_vms = [{
+            "id": 7,
+            "hostname": "bcr-worker-1788560628-reap8h",
+            "service_status": "active",
+            "date_created": "2020-01-01T00:00:00+00:00",
+            "package": "nvme",
+        }]
+        with patch.object(SHCClient, "list_vms", return_value=fake_vms):
+            client = SHCClient(api_key="test-key")
+            orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
+            assert [o["hostname"] for o in orphans] == \
+                ["bcr-worker-1788560628-reap8h"]
+
+        # Untagged worker (tag application failed): the prefix gate must
+        # still catch it past max-age.
+        untagged = [dict(fake_vms[0], hostname="bcr-worker-1788560628")]
+        with patch.object(SHCClient, "list_vms", return_value=untagged):
+            orphans = SHCClient(api_key="test-key").reap_orphans(
+                max_age_hours=0.0, dry_run=True)
+            assert [o["hostname"] for o in orphans] == ["bcr-worker-1788560628"]

@@ -1626,6 +1626,7 @@ class SHCClient:
                 "tmp-",
                 "ci-",
                 "tg-",
+                "bcr-worker-",
                 "zone-test-",
                 "nutshell-",
                 "pytest-test-",
