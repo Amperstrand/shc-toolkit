@@ -482,3 +482,14 @@ Earned 2026-08-27/28 running the PRTA cloud lab against a freshly-repaired Dev z
 
 ### 29. Operate-lane server contracts (live negative pass, 2026-08-31)
 Fed the exchange deliberately bad grants right after DNS recovered — every rejection was a distinct, actionable contract: `nbf == signing-time` → **"Grant not yet valid"** (server enforces a clock-skew margin; `sign_operate_grant()` now backdates `nbf` 30s), self-grants → **"Grant signer and agent must differ"** (delegation is for third parties), foreign VM → **"You do not own a service with that id"** (ownership checked at exchange, by the grant SIGNER). Full happy path re-verified two-party (eddy-e2e customer → default agent, VM 2242): lease `scope=operate area=vm:2242` 900s, vm-scoped read OK, cancel 403. Also learned: **suspended + unpaid-invoice VMs are uncancellable** (`service_not_cancelable`) — settle the invoice before the service can be released (documented on #38).
+
+## External posting (owner directive 2026-09-06 — CHANNEL rule)
+
+Agents never post on non-member repos — no `gh` writes (issues, PRs,
+comments, reviews, gists), not even with per-text owner sign-off; the
+owner does the copy-paste into GitHub themselves. Member orgs (verify:
+`gh api user/orgs`; 2026-09-06: Amperstrand, OpenTollGate, net4sats,
+FreedomTechFeed) keep the existing owner-gate flow. Read the target
+repo CONTRIBUTING/AI policy before drafting anything upstream.
+Canonical text: lightning-playground AGENTS.md (standing rule UPDATE
+2026-09-06).
