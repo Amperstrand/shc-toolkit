@@ -1254,43 +1254,63 @@ class TestBackoffRetry:
             captured_headers.append(dict(kwargs.get("headers", {})))
             return mock_resp
 
-        c.session.request = MagicMock(side_effect=capture_request)
+        prepared_headers = {}
+
+        def fake_build(method, url, **kwargs):
+            prepared_headers.update(kwargs.get("headers", {}))
+            return MagicMock(headers=dict(kwargs.get("headers", {})))
+
+        def fake_send(prepared):
+            captured_headers.append(dict(prepared.headers))
+            return mock_resp
+
+        c.session.build_request = MagicMock(side_effect=fake_build)
+        c.session.send = MagicMock(side_effect=fake_send)
         c._confirmed_request("POST", "/test", json={"key": "value"})
         assert len(captured_headers) == 1
         assert "Idempotency-Key" in captured_headers[0]
         assert captured_headers[0]["Idempotency-Key"].startswith("shc-")
 
     def test_idempotency_key_persists_across_confirmation(self):
-        """When _confirmed_request retries with X-User-Api-Confirm,
-        the Idempotency-Key must be the SAME as the original request."""
+        """When _confirmed_request retries with X-User-Api-Confirm, the
+        re-send must be the SAME prepared request (identical body bytes,
+        same Idempotency-Key) with only the confirm header added."""
         c = self._client()
         mock_409 = MagicMock()
         mock_409.status_code = 409
         mock_409.headers = {}
-        mock_409.text = '{"error":{"code":"confirmation_required"}, "confirmation":{"structuredContent":{"confirmation_id":"test-cid-123"}}}'
+        mock_409.text = (
+            '{"error":{"code":"confirmation_required"}, '
+            '"confirmation":{"structuredContent":'
+            '{"confirmation_id":"cnf_0123456789abcdef0123456789abcdef"}}}'
+        )
         mock_409.ok = False
         mock_200 = MagicMock()
         mock_200.status_code = 200
         mock_200.headers = {}
         mock_200.text = '{"data": {"ok": true}}'
         mock_200.ok = True
-        captured_headers = []
+        sent = []
 
-        def capture_request(*args, **kwargs):
-            captured_headers.append(dict(kwargs.get("headers", {})))
-            if len(captured_headers) == 1:
-                return mock_409
-            return mock_200
+        def fake_send(prepared):
+            # capture COPIES: the resend reuses the same prepared object
+            # (only the confirm header is added), so aliasing the object
+            # would make the first capture see the added header too.
+            sent.append((dict(prepared.headers), prepared.content))
+            return mock_409 if len(sent) == 1 else mock_200
 
-        c.session.request = MagicMock(side_effect=capture_request)
+        c.session.send = MagicMock(side_effect=fake_send)
         c._confirmed_request("POST", "/test", json={"key": "value"})
-        assert len(captured_headers) == 2
-        key1 = captured_headers[0].get("Idempotency-Key")
-        key2 = captured_headers[1].get("Idempotency-Key")
-        assert key1 is not None, "First request missing Idempotency-Key"
-        assert key2 is not None, "Confirmation request missing Idempotency-Key"
-        assert key1 == key2, f"Keys differ: {key1} vs {key2}"
-        assert captured_headers[1].get("X-User-Api-Confirm") == "test-cid-123"
+        assert len(sent) == 2
+        (h1, b1), (h2, b2) = sent
+        # dict(httpx.Headers) lowercases keys
+        key1 = h1.get("idempotency-key")
+        key2 = h2.get("idempotency-key")
+        assert key1 and key1.startswith("shc-")
+        assert key1 == key2, "idempotency key must persist across the re-send"
+        assert h2.get("x-user-api-confirm") == "cnf_0123456789abcdef0123456789abcdef"
+        assert h1.get("x-user-api-confirm") is None
+        assert b1 == b2, "body bytes must be identical"
 
     def test_no_idempotency_key_on_reads(self):
         """GET requests must not carry an Idempotency-Key header."""

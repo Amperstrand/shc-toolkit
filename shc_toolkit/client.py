@@ -45,9 +45,7 @@ BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
 # overnight reaper ate tg-vls-splice WITH its 124-mutant campaign
 # results because "reapable" was all-or-nothing (lightning-playground
 # LESSONS-2026-09-01-VM-PIVOT-SELF-REVIEW.md).
-REAP_TAG_RE = re.compile(
-    r"-reap(?:(?P<epoch>\d{10,})|(?P<n>\d{1,6})(?P<unit>[mhd]))$"
-)
+REAP_TAG_RE = re.compile(r"-reap(?:(?P<epoch>\d{10,})|(?P<n>\d{1,6})(?P<unit>[mhd]))$")
 REAP_UNITS = {"m": 60, "h": 3600, "d": 86400}
 
 
@@ -633,10 +631,21 @@ class SHCClient:
         if resp.status_code >= 400:
             exc = _error_from_body(body, resp.text, resp.status_code)
             conf = body.get("confirmation", {})
+            cid = None
             if conf:
-                exc.confirmation_id = conf.get("confirmation_id") or conf.get(
+                cid = conf.get("confirmation_id") or conf.get(
                     "structuredContent", {}
                 ).get("confirmation_id")
+            if not cid and resp.status_code == 409:
+                # The live gate also embeds the confirmation_id in the prose
+                # message ("... header 'X-User-Api-Confirm: cnf_...' ...");
+                # structured fields alone are not always present (observed
+                # 2026-09-06 on /ordering/submit).
+                m = re.search(r"X-User-Api-Confirm:?:?\s*(cnf_[a-f0-9]+)", text)
+                if m:
+                    cid = m.group(1)
+            if cid:
+                exc.confirmation_id = cid
             raise exc
         return body.get("data", body)
 
@@ -707,24 +716,63 @@ class SHCClient:
         and resubmits with X-User-Api-Confirm header.  Pass confirm=False
         to probe (will raise SHCError on 409 instead of auto-confirming).
 
-        Generates an Idempotency-Key once per call so the original
-        request and the confirmation re-send share the same key.
+        The gate demands the re-send be IDENTICAL to the gated request —
+        same bytes, same Idempotency-Key, only the confirm header added
+        (live-verified 2026-09-06: rebuilding/re-serializing the request
+        re-triggers a fresh 409). We therefore build ONE prepared request
+        and send that exact object twice.
         """
-        idem_key = f"shc-{uuid.uuid4().hex[:24]}"
+        url = f"{self.base_url}{path}"
+        if "json" in kwargs:
+            self.session.headers["Content-Type"] = "application/json"
+        elif "Content-Type" in self.session.headers:
+            del self.session.headers["Content-Type"]
+
         headers = dict(kwargs.pop("headers", None) or {})
         if "Idempotency-Key" not in headers:
-            headers["Idempotency-Key"] = idem_key
-        kwargs["headers"] = headers
+            headers["Idempotency-Key"] = f"shc-{uuid.uuid4().hex[:24]}"
+        prepared = self.session.build_request(method, url, headers=headers, **kwargs)
+        resp = self.session.send(prepared)
+        if resp.status_code != 409 or not confirm:
+            return self._response_from_httpx(resp)
+
+        cid = self._confirmation_id_from_response(resp)
+        if not cid:
+            return self._response_from_httpx(resp)
+        prepared.headers["X-User-Api-Confirm"] = cid
+        resp = self.session.send(prepared)
+        return self._response_from_httpx(resp)
+
+    def _confirmation_id_from_response(self, resp) -> str | None:
+        """Pull the confirmation_id from structured fields, falling back to
+        the prose message where the live gate embeds it (2026-09-06)."""
+        text = resp.text
         try:
-            return self._request(method, path, **kwargs)
-        except SHCError as e:
-            if not confirm or e.code != "confirmation_required":
-                raise
-            cid = getattr(e, "confirmation_id", None)
-            if not cid:
-                raise
-            headers["X-User-Api-Confirm"] = cid
-            return self._request(method, path, **kwargs)
+            body = _json.loads(text) if text.strip() else {}
+        except ValueError:
+            body = {}
+        conf = body.get("confirmation", {}) if isinstance(body, dict) else {}
+        if conf:
+            cid = conf.get("confirmation_id") or conf.get("structuredContent", {}).get(
+                "confirmation_id"
+            )
+            if cid:
+                return cid
+        m = re.search(r"X-User-Api-Confirm:?:?\s*(cnf_[a-f0-9]+)", text)
+        return m.group(1) if m else None
+
+    def _response_from_httpx(self, resp) -> dict[str, Any]:
+        """Shared >=400 error mapping (with confirmation_id extraction) for
+        responses sent through _confirmed_request's prepared-request path."""
+        text = resp.text
+        body = _json.loads(text) if text.strip() else {}
+        if resp.status_code >= 400:
+            exc = _error_from_body(body, resp.text, resp.status_code)
+            cid = self._confirmation_id_from_response(resp)
+            if cid:
+                exc.confirmation_id = cid
+            raise exc
+        return body.get("data", body)
 
     # ── Account ──────────────────────────────────────────────
 
@@ -1351,7 +1399,9 @@ class SHCClient:
         catalog = self.get_catalog()
         probes = []
         for pkg in catalog:
-            if lines and not pkg["name"].lower().startswith(tuple(f"{l} " for l in lines)):
+            if lines and not pkg["name"].lower().startswith(
+                tuple(f"{l} " for l in lines)
+            ):
                 continue
             daily = next(
                 (p for p in pkg.get("pricing", []) if p.get("period") == "day"),
