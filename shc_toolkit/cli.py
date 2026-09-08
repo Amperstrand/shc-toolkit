@@ -13,9 +13,7 @@ from typing import Any
 
 from .benchmark import print_results as print_bench_results
 from .benchmark import run_full_suite
-from .client import SHCClient, SHCError
-from .client import REAP_TAG_RE
-from .client import normalize_reap_tag
+from .client import REAP_TAG_RE, SHCClient, SHCError, normalize_reap_tag
 
 try:
     from .nodns import (
@@ -304,11 +302,6 @@ def cmd_health(args):
     print(_json.dumps(health, indent=2, default=str))
 
 
-def cmd_reinstall(args):
-    c = _client(args)
-    _print(c.reinstall_vm(args.service_id, args.template), _get_fmt(args))
-
-
 def cmd_cancel(args):
     c = _client(args)
     immediate = not getattr(args, "end_of_term", False)
@@ -342,7 +335,9 @@ def cmd_order(args):
         sys.exit(1)
     if getattr(args, "reap", None):
         if appended:
-            print(f"hostname: {hostname} (reaper deadline tag applied)", file=sys.stderr)
+            print(
+                f"hostname: {hostname} (reaper deadline tag applied)", file=sys.stderr
+            )
         else:
             print(
                 f"hostname: {hostname} (already carries a reap tag — not double-appending)",
@@ -850,6 +845,26 @@ def cmd_backup_protect(args):
 
 
 def cmd_bench(args):
+    if getattr(args, "host", None):
+        # Arbitrary-host mode: benchmark any SSH-reachable VPS (Contabo, Hetzner, ...)
+        host = args.host
+        user = args.user or "debian"
+        port = args.port or 22
+        label = args.label or host
+        print(f"Benchmarking {label} ({user}@{host}:{port})...\n")
+        results = run_full_suite(
+            host,
+            user=user,
+            port=port,
+            skip_disk=args.skip_disk,
+            skip_network=args.skip_network,
+        )
+        print_bench_results(results)
+        return
+
+    if not args.service_id:
+        print("Error: either SERVICE_ID or --host is required.", file=sys.stderr)
+        sys.exit(1)
     c = _client(args)
     vm = c.get_vm_summary(args.service_id)
     ips = vm.get("ips", [])
@@ -1100,15 +1115,27 @@ def cmd_stock(args):
     print(f"  IN STOCK ({len(in_stock)}):")
     for r in sorted(in_stock, key=lambda r: float(r["price_per_day"])):
         fac = next(
-            (fac for ln, fac in FACILITIES.items() if r["name"].lower().startswith(f"{ln} ")),
+            (
+                fac
+                for ln, fac in FACILITIES.items()
+                if r["name"].lower().startswith(f"{ln} ")
+            ),
             None,
         )
         where = f"  {fac['facility']}" if fac else ""
-        warn = "" if not fac or fac["reachability"] == "ok" else f"  << {fac['reachability']}"
-        print(f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r['specs']:16s}  ${r['price_per_day']}/day{where}{warn}")
+        warn = (
+            ""
+            if not fac or fac["reachability"] == "ok"
+            else f"  << {fac['reachability']}"
+        )
+        print(
+            f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r['specs']:16s}  ${r['price_per_day']}/day{where}{warn}"
+        )
     print(f"  OUT OF STOCK ({len(out)}):")
     for r in sorted(out, key=lambda r: r["name"]):
-        print(f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r.get('reason', '')[:70]}")
+        print(
+            f"    pkg={r['package_id']:>3}  {r['name']:32s}  {r.get('reason', '')[:70]}"
+        )
 
 
 def cmd_reinstall(args):
@@ -1378,8 +1405,23 @@ def main():
     p = sub.add_parser("pricing", help="Pricing table")
     p.set_defaults(func=cmd_pricing)
 
-    p = sub.add_parser("bench", help="Run VPS benchmarks")
-    p.add_argument("service_id", type=int)
+    p = sub.add_parser(
+        "bench",
+        help="Run VPS benchmarks (SHC service by ID, or any host via --host)",
+    )
+    p.add_argument(
+        "service_id",
+        type=int,
+        nargs="?",
+        default=None,
+        help="SHC service ID (omit when using --host)",
+    )
+    p.add_argument(
+        "--host", help="Benchmark an arbitrary SSH-reachable host instead of an SHC VM"
+    )
+    p.add_argument("--user", help="SSH user for --host mode (default: debian)")
+    p.add_argument("--port", type=int, help="SSH port for --host mode (default: 22)")
+    p.add_argument("--label", help="Display label for --host mode (default: host)")
     p.add_argument("--skip-disk", action="store_true")
     p.add_argument("--skip-network", action="store_true")
     p.set_defaults(func=cmd_bench)
@@ -1785,11 +1827,14 @@ def main():
         action="store_true",
         help="Also probe live stock per package (~20 API calls)",
     )
-    p.add_argument("--template", default="debian13-cloud", help="OS template for --available")
+    p.add_argument(
+        "--template", default="debian13-cloud", help="OS template for --available"
+    )
     p.set_defaults(func=cmd_sizes)
 
     p = sub.add_parser(
-        "stock", help="Live stock across the catalog (~20 API calls, sorted in-stock first)"
+        "stock",
+        help="Live stock across the catalog (~20 API calls, sorted in-stock first)",
     )
     p.add_argument("--line", help="Filter by catalog line (nvme/ssd/hdd/dev)")
     p.add_argument("--template", default="debian13-cloud", help="OS template")

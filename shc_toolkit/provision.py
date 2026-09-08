@@ -37,7 +37,7 @@ def ssh_cmd(
             "-o",
             "LogLevel=ERROR",
             "-o",
-            "ConnectTimeout={min(timeout, 15)}",
+            f"ConnectTimeout={min(timeout, 15)}",
             f"{user}@{host}",
             cmd,
         ],
@@ -47,8 +47,8 @@ def ssh_cmd(
     )
     if result.returncode != 0:
         raise RuntimeError(
-            "SSH command failed (rc={result.returncode}): {cmd}\n"
-            "stderr: {result.stderr}\nstdout: {result.stdout}"
+            f"SSH command failed (rc={result.returncode}): {cmd}\n"
+            f"stderr: {result.stderr}\nstdout: {result.stdout}"
         )
     return result.stdout.strip()
 

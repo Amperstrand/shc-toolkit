@@ -2,7 +2,7 @@
 
 Raw performance data across providers, measured with our `shc_toolkit.benchmark` suite (YABS-compatible: sysbench CPU, fio disk, iperf3 network, openssl, memory, optional Geekbench 6).
 
-Last updated: 2026-06-23
+Last updated: 2026-09-08
 
 ## Summary
 
@@ -12,6 +12,8 @@ Last updated: 2026-06-23
 | **SHC NVMe VPS** | Standard (2C/8GB) | 451 | 898 | 6,549 | 44,527 | $0.0204 | $0.49 | ❌ |
 | **Hetzner** | CX22 (2C/4GB) | 602 | 1192 | 5,690 | 47,301 | ~$0.006 | ~$0.15 | ❌ |
 | **GCP** | e2-standard-2 (2C/8GB) | 4,340¹ | 4,340¹ | N/A | 56,200¹ | ~$0.068 | ~$1.63 | ✅² |
+| **Contabo V153** | Cloud VPS 4 2026 (4C/8GB) | 2021 | 8037 | 8,849 | 19,999 | ~$0.008 | ~$0.20 | ❌ |
+| **Contabo V46** | Cloud VPS 1 NVMe (4C/6GB) | 1711 | 6596 | 7,062 | 59,498 | ~$0.007 | ~$0.16 | ❌ |
 
 ¹ Published numbers from [vpsbenchmarks.com](https://vpsbenchmarks.com/yabs/google_compute_engine-2c-4gb-49d111) — not measured by us.
 
@@ -67,6 +69,34 @@ Last updated: 2026-06-23
 | **Nested KVM** | ❌ | |
 | **Disk** | 38 GB | |
 
+### Contabo V153 Cloud VPS 4 2026 (scratch, vmi3565075)
+
+| Metric | Value | Notes |
+|---|---|---|
+| **CPU** | AMD EPYC (shared) | |
+| **vCPUs** | 4 | |
+| **sysbench ST** | 2021 events/s | |
+| **sysbench MT** | 8037 events/s | |
+| **Memory read** | 8,849 MiB/s | |
+| **Rand 4K Read IOPS** | 19,999 (fio) / 7,149 (yabs randrw) | |
+| **Seq read/write** | 932 / 512 MiB/s | |
+| **Location** | EU (Germany) | |
+| **Price** | EUR 5.50/mo | Ordered via terraform 2026-09-08 |
+
+### Contabo V46 Cloud VPS 1 NVMe (feb.psbt.me, vmi2315660)
+
+| Metric | Value | Notes |
+|---|---|---|
+| **CPU** | AMD EPYC (shared) | |
+| **vCPUs** | 4 | |
+| **sysbench ST** | 1711 events/s | |
+| **sysbench MT** | 6596 events/s | |
+| **Memory read** | 7,062 MiB/s | |
+| **Rand 4K Read IOPS** | 59,498 (fio) / 25,804 (yabs randrw) | Faster 4K than the newer V153 |
+| **Seq read/write** | 9,298 / 1,546 MiB/s | Seq read benefits from host cache |
+| **Location** | EU (Germany) | |
+| **Price** | legacy EUR ~4.50/mo | Cancelled 2026-09-08 — runs until 2026-09-30 |
+
 ## Pricing comparison
 
 | Provider | Instance | $/hour | $/day | $/month | vCPU | RAM | Disk | Nested KVM |
@@ -75,6 +105,8 @@ Last updated: 2026-06-23
 | **SHC NVMe VPS** | Standard | $0.0204 | $0.49 | $14.83 | 2 | 8 GB | 16 GB | ❌ |
 | **Hetzner** | CX22 | ~$0.006 | ~$0.15 | $4.59 | 2 | 4 GB | 40 GB | ❌ |
 | **GCP** | e2-standard-2 | ~$0.068 | ~$1.63 | $48.92 | 2 | 8 GB | pd-ssd | ✅ (flag) |
+| **Contabo V153** | Cloud VPS 4 (2026) | ~$0.008 | ~$0.20 | ~$5.95 | 4 | 8 GB | 100 GB NVMe | ❌ |
+| **Contabo V46** | Cloud VPS 1 NVMe | ~$0.007 | ~$0.16 | ~$4.90 | 4 | 6 GB | 100 GB NVMe | ❌ |
 
 > SHC bills per day but refunds pro-consumed. Minimum charge is 1 hour.
 > Pricing source: SHC catalog API (live) — `GET https://blesta.sovereignhybridcompute.com/user-api/v2/ordering/catalog`
@@ -160,3 +192,27 @@ r2 = run_full_suite('<nvme-ip>', user='ubuntu', port=22, provider='shc')
 r3 = run_full_suite('nodns.shop', user='root', port=22, provider='hetzner')
 "
 ```
+
+## Running the suite
+
+```sh
+# SHC VM by service id
+shc bench 619
+
+# Any SSH-reachable host (Contabo, Hetzner, ...)
+shc bench --host 13.140.178.91 --user root --label contabo-scratch-V153
+shc bench --host 62.169.29.181 --user root --label contabo-feb-V46
+```
+
+The suite installs sysbench/fio/iperf3 on the target (root-aware, sudo optional),
+runs CPU/memory/disk/network stages, saves incremental JSON snapshots per stage
+into `benchmark_results/`, and prints a formatted report.
+`--skip-disk` / `--skip-network` available; Geekbench 6 is opt-in via the module API.
+
+Known issues (2026-09-08):
+- `debian-13` image fails API reinstall with a Contabo-side 500; use `debian-12`.
+- Cloudflare `__down` returns 0 Mbps from Contabo EU; the Hetzner mirror fallback
+  covers it. Two of three iperf3 public servers returned 0 bps — Fremont (he.net)
+  is the reliable one.
+- The provider drops `user_data` on instance create; pass SSH keys via the
+  reinstall PUT (`imageId` + `sshKeys` referencing a Secrets API entry).

@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import subprocess
 import time
 import urllib.error
 import urllib.request
@@ -54,9 +55,13 @@ def _install_deps(host: str, user: str = "debian", port: int = 22) -> None:
         need_install=""
         command -v sysbench >/dev/null 2>&1 || need_install="sysbench $need_install"
         command -v fio >/dev/null 2>&1 || need_install="fio $need_install"
+        SUDO=""
+        if [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+        fi
         if [ -n "$need_install" ]; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq $need_install
+            $SUDO apt-get update -qq
+            $SUDO apt-get install -y -qq $need_install
         fi
         echo "deps ready: sysbench=$(command -v sysbench), fio=$(command -v fio)"
     """,
@@ -358,16 +363,17 @@ def bench_disk(host: str, user: str = "debian", port: int = 22) -> dict[str, Any
             data = json.loads(raw)
             job = data.get("jobs", [{}])[0]
             opts = job.get("job options", {})
-            read = job.get("read", {})
+            direction = "write" if "write" in label else "read"
+            read = job.get(direction, job.get("read", {}))
 
-            bw = read.get("bw", 0)
+            bw_kib = read.get("bw", 0)
             iops = read.get("iops", 0.0)
             lat_ns = read.get("lat_ns", {})
             lat_mean_ns = lat_ns.get("mean", 0.0)
 
             result[label] = {
-                "bw_bytes_per_s": bw,
-                "bw_mb_per_s": round(bw / 1024 / 1024, 2) if bw else 0,
+                "bw_bytes_per_s": round(bw_kib * 1024, 0) if bw_kib else 0,
+                "bw_mb_per_s": round(bw_kib / 1024, 2) if bw_kib else 0,
                 "iops": round(iops, 2),
                 "lat_mean_us": round(lat_mean_ns / 1000, 2) if lat_mean_ns else 0,
                 "ioengine": opts.get("ioengine", "?"),
@@ -503,15 +509,17 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
     """Run network benchmark: download speed from public test servers."""
     log.info("Running network benchmark...")
 
-    # Download speed test from public CDN test files
+    # Download speed test: Cloudflare first, Hetzner EU mirror as fallback
     out = ssh_cmd(
         host,
         """
         echo "=== download_speedtest ==="
-        # Test download from Cloudflare (100MB)
         curl -o /dev/null -s -w "cf_100mb_download_speed_bytes_per_s:%{speed_download}\\ncf_100mb_total_time_s:%{time_total}\\n" \
             --connect-timeout 10 --max-time 30 \
             "https://speed.cloudflare.com/__down?bytes=100000000" 2>&1
+        curl -o /dev/null -s -w "hetzner_100mb_download_speed_bytes_per_s:%{speed_download}\\n" \
+            --connect-timeout 10 --max-time 30 \
+            "https://speed.hetzner.de/100MB.bin" 2>&1
         echo "=== ip_info ==="
         curl -s --max-time 5 https://ipinfo.io 2>/dev/null || echo "{}"
         echo ""
@@ -538,6 +546,12 @@ def bench_network(host: str, user: str = "debian", port: int = 22) -> dict[str, 
                 result["download_time_s"] = float(
                     line.split(":")[1].strip().rstrip("s").rstrip("m")
                 )
+            except (ValueError, IndexError):
+                pass
+        elif line.startswith("hetzner_100mb_download_speed_bytes_per_s:"):
+            try:
+                bps = float(line.split(":")[1].strip())
+                result["download_hetzner_mbps"] = round(bps * 8 / 1_000_000, 2)
             except (ValueError, IndexError):
                 pass
 
@@ -577,7 +591,11 @@ def bench_network_iperf3(
         """
         command -v iperf3 >/dev/null 2>&1 || {
             export DEBIAN_FRONTEND=noninteractive
-            sudo apt-get update -qq && sudo apt-get install -y -qq iperf3
+            SUDO=""
+            if [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then
+                SUDO="sudo"
+            fi
+            $SUDO apt-get update -qq && $SUDO apt-get install -y -qq iperf3
         }
         echo "iperf3 ready: $(command -v iperf3 || echo MISSING)"
     """,
@@ -590,15 +608,24 @@ def bench_network_iperf3(
 
     for server, location in servers.items():
         # || true keeps ssh_cmd from raising when a server is unreachable
-        raw = ssh_cmd(
-            host,
-            f"""
-            iperf3 -c {server} -P 8 -t 10 -J 2>/dev/null || echo "IPERF3_FAILED_{server}"
-        """,
-            user=user,
-            port=port,
-            timeout=30,
-        )
+        try:
+            raw = ssh_cmd(
+                host,
+                f"""
+                iperf3 -c {server} -P 8 -t 10 -J 2>/dev/null || echo "IPERF3_FAILED_{server}"
+            """,
+                user=user,
+                port=port,
+                timeout=90,
+            )
+        except (RuntimeError, subprocess.TimeoutExpired) as e:
+            results[server] = {
+                "location": location,
+                "available": False,
+                "error": str(e)[:200],
+            }
+            log.info(f"iperf3 server {server} failed, skipping")
+            continue
 
         if f"IPERF3_FAILED_{server}" in raw:
             results[server] = {"location": location, "available": False}
@@ -726,6 +753,18 @@ def run_full_suite(
         "benchmarks": {},
     }
 
+    _ensure_results_dir()
+    result_file = os.path.join(
+        RESULTS_DIR, f"bench_{host}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    )
+
+    def save_snapshot() -> None:
+        with open(result_file, "w") as f:
+            json.dump(results, f, indent=2, default=str)
+        results["_saved_to"] = result_file
+
+    save_snapshot()
+
     if collect_pricing:
         prov = provider
         if prov == "auto":
@@ -742,11 +781,17 @@ def run_full_suite(
     # System info (always run)
     results["sysinfo"] = collect_sysinfo(host, user, port)
 
+    save_snapshot()
+
     # CPU
     results["benchmarks"]["cpu"] = bench_cpu(host, user, port)
 
+    save_snapshot()
+
     # Memory
     results["benchmarks"]["memory"] = bench_memory(host, user, port)
+
+    save_snapshot()
 
     # Disk (can be slow)
     if not skip_disk:
@@ -754,11 +799,15 @@ def run_full_suite(
     else:
         results["benchmarks"]["disk"] = {"skipped": True}
 
+    save_snapshot()
+
     # YABS-compatible fio tests
     if run_yabs and not skip_disk:
         results["benchmarks"]["disk_yabs"] = bench_disk_yabs(host, user, port)
     else:
         results["benchmarks"]["disk_yabs"] = {"skipped": True}
+
+    save_snapshot()
 
     # Network
     if not skip_network:
@@ -766,11 +815,15 @@ def run_full_suite(
     else:
         results["benchmarks"]["network"] = {"skipped": True}
 
+    save_snapshot()
+
     # iperf3 network tests
     if run_iperf3 and not skip_network:
         results["benchmarks"]["network_iperf3"] = bench_network_iperf3(host, user, port)
     else:
         results["benchmarks"]["network_iperf3"] = {"skipped": True}
+
+    save_snapshot()
 
     # Geekbench 6 (optional)
     if run_geekbench:
@@ -782,13 +835,7 @@ def run_full_suite(
     results["elapsed_seconds"] = round(elapsed, 1)
     results["completed_at"] = datetime.now(UTC).isoformat()
 
-    # Save results
-    _ensure_results_dir()
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    result_file = os.path.join(RESULTS_DIR, f"bench_{host}_{ts}.json")
-    with open(result_file, "w") as f:
-        json.dump(results, f, indent=2, default=str)
-    results["_saved_to"] = result_file
+    save_snapshot()
 
     log.info(f"Benchmark complete in {elapsed:.0f}s. Results: {result_file}")
     return results
