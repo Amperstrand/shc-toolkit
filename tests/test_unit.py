@@ -3584,3 +3584,33 @@ class TestOrderVerifyReachability:
             self._run(mock, ["--pay", "--verify-reachability"])
         mock.cancel_vm.assert_not_called()
         mock.wait_for_provisioning.assert_called_once()
+
+
+class TestSession20260909Pins:
+    """Regression pins from the 2026-09-09 session (AGENTS lessons 30-33)."""
+
+    def test_reap_defaults_include_ansible_demo_prefix(self):
+        """ansible-demo- must stay in the default reap prefixes (lesson 32:
+        the e2e VM class leaked sid 2483 when no layer could see it)."""
+        from shc_toolkit.client import SHCClient
+
+        client = SHCClient(api_key="k")
+        import inspect
+
+        src = inspect.getsource(SHCClient.reap_orphans)
+        assert '"ansible-demo-"' in src
+
+    def test_mcp_pay_invoice_passes_confirm_through(self):
+        """MCP transport parity: pay_invoice(confirm=False) must reach
+        call_tool with confirm=False (the shc pay consent gate rides on
+        this for MCP-transport sessions)."""
+        from unittest.mock import MagicMock, patch
+
+        from shc_toolkit.mcp_client import SHCMCPClient
+
+        mcp = SHCMCPClient(api_key="k")
+        with patch.object(mcp, "call_tool") as ct:
+            mcp.pay_invoice(55, "a" * 16, confirm=False)
+            assert ct.call_args.args[0] == "submitPaymentCheckout"
+            assert ct.call_args.kwargs.get("confirm") is False
+            assert ct.call_args.args[1]["invoiceId"] == 55

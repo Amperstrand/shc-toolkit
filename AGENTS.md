@@ -487,6 +487,46 @@ Earned 2026-08-27/28 running the PRTA cloud lab against a freshly-repaired Dev z
 ### 29. Operate-lane server contracts (live negative pass, 2026-08-31)
 Fed the exchange deliberately bad grants right after DNS recovered — every rejection was a distinct, actionable contract: `nbf == signing-time` → **"Grant not yet valid"** (server enforces a clock-skew margin; `sign_operate_grant()` now backdates `nbf` 30s), self-grants → **"Grant signer and agent must differ"** (delegation is for third parties), foreign VM → **"You do not own a service with that id"** (ownership checked at exchange, by the grant SIGNER). Full happy path re-verified two-party (eddy-e2e customer → default agent, VM 2242): lease `scope=operate area=vm:2242` 900s, vm-scoped read OK, cancel 403. Also learned: **suspended + unpaid-invoice VMs are uncancellable** (`service_not_cancelable`) — settle the invoice before the service can be released (documented on #38).
 
+## Lessons Learned (2026-09-09 session)
+
+### 30. Zone recovery is vantage-relative — never auto-close on one route's PASS
+The dev-zone watch's first version auto-closed #39 when GitHub's US vantage
+reached `64.188.7.239:22` in 0s — while the EU lab stayed TCP/22-dark on the
+same IP six minutes later (and 38 minutes earlier). GitHub runners are US;
+they are ONE route, not ground truth. **Fix shipped:** the watch now comments
+PASS evidence and never closes (#39 reopened with the asymmetry timeline;
+the fabric is partially repaired — US attaches, EU doesn't). Any future
+"recovered" verdict needs two vantages before it closes anything.
+
+### 31. A never-green workflow accretes stacked bugs — attribution by repair
+`bridge-e2e` had FOUR independent defects (self-clone colliding with its own
+checkout; step-env `PATH: /tmp/tf-provider:${{ env.PATH }}` — env.PATH is
+EMPTY in the env context, nuking /usr/bin so `mkdir: command not found` and
+every later command ran from the workspace; /tmp/tf-provider never mkdir'd;
+`pulumi stack init dev` colliding with the stack `pulumi new` pre-scaffolds).
+None of the six failing runs had ever reached Pulumi. Each failure masks the
+next layer: fix → dispatch → read the NEW failure → repeat until green. Also:
+GH logs expire fast — re-run to attribute before the evidence rots.
+
+### 32. E2E VMs must be reaper-visible, and playbook Jinja has no backslash escapes
+The ansible-e2e VM class (`ansible-demo-*`) matched NO reap prefix — the
+09-09 run leaked sid 2483 (cancelled manually within the hour). Prefix added
+to `reap_orphans` defaults, pinned by test. Separately,
+`{{ var | default(\".\") }}` in the roles was invalid Jinja under current
+ansible-core — backslash escapes don't exist in Jinja; use `default('.')`
+(single quotes render fine inside the python `-c "…"` blocks). The unpinned
+`pip install ansible-core` in the workflow is what turned this latent bug
+fatal.
+
+### 33. The post-order 404 registration gap hits Katy too; and Katy has a dead-VM flake class
+Fresh VMs can 404 on `/vm/{id}` for a while after order (known from #27/#39
+for Dev) — the ansible wait task crashed on the first poll (sid 2484). Poll
+loops must catch `SHCNotFoundError` and keep going. Same evening: three
+fresh Katy NVMe VMs (2486/2487/2488-class) never provisioned within 600s
+across two independent pipelines while an earlier order took ~90s — a
+provider-side provisioning flake (the sid-2428 class from #39's comments).
+Fail loudly, don't widen timeouts to hide it, let the monthly cadence retry.
+
 ## External posting (owner directive 2026-09-06 — CHANNEL rule)
 
 Agents never post on non-member repos — no `gh` writes (issues, PRs,
