@@ -1,10 +1,12 @@
 ---
-# SHC DNS outage watch (temporary — remove after recovery, see the linked issue).
+# SHC DNS outage watch (RECOVERED 2026-08-31, #40 closed — schedule removed
+# 2026-09-09 per this file's own "remove after recovery" note; kept as a
+# dispatch-only runbook probe for the next delegation-dark event).
 #
-# sovereignhybridcompute.com stopped resolving from public resolvers on
-# 2026-08-31 (SERVFAIL / EDE-22 "no reachable authority" from Google and
-# Cloudflare DoH, cert-verified genuine). Until the delegation is fixed,
-# every DNS-dependent client (toolkit, MCP transport, portal) is dark.
+# sovereignhybridcompute.com went globally unresolvable for ~90 minutes
+# (SERVFAIL / EDE-22 "no reachable authority" from Google and Cloudflare
+# DoH, cert-verified genuine). The origin IP is recorded in AGENTS lesson 28
+# (23.182.128.4) — use `curl --resolve` + /etc/hosts to ride out a repeat.
 #
 # This probe runs from GitHub's network — a vantage no local middlebox can
 # touch — and:
@@ -16,8 +18,6 @@
 name: SHC DNS Watch
 
 on:
-  schedule:
-    - cron: "23 */6 * * *" # every 6 hours, off the hour
   workflow_dispatch:
 
 concurrency:
