@@ -7,7 +7,11 @@
 # manual re-probe into an automated weekly evidence trail:
 #   * broken:  comments the probe tail on #39 (scheduled runs only —
 #              manual dispatches never comment, so testing is spam-free)
-#   * healthy: comments the evidence and closes #39
+#   * healthy: comments the evidence and STOPS — never auto-closes.
+#              Reachability is vantage-dependent (live-proven 2026-09-09:
+#              GitHub/US reached TCP/22 in 0s while the EU lab stayed dark
+#              6 minutes later, same IP); this workflow only sees GitHub's
+#              route. A human verifies a second vantage, then closes #39.
 #
 # Probe: scripts/dev-zone-probe.py — orders the smallest Dev VPS, waits
 # for active+IP, probes TCP/22 up to 120s, ALWAYS cancels. Cost
@@ -84,8 +88,8 @@ jobs:
           Probe VM auto-cancelled. Full log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           gh issue comment "$ISSUE" --body "$BODY"
 
-      - name: Comment + close issue on recovery
-        if: steps.probe.outputs.healthy == 'true'
+      - name: Comment evidence on recovery (no auto-close — vantage-limited)
+        if: steps.probe.outputs.healthy == 'true' && github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -93,13 +97,12 @@ jobs:
         run: |
           STATE="$(gh issue view "$ISSUE" --json state --jq .state)"
           STATE="${STATE,,}"
-          if [ "$STATE" = "open" ]; then
-            gh issue comment "$ISSUE" --body "✅ **Recovered** — Dev zone probe PASSED at $(date -u '+%Y-%m-%dT%H:%M:%SZ'): ordered, provisioned, TCP/22 reachable, cancelled cleanly.
+          if [ "$STATE" != "open" ]; then
+            echo "Issue #$ISSUE not open — nothing to do."
+            exit 0
+          fi
+          gh issue comment "$ISSUE" --body "🟡 **GitHub/US-vantage PASS** at $(date -u '+%Y-%m-%dT%H:%M:%SZ'): ordered, provisioned, TCP/22 reachable, cancelled cleanly.
 
           $(grep -E 'Ordered|provisioned|reachable|CANCELLED|PASS' /tmp/probe.txt | tail -5)
 
-          Auto-closing. Follow-ups: flip \`ansible/group_vars/all.yml\` back to a dev-* size if the E2E should ride the Dev zone again (or keep Katy), and re-enable Dev orders wherever they were parked."
-            gh issue close "$ISSUE"
-          else
-            echo "Healthy and issue already closed — nothing to do."
-          fi
+          This is ONE route's evidence, not global recovery (2026-09-09: US PASS + EU FAIL on the same IP, 6 min apart). Verify from a second vantage before closing #39 — the zone fabric may be partially repaired."

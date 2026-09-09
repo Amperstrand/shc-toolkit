@@ -128,7 +128,7 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
 | `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC VM (Katy NVMe default since 2026-09-09; `vm_size` dispatch input, dev-* = unstable zone #39) |
 | `reap-orphan-vms.yml` | daily (05:23) + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
-| `dev-zone-watch.yml` | weekly (Mon 05:47) + dispatch | `dev-zone-probe.py` from GitHub: broken → evidence comment on #39, healthy → close it (self-cancelling probe VM) |
+| `dev-zone-watch.yml` | weekly (Mon 05:47) + dispatch | `dev-zone-probe.py` from GitHub: broken → evidence comment on #39, PASS → evidence comment only (no auto-close — reachability is vantage-dependent, proven 2026-09-09: US PASS + EU FAIL same IP) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation
