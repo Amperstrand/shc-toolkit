@@ -259,10 +259,15 @@ All tests must pass. (Exact test counts are deliberately not pinned here — the
 
 ### 2. Lint
 ```bash
-ruff check shc_toolkit/
-ruff format --check shc_toolkit/
+ruff check shc_toolkit/ tests/ scripts/
+ruff format --check shc_toolkit/ tests/ scripts/
 ```
-Both must be clean (zero errors).
+Both must be clean (zero errors). **Match the CI pin locally** (`ruff==0.16.5`,
+installed in typecheck.yml): the CI gate covers `tests/` + `scripts/` too, and a
+local ruff on an older minor (0.15.11 on 2026-09-09) passes files the pinned
+version rejects — upgrade with
+`pip install --user --break-system-packages ruff==0.16.5` before trusting a
+local "clean".
 
 ### 3. Live API Smoke Test (when SHC_API_KEY is available)
 ```bash
