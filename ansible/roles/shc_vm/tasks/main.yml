@@ -42,18 +42,26 @@
     import json, sys, os, time
     sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit import SHCClient
+    from shc_toolkit.client import SHCNotFoundError
     c = SHCClient()
     deadline = time.time() + {{ shc_vm_wait_timeout }}
     while time.time() < deadline:
-        vm = c.get_vm({{ shc_service_id }})
-        state = vm.get('provisioning_state', 'unknown')
+        try:
+            vm = c.get_vm({{ shc_service_id }})
+        except SHCNotFoundError:
+            # hypervisor-registration gap: fresh VMs 404 briefly after order
+            time.sleep(10)
+            continue
+        svc = vm.get('service_status', '')
         ips = vm.get('ips', [])
         ip = ips[0]['ip'] if ips else ''
-        if state == 'ready' and ip:
-            print(json.dumps({'ip': ip, 'state': state, 'hostname': vm.get('hostname', '')}))
+        # provisioning_state can stay 'provisioning' forever on a healthy
+        # VM — service_status active + IP is the real signal
+        if svc == 'active' and ip:
+            print(json.dumps({'ip': ip, 'state': svc, 'hostname': vm.get('hostname', '')}))
             sys.exit(0)
-        if state in ('failed', 'error', 'cancelled'):
-            print(json.dumps({'error': f'provisioning {state}'}))
+        if svc in ('canceled', 'suspended') or vm.get('provisioning_state') in ('failed', 'error', 'cancelled'):
+            print(json.dumps({'error': f'service {svc} / provisioning {vm.get(\"provisioning_state\")}'}))
             sys.exit(1)
         time.sleep(10)
     print(json.dumps({'error': 'timeout'}))
@@ -64,7 +72,7 @@
   environment:
     SHC_API_KEY: "{{ lookup('env', 'SHC_API_KEY') }}"
     PYTHONPATH: "{{ shc_toolkit_path | default(playbook_dir + '/..') }}"
-  register: shc_vm_ready
+  register: shc_vm_ready_result
   changed_when: false
 
 - name: Parse VM info
