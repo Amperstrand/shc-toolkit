@@ -1008,13 +1008,24 @@ class SHCMCPClient:
     def get_invoice(self, invoice_id: int) -> dict:
         return self._call("get_invoice", invoice_id=invoice_id)
 
-    def pay_invoice(self, invoice_id: int, idempotency_key: str) -> dict:
+    def pay_invoice(
+        self,
+        invoice_id: int,
+        idempotency_key: str | None = None,
+        *,
+        confirm: bool = True,
+    ) -> dict:
+        if idempotency_key is None:
+            import uuid
+
+            idempotency_key = f"shc-{uuid.uuid4().hex[:24]}"
         return self.call_tool(
             "submitPaymentCheckout",
             {
                 "invoiceId": invoice_id,
                 "idempotencyKey": idempotency_key,
             },
+            confirm=confirm,
         )
 
     def list_transactions(self, limit: int = 20, offset: int = 0) -> dict:

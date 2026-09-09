@@ -33,11 +33,18 @@ export SHC_API_KEY="shc_live_..."
 shc catalog
 shc order --hostname my-vm --package-id 23 --pricing-id 55 \
   -o 108=50 -o 126=debian13-cloud -o 167=none \
-  --ssh-key ~/.ssh/id_ed25519.pub --pay
+  --ssh-key ~/.ssh/id_ed25519.pub --pay --verify-reachability
 shc list
 shc info <service_id>
 shc cancel <service_id>
 ```
+
+`--verify-reachability` waits for the VM to come up and polls TCP/22; if it
+never opens, the VM is cancelled immediately (prorated refund) and the
+command exits 1 — no paying for an unroutable box. `shc pay <invoice_id>`
+is spend-gated: it explains by default and pays with `--confirm`. The full
+ephemeral-VM loop (order → run → exfiltrate → close, with receipts):
+[docs/campaign-lifecycle.md](docs/campaign-lifecycle.md).
 
 ## Zones & Facilities (read before ordering)
 

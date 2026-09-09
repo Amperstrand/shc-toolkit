@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sys
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,7 +15,13 @@ from typing import Any
 
 from .benchmark import print_results as print_bench_results
 from .benchmark import run_full_suite
-from .client import REAP_TAG_RE, SHCClient, SHCError, normalize_reap_tag
+from .client import (
+    REAP_TAG_RE,
+    SHCClient,
+    SHCConfirmationRequiredError,
+    SHCError,
+    normalize_reap_tag,
+)
 
 try:
     from .nodns import (
@@ -326,6 +334,71 @@ def apply_reap_tag(hostname: str, reap: str | None) -> tuple[str, bool]:
     return f"{hostname}-reap{tag}", True
 
 
+def _wait_tcp22(ip: str, timeout: int) -> bool:
+    """Poll TCP/22 until open or deadline (5s connect, 5s interval)."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((ip, 22), timeout=5):
+                return True
+        except OSError:
+            time.sleep(5)
+    return False
+
+
+def _wait_active_ip(c, service_id: int, timeout: int = 300) -> str | None:
+    """Poll until service_status is active with an IP assigned.
+
+    Never keys off provisioning_state — it can stay "provisioning" forever
+    on a healthy VM (earned 2026-07-20). Aborts early on failed/error.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        vm = c.get_vm(service_id)
+        ips = vm.get("ips", [])
+        if vm.get("service_status") == "active" and ips:
+            return ips[0]["ip"]
+        if vm.get("provisioning_state") in ("failed", "error"):
+            return None
+        time.sleep(8)
+    return None
+
+
+def _verify_and_maybe_cancel(c, service_id: int, net_timeout: int) -> None:
+    """Post-provision reachability gate (issue #44 / #39).
+
+    billing-active with an IP is NOT proof of a usable VM. Waits for
+    active+IP, then polls TCP/22 up to net_timeout. On failure CANCELS the
+    VM (immediate — prorated refund; never stop: a stopped VM still bills)
+    and exits 1. A failed auto-cancel is shouted, not swallowed.
+    """
+    print(f"Verifying reachability of VM {service_id} (active+IP, then TCP/22)...")
+    ip = _wait_active_ip(c, service_id)
+    if ip and _wait_tcp22(ip, net_timeout):
+        print(f"  reachability verified: TCP/22 open on {ip}")
+        return
+    reason = f"TCP/22 never opened on {ip}" if ip else "VM never reached active+IP"
+    print(
+        f"WARNING: {reason} — cancelling (immediate; prorated refund, "
+        f"1h minimum charge).",
+        file=sys.stderr,
+    )
+    try:
+        c.cancel_vm(service_id, immediate=True)
+        print(
+            f"VM {service_id} cancelled. Re-order a different size/facility "
+            f"— this one cannot be reached from here.",
+            file=sys.stderr,
+        )
+    except Exception as e:
+        print(
+            f"CRITICAL: auto-cancel FAILED ({e}) — VM {service_id} is "
+            f"STILL BILLING. Run: shc cancel {service_id}",
+            file=sys.stderr,
+        )
+    sys.exit(1)
+
+
 def cmd_order(args):
     c = _client(args)
     try:
@@ -443,11 +516,14 @@ def cmd_order(args):
 
     result = c.submit_order(idempotency_key=idem, **kwargs)
 
+    service_ids = result.get("service_ids") or (
+        [result["service_id"]] if result.get("service_id") else []
+    )
+    service_id = service_ids[0] if service_ids else None
+
     if args.pay or args.pay_qr:
         invoice = result.get("invoice", {})
         invoice_id = invoice.get("invoice_id")
-        service_ids = result.get("service_ids", [])
-        service_id = service_ids[0] if service_ids else None
 
         if not invoice_id:
             print("Could not find invoice ID in order result:")
@@ -512,7 +588,23 @@ def cmd_order(args):
             except Exception as e:
                 print(f"Provisioning check: {e}")
                 _print(c.get_vm(service_id), _get_fmt(args))
+        if getattr(args, "verify_reachability", False) and service_id:
+            _verify_and_maybe_cancel(
+                c, service_id, getattr(args, "verify_timeout", 120)
+            )
         return
+
+    if getattr(args, "verify_reachability", False):
+        if service_id:
+            _verify_and_maybe_cancel(
+                c, service_id, getattr(args, "verify_timeout", 120)
+            )
+        else:
+            print(
+                "WARNING: --verify-reachability set but the order returned no "
+                "service_id — nothing to verify",
+                file=sys.stderr,
+            )
 
     _print(result, _get_fmt(args))
 
@@ -654,7 +746,22 @@ def cmd_emails(args):
 
 def cmd_pay(args):
     c = _client(args)
-    _print(c.pay_invoice(args.invoice_id, args.idempotency_key or str(uuid.uuid4())))
+    idem = args.idempotency_key or str(uuid.uuid4())
+    if not getattr(args, "confirm", False):
+        # Paying is spend: probe first — the API's 409 confirmation_required
+        # IS the consent gate. The re-run with --confirm is the explicit yes.
+        try:
+            _print(c.pay_invoice(args.invoice_id, idem, confirm=False), _get_fmt(args))
+            return
+        except SHCConfirmationRequiredError:
+            print(
+                f"Invoice #{args.invoice_id}: payment is spend-gated and needs "
+                f"your explicit confirmation.",
+                file=sys.stderr,
+            )
+            print("Re-run with --confirm to pay it from credit.", file=sys.stderr)
+            sys.exit(1)
+    _print(c.pay_invoice(args.invoice_id, idem, confirm=True), _get_fmt(args))
 
 
 def cmd_register(args):
@@ -1487,11 +1594,36 @@ def main():
         action="store_true",
         help="Show Lightning QR code for just-in-time payment (no balance needed)",
     )
+    p.add_argument(
+        "--verify-reachability",
+        action="store_true",
+        help=(
+            "After provisioning, wait for active+IP then poll TCP/22; if it "
+            "never opens, cancel the VM (immediate — prorated refund, 1h "
+            "minimum) and exit 1. Guards against billing-active-but-"
+            "unroutable zones (issue #39 pattern)"
+        ),
+    )
+    p.add_argument(
+        "--verify-timeout",
+        type=int,
+        default=120,
+        help="Seconds to wait for TCP/22 with --verify-reachability (default 120)",
+    )
     p.set_defaults(func=cmd_order)
 
     p = sub.add_parser("pay", help="Pay an invoice")
     p.add_argument("invoice_id", type=int)
     p.add_argument("--idempotency-key")
+    p.add_argument(
+        "--confirm",
+        action="store_true",
+        help=(
+            "Confirm the spend: pay the invoice from credit. Without this "
+            "flag the command probes and explains (the API's 409 "
+            "confirmation gate)"
+        ),
+    )
     p.set_defaults(func=cmd_pay)
 
     p = sub.add_parser(

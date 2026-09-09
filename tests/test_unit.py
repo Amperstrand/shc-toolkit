@@ -3350,3 +3350,237 @@ class TestSelfDestruct:
             orphans = SHCClient(api_key="test-key").reap_orphans(
                 max_age_hours=0.0, dry_run=True)
             assert [o["hostname"] for o in orphans] == ["bcr-worker-1788560628"]
+
+
+# ── shc pay --confirm + shc order --verify-reachability (issue #44) ──────
+
+
+class TestPayConfirmGate:
+    """`shc pay` is spend: the default run probes (confirm=False) and the
+    API's 409 confirmation_required IS the consent gate — re-running with
+    --confirm is the explicit yes. Matches the corpus confirm contract."""
+
+    def test_pay_invoice_routes_through_confirmed_request(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, "_confirmed_request") as cr:
+            SHCClient(api_key="k").pay_invoice(55, "a" * 16)
+            assert cr.call_args.args == ("POST", "/payment/55/checkout")
+            assert cr.call_args.kwargs["confirm"] is True
+            assert cr.call_args.kwargs["json"] == {
+                "gateway": "btcpay_server",
+                "idempotency_key": "a" * 16,
+            }
+
+    def test_pay_invoice_probe_mode_passes_confirm_false(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, "_confirmed_request") as cr:
+            SHCClient(api_key="k").pay_invoice(55, "a" * 16, confirm=False)
+            assert cr.call_args.kwargs["confirm"] is False
+
+    def test_cmd_pay_probes_and_exits_without_confirm_flag(self, capsys):
+        from shc_toolkit.cli import main
+        from shc_toolkit.client import SHCConfirmationRequiredError
+
+        mock = MagicMock()
+        gate = SHCConfirmationRequiredError(
+            "confirmation_required", "payment requires confirmation"
+        )
+        gate.confirmation_id = "cid-1"
+        mock.pay_invoice.side_effect = gate
+        with (
+            patch("shc_toolkit.cli._client", return_value=mock),
+            patch("shc_toolkit.cli._print"),
+            patch("shc_toolkit.cli._get_fmt", return_value="json"),
+            patch("sys.argv", ["shc", "pay", "55"]),
+        ):
+            with pytest.raises(SystemExit) as ei:
+                main()
+        assert ei.value.code == 1
+        assert mock.pay_invoice.call_args.kwargs.get("confirm") is False
+        assert "--confirm" in capsys.readouterr().err
+
+    def test_cmd_pay_with_confirm_flag_pays(self):
+        from shc_toolkit.cli import main
+
+        mock = MagicMock()
+        mock.pay_invoice.return_value = {"status": "paid"}
+        with (
+            patch("shc_toolkit.cli._client", return_value=mock),
+            patch("shc_toolkit.cli._print"),
+            patch("shc_toolkit.cli._get_fmt", return_value="json"),
+            patch("sys.argv", ["shc", "pay", "55", "--confirm"]),
+        ):
+            main()
+        assert mock.pay_invoice.call_args.kwargs.get("confirm") is True
+
+
+class TestSubmitOrderProbeMode:
+    """submit_order(confirm=False) must raise through instead of
+    auto-confirming — the zero-cost confirm-gate smoke depends on it."""
+
+    def test_submit_order_passes_confirm_false_through(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with (
+            patch.object(SHCClient, "_confirmed_request") as cr,
+            patch.object(SHCClient, "_safe_credit", return_value=None),
+        ):
+            SHCClient(api_key="k").submit_order(
+                idempotency_key="k" * 16,
+                package_id=80,
+                pricing_id=241,
+                hostname="probe-x",
+                check_credit=False,
+                confirm=False,
+            )
+            assert cr.call_args.kwargs["confirm"] is False
+
+
+class TestReachabilityHelpers:
+    def test_wait_tcp22_open_first_try(self):
+        from shc_toolkit.cli import _wait_tcp22
+
+        with (
+            patch("shc_toolkit.cli.socket.create_connection") as conn,
+            patch("shc_toolkit.cli.time.monotonic", side_effect=[0.0, 1.0]),
+        ):
+            conn.return_value = MagicMock()
+            assert _wait_tcp22("203.0.113.7", 120) is True
+        conn.assert_called_once_with(("203.0.113.7", 22), timeout=5)
+
+    def test_wait_tcp22_times_out_when_dark(self):
+        from shc_toolkit.cli import _wait_tcp22
+
+        with (
+            patch(
+                "shc_toolkit.cli.socket.create_connection", side_effect=OSError
+            ),
+            patch("shc_toolkit.cli.time.sleep"),
+            patch(
+                "shc_toolkit.cli.time.monotonic", side_effect=[0.0, 1.0, 500.0]
+            ),
+        ):
+            assert _wait_tcp22("64.188.7.239", 120) is False
+
+    def test_wait_active_ip_requires_active_and_ip(self):
+        from shc_toolkit.cli import _wait_active_ip
+
+        mock = MagicMock()
+        mock.get_vm.return_value = {
+            "service_status": "active",
+            "provisioning_state": "provisioning",  # lies forever (lesson 1)
+            "ips": [{"ip": "23.182.128.97"}],
+        }
+        assert _wait_active_ip(mock, 999) == "23.182.128.97"
+
+    def test_wait_active_ip_aborts_on_failed_state(self):
+        from shc_toolkit.cli import _wait_active_ip
+
+        mock = MagicMock()
+        mock.get_vm.return_value = {
+            "service_status": "pending",
+            "provisioning_state": "failed",
+            "ips": [],
+        }
+        assert _wait_active_ip(mock, 999, timeout=5) is None
+
+
+class TestOrderVerifyReachability:
+    """`shc order --verify-reachability` (#44/#39): billing-active is not
+    proof — poll TCP/22 after provisioning and CANCEL (never stop) the VM
+    when it never opens; a failed auto-cancel must be loud."""
+
+    @staticmethod
+    def _order_mock():
+        mock = MagicMock()
+        mock.get_config_options.return_value = {}
+        mock.resolve_addons.return_value = {}
+        mock.submit_order.return_value = {"service_ids": [999]}
+        return mock
+
+    def _run(self, mock, extra):
+        from shc_toolkit.cli import main
+
+        with (
+            patch("shc_toolkit.cli._client", return_value=mock),
+            patch("shc_toolkit.cli._print"),
+            patch("shc_toolkit.cli._get_fmt", return_value="json"),
+            patch("sys.argv", ["shc", "order", "--hostname", "vfy1",
+                               "--package-id", "23", "--pricing-id", "55"]
+                  + extra),
+        ):
+            main()
+
+    def test_dark_vm_is_cancelled_not_stopped(self, capsys):
+        mock = self._order_mock()
+        with (
+            patch("shc_toolkit.cli._wait_active_ip", return_value="64.188.7.239"),
+            patch("shc_toolkit.cli._wait_tcp22", return_value=False),
+        ):
+            with pytest.raises(SystemExit) as ei:
+                self._run(mock, ["--verify-reachability"])
+        assert ei.value.code == 1
+        mock.cancel_vm.assert_called_once_with(999, immediate=True)
+        err = capsys.readouterr().err
+        assert "STILL BILLING" not in err  # cancel itself succeeded
+
+    def test_reachable_vm_is_kept(self):
+        mock = self._order_mock()
+        with (
+            patch("shc_toolkit.cli._wait_active_ip", return_value="23.182.128.97"),
+            patch("shc_toolkit.cli._wait_tcp22", return_value=True),
+        ):
+            self._run(mock, ["--verify-reachability"])
+        mock.cancel_vm.assert_not_called()
+
+    def test_never_active_vm_is_cancelled(self):
+        mock = self._order_mock()
+        with (
+            patch("shc_toolkit.cli._wait_active_ip", return_value=None),
+            patch("shc_toolkit.cli._wait_tcp22", return_value=True),
+        ):
+            with pytest.raises(SystemExit):
+                self._run(mock, ["--verify-reachability"])
+        mock.cancel_vm.assert_called_once_with(999, immediate=True)
+
+    def test_failed_cancel_is_loud_about_billing(self, capsys):
+        mock = self._order_mock()
+        mock.cancel_vm.side_effect = SHCError("vm_locked", "cancel rejected")
+        with (
+            patch("shc_toolkit.cli._wait_active_ip", return_value="64.188.7.239"),
+            patch("shc_toolkit.cli._wait_tcp22", return_value=False),
+        ):
+            with pytest.raises(SystemExit) as ei:
+                self._run(mock, ["--verify-reachability"])
+        assert ei.value.code == 1
+        assert "STILL BILLING" in capsys.readouterr().err
+
+    def test_pay_path_runs_verify_too(self):
+        mock = self._order_mock()
+        mock.submit_order.return_value = {
+            "service_ids": [999],
+            "invoice": {"invoice_id": 55},
+        }
+        mock._confirmed_request.return_value = {"status": "paid"}
+        mock.wait_for_provisioning.return_value = None
+        mock.get_vm.return_value = {
+            "hostname": "vfy1",
+            "ips": [{"ip": "23.182.128.97"}],
+            "os_user": "debian",
+            "service_status": "active",
+        }
+        with (
+            patch("shc_toolkit.cli._wait_active_ip", return_value="23.182.128.97"),
+            patch("shc_toolkit.cli._wait_tcp22", return_value=True),
+        ):
+            self._run(mock, ["--pay", "--verify-reachability"])
+        mock.cancel_vm.assert_not_called()
+        mock.wait_for_provisioning.assert_called_once()

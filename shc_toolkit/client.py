@@ -1102,12 +1102,26 @@ class SHCClient:
     def get_invoice_pdf_url(self, invoice_id: int) -> str:
         return f"{self.base_url}/invoices/{invoice_id}/pdf"
 
-    def pay_invoice(self, invoice_id: int, idempotency_key: str | None = None) -> dict:
+    def pay_invoice(
+        self,
+        invoice_id: int,
+        idempotency_key: str | None = None,
+        *,
+        confirm: bool = True,
+    ) -> dict:
+        """Pay an invoice from credit (spend-gated).
+
+        confirm=True (default) auto-handles the 409 confirmation_required
+        flow; confirm=False probes and raises SHCConfirmationRequiredError
+        carrying the confirmation_id instead of spending.
+        """
         if idempotency_key is None:
             idempotency_key = f"shc-{uuid.uuid4().hex[:24]}"
-        return self._post(
+        return self._confirmed_request(
+            "POST",
             f"/payment/{invoice_id}/checkout",
-            {"gateway": "btcpay_server", "idempotency_key": idempotency_key},
+            confirm=confirm,
+            json={"gateway": "btcpay_server", "idempotency_key": idempotency_key},
         )
 
     def get_payment(self, invoice_id: int) -> dict:
@@ -1400,7 +1414,7 @@ class SHCClient:
         probes = []
         for pkg in catalog:
             if lines and not pkg["name"].lower().startswith(
-                tuple(f"{l} " for l in lines)
+                tuple(f"{pref} " for pref in lines)
             ):
                 continue
             daily = next(
@@ -1471,6 +1485,7 @@ class SHCClient:
         *,
         include_dev_vps_options: bool = True,
         check_credit: bool = True,
+        confirm: bool = True,
         **kwargs,
     ) -> dict:
         """Submit a VM order with auto-confirmation, idempotency, and credit pre-check.
@@ -1481,6 +1496,10 @@ class SHCClient:
 
         When include_dev_vps_options is True (default) and the caller has not
         already supplied order_form_id/options, injects the Dev VPS defaults.
+
+        confirm=False probes the spend gate: raises SHCConfirmationRequiredError
+        (409 + confirmation_id) without creating anything — zero-cost gate
+        health check.
         """
         import uuid
 
@@ -1518,7 +1537,7 @@ class SHCClient:
         headers = {"Idempotency-Key": idem}
         credit_before = self._safe_credit()
         result = self._confirmed_request(
-            "POST", "/ordering/submit", json=kwargs, headers=headers
+            "POST", "/ordering/submit", json=kwargs, headers=headers, confirm=confirm
         )
 
         pkg_id = kwargs.get("package_id", 0)
