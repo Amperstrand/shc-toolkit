@@ -69,7 +69,7 @@
   ansible.builtin.shell: |
     python3 -c "
     import sys, os
-    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit.nodns import NoDNSKeyPair, publish_dns_records
     kp = NoDNSKeyPair.from_nsec('{{ nodns_nsec }}')
     result = publish_dns_records(kp, [

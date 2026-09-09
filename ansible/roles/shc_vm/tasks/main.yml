@@ -11,7 +11,7 @@
   ansible.builtin.shell: |
     python3 -c "
     import json, sys, os
-    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit import SHCClient
     from shc_toolkit.sizes import resolve_size
     c = SHCClient()
@@ -40,7 +40,7 @@
   ansible.builtin.shell: |
     python3 -c "
     import json, sys, os, time
-    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit import SHCClient
     c = SHCClient()
     deadline = time.time() + {{ shc_vm_wait_timeout }}
@@ -76,7 +76,7 @@
   ansible.builtin.shell: |
     python3 -c "
     import sys, os
-    sys.path.insert(0, '{{ shc_toolkit_path | default(\".\") }}')
+    sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit import SHCClient
     c = SHCClient()
     key_path = os.path.expanduser('{{ shc_vm_ssh_key_source | default('~/.ssh/id_ed25519.pub') }}')
