@@ -112,8 +112,13 @@ def main() -> int:
             if datetime.now(UTC) < deadline:
                 continue
             candidates.append(
-                (vm["id"], hostname, vm_age_hours(vm), vm.get("service_status", "?"),
-                 "reap-deadline tag")
+                (
+                    vm["id"],
+                    hostname,
+                    vm_age_hours(vm),
+                    vm.get("service_status", "?"),
+                    "reap-deadline tag",
+                )
             )
             continue
 
