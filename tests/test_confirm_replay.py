@@ -7,7 +7,6 @@ replay passes the gate, while _confirmed_request's replay re-triggers a fresh
 409 (new request id) — its resend is NOT identical.
 """
 
-import json
 import httpx
 import pytest
 

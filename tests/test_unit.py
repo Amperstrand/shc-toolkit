@@ -3592,10 +3592,9 @@ class TestSession20260909Pins:
     def test_reap_defaults_include_ansible_demo_prefix(self):
         """ansible-demo- must stay in the default reap prefixes (lesson 32:
         the e2e VM class leaked sid 2483 when no layer could see it)."""
-        from shc_toolkit.client import SHCClient
-
-        client = SHCClient(api_key="k")
         import inspect
+
+        from shc_toolkit.client import SHCClient
 
         src = inspect.getsource(SHCClient.reap_orphans)
         assert '"ansible-demo-"' in src
@@ -3604,7 +3603,7 @@ class TestSession20260909Pins:
         """MCP transport parity: pay_invoice(confirm=False) must reach
         call_tool with confirm=False (the shc pay consent gate rides on
         this for MCP-transport sessions)."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         from shc_toolkit.mcp_client import SHCMCPClient
 
