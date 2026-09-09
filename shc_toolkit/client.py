@@ -1702,6 +1702,10 @@ class SHCClient:
                 "devprobe-",
                 "clboss-",
                 "lab-",
+                # ansible-e2e playbook VMs (added 2026-09-09: the 09-09 run
+                # leaked sid 2483 — "ansible-demo-*" matched no prefix, so
+                # every cleanup layer treated it as permanent)
+                "ansible-demo-",
             ]
 
         if exclude_hostnames is None:
