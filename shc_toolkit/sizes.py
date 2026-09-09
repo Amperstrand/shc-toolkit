@@ -97,9 +97,7 @@ def resolve_size(size: str) -> tuple[int, int]:
 
 def facility_for_package(package_id: int) -> dict | None:
     """FACILITIES record for a package's catalog line (None if unmapped)."""
-    entry = next(
-        (e for e in SIZE_MAP.values() if e["package_id"] == package_id), None
-    )
+    entry = next((e for e in SIZE_MAP.values() if e["package_id"] == package_id), None)
     if entry is None:
         return None
     return FACILITIES.get(entry["line"])
