@@ -17,7 +17,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── tests/                       — network-isolated unit tests + gated integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
-├── docs/                        — 10 guides (webhooks, agent-sessions, cloud-init, firecracker, ...)
+├── docs/                        — 15 guides (webhooks, agent-sessions, cloud-init, firecracker, campaign-lifecycle, ...)
 └── .github/workflows/           — 9 CI workflows
 
 terraform-provider-shc (Go, v0.1.0)
@@ -113,9 +113,9 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 5. `test_core_tool_count` in `tests/test_unit.py` — matches `len(TOOL_MAP)`
 6. Cross-repo audit passes: `python3 scripts/audit_cross_repo.py`
 
-## CI workflows (10 total)
+## CI workflows (12 total)
 
-**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. To run any suite: `gh workflow run <name>` or ask the agent.
+**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. The one deliberate weekly exception is `dev-zone-watch.yml` (~$0.02/run, self-cancelling — the #39 evidence trail is worth it while the outage runs). To run any suite: `gh workflow run <name>` or ask the agent.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
@@ -126,8 +126,9 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | `coverage.yml` | dispatch, tag | pytest --cov coverage reporting (baseline, no thresholds yet) |
 | `security.yml` | dispatch, tag | bandit + safety + pip-audit security scanning |
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
-| `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC Dev VPS |
+| `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC VM (Katy NVMe default since 2026-09-09; `vm_size` dispatch input, dev-* = unstable zone #39) |
 | `reap-orphan-vms.yml` | daily (05:23) + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
+| `dev-zone-watch.yml` | weekly (Mon 05:47) + dispatch | `dev-zone-probe.py` from GitHub: broken → evidence comment on #39, healthy → close it (self-cancelling probe VM) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation
@@ -167,7 +168,10 @@ Everything lives in `~/.config/shc/credentials.sh` (0600, outside all repos, sou
 `https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt` is SHC's
 agent-facing contract corpus (header carries `x-shc-release` version, op_count,
 fingerprints). Audited 2026-08-26 against v2.4.15 of the corpus (API spec at
-2.4.24, 177 ops — no drift). Key contracts it defines that BOTH repos must keep:
+2.4.24, 177 ops — no drift). **Fingerprint baseline (re-verified 2026-09-09,
+unchanged):** `op_fingerprint=183a4a0282542d671d799f08044f6717182932f9fa1ef5205dfca45a030cefaa`,
+`contractFingerprint=e8f7ccc12336fb4925893ce3582b03782b182638dc460d952d046a36c1c20e14` —
+compare the header values, not just version/op_count, on every audit. Key contracts it defines that BOTH repos must keep:
 
 - **Confirmation gate**: spend/destructive ops 409 `confirmation_required`
   carrying a single-use `confirmation_id`; re-send the IDENTICAL request with

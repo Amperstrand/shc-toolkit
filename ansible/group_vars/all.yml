@@ -7,7 +7,9 @@ shc_api_key: "{{ lookup('env', 'SHC_API_KEY') }}"
 
 # VM specification
 shc_vm_hostname: "ansible-demo-{{ 99999 | random | to_uuid }}"
-shc_vm_size: "dev-2c-8gb"  # Options: dev-1c-4gb, dev-2c-8gb, nvme-1c-4gb, etc.
+# Katy NVMe by default — the workload (Caddy + certbot) needs no nested KVM,
+# and the Dev zone (Cherryvale) is unroutable since 2026-08-27 (issue #39).
+shc_vm_size: "nvme-1c-4gb"  # Options: nvme-1c-4gb, nvme-2c-8gb, hdd-4c-16gb, dev-2c-8gb (dev = unstable zone)
 shc_vm_wait_timeout: 600
 
 # SSH

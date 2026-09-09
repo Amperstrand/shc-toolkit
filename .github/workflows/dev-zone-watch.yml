@@ -1,0 +1,105 @@
+---
+# Dev zone watch (Cherryvale, KS — issue #39).
+#
+# Since 2026-08-27 Dev VMs (pkg 80-84) provision to billing-active with an
+# IP in 64.188.7.0/24 but never attach to the network (TCP/22 dark from
+# every vantage, including cross-zone from inside SHC). This turns the
+# manual re-probe into an automated weekly evidence trail:
+#   * broken:  comments the probe tail on #39 (scheduled runs only —
+#              manual dispatches never comment, so testing is spam-free)
+#   * healthy: comments the evidence and closes #39
+#
+# Probe: scripts/dev-zone-probe.py — orders the smallest Dev VPS, waits
+# for active+IP, probes TCP/22 up to 120s, ALWAYS cancels. Cost
+# ~$0.01-0.24 per run (weekly ≈ $0.05-1.00/month) — approved with the
+# 2026-09-09 test/improve plan.
+
+name: Dev Zone Watch
+
+on:
+  schedule:
+    - cron: "47 5 * * 1" # Mondays 05:47 UTC (staggered off the reaper's 05:23)
+  workflow_dispatch:
+
+concurrency:
+  group: dev-zone-watch
+  cancel-in-progress: true
+
+env:
+  WATCH_ISSUE: "39" # tracking issue for the dev-zone outage
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install toolkit
+        run: pip install -e .
+
+      - name: Probe Dev zone (order → provision → TCP/22 → cancel)
+        id: probe
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        run: |
+          set +e
+          python3 scripts/dev-zone-probe.py --timeout 240 --net-timeout 120 > /tmp/probe.txt 2>&1
+          rc=$?
+          set -e
+          cat /tmp/probe.txt
+          if [ "$rc" -eq 0 ]; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment evidence on issue (broken)
+        if: steps.probe.outputs.healthy == 'false' && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ env.WATCH_ISSUE }}
+        run: |
+          # Skip if the latest comment is already a bot probe from <6 days ago
+          # (guards against schedule overlap; weekly cadence otherwise).
+          LAST="$(gh issue view "$ISSUE" --json comments --jq '.comments | last | .createdAt // empty')"
+          if [ -n "$LAST" ] && [ "$(date -u -d "$LAST" +%s)" -gt "$(date -u -d '6 days ago' +%s)" ]; then
+            # only skip when that fresh comment is ours
+            AUTHOR="$(gh issue view "$ISSUE" --json comments --jq '.comments | last | .author.login // empty')"
+            if [ "$AUTHOR" = "github-actions[bot]" ]; then
+              echo "Fresh bot evidence already on #$ISSUE — skipping comment."
+              exit 0
+            fi
+          fi
+          BODY="🔴 Dev zone still broken at $(date -u '+%Y-%m-%dT%H:%M:%SZ') — probe exit != 0 (billing-active, no network attach):
+          $(grep -E 'FAIL|ACTIVE|Ordered|CANCELLED|ICMP|provisioned' /tmp/probe.txt | tail -6)
+
+          Probe VM auto-cancelled. Full log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh issue comment "$ISSUE" --body "$BODY"
+
+      - name: Comment + close issue on recovery
+        if: steps.probe.outputs.healthy == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ env.WATCH_ISSUE }}
+        run: |
+          STATE="$(gh issue view "$ISSUE" --json state --jq .state)"
+          STATE="${STATE,,}"
+          if [ "$STATE" = "open" ]; then
+            gh issue comment "$ISSUE" --body "✅ **Recovered** — Dev zone probe PASSED at $(date -u '+%Y-%m-%dT%H:%M:%SZ'): ordered, provisioned, TCP/22 reachable, cancelled cleanly.
+
+          $(grep -E 'Ordered|provisioned|reachable|CANCELLED|PASS' /tmp/probe.txt | tail -5)
+
+          Auto-closing. Follow-ups: flip \`ansible/group_vars/all.yml\` back to a dev-* size if the E2E should ride the Dev zone again (or keep Katy), and re-enable Dev orders wherever they were parked."
+            gh issue close "$ISSUE"
+          else
+            echo "Healthy and issue already closed — nothing to do."
+          fi

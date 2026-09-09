@@ -308,3 +308,81 @@ jobs:
               body: ['The weekly live smoke (`scripts/live_smoke.py`) failed. Full order→provision→ssh_key→cancel path against the real API.', '', '```', output, '```', '', 'Action items: re-run locally with SHC_API_KEY, check the storefront triple / ssh_key persistence / Dev vs NVMe zone.'].join('\n'),
               labels: ['live-smoke-failure', 'bug']
             });
+
+  confirm-gate-smoke:
+    name: Confirm-gate smoke (zero-cost 409 probe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - run: pip install -e .
+
+      # Zero-cost probe of the spend gate (issue #45 corroboration): an
+      # order submit with confirm=False must raise 409 confirmation_required
+      # carrying a confirmation_id — nothing is created, nothing is spent.
+      # Catches gate-shape drift the OpenAPI diff cannot see (e.g. the
+      # 2026-09-06 server-side 500s on properly-formed confirmations).
+      - name: Probe the spend gate
+        id: gate
+        env:
+          SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+        run: |
+          python3 - << 'PY' > /tmp/gate-smoke.txt 2>&1
+          import os
+          import sys
+          import uuid
+
+          from shc_toolkit.client import SHCClient, SHCConfirmationRequiredError
+
+          c = SHCClient(api_key=os.environ["SHC_API_KEY"])
+          try:
+              c.submit_order(
+                  package_id=80,
+                  pricing_id=241,
+                  order_form_id=11,
+                  package_group_id=14,
+                  module_group_id=7,
+                  hostname=f"gatesmoke-{uuid.uuid4().hex[:8]}",
+                  template="debian13-cloud",
+                  idempotency_key=f"gatesmoke-{uuid.uuid4().hex[:16]}",
+                  include_dev_vps_options=True,
+                  check_credit=False,
+                  confirm=False,
+              )
+          except SHCConfirmationRequiredError as e:
+              cid = getattr(e, "confirmation_id", None)
+              print(f"gate OK: 409 confirmation_required raised; "
+                    f"confirmation_id={'present' if cid else 'MISSING'}")
+              sys.exit(0 if cid else 1)
+          print("gate BROKEN: order submit did not raise confirmation_required")
+          sys.exit(1)
+          PY
+          cat /tmp/gate-smoke.txt
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            let output = '';
+            try { output = readFileSync('/tmp/gate-smoke.txt', 'utf8'); } catch (e) {}
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'confirm-gate-failure'
+            });
+            if (issues.data.length > 0) {
+              core.info('Confirm-gate failure issue already open, skipping');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Confirm-gate smoke failed (spend gate shape changed or broken)',
+              body: ['The zero-cost confirm-gate probe failed. Expected: `confirm=False` order submit → 409 confirmation_required with a confirmation_id. This catches server-side changes invisible to the spec diff (see #45: 500s on properly-formed confirmations, 2026-09-06).', '', '```', output, '```', '', 'Action items: re-run locally with SHC_API_KEY, test a real confirmed order, and if the server 500s take the request_ids to SHC support.'].join('\n'),
+              labels: ['confirm-gate-failure', 'bug']
+            });

@@ -1,13 +1,17 @@
 ---
-# Workflow: weekly live E2E for the ansible/ subtree.
+# Workflow: monthly live E2E for the ansible/ subtree.
 #
-# Runs the full playbook.yml + teardown.yml against a real SHC Dev VPS
-# every Sunday at 03:00 UTC. Catches regressions that molecule can't:
+# Runs the full playbook.yml + teardown.yml against a real SHC VM
+# every 7th at 03:00 UTC. Catches regressions that molecule can't:
 # the SHC API integration, NoDNS publishing, certbot DNS-01 against
 # real Let's Encrypt, and end-to-end HTTPS verification.
 #
-# Cost: ~$0.04 per run on dev-1c-4gb (cancel-at-order + 12-min proration
-# refund). ~$2/month at weekly cadence.
+# Default VM: Katy NVMe (nvme-1c-4gb) — the playbook needs no nested
+# KVM, and the Dev zone (Cherryvale) is unroutable since 2026-08-27
+# (issue #39; dev-zone-watch.yml tracks it). Pass vm_size=dev-* only
+# when deliberately testing that zone.
+#
+# Cost: ~$0.01-0.05 per run (cancel-at-order + prorated refund).
 #
 # Can be triggered manually via workflow_dispatch.
 
@@ -17,6 +21,12 @@ on:
   schedule:
     - cron: '0 3 7 * *'  # Monthly: 7th 03:00 UTC
   workflow_dispatch:
+    inputs:
+      vm_size:
+        description: 'shc_vm_size override (default nvme-1c-4gb; dev-* = unstable zone)'
+        required: false
+        default: 'nvme-1c-4gb'
+        type: string
 
 permissions:
   issues: write
@@ -43,7 +53,8 @@ jobs:
           SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
           SHC_GITHUB_ADMIN_TOKEN: dummy  # playbook doesn't use this; suppress warning
         run: |
-          ansible-playbook -i localhost, playbook.yml -e certbot_staging=true
+          ansible-playbook -i localhost, playbook.yml -e certbot_staging=true \
+            -e shc_vm_size='${{ inputs.vm_size || 'nvme-1c-4gb' }}'
         continue-on-error: true
         id: provision
 
@@ -89,10 +100,10 @@ jobs:
               body: [
                 `The monthly ansible live E2E failed: ${runUrl}`,
                 '',
-                'NOTE: this workflow orders a Dev VPS (pkg 80-84, Cherryvale KS).',
-                'If the order step timed out, the Dev zone scheduler is still',
-                'broken — see issue #28. A successful run means the zone recovered;',
-                'close #28 if so.'
+                'Default VM is Katy NVMe (nvme-1c-4gb) since the Dev zone is',
+                'unroutable (issue #39). If the order step timed out with a',
+                'dev-* size, that is expected until #39 closes —',
+                'dev-zone-watch.yml posts fresh probe evidence there weekly.'
               ].join('\n'),
               labels: ['ci-failure', 'bug']
             });
