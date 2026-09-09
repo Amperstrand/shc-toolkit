@@ -3330,25 +3330,27 @@ class TestSelfDestruct:
 
         from shc_toolkit.client import SHCClient
 
-        fake_vms = [{
-            "id": 7,
-            "hostname": "bcr-worker-1788560628-reap8h",
-            "service_status": "active",
-            "date_created": "2020-01-01T00:00:00+00:00",
-            "package": "nvme",
-        }]
+        fake_vms = [
+            {
+                "id": 7,
+                "hostname": "bcr-worker-1788560628-reap8h",
+                "service_status": "active",
+                "date_created": "2020-01-01T00:00:00+00:00",
+                "package": "nvme",
+            }
+        ]
         with patch.object(SHCClient, "list_vms", return_value=fake_vms):
             client = SHCClient(api_key="test-key")
             orphans = client.reap_orphans(max_age_hours=0.0, dry_run=True)
-            assert [o["hostname"] for o in orphans] == \
-                ["bcr-worker-1788560628-reap8h"]
+            assert [o["hostname"] for o in orphans] == ["bcr-worker-1788560628-reap8h"]
 
         # Untagged worker (tag application failed): the prefix gate must
         # still catch it past max-age.
         untagged = [dict(fake_vms[0], hostname="bcr-worker-1788560628")]
         with patch.object(SHCClient, "list_vms", return_value=untagged):
             orphans = SHCClient(api_key="test-key").reap_orphans(
-                max_age_hours=0.0, dry_run=True)
+                max_age_hours=0.0, dry_run=True
+            )
             assert [o["hostname"] for o in orphans] == ["bcr-worker-1788560628"]
 
 
@@ -3398,9 +3400,9 @@ class TestPayConfirmGate:
             patch("shc_toolkit.cli._print"),
             patch("shc_toolkit.cli._get_fmt", return_value="json"),
             patch("sys.argv", ["shc", "pay", "55"]),
+            pytest.raises(SystemExit) as ei,
         ):
-            with pytest.raises(SystemExit) as ei:
-                main()
+            main()
         assert ei.value.code == 1
         assert mock.pay_invoice.call_args.kwargs.get("confirm") is False
         assert "--confirm" in capsys.readouterr().err
@@ -3460,13 +3462,9 @@ class TestReachabilityHelpers:
         from shc_toolkit.cli import _wait_tcp22
 
         with (
-            patch(
-                "shc_toolkit.cli.socket.create_connection", side_effect=OSError
-            ),
+            patch("shc_toolkit.cli.socket.create_connection", side_effect=OSError),
             patch("shc_toolkit.cli.time.sleep"),
-            patch(
-                "shc_toolkit.cli.time.monotonic", side_effect=[0.0, 1.0, 500.0]
-            ),
+            patch("shc_toolkit.cli.time.monotonic", side_effect=[0.0, 1.0, 500.0]),
         ):
             assert _wait_tcp22("64.188.7.239", 120) is False
 
@@ -3513,9 +3511,20 @@ class TestOrderVerifyReachability:
             patch("shc_toolkit.cli._client", return_value=mock),
             patch("shc_toolkit.cli._print"),
             patch("shc_toolkit.cli._get_fmt", return_value="json"),
-            patch("sys.argv", ["shc", "order", "--hostname", "vfy1",
-                               "--package-id", "23", "--pricing-id", "55"]
-                  + extra),
+            patch(
+                "sys.argv",
+                [
+                    "shc",
+                    "order",
+                    "--hostname",
+                    "vfy1",
+                    "--package-id",
+                    "23",
+                    "--pricing-id",
+                    "55",
+                ]
+                + extra,
+            ),
         ):
             main()
 
@@ -3524,9 +3533,9 @@ class TestOrderVerifyReachability:
         with (
             patch("shc_toolkit.cli._wait_active_ip", return_value="64.188.7.239"),
             patch("shc_toolkit.cli._wait_tcp22", return_value=False),
+            pytest.raises(SystemExit) as ei,
         ):
-            with pytest.raises(SystemExit) as ei:
-                self._run(mock, ["--verify-reachability"])
+            self._run(mock, ["--verify-reachability"])
         assert ei.value.code == 1
         mock.cancel_vm.assert_called_once_with(999, immediate=True)
         err = capsys.readouterr().err
@@ -3546,9 +3555,9 @@ class TestOrderVerifyReachability:
         with (
             patch("shc_toolkit.cli._wait_active_ip", return_value=None),
             patch("shc_toolkit.cli._wait_tcp22", return_value=True),
+            pytest.raises(SystemExit),
         ):
-            with pytest.raises(SystemExit):
-                self._run(mock, ["--verify-reachability"])
+            self._run(mock, ["--verify-reachability"])
         mock.cancel_vm.assert_called_once_with(999, immediate=True)
 
     def test_failed_cancel_is_loud_about_billing(self, capsys):
@@ -3557,9 +3566,9 @@ class TestOrderVerifyReachability:
         with (
             patch("shc_toolkit.cli._wait_active_ip", return_value="64.188.7.239"),
             patch("shc_toolkit.cli._wait_tcp22", return_value=False),
+            pytest.raises(SystemExit) as ei,
         ):
-            with pytest.raises(SystemExit) as ei:
-                self._run(mock, ["--verify-reachability"])
+            self._run(mock, ["--verify-reachability"])
         assert ei.value.code == 1
         assert "STILL BILLING" in capsys.readouterr().err
 

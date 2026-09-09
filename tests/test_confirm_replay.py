@@ -128,6 +128,7 @@ def test_prose_cid_is_extracted(gated_client):
     """The live server embeds the cid in prose text; extraction must find it
     even when structuredContent lacks a confirmation_id field."""
     import pytest as _pytest
+
     from shc_toolkit.client import SHCConfirmationRequiredError
 
     with _pytest.raises(SHCConfirmationRequiredError) as ei:

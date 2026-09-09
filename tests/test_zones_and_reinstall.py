@@ -24,7 +24,9 @@ class TestFacilities:
 
     def test_size_map_entries_carry_facility_fields(self):
         for entry in SIZE_MAP.values():
-            assert entry["module_group_id"] == FACILITIES[entry["line"]]["module_group_id"]
+            assert (
+                entry["module_group_id"] == FACILITIES[entry["line"]]["module_group_id"]
+            )
             assert entry["facility"] == FACILITIES[entry["line"]]["facility"]
 
     def test_cherryvale_lines_are_flagged_unreachable(self):
@@ -55,7 +57,10 @@ class TestApplyReapTag:
         assert apply_reap_tag("tg-x", None) == ("tg-x", False)
 
     def test_epoch_tag_not_stacked(self):
-        assert apply_reap_tag("tg-x-reap1788280215", "1h") == ("tg-x-reap1788280215", False)
+        assert apply_reap_tag("tg-x-reap1788280215", "1h") == (
+            "tg-x-reap1788280215",
+            False,
+        )
 
     def test_bad_tag_raises(self):
         with pytest.raises(ValueError):
@@ -74,13 +79,15 @@ class TestReinstallKwarg:
     def test_stop_first_conflict_is_actionable(self):
         from shc_toolkit.client import SHCError
 
-        with patch.object(
-            SHCClient,
-            "reinstall_vm",
-            side_effect=SHCError("conflict", "VM must be stopped before reinstall"),
+        with (
+            patch.object(
+                SHCClient,
+                "reinstall_vm",
+                side_effect=SHCError("conflict", "VM must be stopped before reinstall"),
+            ),
+            pytest.raises(SystemExit),
         ):
-            with pytest.raises(SystemExit):
-                cmd_reinstall(_ns())
+            cmd_reinstall(_ns())
 
 
 class _Args:
@@ -101,28 +108,28 @@ def _order_ns(**over):
     """argparse.Namespace for cmd_order (network-free via _client stub)."""
     import argparse
 
-    defaults = dict(
-        hostname="tg-test",
-        reap=None,
-        ssh_key=None,
-        size=None,
-        cpu=None,
-        ram=None,
-        disk=None,
-        package_id=None,
-        pricing_id=None,
-        module_group_id=None,
-        tag=None,
-        template=None,
-        dry_run=False,
-        pay=False,
-        pay_qr=False,
-        idempotency_key=None,
-        allow_unstable_zone=False,
-        api_key="test-key",
-        context=None,
-        format="json",
-    )
+    defaults = {
+        "hostname": "tg-test",
+        "reap": None,
+        "ssh_key": None,
+        "size": None,
+        "cpu": None,
+        "ram": None,
+        "disk": None,
+        "package_id": None,
+        "pricing_id": None,
+        "module_group_id": None,
+        "tag": None,
+        "template": None,
+        "dry_run": False,
+        "pay": False,
+        "pay_qr": False,
+        "idempotency_key": None,
+        "allow_unstable_zone": False,
+        "api_key": "test-key",
+        "context": None,
+        "format": "json",
+    }
     defaults.update(over)
     return argparse.Namespace(**defaults)
 
@@ -140,7 +147,7 @@ class TestUnstableFacilityRefusal:
     def _client_stub(self, monkeypatch):
         from unittest.mock import MagicMock
 
-        import shc_toolkit.cli as cli
+        from shc_toolkit import cli
 
         client = MagicMock()
         client.get_config_options.return_value = {}
@@ -180,9 +187,7 @@ class TestUnstableFacilityRefusal:
     def test_refusal_helper_gates_on_allow_and_dry_run(self):
         from shc_toolkit.sizes import unstable_order_refusal
 
-        dev_pkg = next(
-            e["package_id"] for e in SIZE_MAP.values() if e["line"] == "dev"
-        )
+        dev_pkg = next(e["package_id"] for e in SIZE_MAP.values() if e["line"] == "dev")
         nvme_pkg = next(
             e["package_id"] for e in SIZE_MAP.values() if e["line"] == "nvme"
         )
