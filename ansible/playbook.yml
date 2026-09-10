@@ -23,6 +23,16 @@
       ansible.builtin.import_role:
         name: shc_vm
 
+    # 'active'+IP fires before cloud-init finishes — sshd can lag by ~120s.
+    # Gate the VM play on a real TCP/22 accept (lesson 1 + the 09-10 e2e
+    # runs: first SSH attempt hit unreachable otherwise).
+    - name: Wait for sshd to actually accept connections
+      ansible.builtin.wait_for:
+        host: "{{ shc_vm_ip }}"
+        port: 22
+        timeout: 600
+      when: shc_vm_ip is defined
+
 - name: Configure NoDNS + HTTPS on the new VM
   hosts: "{{ hostvars['localhost']['shc_vm_resolved_hostname'] | default('shc-new-vm') }}"
   gather_facts: true

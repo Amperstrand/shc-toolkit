@@ -1,0 +1,40 @@
+# SHC Operator Skills
+
+> Skills your AI agent loads to run your SHC server for you, end to end. The agent does every step; you never open a terminal or paste a password. Works with any AI assistant. Start at the router; run get-access first; hold the operator discipline; fetch a skill's full text only when it triggers.
+
+Agent docs ingestion (not SEO): these are operator skills an AI loads to run a fresh SHC VPS end to end. The agent does every step; the human never opens a terminal.
+
+## Start here
+
+- [Router (lean entrypoint)](https://blesta.sovereignhybridcompute.com/agent-skills/router.json): the routing table -- keep resident.
+- [Operator discipline](https://blesta.sovereignhybridcompute.com/agent-skills/discipline.md): the 5 rules every skill follows.
+- [get-access (run first)](https://blesta.sovereignhybridcompute.com/agent-skills/skills/get-access/get-access.md): create the account + get the key.
+- [Flagship MCP server](https://mcp.sovereignhybridcompute.com/): The hosted flagship MCP server (Streamable HTTP). Connect any MCP client and authenticate with a Bearer operate key ('Authorization: Bearer shc_live_...'); it exposes 115 SHC user-api tools. Every spend and every destructive tool is gated behind a server-issued confirmation_id (re-call with the confirmation_id after the human approves). The curated everyday subset is annotated x-shc-core; start with getAccount. Nothing to install.
+
+## Skills
+
+- [get-access](https://blesta.sovereignhybridcompute.com/agent-skills/skills/get-access/get-access.md): Create the user's SHC account via API; get an operate key.
+- [shc-deploy-app](https://blesta.sovereignhybridcompute.com/agent-skills/skills/shc-deploy-app/shc-deploy-app.md): Deploy a self-hosted app on the VPS (e.g. BTCPay, Nextcloud).
+- [nostr-operate-lane](https://blesta.sovereignhybridcompute.com/agent-skills/skills/nostr-operate-lane/nostr-operate-lane.md): Trade a customer-signed Nostr operate grant for a short-TTL, single-VM, cannot-spend operate Bearer.
+- [shc-pay](https://blesta.sovereignhybridcompute.com/agent-skills/skills/shc-pay/shc-pay.md): Show a QR + links to add prepaid SHC credit; confirm on balance re-read.
+- [wait-until-ready](https://blesta.sovereignhybridcompute.com/agent-skills/skills/wait-until-ready/wait-until-ready.md): Wait until the VPS is up and SSH+sudo actually work (live proof).
+- [point-a-domain](https://blesta.sovereignhybridcompute.com/agent-skills/skills/point-a-domain/point-a-domain.md): Point a hostname at the VPS IP and verify it resolves globally.
+- [harden-ssh](https://blesta.sovereignhybridcompute.com/agent-skills/skills/harden-ssh/harden-ssh.md): Key-only SSH + auto security upgrades + default-deny firewall (no lockout).
+- [nightly-backup](https://blesta.sovereignhybridcompute.com/agent-skills/skills/nightly-backup/nightly-backup.md): Nightly encrypted backup to a user-controlled destination, with a verify-restore drill.
+
+## Workflows by domain (Arazzo 1.0.1; fetch only the one you need)
+
+- [app-deploy](https://blesta.sovereignhybridcompute.com/agent-skills/workflows.arazzo.yaml): stand up a self-hosted app end to end (BTCPay store, a hardened web server, a backed-up app). (make-btcpay-store, hardened-web-server, backed-up-app)
+- [account](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/account.arazzo.yaml): rotate/issue an API key, review or remove a manager, accept a managed-account invite, check 2FA. (rotate-api-key, review-and-remove-manager, accept-managed-account-invitation, check-2fa-status)
+- [billing](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/billing.arazzo.yaml): pay an invoice, top up credit, review balance/transactions, accept a quotation (all human-gated). (pay-outstanding-invoice, top-up-credit, review-balance-and-transactions, accept-quotation)
+- [ordering](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/ordering.arazzo.yaml): order a bare VPS, upgrade/resize a service, or cancel a service (each spend human-gated). (order-bare-vps, upgrade-service, cancel-service)
+- [vm-lifecycle](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/vm-lifecycle.arazzo.yaml): check status/metrics, power on/off/restart, reinstall the OS, mount an ISO / open console. (status-check, power-restart, power-stop, reinstall-os, mount-iso-and-console)
+- [data-protection](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/data-protection.arazzo.yaml): snapshot before a risky change (and restore), or take an encrypted backup with a verify-restore drill. (snapshot-before-change, restore-snapshot, backup-with-verify-drill)
+- [networking](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/networking.arazzo.yaml): set reverse DNS for an IP, or lock down the edge firewall (allow-before-deny). (set-reverse-dns, lock-down-firewall)
+- [support](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/support.arazzo.yaml): open and track a support ticket, or search the knowledge base. (open-and-track-ticket, search-knowledge-base)
+
+## Optional
+
+- [Full index (metadata)](https://blesta.sovereignhybridcompute.com/agent-skills/index.json)
+- [Everything inlined](https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt)
+- [API spec](https://blesta.sovereignhybridcompute.com/user-api/openapi.json)

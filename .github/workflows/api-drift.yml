@@ -181,7 +181,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .omo/llms.txt shc_toolkit/openapi.json
+          # -f: .omo/ is gitignored, but the llms.txt drift baseline MUST be
+          # tracked — untracked, every CI run re-baselines and the drift
+          # check silently never fires (found 2026-09-10; the monthly runs
+          # skip this step, so only dispatches saw the add fail).
+          git add -f .omo/llms.txt
+          git add shc_toolkit/openapi.json
           git commit -m "chore: update SHC API baselines [skip ci]" || echo "No changes to commit"
           git push
 
