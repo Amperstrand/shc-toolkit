@@ -24,7 +24,14 @@ jobs:
       - name: Fetch latest llms.txt
         id: llms
         run: |
-          curl -sf "https://blesta.sovereignhybridcompute.com/user-api/llms.txt" -o /tmp/llms-new.txt
+          # llms-FULL.txt (the agent-skills corpus): the artifact AGENTS.md
+          # baselines (version + op/contract fingerprints) and the exact
+          # content committed as .omo/llms.txt. The lean /user-api/llms.txt
+          # is regenerated on spec rebuilds and is NOT the drift signal —
+          # diffing it against the full-corpus baseline false-positived as
+          # #48 (2026-09-10: lean header moved 2.4.15→2.4.24 while
+          # op_fingerprint/contractFingerprint were unchanged).
+          curl -sf "https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt" -o /tmp/llms-new.txt
           if [ -f shc_toolkit/openapi.json ]; then
             curl -sf "https://blesta.sovereignhybridcompute.com/user-api/openapi.json" -o /tmp/openapi-new.json
           fi
