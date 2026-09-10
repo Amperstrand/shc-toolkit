@@ -77,8 +77,8 @@
 
 - name: Parse VM info
   ansible.builtin.set_fact:
-    shc_vm_ip: "{{ (shc_vm_ready.stdout | from_json).ip }}"
-    shc_vm_resolved_hostname: "{{ (shc_vm_ready.stdout | from_json).hostname }}"
+    shc_vm_ip: "{{ (shc_vm_ready_result.stdout | from_json).ip }}"
+    shc_vm_resolved_hostname: "{{ (shc_vm_ready_result.stdout | from_json).hostname }}"
 
 - name: Inject SSH key
   ansible.builtin.shell: |
