@@ -1,0 +1,114 @@
+---
+ # Workflow: dev-zone egress probe (one-shot + reusable).
+ #
+ # Answers a question the watch cannot: a dev-zone VM is TCP/22-reachable
+ # from US vantages (GitHub/Azure) but dark from the EU lab — does it have
+ # OUTGOING internet? Orders one ephemeral dev VM with an ORDER-TIME key
+ # (apply-live keys provably never reach the guest on this zone, 2026-09-10),
+ # SSHes from the runner, runs an egress battery, always cancels.
+ #
+ # Cost: ~$0.01 (dev-1c-4gb, 1h minimum prorated).
+ 
+ name: egress-probe
+ 
+ on:
+   workflow_dispatch:
+     inputs:
+       vm_size:
+         description: 'shc_vm_size (default dev-1c-4gb — the unroutable-from-EU line)'
+         required: false
+         default: 'dev-1c-4gb'
+         type: string
+ 
+ permissions:
+   issues: write
+ 
+ jobs:
+   probe:
+     name: Order + SSH + egress battery + cancel
+     runs-on: ubuntu-latest
+     timeout-minutes: 15
+     steps:
+       - uses: actions/checkout@v7
+       - uses: actions/setup-python@v7
+         with:
+           python-version: '3.11'
+ 
+       - run: pip install -e .
+ 
+       - name: Generate ephemeral SSH key
+         run: ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+ 
+       - name: Order VM and wait for active+IP
+         id: order
+         env:
+           SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+         run: |
+           set -euo pipefail
+           python3 - <<'PY' > /tmp/order.json
+           import json, os, sys, time, uuid
+           from shc_toolkit import SHCClient
+           from shc_toolkit.sizes import resolve_size
+           c = SHCClient(api_key=os.environ["SHC_API_KEY"])
+           pkg, pr = resolve_size("${{ inputs.vm_size || 'dev-1c-4gb' }}")
+           r = c.submit_order(
+               package_id=pkg, pricing_id=pr,
+               order_form_id=11, package_group_id=14, module_group_id=7,
+               hostname=f"ci-egress-{uuid.uuid4().hex[:8]}",
+               template="debian13-cloud", ssh_key=open(os.path.expanduser("~/.ssh/id_ed25519.pub")).read().strip(),
+               include_dev_vps_options=True, check_credit=False,
+           )
+           sids = r.get("service_ids") or [r["service_id"]]
+           sid = int(sids[0])
+           print(f"sid={sid}", file=sys.stderr)
+           deadline = time.time() + 600
+           while time.time() < deadline:
+               try:
+                   vm = c.get_vm(sid)
+               except Exception:
+                   time.sleep(10); continue
+               ips = vm.get("ips") or []
+               if vm.get("service_status") == "active" and ips:
+                   print(json.dumps({"sid": sid, "ip": ips[0]["ip"]})); break
+               if vm.get("service_status") in ("canceled", "suspended"):
+                   print(json.dumps({"error": vm.get("service_status")})); sys.exit(1)
+               time.sleep(10)
+           else:
+               print(json.dumps({"error": "timeout"})); sys.exit(1)
+           PY
+           cat /tmp/order.json
+           echo "sid=$(python3 -c 'import json;print(json.load(open("/tmp/order.json"))["sid"])')" >> "$GITHUB_OUTPUT"
+           echo "ip=$(python3 -c 'import json;print(json.load(open("/tmp/order.json"))["ip"])')" >> "$GITHUB_OUTPUT"
+ 
+       - name: TCP/22 + SSH egress battery
+         env:
+           IP: ${{ steps.order.outputs.ip }}
+         run: |
+           set -euo pipefail
+           echo "== TCP/22 from GitHub/US =="
+           timeout 10 bash -c "echo > /dev/tcp/$IP/22" && echo "OPEN" || echo "closed/timeout"
+           echo "== wait for sshd =="
+           for i in $(seq 1 30); do
+             ssh -o StrictHostKeyChecking=no -o ConnectTimeout=8 -o BatchMode=yes debian@$IP true 2>/dev/null && break
+             sleep 10
+           done
+           echo "== egress battery (inside the VM) =="
+           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=8 debian@$IP '
+             echo "--- ip route ---"; ip route 2>&1 | head -5
+             echo "--- ping 1.1.1.1 ---"; ping -c 2 -W 4 1.1.1.1 2>&1 | tail -2
+             echo "--- DNS ---"; timeout 8 getent hosts deb.debian.org 2>&1 || echo "DNS FAIL"
+             echo "--- HTTP (ifconfig.me) ---"; timeout 12 curl -4 -sS https://ifconfig.me 2>&1 || echo "HTTP FAIL"
+             echo; echo "--- HTTPS HEAD (example.com) ---"; timeout 12 curl -4 -sSI https://example.com 2>&1 | head -3 || echo "HTTPS FAIL"
+             echo "--- traceroute first hops ---"; traceroute -n -m 6 -w 2 1.1.1.1 2>&1 | head -8 || true
+           '
+ 
+       - name: Always cancel the VM
+         if: always() && steps.order.outputs.sid != ''
+         env:
+           SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
+         run: python3 -c "
+           from shc_toolkit import SHCClient
+           import os
+           SHCClient(api_key=os.environ['SHC_API_KEY']).cancel_vm(${{ steps.order.outputs.sid }}, immediate=True)
+           print('cancelled ${{ steps.order.outputs.sid }}')
+           "
