@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Fixed
+- **NoDNS publish path migrated to nostr-sdk 0.45 — the migration had missed this site (found live by ansible-e2e 2026-09-10, layer 9).** `_publish_async` still called `NostrSigner.keys()`/`Client(signer)`, both gone in 0.45 (`AttributeError` on first real publish since the pin moved to `>=0.45`). New `build_signed_record_event()` uses the same `finalize_unsigned → keys.sign_event` flow as the other migrated sites; the relay `Client()` publishes the already-signed event (`send_event`). Signing shape pinned by an offline unit test (kind 11111, author match, signature verifies) — the bug survived because no test executed the signing without relays.
+
+### Fixed
 - **`shc pay` can now complete a spend-gated checkout (issue #44 gap 1).** `cmd_pay` called `pay_invoice`, which used a plain `_post` — the 409 `confirmation_required` from `/payment/{id}/checkout` surfaced as a raw error and the only workaround was reaching into the Python client's `_confirmed_request` manually. `pay_invoice()` (both transports + the `SHCTransport` Protocol) now routes through `_confirmed_request` with a `confirm` keyword; the CLI defaults to probing (`confirm=False`) and explains: paying is spend, the API's 409 is the consent gate, and re-running with `--confirm` is the explicit yes (the corpus confirm contract — `shc order --pay`'s pre-existing auto-confirm is unchanged: passing `--pay` is already the yes).
 
 ### Added

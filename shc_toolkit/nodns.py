@@ -21,7 +21,6 @@ from nostr_sdk import (
     EventBuilder,
     Keys,
     Kind,
-    NostrSigner,
     RelayUrl,
     Tag,
 )
@@ -94,14 +93,25 @@ def build_record_tag(rtype: str, name: str, rdata: str, ttl: int = 300) -> Tag:
     return Tag.parse(["record", rtype, name, rdata, "", "", "", "", "", "", str(ttl)])
 
 
+def build_signed_record_event(keypair: NoDNSKeyPair, tags: list[Tag]):
+    """Build + sign the kind-11111 record event (nostr-sdk 0.45 flow).
+
+    Extracted from _publish_async so the signing API shape is unit-testable
+    offline — the 0.45 migration missed this site (NostrSigner.keys() no
+    longer exists; found by e2e 2026-09-10) because no test executed it.
+    """
+    builder = EventBuilder(Kind(NODNS_KIND), "").tags(tags)
+    unsigned = builder.finalize_unsigned(keypair.keys.public_key())
+    return keypair.keys.sign_event(unsigned)
+
+
 async def _publish_async(
     keypair: NoDNSKeyPair,
     tags: list[Tag],
     relays: list[str],
 ) -> dict:
     """Async core: build event, sign, publish to relays."""
-    signer = NostrSigner.keys(keypair.keys)
-    client = Client(signer)
+    client = Client()
 
     for url in relays:
         try:
@@ -111,14 +121,17 @@ async def _publish_async(
 
     await client.connect()
 
-    builder = EventBuilder(Kind(NODNS_KIND), "").tags(tags)
-    output = await client.send_event_builder(builder)
+    event = build_signed_record_event(keypair, tags)
+    output = await client.send_event(event)
 
     sent = [str(r) for r in output.success]
     failed = {str(k): str(v) for k, v in output.failed.items()}
 
+    # Event.id (proven accessor shape) — SendEventOutput.id is redundant
+    # and its 0.45 binding shape is not introspectable offline.
+    event_id = event.id() if callable(event.id) else event.id
     return {
-        "event_id": output.id.to_hex(),
+        "event_id": event_id.to_hex(),
         "relays_sent": len(sent),
         "relays_total": len(relays),
         "sent": sent,

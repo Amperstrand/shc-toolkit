@@ -3672,3 +3672,35 @@ class TestMultiZoneSmokeHelpers:
             SHCError("confirmation_required", "need confirm")
         )
         assert not mod._is_stock_error(SHCError("not_found", "vm not found"))
+
+
+class TestNodnsSigning045:
+    """nostr-sdk 0.45 signing shape for the NoDNS publish path.
+
+    The 0.45 migration missed nodns.py (NostrSigner.keys() was gone; found
+    by ansible-e2e 2026-09-10) because no test executed the signing offline.
+    Pins the migrated flow end-to-end minus the relay send.
+    """
+
+    def test_build_signed_record_event_shape(self):
+        pytest.importorskip("nostr_sdk")
+        from shc_toolkit.nodns import (
+            NODNS_KIND,
+            NoDNSKeyPair,
+            build_record_tag,
+            build_signed_record_event,
+        )
+
+        kp = NoDNSKeyPair.generate()
+        tag = build_record_tag("A", "@", "203.0.113.9", ttl=300)
+        event = build_signed_record_event(kp, [tag])
+
+        def attr(obj, name):
+            value = getattr(obj, name)
+            return value() if callable(value) else value
+
+        assert attr(event, "kind").as_u16() == NODNS_KIND
+        assert attr(event, "author") == kp.keys.public_key()
+        assert attr(event, "signature")
+        verifies = event.verify_signature()
+        assert verifies is True or verifies is None  # pyo3 returns bool
