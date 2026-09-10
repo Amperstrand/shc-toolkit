@@ -17,7 +17,7 @@ shc-toolkit (Python, v2.4.24.0)
 ├── tests/                       — network-isolated unit tests + gated integration tests
 ├── ansible/                     — Ansible roles + dynamic inventory
 ├── scripts/                     — Codegen, audit, reaper, subnet-probe utilities
-├── docs/                        — 15 guides (webhooks, agent-sessions, cloud-init, firecracker, campaign-lifecycle, ...)
+├── docs/                        — 16 guides (webhooks, agent-sessions, cloud-init, firecracker, campaign-lifecycle, zone-reliability, ...)
 └── .github/workflows/           — 9 CI workflows
 
 terraform-provider-shc (Go, v0.1.0)
