@@ -67,7 +67,7 @@
 
 - name: Publish A record via shc_toolkit
   ansible.builtin.shell: |
-    python3 -c "
+    {{ ansible_playbook_python }} -c "
     import sys, os
     sys.path.insert(0, '{{ shc_toolkit_path | default('.') }}')
     from shc_toolkit.nodns import NoDNSKeyPair, publish_dns_records

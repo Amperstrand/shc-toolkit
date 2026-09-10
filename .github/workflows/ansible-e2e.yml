@@ -44,7 +44,10 @@ jobs:
 
       - name: Install shc-toolkit + ansible
         run: |
-          pip install -e .
+          # .[nodns]: the play's delegated publish task imports
+          # shc_toolkit.nodns → nostr_sdk (module-level import; bare -e .
+          # died on it after the httpx fix, e2e 2026-09-10).
+          pip install -e ".[nodns]"
           pip install ansible-core
 
       # The play's shc_vm role reads ~/.ssh/id_ed25519.pub for live key
