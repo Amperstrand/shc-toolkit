@@ -4,36 +4,30 @@ set -e
 
 source /opt/nodns-venv/bin/activate
 
-# nostr-sdk 0.45: Keys.parse / async Client / EventBuilder(kind, content).tags /
-# finalize_unsigned + keys.sign_event (from_bech32 + sign_with_keys are gone).
+# nostr-sdk 0.45 + the toolkit's PROVEN record shape: kind 11111 with
+# 11-element "record" TAGS (build_record_tag format — "maximum compatibility
+# with deployed nodns bots"); the old JSON-in-content shape was never
+# materialized by the bot (CA found no TXT, e2e 2026-09-10 layer 12).
 python3 -c "
-import asyncio, json, sys, time
+import asyncio, sys, time
 from nostr_sdk import Client, EventBuilder, Keys, Kind, RelayUrl, Tag
 
 NSEC_FILE = '{{ certbot_nsec_path }}'
-ZONE = '{{ nodns_zone }}'
 DOMAIN = '${CERTBOT_DOMAIN}'
 VALIDATION = '${CERTBOT_VALIDATION}'
 
 with open(NSEC_FILE) as f:
-    nsec = f.read().strip()
-
-keys = Keys.parse(nsec)
-
-record = json.dumps([{
-    'type': 'TXT',
-    'name': '_acme-challenge',
-    'value': VALIDATION,
-    'ttl': 120,
-}])
+    keys = Keys.parse(f.read().strip())
 
 tags = [
+    # 11-element record tag, exactly shc_toolkit.nodns.build_record_tag
+    Tag.parse(['record', 'TXT', '_acme-challenge', VALIDATION,
+               '', '', '', '', '', '', '120']),
     Tag.parse(['d', DOMAIN]),
     Tag.parse(['t', 'dns']),
-    Tag.parse(['zone', ZONE]),
 ]
 
-unsigned = EventBuilder(Kind(11111), record).tags(tags).finalize_unsigned(keys.public_key())
+unsigned = EventBuilder(Kind(11111), '').tags(tags).finalize_unsigned(keys.public_key())
 event = keys.sign_event(unsigned)
 
 
