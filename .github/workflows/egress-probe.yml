@@ -106,9 +106,13 @@
          if: always() && steps.order.outputs.sid != ''
          env:
            SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
-         run: python3 -c "
-           from shc_toolkit import SHCClient
+           EGRESS_SID: ${{ steps.order.outputs.sid }}
+         run: |
+           python3 - <<'PY'
            import os
-           SHCClient(api_key=os.environ['SHC_API_KEY']).cancel_vm(${{ steps.order.outputs.sid }}, immediate=True)
-           print('cancelled ${{ steps.order.outputs.sid }}')
-           "
+           from shc_toolkit import SHCClient
+           SHCClient(api_key=os.environ["SHC_API_KEY"]).cancel_vm(
+               int(os.environ["EGRESS_SID"]), immediate=True
+           )
+           print("cancelled", os.environ["EGRESS_SID"])
+           PY

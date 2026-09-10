@@ -71,11 +71,17 @@ jobs:
                   print(f"TCP/22 {ip}: OPEN ({time.time() - t0:.2f}s) from GitHub/US")
           except OSError as e:
               print(f"TCP/22 {ip}: FAILED from GitHub/US ({type(e).__name__})")
-          r = subprocess.run(
-              ["tracepath", "-n", ip], capture_output=True, text=True, timeout=30
-          )
-          print("--- tracepath from GitHub/US ---")
-          print(r.stdout[-800:] or "(no output)")
+          try:
+              r = subprocess.run(
+                  ["tracepath", "-n", ip], capture_output=True, text=True, timeout=30
+              )
+              print("--- tracepath from GitHub/US ---")
+              print(r.stdout[-800:] or "(no output)")
+          except Exception as e:
+              # tracepath hangs on fully-unroutable targets (earned 2026-09-10:
+              # it turned a PASS probe into a red run); the TCP verdict above is
+              # the signal, never fail the job for tracepath noise.
+              print(f"--- tracepath from GitHub/US: unavailable ({type(e).__name__}) ---")
           PY
 
       - name: Probe Dev zone (order → provision → TCP/22 → cancel)

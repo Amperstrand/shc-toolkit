@@ -32,6 +32,27 @@ jobs:
           # #48 (2026-09-10: lean header moved 2.4.15→2.4.24 while
           # op_fingerprint/contractFingerprint were unchanged).
           curl -sf "https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt" -o /tmp/llms-new.txt
+          curl -sf "https://blesta.sovereignhybridcompute.com/user-api/llms.txt" -o /tmp/llms-lean-new.txt
+
+      - name: Compare lean llms.txt release header
+        id: lean-diff
+        run: |
+          # The lean file is regenerated on spec rebuilds, so whole-file diffing
+          # false-positives. Its release HEADER is semantic (version + op and
+          # contract fingerprints) — that is the drift signal for this artifact.
+          head -1 /tmp/llms-lean-new.txt > /tmp/lean-header-new.txt
+          if [ ! -f .github/baselines/llms-lean-release.txt ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "lean baseline missing — run 'Update baselines' dispatch first"; exit 0
+          fi
+          if diff -q .github/baselines/llms-lean-release.txt /tmp/lean-header-new.txt > /dev/null 2>&1; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "lean llms.txt header: no changes"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "lean llms.txt header: CHANGED"
+            diff .github/baselines/llms-lean-release.txt /tmp/lean-header-new.txt > /tmp/lean-diff.txt || true
+          fi
           if [ -f shc_toolkit/openapi.json ]; then
             curl -sf "https://blesta.sovereignhybridcompute.com/user-api/openapi.json" -o /tmp/openapi-new.json
           fi
@@ -131,7 +152,7 @@ jobs:
            echo "result=$RESULT" >> $GITHUB_OUTPUT
 
       - name: Create issue on drift
-        if: steps.llms-diff.outputs.changed == 'true' || steps.openapi-diff.outputs.result == 'true'
+        if: steps.llms-diff.outputs.changed == 'true' || steps.lean-diff.outputs.changed == 'true' || steps.openapi-diff.outputs.result == 'true'
         uses: actions/github-script@v9
         with:
           script: |
@@ -143,6 +164,17 @@ jobs:
               const { readFileSync } = require('fs');
               try {
                 body += readFileSync('/tmp/llms-diff.txt', 'utf8');
+              } catch (e) {
+                body += "(diff file not available)";
+              }
+              body += "\n```\n\n";
+            }
+
+            if ("${{ steps.lean-diff.outputs.changed }}" === "true") {
+              body += "## lean llms.txt release header changes\n\n";
+              body += "```diff\n";
+              try {
+                body += readFileSync('/tmp/lean-diff.txt', 'utf8');
               } catch (e) {
                 body += "(diff file not available)";
               }
@@ -180,6 +212,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           cp /tmp/llms-new.txt .omo/llms.txt
+          mkdir -p .github/baselines
+          head -1 /tmp/llms-lean-new.txt > .github/baselines/llms-lean-release.txt
           if [ -f /tmp/openapi-new.json ]; then
             cp /tmp/openapi-new.json shc_toolkit/openapi.json
           fi
@@ -194,7 +228,7 @@ jobs:
           # check silently never fires (found 2026-09-10; the monthly runs
           # skip this step, so only dispatches saw the add fail).
           git add -f .omo/llms.txt
-          git add shc_toolkit/openapi.json
+          git add .github/baselines/llms-lean-release.txt shc_toolkit/openapi.json
           git commit -m "chore: update SHC API baselines [skip ci]" || echo "No changes to commit"
           git push
 
