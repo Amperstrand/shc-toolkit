@@ -113,14 +113,14 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 5. `test_core_tool_count` in `tests/test_unit.py` — matches `len(TOOL_MAP)`
 6. Cross-repo audit passes: `python3 scripts/audit_cross_repo.py`
 
-## CI workflows (12 total)
+## CI workflows (13 total)
 
 **Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. The one deliberate weekly exception is `dev-zone-watch.yml` (~$0.02/run, self-cancelling — the #39 evidence trail is worth it while the outage runs). To run any suite: `gh workflow run <name>` or ask the agent.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `shc-tests.yml` | dispatch, tag, monthly (1st) | Unit + smoke + integration + drift detection |
-| `api-drift.yml` | dispatch, monthly (1st 08:00) | OpenAPI + llms.txt drift + catalog model validation + live order smoke → auto-creates issue |
+| `api-drift.yml` | dispatch, monthly (1st 08:00) | OpenAPI + llms corpus (whole-file) + lean llms.txt release-header drift + catalog model validation + live order smoke → auto-creates issue |
 | `cross-repo-parity.yml` | dispatch, tag, monthly (2nd) | Size map + resolve_addons contract parity |
 | `typecheck.yml` | dispatch, tag | mypy + ruff lint + ruff format check (3 parallel jobs) |
 | `coverage.yml` | dispatch, tag | pytest --cov coverage reporting (baseline, no thresholds yet) |
@@ -128,7 +128,8 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
 | `ansible-e2e.yml` | dispatch, monthly (7th) | Full playbook against real SHC VM (Katy NVMe default since 2026-09-09; `vm_size` dispatch input, dev-* = unstable zone #39) |
 | `reap-orphan-vms.yml` | daily (05:23) + dispatch | Destroy orphaned test VMs >2h old (3-min timeout, pip-cached, concurrency-guarded) |
-| `dev-zone-watch.yml` | weekly (Mon 05:47) + dispatch | `dev-zone-probe.py` from GitHub: broken → evidence comment on #39, PASS → evidence comment only (no auto-close — reachability is vantage-dependent, proven 2026-09-09: US PASS + EU FAIL same IP) |
+| `dev-zone-watch.yml` | weekly (Mon 05:47) + dispatch | `dev-zone-probe.py` from GitHub: broken → evidence comment on #39, PASS → evidence comment only (no auto-close — reachability is vantage-dependent, proven 2026-09-09: US PASS + EU FAIL same IP). `target_ip` dispatch = on-demand US probe, no VM ordered |
+| `egress-probe.yml` | dispatch | Dev-zone egress test from the US vantage: order (order-time key) → SSH → ICMP/DNS/HTTP battery → always-cancel. First run 2026-09-10: egress DEAD (gateway chains into the old 66.92.204.0/24 range) |
 | `publish.yml` | tag push (`v*.*.*`) | PyPI publishing (Trusted Publishing) |
 
 ## Auto-issue-creation

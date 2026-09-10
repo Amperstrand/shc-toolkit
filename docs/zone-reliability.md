@@ -34,6 +34,29 @@ bastion does not unlock Cherryvale — tested live 2026-09-10. (If SHC ever
 adds the internal route, the same one-liner from the runbook below
 re-answers the question in 30 seconds.)
 
+## Egress: dev-zone VMs have NO outgoing internet (2026-09-10, VM 2527)
+
+SSH'd from the GitHub/US vantage INTO a fresh dev VM and ran the battery
+inside (`egress-probe.yml`, sid 2527 @ 64.188.7.240):
+
+| Probe (inside the VM) | Result |
+|---|---|
+| `ping 1.1.1.1` | ❌ 100% loss |
+| DNS (`getent deb.debian.org`) | ❌ FAIL |
+| HTTP (`curl https://ifconfig.me`) | ❌ timeout |
+| HTTPS (`curl -I https://example.com`) | ❌ resolve failure |
+| `traceroute -n 1.1.1.1` | hop 1 `64.188.7.1` → hop 2 **`66.92.204.1`** (the OLD subnet's gateway) → `* * *` dead |
+
+**The fabric still routes dev-zone egress via the decommissioned
+`66.92.204.0/24` range.** Inbound TCP/22 on the narrow Azure path is the
+only working network path. Practical consequences: cloud-init network
+fetches, apt, DNS-dependent anything — all dead inside the zone; a dev VM
+is an island reachable only from specific shores. Re-test any time:
+`gh workflow run egress-probe.yml` (~$0.01). Console lane (noVNC via
+blesta) is independent of the VM's network and was healthy the same day
+(mint + bootstrap 200 via curl; headless-browser bootstrap rejected —
+fingerprint-level; untested from a human browser).
+
 ## Predicted reliability, per zone
 
 | Zone | Provisioning | Reachability | Verdict for workloads |
