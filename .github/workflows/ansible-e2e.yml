@@ -66,7 +66,10 @@ jobs:
           # SSH, so delegate_to: localhost tasks in the VM plays died on host
           # key verification (e2e 2026-09-10, layer 7). Without -i, localhost
           # is IMPLICIT = local connection, and delegation runs in-process.
+          # certbot_email: the group_vars default is a placeholder — ACME
+          # (even staging) rejects it; use the CI account's nomail mailbox.
           ansible-playbook playbook.yml -e certbot_staging=true \
+            -e certbot_email='npub1ugz9wzvg5lc6thnvzghmxvn9swrtl7nx36lsvl3794sq0r67agls8l6ztt@nomail.name' \
             -e shc_vm_size='${{ inputs.vm_size || 'nvme-1c-4gb' }}'
         continue-on-error: true
         id: provision
