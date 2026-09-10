@@ -7,6 +7,7 @@ on:
 
 permissions:
   issues: write
+  contents: write  # baseline-commit step pushes .omo/llms.txt + openapi.json (found 2026-09-10: push 403'd without it)
 
 jobs:
   drift-check:

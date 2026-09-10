@@ -14,12 +14,13 @@ export SHC_API_KEY="shc_live_..."
 cd /path/to/shc-toolkit
 pip install -e .
 
-# 3. Run the playbook
+# 3. Run the playbook (no -i: implicit localhost = local connection;
+#    an explicit '-i localhost,' makes delegate_to: localhost tasks SSH)
 cd ansible/
-ansible-playbook -i localhost, playbook.yml
+ansible-playbook playbook.yml
 
 # 4. When done, tear down
-ansible-playbook -i localhost, teardown.yml -e target_host=localhost \
+ansible-playbook teardown.yml -e target_host=localhost \
   -e shc_service_id=<ID from step 3 output>
 ```
 

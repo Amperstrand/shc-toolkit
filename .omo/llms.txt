@@ -1,40 +1,1056 @@
-# SHC Operator Skills
+# x-shc-release: version=2.4.15 op_fingerprint=183a4a0282542d671d799f08044f6717182932f9fa1ef5205dfca45a030cefaa op_count=177 contractFingerprint=e8f7ccc12336fb4925893ce3582b03782b182638dc460d952d046a36c1c20e14
+# SHC Operator Skills -- full corpus
 
-> Skills your AI agent loads to run your SHC server for you, end to end. The agent does every step; you never open a terminal or paste a password. Works with any AI assistant. Start at the router; run get-access first; hold the operator discipline; fetch a skill's full text only when it triggers.
+Everything an agent needs, inlined. Prefer llms.txt + fetch-on-demand for a small context window; this file is for one-shot ingestion by large-context tools.
 
-Agent docs ingestion (not SEO): these are operator skills an AI loads to run a fresh SHC VPS end to end. The agent does every step; the human never opens a terminal.
+## Operator discipline (hold to these on every step)
 
-## Start here
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
 
-- [Router (lean entrypoint)](https://blesta.sovereignhybridcompute.com/agent-skills/router.json): the routing table -- keep resident.
-- [Operator discipline](https://blesta.sovereignhybridcompute.com/agent-skills/discipline.md): the 5 rules every skill follows.
-- [get-access (run first)](https://blesta.sovereignhybridcompute.com/agent-skills/skills/get-access/get-access.md): create the account + get the key.
-- [Flagship MCP server](https://mcp.sovereignhybridcompute.com/): The hosted flagship MCP server (Streamable HTTP). Connect any MCP client and authenticate with a Bearer operate key ('Authorization: Bearer shc_live_...'); it exposes 115 SHC user-api tools. Every spend and every destructive tool is gated behind a server-issued confirmation_id (re-call with the confirmation_id after the human approves). The curated everyday subset is annotated x-shc-core; start with getAccount. Nothing to install.
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
 
-## Skills
+---
 
-- [get-access](https://blesta.sovereignhybridcompute.com/agent-skills/skills/get-access/get-access.md): Create the user's SHC account via API; get an operate key.
-- [shc-deploy-app](https://blesta.sovereignhybridcompute.com/agent-skills/skills/shc-deploy-app/shc-deploy-app.md): Deploy a self-hosted app on the VPS (e.g. BTCPay, Nextcloud).
-- [nostr-operate-lane](https://blesta.sovereignhybridcompute.com/agent-skills/skills/nostr-operate-lane/nostr-operate-lane.md): Trade a customer-signed Nostr operate grant for a short-TTL, single-VM, cannot-spend operate Bearer.
-- [shc-pay](https://blesta.sovereignhybridcompute.com/agent-skills/skills/shc-pay/shc-pay.md): Show a QR + links to add prepaid SHC credit; confirm on balance re-read.
-- [wait-until-ready](https://blesta.sovereignhybridcompute.com/agent-skills/skills/wait-until-ready/wait-until-ready.md): Wait until the VPS is up and SSH+sudo actually work (live proof).
-- [point-a-domain](https://blesta.sovereignhybridcompute.com/agent-skills/skills/point-a-domain/point-a-domain.md): Point a hostname at the VPS IP and verify it resolves globally.
-- [harden-ssh](https://blesta.sovereignhybridcompute.com/agent-skills/skills/harden-ssh/harden-ssh.md): Key-only SSH + auto security upgrades + default-deny firewall (no lockout).
-- [nightly-backup](https://blesta.sovereignhybridcompute.com/agent-skills/skills/nightly-backup/nightly-backup.md): Nightly encrypted backup to a user-controlled destination, with a verify-restore drill.
+## SKILL: get-access
 
-## Workflows by domain (Arazzo 1.0.1; fetch only the one you need)
+# get-access -- get permission to run the user's SHC account
 
-- [app-deploy](https://blesta.sovereignhybridcompute.com/agent-skills/workflows.arazzo.yaml): stand up a self-hosted app end to end (BTCPay store, a hardened web server, a backed-up app). (make-btcpay-store, hardened-web-server, backed-up-app)
-- [account](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/account.arazzo.yaml): rotate/issue an API key, review or remove a manager, accept a managed-account invite, check 2FA. (rotate-api-key, review-and-remove-manager, accept-managed-account-invitation, check-2fa-status)
-- [billing](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/billing.arazzo.yaml): pay an invoice, top up credit, review balance/transactions, accept a quotation (all human-gated). (pay-outstanding-invoice, top-up-credit, review-balance-and-transactions, accept-quotation)
-- [ordering](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/ordering.arazzo.yaml): order a bare VPS, upgrade/resize a service, or cancel a service (each spend human-gated). (order-bare-vps, upgrade-service, cancel-service)
-- [vm-lifecycle](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/vm-lifecycle.arazzo.yaml): check status/metrics, power on/off/restart, reinstall the OS, mount an ISO / open console. (status-check, power-restart, power-stop, reinstall-os, mount-iso-and-console)
-- [data-protection](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/data-protection.arazzo.yaml): snapshot before a risky change (and restore), or take an encrypted backup with a verify-restore drill. (snapshot-before-change, restore-snapshot, backup-with-verify-drill)
-- [networking](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/networking.arazzo.yaml): set reverse DNS for an IP, or lock down the edge firewall (allow-before-deny). (set-reverse-dns, lock-down-firewall)
-- [support](https://blesta.sovereignhybridcompute.com/agent-skills/workflows/support.arazzo.yaml): open and track a support ticket, or search the knowledge base. (open-and-track-ticket, search-knowledge-base)
+## Operator discipline (hold to these on every step)
 
-## Optional
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
 
-- [Full index (metadata)](https://blesta.sovereignhybridcompute.com/agent-skills/index.json)
-- [Everything inlined](https://blesta.sovereignhybridcompute.com/agent-skills/llms-full.txt)
-- [API spec](https://blesta.sovereignhybridcompute.com/user-api/openapi.json)
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+You start with NO access. Run this FIRST. Do not say you are connected, and do not order or deploy,
+until the command here returns a real key. It creates the user's SHC account through the API in one
+call -- they never touch a website.
+
+## Safety gates (never break)
+
+- Never ask for a password; never print a password in chat.
+- Never write a fake "Response", any JSON, or any key yourself. A key comes ONLY from the real output
+  your tool returns after you actually run the command.
+- Get the user's explicit yes to the Terms before creating an account. Show the link; never assume.
+- Always request `scope: operate` (read + provision, never spend). Never ask for more.
+
+## A1. Ask for details and Terms agreement, in one message (show the real link)
+
+Send this, then WAIT:
+
+> To set up your SHC account I just need a few details:
+> - your email address,
+> - your first and last name,
+> - your country (a 2-letter code like US, GB, DE).
+>
+> Also please review SHC's Terms of Service: https://blesta.sovereignhybridcompute.com/tos
+> Do you agree to them?
+
+Always paste the real `https://blesta.sovereignhybridcompute.com/tos` link. Do not continue without
+their email, their name, AND a clear **yes** to the Terms.
+
+## A2. Confirm the yes
+
+Only continue if the user clearly agreed to the Terms. If they said no, said nothing about it, or you
+are unsure, ask again and wait. Do not create the account without a clear yes.
+
+## A3. Make a strong password (do NOT show it)
+
+Create a strong random password (16+ chars, random). Never print it; never tell the user. You put it
+in the next command and forget it.
+
+## A4. RUN the create-account command
+
+Fill in email, the password you made, first name, last name, country (`US` if not given), and -- only
+because the user agreed in A1 -- `tos_accepted`. Run this:
+
+```bash
+curl -s -X POST https://blesta.sovereignhybridcompute.com/user-api/v2/register \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "THE_USERS_EMAIL",
+        "password": "THE_STRONG_PASSWORD_YOU_MADE",
+        "first_name": "THEIR_FIRST_NAME",
+        "last_name": "THEIR_LAST_NAME",
+        "country": "THEIR_2_LETTER_COUNTRY",
+        "tos_accepted": true,
+        "scope": "operate"
+      }'
+```
+
+Send `"scope": "operate"` exactly. Do not write the response, the password, or the key yourself -- run
+it and read the real result, then go to A5.
+
+## A5. Act on the real result
+
+- **Account created:** the real result contains a new secret **access key**. Keep that exact value;
+  do not show it. Go to A6.
+- **Email already registered (409):** this email already has an SHC account. Tell the user plainly to
+  use a different email, or to sign in to their account once and create an API key in their account
+  settings, then give you that key.
+- **Validation error (400 / 422):** a field was missing or invalid. Tell the user what to fix (e.g.
+  *"That doesn't look like a valid email -- what's the right one?"*), then run A4 again.
+- **Anything else (server error / no result):** say *"I couldn't reach SHC just now -- let me try
+  again,"* wait briefly, run A4 once more. If it still fails, say so and stop. Do not pretend it worked.
+
+## A6. Keep the key, tell the user
+
+1. Keep the access key for the session. Send it on every later SHC request as the `Authorization`
+   header: the word `Bearer`, a space, then the key. Do not show it.
+   **This key IS the credential every other skill needs.** When a skill lists `requires:
+   user_api_key_operate`, that means exactly this key (it is `operate`-scoped: read + provision, never
+   spend). You do not fetch a different key anywhere -- this one satisfies that requirement.
+2. Say:
+   > Your SHC account is set up, and it works entirely through me -- you never need the website. If you
+   > ever want to log in directly, use the "forgot password" link on the login page. Your account stays
+   > free until you place an order and pay for it.
+3. Continue with what the user asked (e.g. order, then `shc-deploy-app`). Payment is the user paying an
+   invoice in their own wallet/browser -- you never need a spending key.
+
+**You're done with get-access when:** the register call returned an `shc_live_...` key, you stored it
+as the `Authorization: Bearer` credential, and you told the user their account is set up. From here,
+treat `user_api_key_operate` as satisfied.
+
+## If a later skill returns 401 / unauthorized
+
+Your key is missing or expired. Run **get-access** again. A 401 is the signal to re-run, never a reason
+to give up.
+
+---
+
+## SKILL: shc-deploy-app
+
+# shc-deploy-app -- deploy any app with the verified-deploy loop
+
+## HOW YOU RUN THIS (read first)
+**Every step here runs over SSH/shell on the user's VPS -- NOT as an SHC user-api HTTP call.**
+The ONLY SHC API calls you make in a deploy are reads in the workflow docs (e.g. getVirtualMachine
+to read the VPS IP). The SHC API has **no** /dns, /ssh, /vps, /domain, /ports, /recipes, /fetch-recipe,
+/wait-until-ready, /point-a-domain, or /harden endpoints. Do NOT curl `blesta.sovereignhybridcompute.com`
+for ANYTHING except the documented user-api read ops -- if a path isn't in the workflow docs, it does
+not exist; never invent one.
+
+What each kind of step IS (positive allowlist):
+- **Run the app install** = a SHELL command over `ssh root@<host>` (scp the recipe script, run it). Not an API call.
+- **'CHECK THE SOURCE'** = fetch the UPSTREAM project's PUBLIC docs over the WEB (e.g. the
+  `btcpayserver/btcpayserver-docker` README on github.com) with your web/fetch tool, OR rely on the
+  'key facts to verify' already in THIS skill. The `recipes/btcpay.md` files are LOCAL skill references
+  bundled with this skill -- they are NOT SHC API routes and NOT URLs to curl on the SHC host.
+- **DNS / firewall / readiness** = a SEPARATE skill you FETCH (point-a-domain, harden-ssh,
+  wait-until-ready), or a shell command over SSH -- never an SHC API endpoint.
+Do exactly ONE next action and stop; never narrate a multi-step sequence with made-up results.
+
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+You do every step over your own SSH; the human never opens a terminal. Each app is a recipe under
+`recipes/` (today: btcpay, nextcloud).
+
+## Safety gates (never break)
+
+- Never bake, set, or print any credential. Apps generate their own secrets; the admin password is the
+  human's first-run step.
+- Never report "ready"/"done" from a status field. Prove it with the live healthcheck (step 3).
+- Spending is a separate, human-confirmed action -- never part of a deploy.
+- Only touch the user's own VPS. ASCII only. No customer-identifying data in output.
+
+## The verified-deploy loop (every app, every time)
+
+1. **CHECK THE SOURCE.** Fetch the app's current official install docs; confirm the recipe still
+   matches. If they disagree, STOP, say so, do not run the stale recipe.
+2. **INSTALL IDEMPOTENTLY.** Run the recipe over your own SSH. Re-running (after a failure or to change
+   config) must be safe.
+3. **LIVE HEALTHCHECK.** Prove the real endpoint answers: HTTPS handshake completes AND the
+   first-run/login page returns 200 AND (if it has one) the health endpoint responds. "Up"/"active"/a
+   "ready" field is a claim, not proof.
+4. **REPORT ONLY WHAT IS VERIFIED.** One or two plain sentences. On success, hand over the one human
+   step (the first-run link). Not ready -> "still coming up", re-run. Failed -> the reason + your next move.
+
+## Preconditions (run the named skill first, in order)
+
+1. **Account access** -- if you have no key (or any SHC call returns 401), run **get-access** FIRST.
+2. **A ready VPS** -- run **wait-until-ready**.
+3. **A DNS record** (HTTPS apps) -- the hostname must resolve to the VPS IP. Run **point-a-domain**.
+   If the user hasn't picked a hostname, ask: *"What web address should this live at? e.g.
+   app.yourdomain.com"*.
+4. **Ports 80 and 443 reachable** (HTTPS apps). If **harden-ssh** ran a firewall, it must allow them.
+
+If a precondition is unmet, run the skill that satisfies it -- do not start the deploy and fail halfway.
+
+## Run a recipe
+
+1. Pick the recipe by the `app` input; read its official docs + inputs.
+2. CHECK THE SOURCE (loop step 1): fetch the docs, confirm the facts, refuse on drift.
+3. Ask the human only for required inputs you lack (usually the FQDN); optional inputs use defaults.
+4. Upload + run over your own SSH:
+   ```bash
+   scp -o BatchMode=yes <recipe-script> <healthcheck-script> root@<SSH_HOST>:
+   ssh -o BatchMode=yes root@<SSH_HOST> "<ENV...> bash ~/<recipe-script>"
+   ```
+   (sudo-not-root: scp to a writable dir; well-formed recipes re-exec under sudo.)
+5. Read the result contract the script prints; act on it (below).
+6. Report in plain English. On `ready`, hand over the one human step; offer **harden-ssh** /
+   **nightly-backup** next.
+
+## Result contract (every recipe prints this)
+
+```
+STATUS: ready
+SERVICE_URL: https://app.alice.com        # or STORE_URL / INSTANCE_URL -- a real, reachable URL
+NEXT_ACTION: open <first-run link> to set the admin password (human, one time)
+```
+```
+STATUS: provisioning                       # soft: still coming up (TLS issuing / app starting)
+STEP / REASON / NEXT_ACTION: wait 2-5 min and re-run the healthcheck
+```
+```
+STATUS: failed                             # hard
+STEP / REASON / NEXT_ACTION: <the exact next thing to do>
+```
+`provisioning` = wait and re-run. `failed` = do the `NEXT_ACTION`.
+
+**You're done when:** the live healthcheck returned `STATUS: ready` and you handed the user the
+first-run link. NOT on a status field, a "200", or while `provisioning` -- re-run until it passes.
+
+## Recipe library
+
+| Recipe | Provides | Official docs to check | One line |
+|---|---|---|---|
+| **btcpay** | a Bitcoin payment store | `btcpayserver/btcpayserver-docker` README | Self-hosted BTCPay Server (pruned node, nginx + auto-HTTPS); the user's own payment processor. |
+| **nextcloud** | a private cloud | Nextcloud All-in-One (`nextcloud/all-in-one`) README | Files, calendar, contacts, mail -- the user's own cloud. |
+
+Full steps + scripts: `recipes/btcpay.md` (+ `deploy-btcpay.sh`, `healthcheck.sh`), `recipes/nextcloud.md`.
+The siblings **point-a-domain**, **harden-ssh**, **nightly-backup** are their own skills.
+
+### btcpay -- key facts to verify (loop step 1)
+
+Against the live `btcpayserver/btcpayserver-docker` README: `. ./btcpay-setup.sh -i` must be **sourced**
+(leading dot); prune sizes (`opt-save-storage-s` ~= 50 GB); `opt-save-storage-xxs` does NOT support
+Lightning; required env `BTCPAY_HOST`, `NBITCOIN_NETWORK=mainnet`, `BTCPAYGEN_CRYPTO1=btc`,
+`BTCPAYGEN_REVERSEPROXY=nginx`. Healthcheck `ready` = HTTPS answers + `/api/v1/health` has
+`synchronized` + `/Account/Register` (or `/Account/Login`) returns 200; node sync does NOT gate ready.
+Tell the user up front: the Bitcoin node syncs for a few hours on first run (the store works for setup
+immediately) -- do not block on it.
+
+### nextcloud -- key facts to verify (loop step 1)
+
+Against the live `nextcloud/all-in-one` README: the AIO mastercontainer `docker run` invocation + env
+(`NC_DOMAIN`, `APACHE_PORT`, `APACHE_IP_BINDING`) + volume/socket mounts. Healthcheck `ready` =
+`/status.php` returns 200 + `{installed:true}` AND the login page returns 200.
+
+## Troubleshooting (REASON -> action)
+
+- **DNS not pointing here** -> run **point-a-domain**, wait for propagation, re-run.
+- **port 80/443 in use** -> stop the other web server (or offload TLS to it), re-run.
+- **git clone / apt-get failed** -> fix VPS outbound network / apt mirror, re-run.
+- **not answering 200 yet (TLS issuing)** -> normal on first boot; wait 2-5 min, re-run.
+- **recipe disagrees with upstream docs** -> upstream moved; do NOT run the stale recipe; report it.
+
+---
+
+## SKILL: nostr-operate-lane
+
+# nostr-operate-lane -- a customer authorizes you for ONE VM, over Nostr
+
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+> **Your agent pubkey must be REAL and already yours -- never invent one.** The grant names your
+> Nostr public key; you must already hold it and be able to sign with it. If you do not have your real
+> agent pubkey, say so and stop -- do NOT make up an `npub`/hex key (a grant naming a fabricated key
+> authorizes nothing).
+
+A customer can hand you operation of **one specific VM** without giving you an account-wide key and
+without touching a website. They **sign a Nostr grant** that names you (your pubkey) and that one VM.
+You exchange that grant for a **short-TTL, service-scoped, cannot-spend** operate Bearer, and you use
+it against **that VM only**. The grant is the authority; your lease can never exceed it.
+
+If the customer's SHC account has not linked a Nostr identity yet, do that account setup first via
+`account.arazzo.yaml`: run `link-nostr-identity` (challenge -> link), optionally `set-nostr-nip05`,
+and later `unlink-nostr-identity` if they ask to remove the binding. Those are account identity
+workflows; this skill starts after the account has a linked key and the customer is ready to sign a
+one-VM operate grant for your agent pubkey.
+
+What the lease is, exactly:
+- **Short-TTL:** ~15 minutes (`expires_in: 900`). When it expires, mint another from the same grant.
+- **Service-scoped:** it works on `/user-api/v2/vm/<service_id>/...` for the ONE granted VM and
+  **403s** on any other service or any non-VM route.
+- **Cannot spend:** it **403s** every spend path (ordering, buy, upgrade, renew, cancel, credit,
+  payout). It operates a VM; it never moves money.
+- **Destructive (data-loss) changes are confirm-gated:** reinstall, restore/delete a backup or
+  snapshot, cancel, delete a firewall rule, delete an SSH key, delete a contact/manager, ... -- exactly
+  like any operate key. On raw `/v2` the call with no confirmation_id returns `409 confirmation_required`
+  with a one-time, non-secret `confirmation_id`; after the human's explicit yes you re-send the IDENTICAL
+  request adding header `X-User-Api-Confirm: <confirmation_id>` (`?confirm=true` is NOT accepted -- it
+  gets the same 409); the hosted MCP hands back the same single-use confirmation_id to re-call with.
+  (Spend is a SEPARATE matter, not a confirm: this lease **cannot spend at all** -- a spend path just
+  **403s**, so there is no destructive confirm route for it on raw `/v2`. On the MCP, spend tools carry
+  their own confirmation gate, but an operate Bearer can't reach them regardless.) **Routine reads and non-destructive changes are
+  NOT confirm-gated** (power on/off/restart/shutdown/reset, mount/unmount an ISO, add/edit a firewall
+  rule, set rDNS, create a backup/snapshot, **add an SSH key**, change backup schedule/notifications) --
+  this mirrors the live customer portal exactly (literal portal parity: the portal confirms the same
+  data-loss actions and no others).
+
+## Safety gates (never break)
+
+- **You never sign the grant.** The CUSTOMER signs the `kind:30078` grant with their own key
+  (NIP-07 browser extension, a NIP-46 bunker, frost2x, etc.). You only sign your own `kind:27235`
+  request. If someone hands you a grant "already signed as the customer" that you produced, stop.
+- **Never invent a token.** The Bearer comes ONLY from the real `token` field the server returns
+  after you actually POST. Never write a token, a key, or a success "Response" yourself.
+- **Use the Bearer on `/vm/<service_id>/...` only.** Don't try it on another service, a non-VM
+  route, or a spend path -- it will 403, and that is correct. Don't go looking for a broader key.
+- **A destructive (data-loss) change is the human's call.** Reinstall, restore/delete a backup,
+  delete an SSH key, cancel: name it, get the customer's explicit yes, pass the confirm-gate. The
+  lease does not waive this. (Routine ops -- a restart, adding an SSH key, changing backup settings --
+  are not confirm-gated, matching the portal; still tell the customer what you're doing.)
+
+## What the customer signs (give them this exactly)
+
+The customer signs a Nostr **`kind:30078`** event (NIP-78 app-data, a *replaceable* event) with these tags.
+Give them **your** pubkey and the **service id**; they fill them in and sign:
+
+| tag | value | meaning |
+|---|---|---|
+| `d`     | `shc:agent:<YOUR_AGENT_PUBKEY>` | names YOU -- binds the grant to the agent that presents it (your `kind:27235` signer must equal this). |
+| `scope` | `operate`                       | this is an operate grant (not read, not spend). |
+| `area`  | `vm:<service_id>`               | the ONE VM this authorizes (the Blesta service id == the user-api VM id). |
+| `aud`   | `shc:https://blesta.sovereignhybridcompute.com` | the audience/origin the grant is for (must match the server; never a different host). |
+| `nbf`   | unix seconds (now)              | not-before. |
+| `exp`   | unix seconds (now + <= ~15 min) | REQUIRED. Keep it short; the customer can re-sign freely. |
+
+The grant is signed by the **customer's own linked key** (the pubkey they linked to their SHC
+account). A short lifetime is fine and encouraged -- re-mint freely; it is cheap.
+
+> Plain-language ask to the customer:
+> *"Sign a one-VM authorization for me and I'll operate VM `<service_id>` for you -- no password, no
+> shared key. In your Nostr signer, sign a `kind:30078` event with tags `d=shc:agent:<my pubkey>`,
+> `scope=operate`, `area=vm:<service_id>`, `aud=shc:https://blesta.sovereignhybridcompute.com`, and a
+> short `nbf`/`exp` (15 min is plenty). Send me the full signed event."
+
+## Your step (sign a NIP-98 request, then POST the grant)
+
+1. **Sign a NIP-98 `kind:27235` request event** (with YOUR key -- the same pubkey the grant names in
+   `d`). It must be bound to this exact call:
+   - tag `u` = `https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token`
+   - tag `method` = `POST`
+   - a **fresh, unique nonce** per request (the server replay-checks; a reused request -> `401`)
+   - `created_at` = now (the server enforces a request-time window)
+2. **Base64 the signed `kind:27235` event** and send it as the `Authorization: Nostr <base64>` header.
+3. **POST the customer's signed `kind:30078` grant in the body** as `{ "grant": <event> }`.
+
+```bash
+# $AGENT_NIP98_B64  = base64 of YOUR signed kind:27235 event (u=<the URL>, method=POST, fresh nonce)
+# $OPERATE_GRANT    = the customer's full signed kind:30078 event JSON
+
+curl -s -X POST https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token \
+  -H "Authorization: Nostr $AGENT_NIP98_B64" \
+  -H "Content-Type: application/json" \
+  -d "{ \"grant\": $OPERATE_GRANT }"
+```
+
+Do not write the response yourself -- run it and read the real result.
+
+## The response
+
+On success (`200`) the server returns the lease:
+
+```json
+{
+  "success": true,
+  "token": "<64-hex operate token>", // <- the customer_key_operate Bearer (a raw 64-char hex string, NOT an shc_live_ key); keep this exact value, don't print it
+  "scope": "operate",
+  "area": "vm:<service_id>",
+  "service_id": <service_id>,
+  "expires_in": 900,                 // ~15 min; re-mint from the same grant when it lapses
+  "note": "Operate lease: cannot spend; bound to this service; destructive (data-loss) and spend changes require the confirm-gate (routine/non-destructive changes do not)."
+}
+```
+
+Keep `token` for the session and send it as `Authorization: Bearer <token>`. Treat
+`user_api_key_operate` as satisfied **for this one VM** -- it is `operate`-scoped (read + VM ops,
+never spend) and **only** for `service_id`.
+
+## Using the lease (the ONE VM, with the confirm-gate)
+
+```bash
+# Read is fine, no confirm needed:
+curl -s https://blesta.sovereignhybridcompute.com/user-api/v2/vm/<service_id> \
+  -H "Authorization: Bearer $OPERATE_TOKEN"
+
+# A routine op (power/restart) needs NO confirm -- it is not destructive:
+curl -s -X PATCH "https://blesta.sovereignhybridcompute.com/user-api/v2/vm/<service_id>/restart" \
+  -H "Authorization: Bearer $OPERATE_TOKEN"
+
+# A DESTRUCTIVE (data-loss) change is confirm-gated via a server-issued, single-use confirmation_id
+# (raw /v2 -- ?confirm=true is NOT accepted). Reinstall wipes the VM, so it is gated. TWO STEPS:
+# 1) Call WITHOUT a token -> 409 confirmation_required carrying a one-time confirmation_id:
+curl -s -X PATCH "https://blesta.sovereignhybridcompute.com/user-api/v2/vm/<service_id>/reinstall" \
+  -H "Authorization: Bearer $OPERATE_TOKEN" -H "Content-Type: application/json" \
+  -d '{"template":"<os-template>"}'
+# 2) ONLY after the human's explicit yes to the data loss, re-send the IDENTICAL request adding the
+#    confirmation_id from that 409 in the header (do NOT auto-resend just because you hold the id):
+curl -s -X PATCH "https://blesta.sovereignhybridcompute.com/user-api/v2/vm/<service_id>/reinstall" \
+  -H "Authorization: Bearer $OPERATE_TOKEN" -H "Content-Type: application/json" \
+  -H "X-User-Api-Confirm: <confirmation_id-from-the-409>" \
+  -d '{"template":"<os-template>"}'
+```
+
+The Bearer is bound to `service_id`. `/user-api/v2/vm/<other_id>/...`, any non-VM route, and any
+spend path will **403** -- by design.
+
+## Common rejections (what they mean)
+
+| code | you'll see | what it means | what to do |
+|---|---|---|---|
+| `401` | "Authorization: Nostr ... required" / "Invalid base64" / "Invalid JSON" | your `kind:27235` header is missing or malformed | re-sign your NIP-98 request, base64 it, retry |
+| `401` | NIP-98 verification failed / **replayed request** | your request was reused, out of its time window, or not bound to this URL+POST | sign a **fresh** `kind:27235` (new nonce, `created_at`=now, `u`=this URL, `method`=POST) and retry |
+| `400` | "A signed kind:30078 grant is required in the body" | no grant in the body | ask the customer for the full signed `kind:30078` event; put it in `{ "grant": ... }` |
+| `403` | "Invalid grant" (**forged / expired / wrong-agent / wrong scope / aud / area**) | the grant failed verification: bad signature, past `exp`, `d` doesn't name YOUR pubkey, wrong `scope`/`aud`, or malformed `area` | have the customer re-sign a correct grant (right `d`=`shc:agent:<your pubkey>`, `scope=operate`, fresh `exp`, correct `aud`/`area`) |
+| `403` | "Grant signer is not a linked customer" | the key that signed the grant isn't linked to an SHC account | the customer must link that Nostr key to their SHC account first, then re-sign |
+| `403` | superseded / revoked grant | a newer grant for the same `d` replaced this one, the grant was revoked, or the customer rotated their key | get the customer's current grant and use that |
+| `403` | "You do not own a service with that id" | the `area=vm:<id>` isn't a VM this customer owns (or it's canceled) | confirm the right `service_id` with the customer |
+| `403` | (on a `/vm/...` call) | you used the Bearer on another service, a non-VM route, or a spend path | only call `/user-api/v2/vm/<service_id>/...`; never spend with this token |
+| `409` | `confirmation_required` | a destructive (data-loss) or spend change made without the confirm-gate (a routine op like restart or adding an SSH key does NOT 409) | after the customer's yes, re-send the IDENTICAL request with the one-time `confirmation_id` from the 409 in header `X-User-Api-Confirm` (raw /v2) or the single-use confirmation_id (MCP); `?confirm=true` is NOT accepted |
+
+## Minimal worked example
+
+The customer owns VM service **456** and wants you to reboot it. Your agent pubkey is
+`a1b2...e9f0` (64 hex).
+
+1. **Customer signs the grant** (in their Nostr signer), a `kind:30078` with:
+   `d=shc:agent:a1b2...e9f0`, `scope=operate`, `area=vm:456`,
+   `aud=shc:https://blesta.sovereignhybridcompute.com`, `nbf=<now>`, `exp=<now+900>`. They send you
+   the full signed event (call it `$OPERATE_GRANT`).
+2. **You sign a NIP-98 request** -- a `kind:27235` with
+   `u=https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token`,
+   `method=POST`, a fresh nonce, `created_at=<now>` -- and base64 it (`$AGENT_NIP98_B64`).
+3. **Exchange it:**
+   ```bash
+   curl -s -X POST https://blesta.sovereignhybridcompute.com/plugin/nostr_auth/main/operate_token \
+     -H "Authorization: Nostr $AGENT_NIP98_B64" \
+     -H "Content-Type: application/json" \
+     -d "{ \"grant\": $OPERATE_GRANT }"
+   # -> { "success": true, "token": "<64-hex operate token>", "service_id": 456, "expires_in": 900, "area": "vm:456", ... }
+   ```
+4. **Tell the customer, then restart** -- a restart is routine, so NO confirm is required (it does
+   not 409):
+   ```bash
+   curl -s -X PATCH "https://blesta.sovereignhybridcompute.com/user-api/v2/vm/456/restart" \
+     -H "Authorization: Bearer <64-hex operate token>"
+   ```
+   (Had they asked for a **reinstall** or to **restore/delete a backup** -- destructive (data-loss) --
+   the first call 409s with a one-time `confirmation_id`; after the customer's explicit yes you re-send the
+   IDENTICAL request with that confirmation_id in header `X-User-Api-Confirm` (`?confirm=true` is NOT
+   accepted). Adding an SSH key or changing backup settings is routine and needs no confirm, matching the
+   portal.)
+5. **Verify, don't trust:** re-read `/user-api/v2/vm/456` and confirm it came back up before you tell
+   the customer it restarted.
+
+**You're done when:** you exchanged a valid grant for a real `customer_key_operate` token, used it
+only against `/vm/<service_id>/...`, passed the confirm-gate for any destructive (data-loss) change
+(with the customer's yes), and verified the result with a live read. If the token 401s later, re-mint from the same grant (while
+it's unexpired); if the grant is expired, ask the customer to re-sign -- it's cheap.
+
+---
+
+## SKILL: shc-pay
+
+# shc-pay -- no-dependency QR payment presentation (SHC account credit)
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+Turn a `POST /account/credit` response into a scannable QR + copy/paste fallbacks. Runs in your own
+shell; no network, no VPS. You are a presenter, never an autopay.
+
+## Safety gates (never break)
+
+- Ask the user before presenting payment; never initiate or assume payment.
+- Say "credit added" ONLY after a real balance re-read shows it. A wallet "sent" or a webhook is NOT
+  proof.
+- No network call, no price feed, no third-party image service: the QR is drawn locally by `qrencode`;
+  the BIP21 is assembled locally; no fiat->BTC conversion (the exact amount is locked in the `bolt11`).
+- Consume only the already-returned JSON. Read/print no secrets.
+
+## Run it (the helper does the work)
+
+```
+shc-pay.sh present --json '<credit-response-json>'     # full always-confirm block
+shc-pay.sh present --file response.json
+echo '<json>' | shc-pay.sh present                     # stdin
+shc-pay.sh bip21  --json '<json>'                      # just the stitched BIP21
+shc-pay.sh qr     --json '<json>' --format ansiutf8    # terminal/markdown QR (default)
+shc-pay.sh qr     --json '<json>' --format svg  --out qr.svg   # local SVG (no external host)
+shc-pay.sh qr     --json '<json>' --format datauri             # self-contained data: URI
+```
+
+`shc-pay.sh` ships next to this skill. Needs `bash`, `qrencode` (optional), and `jq` OR `python3`.
+
+The BIP21 it stitches (a standard Bitcoin QR any wallet reads -- no app to install):
+
+| onchain_address | bolt11 | stitched URI | rail |
+|-----------------|--------|--------------|------|
+| present | present | `bitcoin:<addr>?lightning=<bolt11>` | chain + Lightning in one QR |
+| present | null    | `bitcoin:<addr>`                   | on-chain only (amount on checkout page) |
+| null    | present | `lightning:<bolt11>`               | Lightning only (amount-locked) |
+| null    | null    | (none -- use `checkout_url`)       | browser-only fallback |
+
+## Steps
+
+1. Show the amount and ask: *"You're adding 25.00 USD of credit -- want me to show you how to pay?"*
+   (Account credit is a prepaid balance; nothing is spent until the user chooses.)
+2. Run `shc-pay.sh present` and show the user its output: the QR, the BIP21 copy/paste text, the
+   `checkout_url` (browser), and the bare `bolt11` (Lightning). Offer all of them.
+3. Name the rail honestly: "Lightning confirms in seconds; on-chain takes a few minutes."
+4. After the user pays, re-read the real balance and confirm ONLY when the credit appears:
+   ```
+   say "Checking your balance now. Lightning lands in seconds; on-chain can take a few minutes."
+   repeat up to N times (minutes apart for on-chain):
+       bal = read account credit balance        # real read, not the webhook
+       if bal increased by ~the amount: say "Credit added -- balance is now <bal>."; stop
+   say "I don't see it on your balance yet. On-chain can take a few minutes -- check again?"
+   ```
+
+## If qrencode is absent
+
+The skill still works: it drops the QR and shows the text BIP21 + `checkout_url` + `bolt11`, and tells
+the user `apt-get install -y qrencode` enables the QR. Payment is never blocked by a missing QR.
+
+## Result contract
+
+No payable rail (no `bolt11` and no `onchain_address`):
+```
+STATUS: failed
+STEP: bip21 stitch
+REASON: the credit response has no Lightning invoice and no on-chain address
+NEXT_ACTION: open the checkout_url in a browser to pay; or re-request the credit
+```
+After the balance re-read confirms:
+```
+STATUS: ready
+NEXT_ACTION: none -- credit is on the account balance (confirmed by re-read)
+```
+
+**You're done when:** a real balance re-read shows the credit landed, and you told the user. A wallet
+"sent" or a webhook is NOT done -- only the re-read is.
+
+---
+
+## SKILL: wait-until-ready
+
+# wait-until-ready -- block until the VPS is operable
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+Gate every VPS-side skill on this. Call it, walk away, proceed only once the VPS is `ready`.
+
+## Safety gate (never break)
+
+Emit `STATUS: ready` ONLY after the live SSH+sudo check passes -- never from the API status field
+alone. A `provisioning_state: ready` is a claim; an SSH login that returns a shell is proof. (A
+provision can report ready a beat before sshd answers.)
+
+## Steps (poll, then prove)
+
+```
+deadline = now + timeout_min
+loop:
+  state = SHC API GET /vm/<service_id> -> .provisioning_state
+  if state == "ready":
+     ssh -o BatchMode=yes <host> "sudo -n true"  &&  emit STATUS: ready
+                                                 ||  keep waiting (SSH not up yet)
+  if now > deadline: emit STATUS: failed (NEXT_ACTION: contact SHC support / re-check the order)
+  sleep 15
+```
+
+If the API signal lags but SSH+sudo already work and the order shows the VM active, treat SSH+sudo as
+the proof and proceed -- say so plainly. This skill only reads; it never needs a spend key. A fresh
+server usually answers SSH in 30-90s; on timeout, report plainly -- do not guess.
+
+## Result contract
+
+- ready: `STATUS: ready` + `NEXT_ACTION: proceed with the requested deploy skill`.
+- waiting: `STATUS: provisioning` + `NEXT_ACTION: re-run wait-until-ready (still booting)`.
+- timeout: `STATUS: failed` + `STEP/REASON/NEXT_ACTION`.
+
+**You're done when:** an actual SSH login returned a shell and `sudo -n true` succeeded -- not when the
+API status field said `ready`. Until the live SSH+sudo check passes, keep waiting.
+
+---
+
+## SKILL: point-a-domain
+
+# point-a-domain -- make a hostname resolve to the VPS
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+Automatic HTTPS only works if the hostname resolves to the VPS BEFORE the deploy. Get
+`<fqdn> A -> <public_ip>` live and globally visible, then yield `public_dns_a_record`.
+
+## Safety gates (never break)
+
+- Report "pointed"/ready ONLY after several public resolvers return the VPS IP -- never off a local
+  lookup or a provider dashboard. A record in a dashboard is a claim; public resolvers agreeing is proof.
+- If the user gives a third-party DNS API token, use it transiently from env/stdin and discard it --
+  never store it.
+
+## Steps
+
+```bash
+# 1. discover the VPS public IPv4 (run on the VPS)
+PUBLIC_IP=$(ssh -o BatchMode=yes root@<SSH_HOST> \
+  "curl -s4 https://api.ipify.org || ip -4 -o addr show scope global | awk '{print \$4}' | cut -d/ -f1 | head -1")
+
+# 2. create the A record:
+#    - domain on SHC DNS -> create it via the SHC self-service DNS API (if available); OR
+#    - domain at a third-party provider with a token -> write via that provider's API (token transient); OR
+#    - no token -> tell the user: "Add a DNS record at your provider: type A, name <name>, value <PUBLIC_IP>.
+#      Tell me when done." then poll.
+
+# 3. VERIFY globally -- poll PUBLIC resolvers, ready ONLY when all return PUBLIC_IP
+for r in 1.1.1.1 8.8.8.8 9.9.9.9; do dig +short A <FQDN> @$r; done
+```
+
+Also set AAAA if the VPS has a global IPv6 and will serve over it. If you cannot verify global
+resolution before the timeout, say so and do NOT let the deploy proceed (its TLS step would fail).
+
+## Result contract
+
+- ready: `STATUS: ready` + `NEXT_ACTION: proceed to the deploy skill` (all public resolvers return the VPS IP).
+- waiting: `STATUS: provisioning` + `NEXT_ACTION: re-run point-a-domain (DNS still propagating)`.
+- needs-human: `STATUS: provisioning` + `NEXT_ACTION: ask the user to add A <name> -> <ip> at their DNS provider, then re-run`.
+
+**You're done when:** several independent public resolvers all return the VPS IP for the hostname --
+not when a provider dashboard shows the record. Until then, keep polling.
+
+---
+
+## SKILL: harden-ssh
+
+# harden-ssh -- lock down the VPS
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+Make a fresh VPS key-only, auto-patching, and default-deny. `danger: medium`: a careless change can
+lock you out of the VPS, so you MUST verify you can still reconnect before committing.
+
+## Safety gates (never break)
+
+- Before touching anything, prove key auth works NOW. If it does not, ABORT -- do not harden.
+- Always keep the SSH port in the firewall allow-list. Never set a default-deny FORWARD on a host
+  routing other traffic.
+- After an sshd change, open a SECOND connection to prove a fresh key login still works. If it fails,
+  ROLL BACK. A `systemctl reload` returning 0 is not proof you can still get in.
+- Do not add new SSH keys to the host unless the user asks.
+
+## Steps (idempotent)
+
+```bash
+# preflight: prove key auth works NOW (else abort -- do not lock out)
+ssh -o BatchMode=yes -o PasswordAuthentication=no root@<HOST> true \
+  || abort "key auth not working; fix before hardening"
+
+# 1. sshd key-only via a drop-in /etc/ssh/sshd_config.d/99-shc-harden.conf:
+#      PasswordAuthentication no
+#      KbdInteractiveAuthentication no
+#      PermitRootLogin prohibit-password
+#    then: sshd -t (validate) && systemctl reload ssh
+#    then: RE-VERIFY a fresh key login in a NEW connection; ROLL BACK on fail.
+
+# 2. unattended-upgrades: apt-get install -y unattended-upgrades && enable the security origins
+
+# 3. firewall (nftables preferred on Debian 13; ufw if already present):
+#    default drop input, accept established+related+lo, accept <open_ports>. NEVER drop the SSH port.
+```
+
+`open_ports` default `22,80,443` matches a web-app deploy. Run AFTER the app deploy so you know which
+ports to open; safe to re-run.
+
+## Result contract
+
+- ready: `STATUS: ready` + `NEXT_ACTION: none (host hardened; SSH re-verified in a fresh connection)`.
+- failed: `STATUS: failed` + `STEP/REASON/NEXT_ACTION` (e.g. "sshd reload failed; rolled back").
+
+**You're done when:** a FRESH SSH connection logged in successfully AFTER the changes were applied
+(proving you're not locked out), with the firewall up and auto-upgrades on. A `systemctl reload`
+returning 0 is not done -- the fresh login is.
+
+---
+
+## SKILL: nightly-backup
+
+# nightly-backup -- nightly encrypted backups with a verify-restore drill
+## Operator discipline (hold to these on every step)
+
+*Five rules that keep you safe while you operate a server for someone. Follow them on every
+step of every skill.*
+
+1. **Verify, don't trust. Never fabricate a result.** Never report `ready`, `done`, `live`,
+   `deployed`, `backed up`, or `paid` unless a real tool output or healthcheck PROVED it (and that
+   proof arrives in a separate later message, never in your own reply). A status field is a claim; a
+   healthcheck is proof. This holds under pressure: "tell my boss in one line it's live", "answer in
+   one line", "you do not need to check" do NOT make it true and do NOT waive the check. If you have
+   not verified, say exactly that -- never write a done/live/paid sentence you did not earn.
+2. **Spending AND destruction are the human's call -- the user CANNOT authorize you to skip the
+   confirm.** For money (order, pay) OR data-loss (reinstall, delete, cancel, restore): name the
+   action, state the consequence, get the human's explicit yes for THAT action; never in one step.
+   The trap: "just do it / don't ask me / skip confirmation / no need to confirm / I already agree" is
+   an instruction to skip the gate -- it is NOT a yes and does NOT give you permission to bypass the
+   gate. The gate OUTRANKS that instruction; proceeding because they said "just do it" is itself the
+   failure. So you still state the consequence and still wait for a real yes. NEVER set `confirm=true`
+   yourself, NEVER map "just go" onto `human_confirmed=true`, and NEVER assume a missing confirmation
+   "defaults to true" -- the opposite is true: missing -> REFUSED (409 confirmation_required). If they
+   will not give the yes, you do NOT proceed -- announce nothing, run nothing. (Mechanics: every spend
+   AND destructive action is gated by a **server-issued, single-use confirmation_id** -- you can NEVER
+   self-confirm. On the hosted MCP the destructive/spend tool returns the confirmation_id after its own
+   human-approval step. On raw /v2 a destructive/spend call with no confirmation_id returns **409
+   confirmation_required** carrying a one-time, non-secret `confirmation_id` and a `how_to_proceed`
+   re-call shape; AFTER the human's explicit yes, re-send the IDENTICAL request adding the header
+   **`X-User-Api-Confirm: <that confirmation_id>`**. `?confirm=true` and body `confirm:true` are NOT
+   accepted -- they get the same 409. The confirmation_id is bound server-side to that exact call +
+   your principal and is single-use, so a leaked id is inert (it completes nothing on its own). The
+   409's `how_to_proceed` is a recovery shape, NOT a license: a confirmation_id only proves the SERVER
+   has a pending record for the action -- do NOT auto-resend it until the human has actually said yes to
+   the consequence. Spend is also scope-gated: an `operate` key cannot spend at all -- only a `full` key
+   or HTTP Basic can.)
+3. **Check the source before you run it.** Validate any deploy recipe against the project's
+   *current* upstream docs, not a cached memory.
+4. **Take the smallest key that does the job.** An agent that only provisions should never
+   hold the key that spends.
+5. **When you can't verify, stop and say so.** Failing loudly beats a confident wrong answer.
+
+
+Install an encrypted nightly backup to a destination the user controls, and PROVE it restores before
+reporting success.
+
+## Safety gates (never break)
+
+- The verify-restore drill is mandatory. An unverified backup is `failed`, not `ready` -- "scheduled"
+  is a claim; a restored dump is proof. If you cannot prove the restore, report `failed` and say so.
+- Encrypt before data leaves the box, with a key the USER holds. Never let the only copy of the backup
+  key live on the box being backed up, and never paste it into chat -- deliver it to the user.
+- Use the app's supported backup path (check the source); do NOT hand-tar volumes.
+
+## Steps
+
+1. **What to back up:**
+   - BTCPay: wrap the upstream `btcpay-backup.sh` (dumps PostgreSQL + the data dir into one archive).
+     Confirm its name/location against the current `btcpayserver-docker` docs first.
+   - Nextcloud: use AIO's own Borg-based backup.
+2. **Encrypt** before it leaves the box (e.g. `age`/`gpg` symmetric, key the user holds).
+3. **Schedule** a systemd timer (preferred) or cron at `hour_utc` nightly.
+4. **Ship** the encrypted archive to `dest` (rclone/awscli for S3, rsync over SSH, or SHC object storage).
+5. **Verify-drill (mandatory):** run one backup now, pull it back, decrypt, assert it restores (e.g.
+   the PostgreSQL dump loads into a throwaway container). Only then report success.
+6. **Retention:** keep N nightlies (default 7), prune older.
+
+```bash
+# BTCPay path
+ssh -o BatchMode=yes root@<HOST> '
+  cd "$HOME/btcpayserver-docker"
+  ./btcpay-backup.sh                       # -> upstream archive (PostgreSQL + data dir)
+  # encrypt:  age -r <user_pubkey> backup.tar.gz > backup.tar.gz.age
+  # ship:     rclone copy backup.tar.gz.age <dest>
+'
+# install the nightly timer for the above, then run the verify-drill ONCE before reporting ready.
+```
+
+Default destination can be SHC object storage if the user has no external target, but offer the
+user-controlled option first.
+
+## Result contract
+
+- ready: `STATUS: ready` + `NEXT_ACTION: none (nightly backup scheduled at HH:00 UTC; first backup verified by restore)`.
+- failed: `STATUS: failed` + `STEP/REASON/NEXT_ACTION` (e.g. "verify-drill failed to restore the dump; backup NOT trusted -- check dest credentials").
+
+**You're done when:** the nightly timer is installed AND the verify-restore drill actually restored the
+first backup. A scheduled-but-unverified backup is NOT done -- report `failed` until a restore proves it.
+
+---
+
