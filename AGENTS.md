@@ -141,6 +141,22 @@ Both drift jobs in `shc-tests.yml` and the catalog model validation in `api-drif
 - **Integration tests** (`tests/test_shc_api.py`): require `SHC_API_KEY` secret, create + destroy real VMs. Run on tag push and monthly schedule.
 - **Operate-lane integration test** (`tests/test_nostr_operate_lane.py`): gated on `SHC_OPERATE_LIVE` (a context name owning a VM); read-only — exchanges a grant, reads the VM, asserts 403s. Skips everywhere else.
 - **MCP drift detection**: compares `TOOL_MAP` values against live MCP server tool names. Zero broken tools required.
+- **Zone-dependent test criteria (2026-09-10 quirk)**: live tests that order VMs
+  (`scripts/live_smoke.py` — monthly, ALL four catalog lines) must NOT treat all
+  zones equally. **Stable lines** (nvme/hdd, Katy, globally announced): hard
+  pass/fail — provision timeout, closed TCP/22, missing ssh_key, or a failed
+  cancel FAILS the run. **Watch lines** (ssd/dev, Cherryvale, `64.188.7.0/24`
+  has no global BGP announcement — #39): identical checks run but failures
+  WARN and never fail the run; the smoke watches them recover, it doesn't gate
+  on them. **Stock/unavailability rejections WARN for any line** (capacity is
+  not a defect). The smoke also runs the **Katy→Cherryvale bastion canary**
+  for watch lines: SSH to a Katy VM, `/dev/tcp` to the flagged VM —
+  `unreachable` is today's expected state; `open` means SHC added the internal
+  route (report on #39). Cost ~$0.01/zone (~$0.06/run monthly). Helpers:
+  `shc_toolkit.sizes.smallest_size_for_line` / `is_watch_line` (pinned by
+  tests). Full map + vantage runbook: `docs/zone-reliability.md`. Never make a
+  watch zone a pass criterion, and never "fix" a stable-zone failure by
+  widening timeouts — see lesson 33.
 
 ## The network-blocking fixture
 

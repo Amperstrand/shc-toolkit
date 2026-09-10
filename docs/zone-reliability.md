@@ -78,5 +78,6 @@ no-route signal).
 | Ordering into an unreachable facility | `shc order` refusal on flagged sizes + `--dry-run` |
 | Billing-active-but-unroutable VM | `shc order --verify-reachability` (cancels, refund) |
 | Zone-wide regression | `dev-zone-watch.yml` weekly (US vantage) + this runbook |
+| **Longitudinal zone health (all four lines)** | **monthly multi-zone smoke** (`scripts/live_smoke.py --zone all`, in `api-drift.yml`): stable lines hard-fail, watch lines log-only, stock-outs warn, Katy→Cherryvale bastion canary built in (unreachable = expected; open = internal route arrived — report on #39) |
 | Katy provision-timeout flake | fail-loudly + retry-once discipline (#47); never widen timeouts |
 | Leaked test VMs | reaper prefixes incl. `ansible-demo-`, `-reap<deadline>` tags, `shc reap --dry-run` at session end |

@@ -3622,3 +3622,53 @@ class TestSession20260909Pins:
             assert ct.call_args.args[0] == "submitPaymentCheckout"
             assert ct.call_args.kwargs.get("confirm") is False
             assert ct.call_args.args[1]["invoiceId"] == 55
+
+
+class TestMultiZoneSmokeHelpers:
+    """Zone-dependent test criteria (2026-09-10): stable lines hard-fail,
+    watch lines (Cherryvale) log-only, stock-outs warn everywhere."""
+
+    def test_smallest_size_for_line_all_lines_present(self):
+        from shc_toolkit.sizes import smallest_size_for_line
+
+        for line in ("nvme", "hdd", "ssd", "dev"):
+            r = smallest_size_for_line(line)
+            assert r, (
+                f"{line} missing from SIZE_MAP — catalog model drift would "
+                f"break the multi-zone smoke"
+            )
+            assert r[1]["line"] == line
+
+    def test_smallest_size_is_cheapest(self):
+        from shc_toolkit.sizes import SIZE_MAP, smallest_size_for_line
+
+        for line in ("nvme", "hdd"):
+            _, info = smallest_size_for_line(line)
+            prices = [i["daily_price"] for i in SIZE_MAP.values() if i["line"] == line]
+            assert info["daily_price"] == min(prices)
+
+    def test_watch_lines_are_cherryvale_only(self):
+        from shc_toolkit.sizes import is_watch_line
+
+        assert is_watch_line("dev")
+        assert is_watch_line("ssd")
+        assert not is_watch_line("nvme")
+        assert not is_watch_line("hdd")
+
+    def test_stock_error_classification(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "live_smoke", "scripts/live_smoke.py"
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        from shc_toolkit.client import SHCError
+
+        assert mod._is_stock_error(SHCError("out_of_stock", "size out of stock"))
+        assert mod._is_stock_error(SHCError("x", "Package unavailable in region"))
+        assert mod._is_stock_error(SHCError("x", "no slots left"))
+        assert not mod._is_stock_error(
+            SHCError("confirmation_required", "need confirm")
+        )
+        assert not mod._is_stock_error(SHCError("not_found", "vm not found"))

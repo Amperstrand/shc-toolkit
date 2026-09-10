@@ -77,6 +77,36 @@ def _build_size_map() -> dict[str, dict]:
 
 SIZE_MAP: dict[str, dict] = _build_size_map()
 
+
+def smallest_size_for_line(line: str) -> tuple[str, dict] | None:
+    """Cheapest (size name, info) for a catalog line (nvme/hdd/ssd/dev).
+
+    The multi-zone smoke orders one VM per line; always the cheapest tier
+    keeps the run ~$0.01/zone.
+    """
+    candidates = [
+        (name, info) for name, info in SIZE_MAP.items() if info["line"] == line
+    ]
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda kv: (kv[1]["daily_price"], kv[1]["cpu"], kv[1]["ram_mb"]),
+    )
+
+
+def is_watch_line(line: str) -> bool:
+    """True for facilities flagged unstable-reachability (log-only test tier).
+
+    Cherryvale (ssd/dev) VMs are billing-active but unroutable from most of
+    the world since 2026-08-27 (#39): their smoke failures are logged as
+    warnings, never hard failures — the smoke watches them recover, it
+    doesn't gate on them.
+    """
+    fac = FACILITIES.get(line)
+    return bool(fac and fac.get("reachability") != "ok")
+
+
 _PRICING_LOOKUP: dict[int, int] = {
     pkg["package_id"]: _model_pricing_id(pkg["package_id"]) for pkg in _model_packages()
 }
