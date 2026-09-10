@@ -4,9 +4,11 @@ set -e
 
 source /opt/nodns-venv/bin/activate
 
+# nostr-sdk 0.45: Keys.parse / async Client / EventBuilder(kind, content).tags /
+# finalize_unsigned + keys.sign_event (from_bech32 + sign_with_keys are gone).
 python3 -c "
-import sys, time, json
-from nostr_sdk import Keys, Client, EventBuilder, Tag, Timestamp
+import asyncio, json, sys, time
+from nostr_sdk import Client, EventBuilder, Keys, Kind, RelayUrl, Tag
 
 NSEC_FILE = '{{ certbot_nsec_path }}'
 ZONE = '{{ nodns_zone }}'
@@ -14,17 +16,9 @@ DOMAIN = '${CERTBOT_DOMAIN}'
 VALIDATION = '${CERTBOT_VALIDATION}'
 
 with open(NSEC_FILE) as f:
-    nsec_hex = f.read().strip()
+    nsec = f.read().strip()
 
-if nsec_hex.startswith('nsec1'):
-    keys = Keys.from_bech32(nsec_hex)
-else:
-    keys = Keys.from_hex(nsec_hex)
-
-client = Client()
-client.add_relay('wss://relay.cashu.email')
-client.add_relay('wss://nos.lol')
-client.connect()
+keys = Keys.parse(nsec)
 
 record = json.dumps([{
     'type': 'TXT',
@@ -33,17 +27,28 @@ record = json.dumps([{
     'ttl': 120,
 }])
 
-event = EventBuilder(
-    kind=11111,
-    content=record,
-    tags=[
-        Tag.identifier(DOMAIN),
-        Tag.custom('t', 'dns'),
-        Tag.custom('zone', ZONE),
-    ],
-).sign_with_keys(keys)
+tags = [
+    Tag.parse(['d', DOMAIN]),
+    Tag.parse(['t', 'dns']),
+    Tag.parse(['zone', ZONE]),
+]
 
-client.send_event(event)
+unsigned = EventBuilder(Kind(11111), record).tags(tags).finalize_unsigned(keys.public_key())
+event = keys.sign_event(unsigned)
+
+
+async def publish():
+    client = Client()
+    for url in ('wss://relay.cashu.email', 'wss://nos.lol'):
+        try:
+            await client.add_relay(RelayUrl.parse(url))
+        except Exception as e:
+            print(f'relay {url} failed: {e}', file=sys.stderr)
+    await client.connect()
+    await client.send_event(event)
+
+
+asyncio.run(publish())
 print(f'Published _acme-challenge TXT for {DOMAIN}', file=sys.stderr)
 
 time.sleep(15)
