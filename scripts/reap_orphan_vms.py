@@ -42,6 +42,16 @@ CI_HOSTNAME_PATTERNS = [
     "europa-mptcp-",
 ]
 
+# Union with the client's canonical prefix gate (single source of truth —
+# see REAP_HOSTNAME_PREFIXES in shc_toolkit/client.py). When they diverged,
+# a failed e2e run leaked sid 2497 (2026-09-10).
+try:
+    from shc_toolkit.client import REAP_HOSTNAME_PREFIXES as _CLIENT_PREFIXES
+
+    CI_HOSTNAME_PATTERNS = CI_HOSTNAME_PATTERNS + list(_CLIENT_PREFIXES)
+except ImportError:
+    pass
+
 DEFAULT_MAX_AGE_HOURS = 6
 
 

@@ -48,6 +48,28 @@ BASE_URL = "https://blesta.sovereignhybridcompute.com/user-api/v2"
 REAP_TAG_RE = re.compile(r"-reap(?:(?P<epoch>\d{10,})|(?P<n>\d{1,6})(?P<unit>[mhd]))$")
 REAP_UNITS = {"m": 60, "h": 3600, "d": 86400}
 
+# Default reap-prefix gate for CI/test VM classes. Single source of truth:
+# scripts/reap_orphan_vms.py unions its legacy substrings with this list —
+# add new ephemeral-VM hostname classes HERE (earned 2026-09-10: the e2e
+# class ansible-demo- was added to the client but the script kept its own
+# list, and a failed run leaked sid 2497 through the gap).
+REAP_HOSTNAME_PREFIXES = [
+    "tf-acc-",
+    "tollgate-",
+    "test-",
+    "tmp-",
+    "ci-",
+    "tg-",
+    "bcr-worker-",
+    "zone-test-",
+    "nutshell-",
+    "pytest-test-",
+    "devprobe-",
+    "clboss-",
+    "lab-",
+    "ansible-demo-",
+]
+
 
 def parse_reap_deadline(hostname: str, created: datetime | None) -> datetime | None:
     """Parse a '-reap<value>' end-of-hostname tag into a UTC deadline.
@@ -1688,25 +1710,7 @@ class SHCClient:
         from datetime import datetime
 
         if hostname_prefixes is None:
-            hostname_prefixes = [
-                "tf-acc-",
-                "tollgate-",
-                "test-",
-                "tmp-",
-                "ci-",
-                "tg-",
-                "bcr-worker-",
-                "zone-test-",
-                "nutshell-",
-                "pytest-test-",
-                "devprobe-",
-                "clboss-",
-                "lab-",
-                # ansible-e2e playbook VMs (added 2026-09-09: the 09-09 run
-                # leaked sid 2483 — "ansible-demo-*" matched no prefix, so
-                # every cleanup layer treated it as permanent)
-                "ansible-demo-",
-            ]
+            hostname_prefixes = list(REAP_HOSTNAME_PREFIXES)
 
         if exclude_hostnames is None:
             exclude_hostnames = [

@@ -3599,14 +3599,14 @@ class TestSession20260909Pins:
     """Regression pins from the 2026-09-09 session (AGENTS lessons 30-33)."""
 
     def test_reap_defaults_include_ansible_demo_prefix(self):
-        """ansible-demo- must stay in the default reap prefixes (lesson 32:
-        the e2e VM class leaked sid 2483 when no layer could see it)."""
-        import inspect
+        """ansible-demo- must stay in the canonical reap prefix gate (lesson
+        32: the e2e VM class leaked sid 2483 when no layer could see it;
+        2026-09-10: sid 2497 leaked when the script's list diverged — the
+        constant is now the single source both consumers use)."""
+        from shc_toolkit.client import REAP_HOSTNAME_PREFIXES
 
-        from shc_toolkit.client import SHCClient
-
-        src = inspect.getsource(SHCClient.reap_orphans)
-        assert '"ansible-demo-"' in src
+        assert "ansible-demo-" in REAP_HOSTNAME_PREFIXES
+        assert "devprobe-" in REAP_HOSTNAME_PREFIXES
 
     def test_mcp_pay_invoice_passes_confirm_through(self):
         """MCP transport parity: pay_invoice(confirm=False) must reach
