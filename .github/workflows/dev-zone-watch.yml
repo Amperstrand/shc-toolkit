@@ -24,6 +24,11 @@ on:
   schedule:
     - cron: "47 5 * * 1" # Mondays 05:47 UTC (staggered off the reaper's 05:23)
   workflow_dispatch:
+    inputs:
+      target_ip:
+        description: 'Probe THIS IP from GitHub/US instead of ordering a probe VM (vantage checks; no issue comments either way)'
+        required: false
+        type: string
 
 concurrency:
   group: dev-zone-watch
@@ -48,7 +53,33 @@ jobs:
       - name: Install toolkit
         run: pip install -e .
 
+      # On-demand US vantage for any IP (the EU/US asymmetry tool,
+      # 2026-09-09): probes TCP/22 + tracepath from GitHub's network,
+      # orders nothing, comments nothing. Use with a LIVE VM's IP.
+      - name: US-vantage probe of target IP (no VM ordered)
+        if: github.event_name == 'workflow_dispatch' && inputs.target_ip != ''
+        run: |
+          python3 - << 'PY'
+          import socket
+          import subprocess
+          import time
+
+          ip = "${{ inputs.target_ip }}"
+          t0 = time.time()
+          try:
+              with socket.create_connection((ip, 22), timeout=10):
+                  print(f"TCP/22 {ip}: OPEN ({time.time() - t0:.2f}s) from GitHub/US")
+          except OSError as e:
+              print(f"TCP/22 {ip}: FAILED from GitHub/US ({type(e).__name__})")
+          r = subprocess.run(
+              ["tracepath", "-n", ip], capture_output=True, text=True, timeout=30
+          )
+          print("--- tracepath from GitHub/US ---")
+          print(r.stdout[-800:] or "(no output)")
+          PY
+
       - name: Probe Dev zone (order → provision → TCP/22 → cancel)
+        if: inputs.target_ip == ''
         id: probe
         env:
           SHC_API_KEY: ${{ secrets.SHC_API_KEY }}
