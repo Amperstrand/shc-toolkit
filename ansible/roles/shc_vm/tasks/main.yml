@@ -109,6 +109,11 @@
     groups: shc, shc_ready
     ansible_host: "{{ shc_vm_ip }}"
     ansible_user: debian
+    # Ephemeral CI VMs on fresh runners have no known_hosts entry and no
+    # TTY — OpenSSH's default ask prompt fails non-interactively ("Host key
+    # verification failed", e2e 2026-09-10). accept-new takes first-seen
+    # keys and still rejects CHANGED ones.
+    ansible_ssh_common_args: -o StrictHostKeyChecking=accept-new
     shc_service_id: "{{ shc_service_id }}"
     shc_vm_ip: "{{ shc_vm_ip }}"
 
