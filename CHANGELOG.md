@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.4.24.4] — 2026-09-10
+
 ### Added
 - **Lean `llms.txt` release-header drift monitoring + dev-zone egress probe workflow.** api-drift now also fetches the lean `/user-api/llms.txt` and diffs its release HEADER (version + op/contract fingerprints) against a tracked baseline (`.github/baselines/llms-lean-release.txt`) — whole-file diffing false-positives because SHC regenerates the lean file on spec rebuilds, but the header fingerprints are semantic; a change now feeds the same drift issue. With the full-corpus whole-file diff already in place, BOTH llms artifacts are monitored monthly. New `egress-probe.yml` (dispatch): orders one ephemeral dev VM with an ORDER-TIME key (apply-live keys never reach the guest on the dev zone), SSHes from the GitHub/US vantage, runs an egress battery, always-cancels. First run (2026-09-10, sid 2527): **dev-zone VMs have NO outgoing internet** — ICMP/DNS/HTTP all dead; traceroute's first hop is `66.188.7.1` → `66.92.204.1` (the OLD subnet's gateway — the fabric still routes via the decommissioned range), then silence. Inbound TCP/22 from US routes is the only working path.
 
