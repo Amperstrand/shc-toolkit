@@ -202,8 +202,14 @@ def phase_sweep(
         try:
             c.stop_vm(sid)
             time.sleep(25)
-            c.reinstall_vm(sid, template=tpl)
-            c.start_vm(sid)
+            try:
+                c.reinstall_vm(sid, template=tpl)
+            finally:
+                # NEVER leave the box stopped: a failed reinstall must not
+                # strand it (2026-09-11: pve-ve's not_found left 2542 stopped
+                # for hours; a stopped VM has no VNC, which derailed the
+                # console-client live test with clean 1000-closes).
+                c.start_vm(sid)
             ip = wait_active_ip(c, sid)
             api_tpl = c.get_vm(sid).get("os_template", "?")
             b = banner(ip) if ip else "(no ip)"
