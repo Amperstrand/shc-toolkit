@@ -2200,8 +2200,15 @@ class SHCClient:
             f"/vm/{service_id}/firewall/policy", {"default_policy": policy}
         )
 
-    def create_firewall_rule(self, service_id: int, **kwargs) -> dict:
-        return self._post(f"/vm/{service_id}/firewall/rules", kwargs)
+    def create_firewall_rule(
+        self, service_id: int, *, confirm: bool = True, **kwargs
+    ) -> dict:
+        # Corpus said add-firewall was routine/ungated; the live server
+        # 409-gates it since at least 2026-09-11 (box-test finding) — route
+        # through the confirm flow like every other gated write.
+        return self._confirmed_request(
+            "POST", f"/vm/{service_id}/firewall/rules", confirm=confirm, json=kwargs
+        )
 
     def edit_firewall_rule(self, service_id: int, position: int, **kwargs) -> dict:
         return self._patch(f"/vm/{service_id}/firewall/rules/{position}", kwargs)
@@ -2229,8 +2236,17 @@ class SHCClient:
     def list_rdns(self, service_id: int) -> list[dict]:
         return self._get_items(f"/vm/{service_id}/rdns")
 
-    def set_rdns(self, service_id: int, ip: str, ptr: str) -> dict:
-        return self._post(f"/vm/{service_id}/rdns", {"ip": ip, "ptr": ptr})
+    def set_rdns(
+        self, service_id: int, ip: str, ptr: str, *, confirm: bool = True
+    ) -> dict:
+        # Corpus said set-rDNS was routine/ungated; live server 409-gates it
+        # (2026-09-11 box-test finding) — confirm-routed accordingly.
+        return self._confirmed_request(
+            "POST",
+            f"/vm/{service_id}/rdns",
+            confirm=confirm,
+            json={"ip": ip, "ptr": ptr},
+        )
 
     def clear_rdns(self, service_id: int, ip: str) -> dict:
         return self._delete(f"/vm/{service_id}/rdns", params={"ip": ip})

@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Added
+- **`shc_toolkit/console_client.py` — the headless Blesta console client: VM screen + keyboard with no browser, no Playwright, no portal login.** Reverses SHC's `proxmoxbridge` (2026-09-11): `POST /proxmoxbridge/console/bootstrap` with the `create_console_session` JWT (cookies from the response MUST ride the WebSocket upgrade — "Missing bridge session" otherwise; relative `ws_url` resolves against the origin with wss) → RFB over WebSocket with the returned VNC password. `asyncvnc` supplies RFB (injectable-opener design), bridged onto `websockets` via StreamReader/Writer shims — `screenshot()`/`type_text()` sync facades included. **Proven offline end-to-end** against a mock RFB-over-WS server (test pins handshake + zlib framebuffer decode). The live hop is currently server-side blocked: the bridge accepts the bootstrap then closes the socket without RFB bytes — the real browser page fails identically ("Invalid token" on fresh single-use tokens, clean 1000-closes), so it's not client-side. Operational discoveries encoded: console sessions are one-per-VM with newest-mint-wins (minting revokes the prior token instantly — never interleave mints), and the noVNC page's two-step flow (bootstrap → cookie'd WS) is now part of the toolkit's knowledge. Requires the `console` extra (`pip install shc-toolkit[console]`).
+
+### Added
+- **`scripts/box_test.py` — the box-test harness (multi-phase, experiment-safe).** Squeeze testing value out of any billing-by-existence VM: `reads` (12-endpoint zero-risk surface), `power` (restart/shutdown+start/reset matrix), `api` (firewall/rDNS/snapshot/cloud-init CRUD smoke), `sweep` (reinstall template matrix — drip mode), `bench` (SSH: openssl/dd/CPU//proc/KVM probe, no egress needed). Contains **no calls to any billing-surface op** by construction (no cancel/standby/upgrade/term/pay) — designed to run alongside the #43 overdraft experiment without disturbing it. Live-earned on 2026-09-11 (Katy pilot, sid 2541): reads 12/12, power 3/3, cloud-init validate+update PASS; reinstall rejects `ssh_key` (`Unknown field`) and destructive ops rate-limit hard after a burst (`retry_after` ~1h → sweep runs drip-mode, honoring the cooldown).
+
+### Fixed
+- **Corpus gate-drift: firewall-add and rDNS-set are now server-gated (live 2026-09-11).** The operator-skills corpus lists both as routine/ungated; the live server 409-gates them. `create_firewall_rule()` and `set_rdns()` now route through `_confirmed_request` (confirm kwarg, probe-capable); pinned by tests. Drift issue filed for the corpus-audit lane.
+- **README template list was badly stale: 11 documented vs 32 live.** Now lists the live set (verified 2026-09-11 via `get_config_options`), including `openwrt-cloud`, `firecracker-cloud`, `pve-ve-cloud` (Proxmox), `freebsd14`, `netbsd10`, `gentoo`, `kali`, `ubuntu2604`, `rocky`/`ol` 9+10, `almalinux10`, `cs10`, and the Windows BYOL set.
+
 ## [2.4.24.4] — 2026-09-10
 
 ### Added

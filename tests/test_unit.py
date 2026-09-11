@@ -3704,3 +3704,46 @@ class TestNodnsSigning045:
         assert attr(event, "signature")
         verifies = event.verify_signature()
         assert verifies is True or verifies is None  # pyo3 returns bool
+
+
+class TestCorpusGateDrift20260911:
+    """Box-test finding (2026-09-11, sid 2541): the live server 409-gates
+    firewall-add and rDNS-set, which the operator-skills corpus lists as
+    routine/ungated. The client now confirm-routes both; these pins keep
+    the wiring from regressing if/when the corpus is re-audited."""
+
+    def test_create_firewall_rule_routes_through_confirm(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, "_confirmed_request") as cr:
+            SHCClient(api_key="k").create_firewall_rule(
+                123, action="accept", protocol="tcp", port="22222"
+            )
+            assert cr.call_args.args == ("POST", "/vm/123/firewall/rules")
+            assert cr.call_args.kwargs["confirm"] is True
+            assert cr.call_args.kwargs["json"]["port"] == "22222"
+
+    def test_create_firewall_rule_probe_mode_raises_through(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, "_confirmed_request") as cr:
+            SHCClient(api_key="k").create_firewall_rule(123, confirm=False, port="22")
+            assert cr.call_args.kwargs["confirm"] is False
+
+    def test_set_rdns_routes_through_confirm(self):
+        from unittest.mock import patch
+
+        from shc_toolkit.client import SHCClient
+
+        with patch.object(SHCClient, "_confirmed_request") as cr:
+            SHCClient(api_key="k").set_rdns(123, "1.2.3.4", "x.example.org")
+            assert cr.call_args.args == ("POST", "/vm/123/rdns")
+            assert cr.call_args.kwargs["confirm"] is True
+            assert cr.call_args.kwargs["json"] == {
+                "ip": "1.2.3.4",
+                "ptr": "x.example.org",
+            }

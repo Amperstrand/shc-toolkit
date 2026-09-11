@@ -249,14 +249,26 @@ Option IDs differ by VPS line. Always read them from `shc catalog` or `GET /orde
 For NVMe Starter (package_id 23):
 
 | Option | ID | Example values |
-|--------|-----|---------------|
+|--------|-----|----------------|
 | RAM | 106 | `4096` (base), `8192`, `16384` |
 | CPU | 107 | `1` (base), `2`, `4` |
 | Disk | 108 | `8` (base), `32`, `50`, `100` |
 | IPv4 | 109 | `1` (base), `2`, `4` |
-| Template (NVMe/HDD/SSD) | 126 | `debian13-cloud`, `debian12-cloud`, `ubuntu2404-cloud`, `ubuntu2204-cloud`, `fedora43-cloud`, `arch-cloud`, `nixos-cloud`, `almalinux9-cloud`, `alpine323-cloud`, `devuan5-cloud`, `openbsd79-cloud` |
-| Template (Dev VPS) | 174 | Same as above |
+| Template (NVMe/HDD) | 126 | see the live list below |
+| Template (Dev VPS) | 174 | same list |
 | GUI | 167 | `none`, `gnome`, `kde`, `xfce`, `cinnamon`, `mate` |
+
+**Live template list (32, verified 2026-09-11 via `get_config_options` — the
+old 11-entry list here was badly stale):** `almalinux10-cloud`, `almalinux9-cloud`,
+`alpine323-cloud`, `arch-cloud`, `cs10-cloud`, `debian12-cloud`, `debian13-cloud`,
+`devuan5-cloud`, `fedora42-cloud`, `fedora43-cloud`, `freebsd14-cloud`,
+`gentoo-cloud`, `kali-cloud`, `netbsd10-cloud`, `nixos-cloud`, `ol10-cloud`,
+`ol9-cloud`, `openbsd79-cloud`, `opensuse-leap156-cloud`, `rocky10-cloud`,
+`rocky9-cloud`, `ubuntu2204-cloud`, `ubuntu2404-cloud`, `ubuntu2604-cloud`,
+`win11-pro-byol`, `win2022-byol`, `win2022-core-byol`, `win2025-byol`,
+`win2025-core-byol`, `firecracker-cloud`, `openwrt-cloud`, `pve-ve-cloud`
+(Proxmox VE). Not every template accepts the same addons — read live values
+from `shc catalog` / `GET /ordering/catalog` before ordering.
 
 Values are the `value` field from the catalog, not `value_id`.
 
