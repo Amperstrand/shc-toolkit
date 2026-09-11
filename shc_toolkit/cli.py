@@ -1167,6 +1167,30 @@ def cmd_console_session(args):
     _print(c.create_console_session(args.service_id, ttl=args.ttl), _get_fmt(args))
 
 
+def cmd_console_shot(args):
+    from .console_client import screenshot as _shot
+
+    c = _client(args)
+    path = _shot(c, args.service_id, args.output, ttl=args.ttl or 60)
+    print(f"screenshot saved: {path}")
+
+
+def cmd_console_command(args):
+    from .console_client import console_command as _cmd
+
+    c = _client(args)
+    pre, post = _cmd(
+        c,
+        args.service_id,
+        args.command,
+        login_user=args.login_user,
+        login_password=args.login_password,
+        ttl=args.ttl or 120,
+    )
+    print(f"before: {pre}")
+    print(f"after:  {post}")
+
+
 # ── Templates ─────────────────────────────────────────────
 
 
@@ -1948,6 +1972,26 @@ def main():
         help="Session lifetime in seconds (server default if omitted)",
     )
     p.set_defaults(func=cmd_console_session)
+
+    p = sub.add_parser(
+        "console-shot",
+        help="Capture the VM's console screen (no SSH/browser needed)",
+    )
+    p.add_argument("service_id", type=int)
+    p.add_argument("-o", "--output", default="console.png", help="output PNG path")
+    p.add_argument("--ttl", type=int, default=60, help="console session TTL")
+    p.set_defaults(func=cmd_console_shot)
+
+    p = sub.add_parser(
+        "console-command",
+        help="Run a command on the VM's console (SSH-free control plane)",
+    )
+    p.add_argument("service_id", type=int)
+    p.add_argument("command", help="command to type into the console")
+    p.add_argument("--login-user", help="console login user (e.g. root; requires cloud-init-set password)")
+    p.add_argument("--login-password", help="console login password")
+    p.add_argument("--ttl", type=int, default=120, help="console session TTL")
+    p.set_defaults(func=cmd_console_command)
 
     p = sub.add_parser("templates", help="List OS templates")
     p.set_defaults(func=cmd_templates)

@@ -201,6 +201,65 @@ def type_text(
         async with await open_console(client, service_id, ttl=ttl) as vnc:
             vnc.keyboard.write(text)
             if enter:
-                vnc.keyboard.press("enter")
+                vnc.keyboard.press("Return")
 
     asyncio.run(_run())
+
+
+def console_command(
+    client: SHCClient,
+    service_id: int,
+    command: str,
+    *,
+    login_user: str | None = None,
+    login_password: str | None = None,
+    settle: float = 3.0,
+    ttl: int = 120,
+) -> tuple[str, str]:
+    """Run a command on the VM's console and capture before/after screens.
+
+    The SSH-free control plane (live-proven 2026-09-11): logs in via the
+    console if credentials are given (requires a cloud-init-set root
+    password), types the command, waits, and captures screenshots of the
+    output. Returns (pre_screenshot_path, post_screenshot_path) — the
+    screenshots ARE the output (VNC gives you the screen, not stdout).
+
+    If login_user is None, assumes the console is already at a shell prompt
+    (a previous console_command session leaves it logged in).
+    """
+    import tempfile
+
+    async def _run() -> tuple[str, str]:
+        async with await open_console(client, service_id, ttl=ttl) as vnc:
+            pre = tempfile.mktemp(suffix=".png", prefix="console-pre-")
+            post = tempfile.mktemp(suffix=".png", prefix="console-post-")
+
+            def _save(shot: Any, path: str) -> None:
+                if hasattr(shot, "save"):
+                    shot.save(path)
+                else:
+                    from PIL import Image
+
+                    Image.fromarray(shot).save(path)
+
+            if login_user and login_password:
+                vnc.keyboard.press("Return")
+                await asyncio.sleep(1.5)
+                vnc.keyboard.write(login_user)
+                vnc.keyboard.press("Return")
+                await asyncio.sleep(settle)
+                vnc.keyboard.write(login_password)
+                vnc.keyboard.press("Return")
+                await asyncio.sleep(settle)
+
+            vnc.video.refresh()
+            _save(await vnc.screenshot(), pre)
+
+            vnc.keyboard.write(command)
+            vnc.keyboard.press("Return")
+            await asyncio.sleep(settle)
+            vnc.video.refresh()
+            _save(await vnc.screenshot(), post)
+            return pre, post
+
+    return asyncio.run(_run())

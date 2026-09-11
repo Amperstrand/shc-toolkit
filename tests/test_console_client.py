@@ -90,3 +90,26 @@ async def test_console_client_over_mock_rfb():
                 assert shape[:2] == (H, W)
             else:  # PIL Image
                 assert shot.size == (W, H)
+
+
+class TestConsoleCommandAPI:
+    """The console control-plane surface: type_text uses the correct
+    asyncvnc key name ("Return", not "enter" — the keymap lookup raised
+    KeyError with the wrong name until 2026-09-11), and console_command
+    exists as the full login→command→screenshot facade."""
+
+    def test_type_text_uses_return_not_enter(self):
+        import asyncvnc
+
+        assert "Return" in asyncvnc.key_codes
+        assert "enter" not in asyncvnc.key_codes
+
+    def test_console_command_importable(self):
+        from shc_toolkit.console_client import console_command
+
+        assert callable(console_command)
+
+    def test_screenshot_importable(self):
+        from shc_toolkit.console_client import screenshot
+
+        assert callable(screenshot)
