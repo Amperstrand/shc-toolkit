@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.4.24.5] — 2026-09-14
+
 ### Added
 - **`console_command()` + `shc console-shot` / `shc console-command` — the console control plane, productized.** The live-proven SSH-free command execution (2026-09-11: cloud-init root password → console login → ANSI-screen-paint → pixel-verified readback on `root@boxtest-drip-reap3d`) is now a first-class toolkit capability. `console_command(client, sid, cmd, login_user=…, login_password=…)` handles the full login → type → screenshot flow and returns before/after PNGs (the screenshots ARE the output — VNC gives you the screen, not stdout). CLI: `shc console-shot <sid> -o out.png` and `shc console-command <sid> "uname -a" --login-user root --login-password <pw>`. Also fixes `type_text`'s key name ("Return" not "enter" — asyncvnc's keymap raised `KeyError` with the lowercase form).
 
