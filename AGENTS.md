@@ -1,6 +1,142 @@
 # AGENTS.md — SHC Toolkit Maintenance Guide
 
 > **Read this before making any changes to shc-toolkit, terraform-provider-shc, or shc-pulumi.**
+> **Only here to ORDER/RUN a VM with `shc`?** Read the next section,
+> "Operating VMs with the shc CLI", and skip the rest. It exists so no
+> agent re-burns the 2026-09-13 round-trips (bad size name, order/pay
+> two-step, the pay confirmation gate, ssh-keys arity).
+
+## Operating VMs with the shc CLI (earned 2026-09-13)
+
+Every claim is pinned to source in `shc_toolkit/`; re-verify there if the
+code moved. Prices and stock drift, `shc sizes` / `shc pricing` print the
+current truth.
+
+### Sizes: spec-encoding names only; nvme-* by standing rule
+
+- `--size` accepts ONLY spec names: `nvme-1c-4gb`, `nvme-2c-8gb`,
+  `nvme-4c-16gb`, ... plus `hdd-*`, `ssd-*`, `dev-*` at the same
+  1c/2c/4c/8c/16c steps (`sizes.py: resolve_size`). Friendly words like
+  `starter` or `professional` FAIL with `Unknown size`. Trap: the
+  `--size` help text itself advertises the friendly words and is wrong;
+  trust `shc sizes`.
+- Standing rule: order `nvme-*` (Katy, TX) only. `ssd-*` and `dev-*` sit
+  in Cherryvale, KS, flagged unreachable from our routes (shc-toolkit
+  issue #39; the older lightning-playground #28 is the history).
+  `shc order` REFUSES those sizes at exit 1 before spending;
+  `--allow-unstable-zone` is the deliberate debug override, `--dry-run`
+  is exempt. `hdd-*` (Katy) is fine when disk speed doesn't matter.
+
+### Order, then pay: two steps, one confirmation gate
+
+1. `shc order --hostname X --size nvme-1c-4gb --ssh-key ~/.ssh/id_ed25519.pub --reap 72h`
+   submits the order and creates an invoice. NO VM exists yet.
+2. The VM provisions only after the invoice is paid: `shc pay
+   <invoice_id>`, or do both in one step with `shc order --pay`.
+3. THE PAYMENT CONFIRMATION GATE: `shc pay` gets a 409
+   `confirmation_required` carrying a single-use `confirmation_id` (the
+   error prose embeds it too) and REFUSES to pay. The API accepts only a
+   re-send of the IDENTICAL request (same bytes, same Idempotency-Key)
+   plus the header `X-User-Api-Confirm: <confirmation_id>`;
+   `?confirm=true` and body `confirm:true` are not accepted. The gate's
+   own text says a "just do it" is not a yes.
+   POLICY: surface the invoice (id, amount) to the owner and get an
+   explicit approval for THIS payment before clearing the gate. Never
+   bypass it, never script around it. After approval, the mechanical
+   path is `SHCClient._confirmed_request(..., confirm=True)`, which
+   builds one prepared request and sends that exact object twice.
+   `shc order --pay` auto-clears the same gate internally, so the owner
+   approval must happen BEFORE you run it.
+4. Invoices can generate asynchronously; if the order response carries
+   no `invoice_id`, poll `shc invoices`.
+
+### --reap: hostname hygiene tag
+
+`--reap <n><m|h|d>` (or a unix epoch) appends `-reap<value>` to the
+hostname: `mytask` becomes `mytask-reap72h` (`cli.py: apply_reap_tag`).
+The reaper SPARES the VM until that deadline, then cancels it. The tag
+must sit at the end of the hostname; an existing tag is never doubled.
+
+### SSH keys are per-VM, all three commands take service_id
+
+- `shc ssh-keys <service_id>` lists keys registered ON that VM. It is
+  not a global list; running it bare is an arity error.
+- `shc ssh-key-add <service_id> --key ...` is also per-VM. There is no
+  global/account key-upload command in the CLI.
+- Preferred: order-time `--ssh-key` rides the cloud-init seed.
+  `shc ssh-key-live <service_id> --key ...` patches a RUNNING VM
+  (confirmation-gated; strip trailing newlines or SHC silently no-ops).
+
+### Money
+
+- nvme-1c-4gb = $0.26/day, hdd-1c-4gb = $0.24/day (cheapest tiers).
+- Billing is by EXISTENCE: `stop` and `shutdown` still bill the full
+  daily rate. ONLY `shc cancel <service_id>` ends billing; immediate
+  cancel (the default) refunds the unused part of the day.
+  `shc list -o table` marks stopped-but-billing VMs.
+- Snapshot only when reuse is planned; snapshots survive cancel.
+
+### Readiness and login
+
+- `provisioning_state` stays "provisioning" forever (lesson 1 below).
+  Usable = `service_status == "active"` AND `ips` non-empty; wait
+  ~120s more for cloud-init before relying on seeded config.
+- Login: `ssh debian@<ip>` (or `root@<ip>`); the order/pay output prints
+  the exact user, debian13-cloud defaults to `debian`.
+
+### Command map
+
+Read/inspect: `list`, `info`, `detail`, `metrics`, `bandwidth`,
+`health`, `network`, `activity`, `events`.
+Catalog: `catalog`, `pricing`, `sizes`, `stock`, `templates`.
+Ordering: `order`, `pay`, `balance`, `invoices`, `transactions`,
+`payments`.
+Power/lifecycle: `start`, `stop`, `shutdown`, `reset`, `restart`,
+`cancel`, `reinstall`.
+Snapshots/backups: `snapshots`, `snapshot-create`, `snapshot-restore`,
+`snapshot-delete`, `backups`, `backup-create/restore/delete/protect`.
+Keys: `ssh-keys`, `ssh-key-add`, `ssh-key-live`.
+Console: `console`, `console-session`.
+DNS: `rdns`, `rdns-set`, `rdns-clear`, `nodns`.
+Hygiene: `reap`.
+
+### Sharp edges (one-liners)
+
+- `shc order --dry-run` calls server-side `preview_order` only: no
+  order, no idempotency key, zone refusal skipped (warning kept).
+- Idempotency keys: 16-128 chars, `[A-Za-z0-9_-]` only, dots REJECTED.
+  `order` auto-generates one; `pay --idempotency-key` overrides the
+  uuid4 default.
+- `order` pre-checks credit and raises `InsufficientCreditError` before
+  creating an order it cannot pay.
+- `reap` defaults to max-age 2h and also eats ANY stopped VM past age
+  (zombie class); `--max-age-hours 0` destroys all matching VMs now;
+  `--dry-run` reports without cancelling.
+- Gated (confirmation) ops include cancel, snapshot restore/delete,
+  reinstall; routine (ungated) ops include power ops, snapshot-create,
+  ssh-key-add.
+- `shc order --pay` waits up to 300s for provisioning and prints
+  hostname/IP/user/SSH line; the readiness rule above still applies.
+
+### Session flow for disposable VMs
+
+```bash
+# 1. order (creates order + invoice; NO VM yet)
+shc order --hostname mytask --size nvme-1c-4gb \
+  --ssh-key ~/.ssh/id_ed25519.pub --reap 72h
+# 2. surface invoice to the OWNER; get an explicit yes for THIS payment
+# 3. pay (hits the gate; resend identical request + X-User-Api-Confirm
+#    only after the owner's yes; or fold steps 1+3 with --pay, owner
+#    approval first)
+shc pay <invoice_id>
+# 4. wait for active + IP (+~120s for cloud-init)
+shc list && shc info <service_id>
+# 5. work
+ssh debian@<ip>
+# 6. done: cancel immediately (refunds unused day; snapshot first only
+#    if reuse is planned)
+shc cancel <service_id>
+```
 
 ## Architecture
 

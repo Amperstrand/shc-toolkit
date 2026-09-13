@@ -27,6 +27,11 @@ Requires Python 3.11+.
 
 ## Quick Start
 
+> **AI agents:** read "Operating VMs with the shc CLI" in
+> [AGENTS.md](AGENTS.md) before ordering. It covers the size-name trap,
+> the order/pay two-step, the payment confirmation gate, and per-VM SSH
+> key commands.
+
 ```bash
 export SHC_API_KEY="shc_live_..."
 
