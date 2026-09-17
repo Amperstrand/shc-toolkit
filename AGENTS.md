@@ -695,3 +695,30 @@ FreedomTechFeed) keep the existing owner-gate flow. Read the target
 repo CONTRIBUTING/AI policy before drafting anything upstream.
 Canonical text: lightning-playground AGENTS.md (standing rule UPDATE
 2026-09-06).
+
+## Process hygiene — teardown + orphan collection (2026-09-17 sweep)
+
+Found by the 2026-09-17 sweep: `shc-proxy.py` (port 8899) orphaned since
+Aug 21 — a session helper that outlived its session by 27 days with zero
+connected peers.
+
+### Spawn → teardown
+
+| Artifact | Teardown |
+|---|---|
+| `shc-proxy.py :8899` | `pkill -f shc-proxy` at session end |
+
+### Orphan hunt (run before ending a session)
+
+```bash
+pgrep -af shc- | grep -v grep
+ss -tlnp 2>/dev/null | grep 8899
+```
+
+### Rules
+
+1. Session-scoped helpers launch under
+   `systemd-run --user --unit=shc-<name>` or with `timeout`, never bare
+   `nohup`.
+2. Zero peers + days old = stranded; the next session in this repo
+   collects it.
