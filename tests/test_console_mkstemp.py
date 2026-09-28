@@ -10,15 +10,12 @@ mkstemp() creates the file atomically 0600.
 import os
 import stat
 import types
-from unittest import mock
 
 from shc_toolkit import console_client
 
 
 def test_console_command_uses_mkstemp_screenshots(monkeypatch):
-    fake_shot = types.SimpleNamespace(
-        save=lambda path: open(path, "wb").write(b"png")
-    )
+    fake_shot = types.SimpleNamespace(save=lambda path: open(path, "wb").write(b"png"))
 
     class FakeVNC:
         keyboard = types.SimpleNamespace(press=lambda *a: None, write=lambda *a: None)
