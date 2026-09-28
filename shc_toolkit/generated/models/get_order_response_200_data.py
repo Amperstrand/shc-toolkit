@@ -6,10 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.get_order_response_200_data_status import (
-    GetOrderResponse200DataStatus,
-    check_get_order_response_200_data_status,
-)
+from ..models.get_order_response_200_data_status import GetOrderResponse200DataStatus
 
 if TYPE_CHECKING:
     from ..models.get_order_response_200_data_invoice import (
@@ -43,7 +40,7 @@ class GetOrderResponse200Data:
 
         order_number = self.order_number
 
-        status: str = self.status
+        status = self.status.value
 
         date_added: None | str
         date_added = self.date_added
@@ -100,7 +97,7 @@ class GetOrderResponse200Data:
 
         order_number = d.pop("order_number")
 
-        status = check_get_order_response_200_data_status(d.pop("status"))
+        status = GetOrderResponse200DataStatus(d.pop("status"))
 
         def _parse_date_added(data: object) -> None | str:
             if data is None:

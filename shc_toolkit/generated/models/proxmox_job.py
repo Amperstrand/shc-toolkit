@@ -8,8 +8,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.proxmox_job_status import ProxmoxJobStatus, check_proxmox_job_status
-from ..models.proxmox_job_type import ProxmoxJobType, check_proxmox_job_type
+from ..models.proxmox_job_status import ProxmoxJobStatus
+from ..models.proxmox_job_type import ProxmoxJobType
 
 if TYPE_CHECKING:
     from ..models.proxmox_job_requested import ProxmoxJobRequested
@@ -49,9 +49,9 @@ class ProxmoxJob:
 
         service_id = self.service_id
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
-        status: str = self.status
+        status = self.status.value
 
         progress = self.progress
 
@@ -99,9 +99,9 @@ class ProxmoxJob:
 
         service_id = d.pop("service_id")
 
-        type_ = check_proxmox_job_type(d.pop("type"))
+        type_ = ProxmoxJobType(d.pop("type"))
 
-        status = check_proxmox_job_status(d.pop("status"))
+        status = ProxmoxJobStatus(d.pop("status"))
 
         progress = d.pop("progress")
 

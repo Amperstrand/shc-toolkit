@@ -87,7 +87,9 @@ class VmOrderSelectedPackage:
         from ..models.module_group_choice import ModuleGroupChoice
         from ..models.order_path_summary import OrderPathSummary
         from ..models.template import Template
-        from ..models.vm_order_selected_package_specs import VmOrderSelectedPackageSpecs
+        from ..models.vm_order_selected_package_specs import (
+            VmOrderSelectedPackageSpecs,
+        )
 
         d = dict(src_dict)
         package_id = d.pop("package_id")

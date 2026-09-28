@@ -138,7 +138,7 @@ def sync_detailed(
     idempotency_key: str,
     x_user_api_confirm: str | Unset = UNSET,
 ) -> Response[Error | Problem | UpdateVirtualMachineCloudInitResponse200]:
-    r"""Apply VM cloud-init user-data
+    """Apply VM cloud-init user-data
 
      Confirm-gated cloud-init apply. The server validates policy, merges the content into the baseline
     cloud-init, builds a server-managed NoCloud seed, attaches it as the sole CIDATA CD-ROM, and keeps
@@ -148,7 +148,8 @@ def sync_detailed(
         virtual_machine_id (int):
         idempotency_key (str):
         x_user_api_confirm (str | Unset):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -180,7 +181,7 @@ def sync(
     idempotency_key: str,
     x_user_api_confirm: str | Unset = UNSET,
 ) -> Error | Problem | UpdateVirtualMachineCloudInitResponse200 | None:
-    r"""Apply VM cloud-init user-data
+    """Apply VM cloud-init user-data
 
      Confirm-gated cloud-init apply. The server validates policy, merges the content into the baseline
     cloud-init, builds a server-managed NoCloud seed, attaches it as the sole CIDATA CD-ROM, and keeps
@@ -190,7 +191,8 @@ def sync(
         virtual_machine_id (int):
         idempotency_key (str):
         x_user_api_confirm (str | Unset):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -217,7 +219,7 @@ async def asyncio_detailed(
     idempotency_key: str,
     x_user_api_confirm: str | Unset = UNSET,
 ) -> Response[Error | Problem | UpdateVirtualMachineCloudInitResponse200]:
-    r"""Apply VM cloud-init user-data
+    """Apply VM cloud-init user-data
 
      Confirm-gated cloud-init apply. The server validates policy, merges the content into the baseline
     cloud-init, builds a server-managed NoCloud seed, attaches it as the sole CIDATA CD-ROM, and keeps
@@ -227,7 +229,8 @@ async def asyncio_detailed(
         virtual_machine_id (int):
         idempotency_key (str):
         x_user_api_confirm (str | Unset):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -257,7 +260,7 @@ async def asyncio(
     idempotency_key: str,
     x_user_api_confirm: str | Unset = UNSET,
 ) -> Error | Problem | UpdateVirtualMachineCloudInitResponse200 | None:
-    r"""Apply VM cloud-init user-data
+    """Apply VM cloud-init user-data
 
      Confirm-gated cloud-init apply. The server validates policy, merges the content into the baseline
     cloud-init, builds a server-managed NoCloud seed, attaches it as the sole CIDATA CD-ROM, and keeps
@@ -267,7 +270,8 @@ async def asyncio(
         virtual_machine_id (int):
         idempotency_key (str):
         x_user_api_confirm (str | Unset):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

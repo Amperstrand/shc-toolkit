@@ -32,7 +32,9 @@ class RegisterResponse:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.register_response_data import RegisterResponseData
+        from ..models.register_response_data import (
+            RegisterResponseData,
+        )
 
         d = dict(src_dict)
         data = RegisterResponseData.from_dict(d.pop("data"))

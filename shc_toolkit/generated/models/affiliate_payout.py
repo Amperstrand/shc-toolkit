@@ -7,10 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.affiliate_payout_status import (
-    AffiliatePayoutStatus,
-    check_affiliate_payout_status,
-)
+from ..models.affiliate_payout_status import AffiliatePayoutStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AffiliatePayout")
@@ -32,7 +29,7 @@ class AffiliatePayout:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status: str = self.status
+        status = self.status.value
 
         requested_amount = self.requested_amount
 
@@ -87,7 +84,7 @@ class AffiliatePayout:
         d = dict(src_dict)
         id = d.pop("id")
 
-        status = check_affiliate_payout_status(d.pop("status"))
+        status = AffiliatePayoutStatus(d.pop("status"))
 
         requested_amount = d.pop("requested_amount")
 

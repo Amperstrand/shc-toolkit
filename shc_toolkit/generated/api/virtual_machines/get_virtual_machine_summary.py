@@ -84,11 +84,11 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetVirtualMachineSummaryResponse200]:
-    r"""Get a one-call VM summary
+    """Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
     /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
-    recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
+    recent-jobs aggregate and a has_active_job flag, so "is it ready / is anything running?" needs one
     round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
@@ -125,11 +125,11 @@ def sync(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetVirtualMachineSummaryResponse200 | None:
-    r"""Get a one-call VM summary
+    """Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
     /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
-    recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
+    recent-jobs aggregate and a has_active_job flag, so "is it ready / is anything running?" needs one
     round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
@@ -161,11 +161,11 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetVirtualMachineSummaryResponse200]:
-    r"""Get a one-call VM summary
+    """Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
     /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
-    recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
+    recent-jobs aggregate and a has_active_job flag, so "is it ready / is anything running?" needs one
     round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 
@@ -200,11 +200,11 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetVirtualMachineSummaryResponse200 | None:
-    r"""Get a one-call VM summary
+    """Get a one-call VM summary
 
      One agent-friendly call: the same ownership-checked, placement-hidden DB detail as GET
     /vm/{service_id} (identity + service_status/provisioning_state + current period/renewal) PLUS a
-    recent-jobs aggregate and a has_active_job flag, so \"is it ready / is anything running?\" needs one
+    recent-jobs aggregate and a has_active_job flag, so "is it ready / is anything running?" needs one
     round-trip instead of several. DB-only (no live Proxmox call); use GET /vm/{service_id}/detail for a
     live runtime snapshot.
 

@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.cloud_init_derived_seed_volume_label import (
     CloudInitDerivedSeedVolumeLabel,
-    check_cloud_init_derived_seed_volume_label,
 )
 
 T = TypeVar("T", bound="CloudInitDerivedSeed")
@@ -22,7 +21,7 @@ class CloudInitDerivedSeed:
     def to_dict(self) -> dict[str, Any]:
         iso_name = self.iso_name
 
-        volume_label: str = self.volume_label
+        volume_label = self.volume_label.value
 
         field_dict: dict[str, Any] = {}
 
@@ -40,7 +39,7 @@ class CloudInitDerivedSeed:
         d = dict(src_dict)
         iso_name = d.pop("isoName")
 
-        volume_label = check_cloud_init_derived_seed_volume_label(d.pop("volumeLabel"))
+        volume_label = CloudInitDerivedSeedVolumeLabel(d.pop("volumeLabel"))
 
         cloud_init_derived_seed = cls(
             iso_name=iso_name,

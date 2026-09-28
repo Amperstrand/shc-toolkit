@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.unlink_nostr_identity_response_200_data_status import (
     UnlinkNostrIdentityResponse200DataStatus,
-    check_unlink_nostr_identity_response_200_data_status,
 )
 
 T = TypeVar("T", bound="UnlinkNostrIdentityResponse200Data")
@@ -22,7 +21,7 @@ class UnlinkNostrIdentityResponse200Data:
     """ Nostr npub that was unlinked. """
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         npub = self.npub
 
@@ -40,7 +39,7 @@ class UnlinkNostrIdentityResponse200Data:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_unlink_nostr_identity_response_200_data_status(d.pop("status"))
+        status = UnlinkNostrIdentityResponse200DataStatus(d.pop("status"))
 
         npub = d.pop("npub")
 

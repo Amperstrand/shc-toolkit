@@ -1,19 +1,12 @@
-from typing import Literal
-
-ErrorErrorLinksItemRel = Literal["about", "docs", "help", "retry", "status"]
-
-ERROR_ERROR_LINKS_ITEM_REL_VALUES: set[ErrorErrorLinksItemRel] = {
-    "about",
-    "docs",
-    "help",
-    "retry",
-    "status",
-}
+from enum import StrEnum
 
 
-def check_error_error_links_item_rel(value: str) -> ErrorErrorLinksItemRel:
-    if value in ERROR_ERROR_LINKS_ITEM_REL_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {ERROR_ERROR_LINKS_ITEM_REL_VALUES!r}"
-    )
+class ErrorErrorLinksItemRel(StrEnum):
+    ABOUT = "about"
+    DOCS = "docs"
+    HELP = "help"
+    RETRY = "retry"
+    STATUS = "status"
+
+    def __str__(self) -> str:
+        return str(self.value)

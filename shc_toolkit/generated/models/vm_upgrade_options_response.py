@@ -9,15 +9,12 @@ from typing_extensions import Self
 
 from ..models.vm_upgrade_options_response_blocked_reason_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType1,
-    check_vm_upgrade_options_response_blocked_reason_type_1,
 )
 from ..models.vm_upgrade_options_response_blocked_reason_type_2_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType2Type1,
-    check_vm_upgrade_options_response_blocked_reason_type_2_type_1,
 )
 from ..models.vm_upgrade_options_response_blocked_reason_type_3_type_1 import (
     VmUpgradeOptionsResponseBlockedReasonType3Type1,
-    check_vm_upgrade_options_response_blocked_reason_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -70,11 +67,15 @@ class VmUpgradeOptionsResponse:
 
         blocked_reason: None | str
         if (
-            isinstance(self.blocked_reason, str)
-            or isinstance(self.blocked_reason, str)
-            or isinstance(self.blocked_reason, str)
+            isinstance(self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType1)
+            or isinstance(
+                self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType2Type1
+            )
+            or isinstance(
+                self.blocked_reason, VmUpgradeOptionsResponseBlockedReasonType3Type1
+            )
         ):
-            blocked_reason = self.blocked_reason
+            blocked_reason = self.blocked_reason.value
         else:
             blocked_reason = self.blocked_reason
 
@@ -138,9 +139,7 @@ class VmUpgradeOptionsResponse:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                blocked_reason_type_1 = (
-                    check_vm_upgrade_options_response_blocked_reason_type_1(data)
-                )
+                blocked_reason_type_1 = VmUpgradeOptionsResponseBlockedReasonType1(data)
 
                 return blocked_reason_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -149,7 +148,7 @@ class VmUpgradeOptionsResponse:
                 if not isinstance(data, str):
                     raise TypeError()
                 blocked_reason_type_2_type_1 = (
-                    check_vm_upgrade_options_response_blocked_reason_type_2_type_1(data)
+                    VmUpgradeOptionsResponseBlockedReasonType2Type1(data)
                 )
 
                 return blocked_reason_type_2_type_1
@@ -159,7 +158,7 @@ class VmUpgradeOptionsResponse:
                 if not isinstance(data, str):
                     raise TypeError()
                 blocked_reason_type_3_type_1 = (
-                    check_vm_upgrade_options_response_blocked_reason_type_3_type_1(data)
+                    VmUpgradeOptionsResponseBlockedReasonType3Type1(data)
                 )
 
                 return blocked_reason_type_3_type_1

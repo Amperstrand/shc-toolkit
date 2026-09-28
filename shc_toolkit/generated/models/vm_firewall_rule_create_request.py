@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.vm_firewall_rule_create_request_action import (
     VmFirewallRuleCreateRequestAction,
-    check_vm_firewall_rule_create_request_action,
 )
 from ..models.vm_firewall_rule_create_request_direction import (
     VmFirewallRuleCreateRequestDirection,
-    check_vm_firewall_rule_create_request_direction,
 )
 from ..types import UNSET, Unset
 
@@ -57,9 +55,9 @@ class VmFirewallRuleCreateRequest:
     edit, omitting it keeps the current state. """
 
     def to_dict(self) -> dict[str, Any]:
-        action: str = self.action
+        action = self.action.value
 
-        direction: str = self.direction
+        direction = self.direction.value
 
         name: None | str | Unset
         if isinstance(self.name, Unset):
@@ -151,9 +149,9 @@ class VmFirewallRuleCreateRequest:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        action = check_vm_firewall_rule_create_request_action(d.pop("action"))
+        action = VmFirewallRuleCreateRequestAction(d.pop("action"))
 
-        direction = check_vm_firewall_rule_create_request_direction(d.pop("direction"))
+        direction = VmFirewallRuleCreateRequestDirection(d.pop("direction"))
 
         def _parse_name(data: object) -> None | str | Unset:
             if data is None:

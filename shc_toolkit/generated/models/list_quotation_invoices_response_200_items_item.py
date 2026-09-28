@@ -7,7 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus, check_invoice_status
+from ..models.invoice_status import InvoiceStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ListQuotationInvoicesResponse200ItemsItem")
@@ -29,7 +29,7 @@ class ListQuotationInvoicesResponse200ItemsItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        invoice_status: str = self.invoice_status
+        invoice_status = self.invoice_status.value
 
         total = self.total
 
@@ -86,7 +86,7 @@ class ListQuotationInvoicesResponse200ItemsItem:
         d = dict(src_dict)
         id = d.pop("id")
 
-        invoice_status = check_invoice_status(d.pop("invoice_status"))
+        invoice_status = InvoiceStatus(d.pop("invoice_status"))
 
         total = d.pop("total")
 

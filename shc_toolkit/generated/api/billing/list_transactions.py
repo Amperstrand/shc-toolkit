@@ -8,15 +8,13 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
 from ...models.list_transactions_response_200 import ListTransactionsResponse200
-from ...models.list_transactions_status import (
-    ListTransactionsStatus,
-)
+from ...models.list_transactions_status import ListTransactionsStatus
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    status: ListTransactionsStatus | Unset = "approved",
+    status: ListTransactionsStatus | Unset = ListTransactionsStatus.APPROVED,
     payment_type: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     date_start: datetime.date | Unset = UNSET,
@@ -35,7 +33,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status
+        json_status = status.value
 
     params["status"] = json_status
 
@@ -131,7 +129,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: ListTransactionsStatus | Unset = "approved",
+    status: ListTransactionsStatus | Unset = ListTransactionsStatus.APPROVED,
     payment_type: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     date_start: datetime.date | Unset = UNSET,
@@ -149,7 +147,7 @@ def sync_detailed(
     scoped keys are not eligible), or with Basic auth + OTP.
 
     Args:
-        status (ListTransactionsStatus | Unset):  Default: 'approved'.
+        status (ListTransactionsStatus | Unset):  Default: ListTransactionsStatus.APPROVED.
         payment_type (str | Unset):
         currency (str | Unset):  Example: USD.
         date_start (datetime.date | Unset):
@@ -191,7 +189,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    status: ListTransactionsStatus | Unset = "approved",
+    status: ListTransactionsStatus | Unset = ListTransactionsStatus.APPROVED,
     payment_type: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     date_start: datetime.date | Unset = UNSET,
@@ -209,7 +207,7 @@ def sync(
     scoped keys are not eligible), or with Basic auth + OTP.
 
     Args:
-        status (ListTransactionsStatus | Unset):  Default: 'approved'.
+        status (ListTransactionsStatus | Unset):  Default: ListTransactionsStatus.APPROVED.
         payment_type (str | Unset):
         currency (str | Unset):  Example: USD.
         date_start (datetime.date | Unset):
@@ -246,7 +244,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    status: ListTransactionsStatus | Unset = "approved",
+    status: ListTransactionsStatus | Unset = ListTransactionsStatus.APPROVED,
     payment_type: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     date_start: datetime.date | Unset = UNSET,
@@ -264,7 +262,7 @@ async def asyncio_detailed(
     scoped keys are not eligible), or with Basic auth + OTP.
 
     Args:
-        status (ListTransactionsStatus | Unset):  Default: 'approved'.
+        status (ListTransactionsStatus | Unset):  Default: ListTransactionsStatus.APPROVED.
         payment_type (str | Unset):
         currency (str | Unset):  Example: USD.
         date_start (datetime.date | Unset):
@@ -304,7 +302,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    status: ListTransactionsStatus | Unset = "approved",
+    status: ListTransactionsStatus | Unset = ListTransactionsStatus.APPROVED,
     payment_type: str | Unset = UNSET,
     currency: str | Unset = UNSET,
     date_start: datetime.date | Unset = UNSET,
@@ -322,7 +320,7 @@ async def asyncio(
     scoped keys are not eligible), or with Basic auth + OTP.
 
     Args:
-        status (ListTransactionsStatus | Unset):  Default: 'approved'.
+        status (ListTransactionsStatus | Unset):  Default: ListTransactionsStatus.APPROVED.
         payment_type (str | Unset):
         currency (str | Unset):  Example: USD.
         date_start (datetime.date | Unset):

@@ -55,7 +55,9 @@ class ZkBackupRegistration:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.zk_backup_registration_config import ZkBackupRegistrationConfig
+        from ..models.zk_backup_registration_config import (
+            ZkBackupRegistrationConfig,
+        )
         from ..models.zk_backup_registration_recipients_item import (
             ZkBackupRegistrationRecipientsItem,
         )

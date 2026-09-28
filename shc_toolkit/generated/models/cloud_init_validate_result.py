@@ -45,7 +45,9 @@ class CloudInitValidateResult:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cloud_init_derived_seed import CloudInitDerivedSeed
+        from ..models.cloud_init_derived_seed import (
+            CloudInitDerivedSeed,
+        )
         from ..models.lint_report import LintReport
 
         d = dict(src_dict)

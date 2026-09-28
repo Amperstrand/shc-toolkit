@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.link_nostr_identity_response_200_data_status import (
     LinkNostrIdentityResponse200DataStatus,
-    check_link_nostr_identity_response_200_data_status,
 )
 
 T = TypeVar("T", bound="LinkNostrIdentityResponse200Data")
@@ -26,7 +25,7 @@ class LinkNostrIdentityResponse200Data:
     """ Current NIP-05 local name for the linked key, or null when absent. """
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         rotated = self.rotated
 
@@ -51,7 +50,7 @@ class LinkNostrIdentityResponse200Data:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_link_nostr_identity_response_200_data_status(d.pop("status"))
+        status = LinkNostrIdentityResponse200DataStatus(d.pop("status"))
 
         rotated = d.pop("rotated")
 

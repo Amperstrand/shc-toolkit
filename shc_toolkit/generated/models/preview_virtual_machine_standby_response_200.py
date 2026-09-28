@@ -34,7 +34,9 @@ class PreviewVirtualMachineStandbyResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_standby_preview_response import VmStandbyPreviewResponse
+        from ..models.vm_standby_preview_response import (
+            VmStandbyPreviewResponse,
+        )
 
         d = dict(src_dict)
         data = VmStandbyPreviewResponse.from_dict(d.pop("data"))

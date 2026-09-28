@@ -9,27 +9,19 @@ from typing_extensions import Self
 
 from ..models.event_subscription_created_delivery_id_header import (
     EventSubscriptionCreatedDeliveryIdHeader,
-    check_event_subscription_created_delivery_id_header,
 )
 from ..models.event_subscription_created_event_id_header import (
     EventSubscriptionCreatedEventIdHeader,
-    check_event_subscription_created_event_id_header,
 )
 from ..models.event_subscription_created_signature_header import (
     EventSubscriptionCreatedSignatureHeader,
-    check_event_subscription_created_signature_header,
 )
 from ..models.event_subscription_created_signing_algorithm import (
     EventSubscriptionCreatedSigningAlgorithm,
-    check_event_subscription_created_signing_algorithm,
 )
-from ..models.event_subscription_created_status import (
-    EventSubscriptionCreatedStatus,
-    check_event_subscription_created_status,
-)
+from ..models.event_subscription_created_status import EventSubscriptionCreatedStatus
 from ..models.event_subscription_created_timestamp_header import (
     EventSubscriptionCreatedTimestampHeader,
-    check_event_subscription_created_timestamp_header,
 )
 
 T = TypeVar("T", bound="EventSubscriptionCreated")
@@ -67,17 +59,17 @@ class EventSubscriptionCreated:
 
         event_types = self.event_types
 
-        signing_algorithm: str = self.signing_algorithm
+        signing_algorithm = self.signing_algorithm.value
 
-        signature_header: str = self.signature_header
+        signature_header = self.signature_header.value
 
-        timestamp_header: str = self.timestamp_header
+        timestamp_header = self.timestamp_header.value
 
-        event_id_header: str = self.event_id_header
+        event_id_header = self.event_id_header.value
 
-        delivery_id_header: str = self.delivery_id_header
+        delivery_id_header = self.delivery_id_header.value
 
-        status: str = self.status
+        status = self.status.value
 
         secret_preview = self.secret_preview
 
@@ -128,27 +120,25 @@ class EventSubscriptionCreated:
 
         event_types = cast(list[str], d.pop("eventTypes"))
 
-        signing_algorithm = check_event_subscription_created_signing_algorithm(
+        signing_algorithm = EventSubscriptionCreatedSigningAlgorithm(
             d.pop("signingAlgorithm")
         )
 
-        signature_header = check_event_subscription_created_signature_header(
+        signature_header = EventSubscriptionCreatedSignatureHeader(
             d.pop("signatureHeader")
         )
 
-        timestamp_header = check_event_subscription_created_timestamp_header(
+        timestamp_header = EventSubscriptionCreatedTimestampHeader(
             d.pop("timestampHeader")
         )
 
-        event_id_header = check_event_subscription_created_event_id_header(
-            d.pop("eventIdHeader")
-        )
+        event_id_header = EventSubscriptionCreatedEventIdHeader(d.pop("eventIdHeader"))
 
-        delivery_id_header = check_event_subscription_created_delivery_id_header(
+        delivery_id_header = EventSubscriptionCreatedDeliveryIdHeader(
             d.pop("deliveryIdHeader")
         )
 
-        status = check_event_subscription_created_status(d.pop("status"))
+        status = EventSubscriptionCreatedStatus(d.pop("status"))
 
         secret_preview = d.pop("secretPreview")
 

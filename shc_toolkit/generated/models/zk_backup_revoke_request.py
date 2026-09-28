@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.zk_backup_revoke_request_ack import (
-    ZkBackupRevokeRequestAck,
-    check_zk_backup_revoke_request_ack,
-)
+from ..models.zk_backup_revoke_request_ack import ZkBackupRevokeRequestAck
 
 T = TypeVar("T", bound="ZkBackupRevokeRequest")
 
@@ -24,7 +21,7 @@ class ZkBackupRevokeRequest:
     def to_dict(self) -> dict[str, Any]:
         fingerprint = self.fingerprint
 
-        ack: str = self.ack
+        ack = self.ack.value
 
         field_dict: dict[str, Any] = {}
 
@@ -42,7 +39,7 @@ class ZkBackupRevokeRequest:
         d = dict(src_dict)
         fingerprint = d.pop("fingerprint")
 
-        ack = check_zk_backup_revoke_request_ack(d.pop("ack"))
+        ack = ZkBackupRevokeRequestAck(d.pop("ack"))
 
         zk_backup_revoke_request = cls(
             fingerprint=fingerprint,

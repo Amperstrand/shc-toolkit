@@ -32,7 +32,9 @@ class UpdateVirtualMachineCloudInitResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cloud_init_apply_result import CloudInitApplyResult
+        from ..models.cloud_init_apply_result import (
+            CloudInitApplyResult,
+        )
 
         d = dict(src_dict)
         data = CloudInitApplyResult.from_dict(d.pop("data"))

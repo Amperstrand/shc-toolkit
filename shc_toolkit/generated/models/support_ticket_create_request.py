@@ -79,8 +79,12 @@ class SupportTicketCreateRequest:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.support_ticket_attachment import SupportTicketAttachment
-        from ..models.support_ticket_custom_fields import SupportTicketCustomFields
+        from ..models.support_ticket_attachment import (
+            SupportTicketAttachment,
+        )
+        from ..models.support_ticket_custom_fields import (
+            SupportTicketCustomFields,
+        )
 
         d = dict(src_dict)
         department_id = d.pop("department_id")

@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.contact_create_response_contact_type import (
     ContactCreateResponseContactType,
-    check_contact_create_response_contact_type,
 )
 
 T = TypeVar("T", bound="ContactCreateResponse")
@@ -25,7 +24,7 @@ class ContactCreateResponse:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type: str = self.contact_type
+        contact_type = self.contact_type.value
 
         has_login = self.has_login
 
@@ -49,7 +48,7 @@ class ContactCreateResponse:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = check_contact_create_response_contact_type(d.pop("contact_type"))
+        contact_type = ContactCreateResponseContactType(d.pop("contact_type"))
 
         has_login = d.pop("has_login")
 

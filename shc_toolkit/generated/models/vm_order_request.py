@@ -141,7 +141,9 @@ class VmOrderRequest:
         from ..models.vm_order_request_additional_property_type_4 import (
             VmOrderRequestAdditionalPropertyType4,
         )
-        from ..models.vm_order_request_config_options import VmOrderRequestConfigOptions
+        from ..models.vm_order_request_config_options import (
+            VmOrderRequestConfigOptions,
+        )
 
         d = dict(src_dict)
         package_id = d.pop("package_id")

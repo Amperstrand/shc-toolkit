@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.get_virtual_machine_snapshot_restore_hints_response_200_data_source import (
     GetVirtualMachineSnapshotRestoreHintsResponse200DataSource,
-    check_get_virtual_machine_snapshot_restore_hints_response_200_data_source,
 )
 from ..types import UNSET, Unset
 
@@ -56,7 +55,7 @@ class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
 
         service_id = self.service_id
 
-        source: str = self.source
+        source = self.source.value
 
         backup_id = self.backup_id
 
@@ -119,10 +118,8 @@ class GetVirtualMachineSnapshotRestoreHintsResponse200Data:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        source = (
-            check_get_virtual_machine_snapshot_restore_hints_response_200_data_source(
-                d.pop("source")
-            )
+        source = GetVirtualMachineSnapshotRestoreHintsResponse200DataSource(
+            d.pop("source")
         )
 
         backup_id = d.pop("backup_id")

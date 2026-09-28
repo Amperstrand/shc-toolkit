@@ -42,7 +42,9 @@ class ListAgentSessionAuditResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.agent_session_audit_record import AgentSessionAuditRecord
+        from ..models.agent_session_audit_record import (
+            AgentSessionAuditRecord,
+        )
         from ..models.pagination import Pagination
 
         d = dict(src_dict)

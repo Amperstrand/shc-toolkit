@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.vm_firewall_policy_update_request_policy_in import (
     VmFirewallPolicyUpdateRequestPolicyIn,
-    check_vm_firewall_policy_update_request_policy_in,
 )
 from ..models.vm_firewall_policy_update_request_policy_out import (
     VmFirewallPolicyUpdateRequestPolicyOut,
-    check_vm_firewall_policy_update_request_policy_out,
 )
 from ..types import UNSET, Unset
 
@@ -39,11 +37,11 @@ class VmFirewallPolicyUpdateRequest:
     def to_dict(self) -> dict[str, Any]:
         policy_in: str | Unset = UNSET
         if not isinstance(self.policy_in, Unset):
-            policy_in = self.policy_in
+            policy_in = self.policy_in.value
 
         policy_out: str | Unset = UNSET
         if not isinstance(self.policy_out, Unset):
-            policy_out = self.policy_out
+            policy_out = self.policy_out.value
 
         field_dict: dict[str, Any] = {}
 
@@ -63,14 +61,14 @@ class VmFirewallPolicyUpdateRequest:
         if isinstance(_policy_in, Unset):
             policy_in = UNSET
         else:
-            policy_in = check_vm_firewall_policy_update_request_policy_in(_policy_in)
+            policy_in = VmFirewallPolicyUpdateRequestPolicyIn(_policy_in)
 
         _policy_out = d.pop("policy_out", UNSET)
         policy_out: VmFirewallPolicyUpdateRequestPolicyOut | Unset
         if isinstance(_policy_out, Unset):
             policy_out = UNSET
         else:
-            policy_out = check_vm_firewall_policy_update_request_policy_out(_policy_out)
+            policy_out = VmFirewallPolicyUpdateRequestPolicyOut(_policy_out)
 
         vm_firewall_policy_update_request = cls(
             policy_in=policy_in,

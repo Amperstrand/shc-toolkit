@@ -36,7 +36,9 @@ class PreviewServiceUpgradeResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_upgrade_preview_response import VmUpgradePreviewResponse
+        from ..models.vm_upgrade_preview_response import (
+            VmUpgradePreviewResponse,
+        )
 
         d = dict(src_dict)
         data = VmUpgradePreviewResponse.from_dict(d.pop("data"))

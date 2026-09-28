@@ -6,10 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.batch_sub_request_method import (
-    BatchSubRequestMethod,
-    check_batch_sub_request_method,
-)
+from ..models.batch_sub_request_method import BatchSubRequestMethod
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -48,9 +45,11 @@ class BatchSubRequest:
     """ Optional per-sub-request X-User-Api-Confirm value for a confirmed retry. """
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.batch_sub_request_body_type_0 import BatchSubRequestBodyType0
+        from ..models.batch_sub_request_body_type_0 import (
+            BatchSubRequestBodyType0,
+        )
 
-        method: str = self.method
+        method = self.method.value
 
         path = self.path
 
@@ -95,13 +94,15 @@ class BatchSubRequest:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.batch_sub_request_body_type_0 import BatchSubRequestBodyType0
+        from ..models.batch_sub_request_body_type_0 import (
+            BatchSubRequestBodyType0,
+        )
         from ..models.batch_sub_request_body_type_1_item import (
             BatchSubRequestBodyType1Item,
         )
 
         d = dict(src_dict)
-        method = check_batch_sub_request_method(d.pop("method"))
+        method = BatchSubRequestMethod(d.pop("method"))
 
         path = d.pop("path")
 

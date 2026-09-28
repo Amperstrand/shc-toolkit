@@ -7,10 +7,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.checkout_redirect_response_status import (
-    CheckoutRedirectResponseStatus,
-    check_checkout_redirect_response_status,
-)
+from ..models.checkout_redirect_response_status import CheckoutRedirectResponseStatus
 
 T = TypeVar("T", bound="CheckoutRedirectResponse")
 
@@ -34,7 +31,7 @@ class CheckoutRedirectResponse:
     expires_at: datetime.datetime
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         checkout_url = self.checkout_url
 
@@ -64,7 +61,7 @@ class CheckoutRedirectResponse:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_checkout_redirect_response_status(d.pop("status"))
+        status = CheckoutRedirectResponseStatus(d.pop("status"))
 
         checkout_url = d.pop("checkout_url")
 

@@ -35,7 +35,9 @@ class VerifyVirtualMachineBackupResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_storage_verify_response import VmStorageVerifyResponse
+        from ..models.vm_storage_verify_response import (
+            VmStorageVerifyResponse,
+        )
 
         d = dict(src_dict)
         data = VmStorageVerifyResponse.from_dict(d.pop("data"))

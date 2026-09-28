@@ -7,12 +7,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
-from ...models.list_virtual_machine_jobs_status import (
-    ListVirtualMachineJobsStatus,
-)
-from ...models.list_virtual_machine_jobs_type import (
-    ListVirtualMachineJobsType,
-)
+from ...models.list_virtual_machine_jobs_status import ListVirtualMachineJobsStatus
+from ...models.list_virtual_machine_jobs_type import ListVirtualMachineJobsType
 from ...models.proxmox_job_list import ProxmoxJobList
 from ...types import UNSET, Response, Unset
 
@@ -38,13 +34,13 @@ def _get_kwargs(
 
     json_type_: str | Unset = UNSET
     if not isinstance(type_, Unset):
-        json_type_ = type_
+        json_type_ = type_.value
 
     params["type"] = json_type_
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status
+        json_status = status.value
 
     params["status"] = json_status
 

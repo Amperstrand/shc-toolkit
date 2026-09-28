@@ -8,19 +8,10 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.activity_item_status_type_1 import (
-    ActivityItemStatusType1,
-    check_activity_item_status_type_1,
-)
-from ..models.activity_item_status_type_2_type_1 import (
-    ActivityItemStatusType2Type1,
-    check_activity_item_status_type_2_type_1,
-)
-from ..models.activity_item_status_type_3_type_1 import (
-    ActivityItemStatusType3Type1,
-    check_activity_item_status_type_3_type_1,
-)
-from ..models.activity_item_type import ActivityItemType, check_activity_item_type
+from ..models.activity_item_status_type_1 import ActivityItemStatusType1
+from ..models.activity_item_status_type_2_type_1 import ActivityItemStatusType2Type1
+from ..models.activity_item_status_type_3_type_1 import ActivityItemStatusType3Type1
+from ..models.activity_item_type import ActivityItemType
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ActivityItem")
@@ -66,7 +57,7 @@ class ActivityItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        type_: str = self.type_
+        type_ = self.type_.value
 
         label = self.label
 
@@ -107,11 +98,11 @@ class ActivityItem:
         if isinstance(self.status, Unset):
             status = UNSET
         elif (
-            isinstance(self.status, str)
-            or isinstance(self.status, str)
-            or isinstance(self.status, str)
+            isinstance(self.status, ActivityItemStatusType1)
+            or isinstance(self.status, ActivityItemStatusType2Type1)
+            or isinstance(self.status, ActivityItemStatusType3Type1)
         ):
-            status = self.status
+            status = self.status.value
         else:
             status = self.status
 
@@ -143,7 +134,7 @@ class ActivityItem:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        type_ = check_activity_item_type(d.pop("type"))
+        type_ = ActivityItemType(d.pop("type"))
 
         label = d.pop("label")
 
@@ -216,7 +207,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = check_activity_item_status_type_1(data)
+                status_type_1 = ActivityItemStatusType1(data)
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -224,7 +215,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = check_activity_item_status_type_2_type_1(data)
+                status_type_2_type_1 = ActivityItemStatusType2Type1(data)
 
                 return status_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -232,7 +223,7 @@ class ActivityItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = check_activity_item_status_type_3_type_1(data)
+                status_type_3_type_1 = ActivityItemStatusType3Type1(data)
 
                 return status_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

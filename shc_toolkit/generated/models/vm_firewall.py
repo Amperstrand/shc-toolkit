@@ -7,14 +7,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.vm_firewall_actions_item import (
-    VmFirewallActionsItem,
-    check_vm_firewall_actions_item,
-)
-from ..models.vm_firewall_directions_item import (
-    VmFirewallDirectionsItem,
-    check_vm_firewall_directions_item,
-)
+from ..models.vm_firewall_actions_item import VmFirewallActionsItem
+from ..models.vm_firewall_directions_item import VmFirewallDirectionsItem
 
 if TYPE_CHECKING:
     from ..models.vm_firewall_macros_item import VmFirewallMacrosItem
@@ -66,12 +60,12 @@ class VmFirewall:
 
         directions = []
         for directions_item_data in self.directions:
-            directions_item: str = directions_item_data
+            directions_item = directions_item_data.value
             directions.append(directions_item)
 
         actions = []
         for actions_item_data in self.actions:
-            actions_item: str = actions_item_data
+            actions_item = actions_item_data.value
             actions.append(actions_item)
 
         icmp_types = self.icmp_types
@@ -95,7 +89,9 @@ class VmFirewall:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_firewall_macros_item import VmFirewallMacrosItem
+        from ..models.vm_firewall_macros_item import (
+            VmFirewallMacrosItem,
+        )
         from ..models.vm_firewall_policy import VmFirewallPolicy
         from ..models.vm_firewall_rule import VmFirewallRule
 
@@ -123,14 +119,14 @@ class VmFirewall:
         directions = []
         _directions = d.pop("directions")
         for directions_item_data in _directions:
-            directions_item = check_vm_firewall_directions_item(directions_item_data)
+            directions_item = VmFirewallDirectionsItem(directions_item_data)
 
             directions.append(directions_item)
 
         actions = []
         _actions = d.pop("actions")
         for actions_item_data in _actions:
-            actions_item = check_vm_firewall_actions_item(actions_item_data)
+            actions_item = VmFirewallActionsItem(actions_item_data)
 
             actions.append(actions_item)
 

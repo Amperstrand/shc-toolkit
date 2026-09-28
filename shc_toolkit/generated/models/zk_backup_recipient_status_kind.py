@@ -1,35 +1,17 @@
-from typing import Literal
-
-ZkBackupRecipientStatusKind = Literal[
-    "btc",
-    "other",
-    "passkey",
-    "password",
-    "pgp",
-    "pq-hybrid",
-    "recovery-key",
-    "secp256k1",
-    "shamir",
-    "ssh-ed25519",
-]
-
-ZK_BACKUP_RECIPIENT_STATUS_KIND_VALUES: set[ZkBackupRecipientStatusKind] = {
-    "btc",
-    "other",
-    "passkey",
-    "password",
-    "pgp",
-    "pq-hybrid",
-    "recovery-key",
-    "secp256k1",
-    "shamir",
-    "ssh-ed25519",
-}
+from enum import StrEnum
 
 
-def check_zk_backup_recipient_status_kind(value: str) -> ZkBackupRecipientStatusKind:
-    if value in ZK_BACKUP_RECIPIENT_STATUS_KIND_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {ZK_BACKUP_RECIPIENT_STATUS_KIND_VALUES!r}"
-    )
+class ZkBackupRecipientStatusKind(StrEnum):
+    BTC = "btc"
+    OTHER = "other"
+    PASSKEY = "passkey"
+    PASSWORD = "password"
+    PGP = "pgp"
+    PQ_HYBRID = "pq-hybrid"
+    RECOVERY_KEY = "recovery-key"
+    SECP256K1 = "secp256k1"
+    SHAMIR = "shamir"
+    SSH_ED25519 = "ssh-ed25519"
+
+    def __str__(self) -> str:
+        return str(self.value)

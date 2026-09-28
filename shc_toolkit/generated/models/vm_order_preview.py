@@ -89,10 +89,18 @@ class VmOrderPreview:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_order_billing_preview import VmOrderBillingPreview
-        from ..models.vm_order_normalized_request import VmOrderNormalizedRequest
-        from ..models.vm_order_provisioning_preview import VmOrderProvisioningPreview
-        from ..models.vm_order_selected_package import VmOrderSelectedPackage
+        from ..models.vm_order_billing_preview import (
+            VmOrderBillingPreview,
+        )
+        from ..models.vm_order_normalized_request import (
+            VmOrderNormalizedRequest,
+        )
+        from ..models.vm_order_provisioning_preview import (
+            VmOrderProvisioningPreview,
+        )
+        from ..models.vm_order_selected_package import (
+            VmOrderSelectedPackage,
+        )
 
         d = dict(src_dict)
         lnvps_compatible = d.pop("lnvps_compatible")

@@ -7,14 +7,8 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.transaction_summary_status import (
-    TransactionSummaryStatus,
-    check_transaction_summary_status,
-)
-from ..models.transaction_summary_type import (
-    TransactionSummaryType,
-    check_transaction_summary_type,
-)
+from ..models.transaction_summary_status import TransactionSummaryStatus
+from ..models.transaction_summary_type import TransactionSummaryType
 
 T = TypeVar("T", bound="TransactionSummary")
 
@@ -46,7 +40,7 @@ class TransactionSummary:
 
         currency = self.currency
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         type_name: None | str
         type_name = self.type_name
@@ -54,7 +48,7 @@ class TransactionSummary:
         transaction_type_id: int | None
         transaction_type_id = self.transaction_type_id
 
-        status: str = self.status
+        status = self.status.value
 
         reference_id: None | str
         reference_id = self.reference_id
@@ -107,7 +101,7 @@ class TransactionSummary:
 
         currency = d.pop("currency")
 
-        type_ = check_transaction_summary_type(d.pop("type"))
+        type_ = TransactionSummaryType(d.pop("type"))
 
         def _parse_type_name(data: object) -> None | str:
             if data is None:
@@ -123,7 +117,7 @@ class TransactionSummary:
 
         transaction_type_id = _parse_transaction_type_id(d.pop("transaction_type_id"))
 
-        status = check_transaction_summary_status(d.pop("status"))
+        status = TransactionSummaryStatus(d.pop("status"))
 
         def _parse_reference_id(data: object) -> None | str:
             if data is None:

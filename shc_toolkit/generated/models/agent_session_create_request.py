@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.agent_session_create_request_scope import (
-    AgentSessionCreateRequestScope,
-    check_agent_session_create_request_scope,
-)
+from ..models.agent_session_create_request_scope import AgentSessionCreateRequestScope
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AgentSessionCreateRequest")
@@ -29,7 +26,9 @@ class AgentSessionCreateRequest:
     public_key: str
     """ Required Nostr public key for proof-of-possession binding. Hex public keys and npub values are accepted;
     stored sessions verify against the hex public key. """
-    scope: AgentSessionCreateRequestScope | Unset = "operate"
+    scope: AgentSessionCreateRequestScope | Unset = (
+        AgentSessionCreateRequestScope.OPERATE
+    )
     """ read is GET-only. operate can perform allowed non-money operations but cannot manage credentials, identity,
     billing money movement, contacts, managers, or sessions. """
 
@@ -42,7 +41,7 @@ class AgentSessionCreateRequest:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope
+            scope = self.scope.value
 
         field_dict: dict[str, Any] = {}
 
@@ -72,7 +71,7 @@ class AgentSessionCreateRequest:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = check_agent_session_create_request_scope(_scope)
+            scope = AgentSessionCreateRequestScope(_scope)
 
         agent_session_create_request = cls(
             agent_name=agent_name,

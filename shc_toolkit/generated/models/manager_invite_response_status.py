@@ -1,16 +1,9 @@
-from typing import Literal
-
-ManagerInviteResponseStatus = Literal["invalid", "pending"]
-
-MANAGER_INVITE_RESPONSE_STATUS_VALUES: set[ManagerInviteResponseStatus] = {
-    "invalid",
-    "pending",
-}
+from enum import StrEnum
 
 
-def check_manager_invite_response_status(value: str) -> ManagerInviteResponseStatus:
-    if value in MANAGER_INVITE_RESPONSE_STATUS_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {MANAGER_INVITE_RESPONSE_STATUS_VALUES!r}"
-    )
+class ManagerInviteResponseStatus(StrEnum):
+    INVALID = "invalid"
+    PENDING = "pending"
+
+    def __str__(self) -> str:
+        return str(self.value)

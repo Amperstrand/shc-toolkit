@@ -3,15 +3,17 @@
 # Used by scripts/generate_client.sh. See:
 #   https://github.com/openapi-generators/openapi-python-client#configuration
 #
-# literal_enums: true
-#   Emits enums as `Literal["a", "b", ...]` instead of `class X(str, Enum)`.
-#   Required for the SHC spec because Problem.x-error-code contains both
-#   "cloud-init-policy-violation" and "cloud_init_policy_violation" — both
-#   normalize to the same Python enum key (CLOUD_INIT_POLICY_VIOLATION),
-#   which would collide under the default Enum strategy. Literal preserves
-#   both variants as legal values, so the client can deserialize whichever
-#   form the API returns. Tracked in GitHub issue #20.
-literal_enums: true
+# literal_enums: false
+#   Emits enums as `class X(str, Enum)` — the normal, importable classes.
+#   literal_enums: true was a workaround for the Problem.x-error-code
+#   duplicate ("cloud-init-policy-violation" vs "cloud_init_policy_violation"
+#   normalizing to the same enum key, GitHub issue #20). The underscore
+#   variant was removed from the spec, so the collision is gone — and the
+#   workaround replaced every generated enum (163 public classes) with
+#   typing.Literal aliases, breaking consumers using ServiceStatus.ACTIVE
+#   et al. with AttributeError (PR #34 review, r3693516890). If a duplicate
+#   value ever reappears in the spec, fix the SPEC, not the generator mode.
+literal_enums: false
 
 # Keep model names readable. Matches the previous default behavior.
 use_path_prefixes_for_title_model_names: true

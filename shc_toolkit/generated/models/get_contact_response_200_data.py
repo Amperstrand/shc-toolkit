@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.get_contact_response_200_data_contact_type import (
     GetContactResponse200DataContactType,
-    check_get_contact_response_200_data_contact_type,
 )
 from ..types import UNSET, Unset
 
@@ -45,7 +44,7 @@ class GetContactResponse200Data:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type: str = self.contact_type
+        contact_type = self.contact_type.value
 
         first_name: None | str
         first_name = self.first_name
@@ -165,9 +164,7 @@ class GetContactResponse200Data:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = check_get_contact_response_200_data_contact_type(
-            d.pop("contact_type")
-        )
+        contact_type = GetContactResponse200DataContactType(d.pop("contact_type"))
 
         def _parse_first_name(data: object) -> None | str:
             if data is None:

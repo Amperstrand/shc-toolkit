@@ -7,10 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.manager_invite_response_status import (
-    ManagerInviteResponseStatus,
-    check_manager_invite_response_status,
-)
+from ..models.manager_invite_response_status import ManagerInviteResponseStatus
 
 T = TypeVar("T", bound="ManagerInviteResponse")
 
@@ -30,7 +27,7 @@ class ManagerInviteResponse:
 
         email = self.email
 
-        status: str = self.status
+        status = self.status.value
 
         permissions = self.permissions
 
@@ -57,7 +54,7 @@ class ManagerInviteResponse:
 
         email = d.pop("email")
 
-        status = check_manager_invite_response_status(d.pop("status"))
+        status = ManagerInviteResponseStatus(d.pop("status"))
 
         permissions = cast(list[str], d.pop("permissions"))
 

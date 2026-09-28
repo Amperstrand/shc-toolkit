@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.get_support_ticket_response_200_data_replies_item_author_type import (
     GetSupportTicketResponse200DataRepliesItemAuthorType,
-    check_get_support_ticket_response_200_data_replies_item_author_type,
 )
 from ..types import UNSET, Unset
 
@@ -27,7 +26,7 @@ class GetSupportTicketResponse200DataRepliesItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        author_type: str = self.author_type
+        author_type = self.author_type.value
 
         details: None | str
         details = self.details
@@ -67,10 +66,8 @@ class GetSupportTicketResponse200DataRepliesItem:
         d = dict(src_dict)
         id = d.pop("id")
 
-        author_type = (
-            check_get_support_ticket_response_200_data_replies_item_author_type(
-                d.pop("author_type")
-            )
+        author_type = GetSupportTicketResponse200DataRepliesItemAuthorType(
+            d.pop("author_type")
         )
 
         def _parse_details(data: object) -> None | str:

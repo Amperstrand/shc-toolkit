@@ -6,14 +6,8 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.vm_resume_response_lifecycle_state import (
-    VmResumeResponseLifecycleState,
-    check_vm_resume_response_lifecycle_state,
-)
-from ..models.vm_resume_response_state import (
-    VmResumeResponseState,
-    check_vm_resume_response_state,
-)
+from ..models.vm_resume_response_lifecycle_state import VmResumeResponseLifecycleState
+from ..models.vm_resume_response_state import VmResumeResponseState
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="VmResumeResponse")
@@ -31,9 +25,9 @@ class VmResumeResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        state: str = self.state
+        state = self.state.value
 
-        lifecycle_state: str = self.lifecycle_state
+        lifecycle_state = self.lifecycle_state.value
 
         resume_charge = self.resume_charge
 
@@ -71,11 +65,9 @@ class VmResumeResponse:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        state = check_vm_resume_response_state(d.pop("state"))
+        state = VmResumeResponseState(d.pop("state"))
 
-        lifecycle_state = check_vm_resume_response_lifecycle_state(
-            d.pop("lifecycle_state")
-        )
+        lifecycle_state = VmResumeResponseLifecycleState(d.pop("lifecycle_state"))
 
         resume_charge = d.pop("resume_charge")
 

@@ -34,7 +34,9 @@ class InviteAccountManagerResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.manager_invite_response import ManagerInviteResponse
+        from ..models.manager_invite_response import (
+            ManagerInviteResponse,
+        )
 
         d = dict(src_dict)
         data = ManagerInviteResponse.from_dict(d.pop("data"))

@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.get_virtual_machine_metrics_response_200_data_timeframe import (
     GetVirtualMachineMetricsResponse200DataTimeframe,
-    check_get_virtual_machine_metrics_response_200_data_timeframe,
 )
 
 if TYPE_CHECKING:
@@ -38,7 +37,7 @@ class GetVirtualMachineMetricsResponse200Data:
     network_bandwidth: GetVirtualMachineMetricsResponse200DataNetworkBandwidth
 
     def to_dict(self) -> dict[str, Any]:
-        timeframe: str = self.timeframe
+        timeframe = self.timeframe.value
 
         cpu = self.cpu.to_dict()
 
@@ -78,9 +77,7 @@ class GetVirtualMachineMetricsResponse200Data:
         )
 
         d = dict(src_dict)
-        timeframe = check_get_virtual_machine_metrics_response_200_data_timeframe(
-            d.pop("timeframe")
-        )
+        timeframe = GetVirtualMachineMetricsResponse200DataTimeframe(d.pop("timeframe"))
 
         cpu = GetVirtualMachineMetricsResponse200DataCpu.from_dict(d.pop("cpu"))
 

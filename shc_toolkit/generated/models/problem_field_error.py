@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.problem_field_error_type import (
-    ProblemFieldErrorType,
-    check_problem_field_error_type,
-)
+from ..models.problem_field_error_type import ProblemFieldErrorType
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ProblemFieldError")
@@ -27,7 +24,7 @@ class ProblemFieldError:
     hint: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        type_: str = self.type_
+        type_ = self.type_.value
 
         field = self.field
 
@@ -55,7 +52,7 @@ class ProblemFieldError:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        type_ = check_problem_field_error_type(d.pop("type"))
+        type_ = ProblemFieldErrorType(d.pop("type"))
 
         field = d.pop("field")
 

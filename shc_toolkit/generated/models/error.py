@@ -46,7 +46,9 @@ class Error:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.confirmation_challenge import ConfirmationChallenge
+        from ..models.confirmation_challenge import (
+            ConfirmationChallenge,
+        )
         from ..models.error_error import ErrorError
 
         d = dict(src_dict)

@@ -1,20 +1,9 @@
-from typing import Literal
-
-GetKbArticleResponse200DataContentTypeType2Type1 = Literal["html", "text"]
-
-GET_KB_ARTICLE_RESPONSE_200_DATA_CONTENT_TYPE_TYPE_2_TYPE_1_VALUES: set[
-    GetKbArticleResponse200DataContentTypeType2Type1
-] = {
-    "html",
-    "text",
-}
+from enum import StrEnum
 
 
-def check_get_kb_article_response_200_data_content_type_type_2_type_1(
-    value: str,
-) -> GetKbArticleResponse200DataContentTypeType2Type1:
-    if value in GET_KB_ARTICLE_RESPONSE_200_DATA_CONTENT_TYPE_TYPE_2_TYPE_1_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {GET_KB_ARTICLE_RESPONSE_200_DATA_CONTENT_TYPE_TYPE_2_TYPE_1_VALUES!r}"
-    )
+class GetKbArticleResponse200DataContentTypeType2Type1(StrEnum):
+    HTML = "html"
+    TEXT = "text"
+
+    def __str__(self) -> str:
+        return str(self.value)

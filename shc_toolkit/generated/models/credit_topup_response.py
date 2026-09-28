@@ -7,14 +7,8 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.credit_topup_response_status import (
-    CreditTopupResponseStatus,
-    check_credit_topup_response_status,
-)
-from ..models.credit_topup_response_type import (
-    CreditTopupResponseType,
-    check_credit_topup_response_type,
-)
+from ..models.credit_topup_response_status import CreditTopupResponseStatus
+from ..models.credit_topup_response_type import CreditTopupResponseType
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreditTopupResponse")
@@ -40,9 +34,9 @@ class CreditTopupResponse:
     """ When the BTCPay invoice expires. """
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         amount = self.amount
 
@@ -101,9 +95,9 @@ class CreditTopupResponse:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_credit_topup_response_status(d.pop("status"))
+        status = CreditTopupResponseStatus(d.pop("status"))
 
-        type_ = check_credit_topup_response_type(d.pop("type"))
+        type_ = CreditTopupResponseType(d.pop("type"))
 
         amount = d.pop("amount")
 

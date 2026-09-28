@@ -103,9 +103,13 @@ class AffiliateAccount:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.affiliate_account_stats import AffiliateAccountStats
+        from ..models.affiliate_account_stats import (
+            AffiliateAccountStats,
+        )
         from ..models.affiliate_balance import AffiliateBalance
-        from ..models.affiliate_program_terms import AffiliateProgramTerms
+        from ..models.affiliate_program_terms import (
+            AffiliateProgramTerms,
+        )
 
         d = dict(src_dict)
         enrolled = d.pop("enrolled")

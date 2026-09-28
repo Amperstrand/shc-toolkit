@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.approve_quotation_response_201_data_status import (
     ApproveQuotationResponse201DataStatus,
-    check_approve_quotation_response_201_data_status,
 )
 
 T = TypeVar("T", bound="ApproveQuotationResponse201Data")
@@ -24,7 +23,7 @@ class ApproveQuotationResponse201Data:
     def to_dict(self) -> dict[str, Any]:
         quotation_id = self.quotation_id
 
-        status: str = self.status
+        status = self.status.value
 
         field_dict: dict[str, Any] = {}
 
@@ -42,7 +41,7 @@ class ApproveQuotationResponse201Data:
         d = dict(src_dict)
         quotation_id = d.pop("quotation_id")
 
-        status = check_approve_quotation_response_201_data_status(d.pop("status"))
+        status = ApproveQuotationResponse201DataStatus(d.pop("status"))
 
         approve_quotation_response_201_data = cls(
             quotation_id=quotation_id,

@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.get_two_factor_status_response_200_data_mode import (
     GetTwoFactorStatusResponse200DataMode,
-    check_get_two_factor_status_response_200_data_mode,
 )
 
 T = TypeVar("T", bound="GetTwoFactorStatusResponse200Data")
@@ -22,7 +21,7 @@ class GetTwoFactorStatusResponse200Data:
     def to_dict(self) -> dict[str, Any]:
         enabled = self.enabled
 
-        mode: str = self.mode
+        mode = self.mode.value
 
         field_dict: dict[str, Any] = {}
 
@@ -40,7 +39,7 @@ class GetTwoFactorStatusResponse200Data:
         d = dict(src_dict)
         enabled = d.pop("enabled")
 
-        mode = check_get_two_factor_status_response_200_data_mode(d.pop("mode"))
+        mode = GetTwoFactorStatusResponse200DataMode(d.pop("mode"))
 
         get_two_factor_status_response_200_data = cls(
             enabled=enabled,

@@ -8,17 +8,12 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.quotation_summary_status_type_1 import (
-    QuotationSummaryStatusType1,
-    check_quotation_summary_status_type_1,
-)
+from ..models.quotation_summary_status_type_1 import QuotationSummaryStatusType1
 from ..models.quotation_summary_status_type_2_type_1 import (
     QuotationSummaryStatusType2Type1,
-    check_quotation_summary_status_type_2_type_1,
 )
 from ..models.quotation_summary_status_type_3_type_1 import (
     QuotationSummaryStatusType3Type1,
-    check_quotation_summary_status_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -67,11 +62,11 @@ class GetQuotationResponse200Data:
 
         status: None | str
         if (
-            isinstance(self.status, str)
-            or isinstance(self.status, str)
-            or isinstance(self.status, str)
+            isinstance(self.status, QuotationSummaryStatusType1)
+            or isinstance(self.status, QuotationSummaryStatusType2Type1)
+            or isinstance(self.status, QuotationSummaryStatusType3Type1)
         ):
-            status = self.status
+            status = self.status.value
         else:
             status = self.status
 
@@ -167,7 +162,7 @@ class GetQuotationResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = check_quotation_summary_status_type_1(data)
+                status_type_1 = QuotationSummaryStatusType1(data)
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -175,9 +170,7 @@ class GetQuotationResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = check_quotation_summary_status_type_2_type_1(
-                    data
-                )
+                status_type_2_type_1 = QuotationSummaryStatusType2Type1(data)
 
                 return status_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -185,9 +178,7 @@ class GetQuotationResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = check_quotation_summary_status_type_3_type_1(
-                    data
-                )
+                status_type_3_type_1 = QuotationSummaryStatusType3Type1(data)
 
                 return status_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

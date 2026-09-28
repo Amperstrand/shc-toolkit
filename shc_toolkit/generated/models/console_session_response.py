@@ -8,10 +8,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.console_session_response_via import (
-    ConsoleSessionResponseVia,
-    check_console_session_response_via,
-)
+from ..models.console_session_response_via import ConsoleSessionResponseVia
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ConsoleSessionResponse")
@@ -43,7 +40,7 @@ class ConsoleSessionResponse:
 
         expires_in = self.expires_in
 
-        via: str = self.via
+        via = self.via.value
 
         ttl = self.ttl
 
@@ -78,7 +75,7 @@ class ConsoleSessionResponse:
 
         expires_in = d.pop("expires_in")
 
-        via = check_console_session_response_via(d.pop("via"))
+        via = ConsoleSessionResponseVia(d.pop("via"))
 
         ttl = d.pop("ttl", UNSET)
 

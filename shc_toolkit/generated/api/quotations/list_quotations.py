@@ -7,9 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error import Error
 from ...models.list_quotations_response_200 import ListQuotationsResponse200
-from ...models.list_quotations_status import (
-    ListQuotationsStatus,
-)
+from ...models.list_quotations_status import ListQuotationsStatus
 from ...types import UNSET, Response, Unset
 
 
@@ -17,7 +15,7 @@ def _get_kwargs(
     *,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
-    status: ListQuotationsStatus | Unset = "pending",
+    status: ListQuotationsStatus | Unset = ListQuotationsStatus.PENDING,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -32,7 +30,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status
+        json_status = status.value
 
     params["status"] = json_status
 
@@ -108,7 +106,7 @@ def sync_detailed(
     client: AuthenticatedClient,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
-    status: ListQuotationsStatus | Unset = "pending",
+    status: ListQuotationsStatus | Unset = ListQuotationsStatus.PENDING,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListQuotationsResponse200]:
     """List the client's quotations
@@ -119,7 +117,7 @@ def sync_detailed(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
-        status (ListQuotationsStatus | Unset):  Default: 'pending'.
+        status (ListQuotationsStatus | Unset):  Default: ListQuotationsStatus.PENDING.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -149,7 +147,7 @@ def sync(
     client: AuthenticatedClient,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
-    status: ListQuotationsStatus | Unset = "pending",
+    status: ListQuotationsStatus | Unset = ListQuotationsStatus.PENDING,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListQuotationsResponse200 | None:
     """List the client's quotations
@@ -160,7 +158,7 @@ def sync(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
-        status (ListQuotationsStatus | Unset):  Default: 'pending'.
+        status (ListQuotationsStatus | Unset):  Default: ListQuotationsStatus.PENDING.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -185,7 +183,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
-    status: ListQuotationsStatus | Unset = "pending",
+    status: ListQuotationsStatus | Unset = ListQuotationsStatus.PENDING,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | ListQuotationsResponse200]:
     """List the client's quotations
@@ -196,7 +194,7 @@ async def asyncio_detailed(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
-        status (ListQuotationsStatus | Unset):  Default: 'pending'.
+        status (ListQuotationsStatus | Unset):  Default: ListQuotationsStatus.PENDING.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -224,7 +222,7 @@ async def asyncio(
     client: AuthenticatedClient,
     limit: int | Unset = 100,
     offset: int | Unset = 0,
-    status: ListQuotationsStatus | Unset = "pending",
+    status: ListQuotationsStatus | Unset = ListQuotationsStatus.PENDING,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | ListQuotationsResponse200 | None:
     """List the client's quotations
@@ -235,7 +233,7 @@ async def asyncio(
     Args:
         limit (int | Unset):  Default: 100.
         offset (int | Unset):  Default: 0.
-        status (ListQuotationsStatus | Unset):  Default: 'pending'.
+        status (ListQuotationsStatus | Unset):  Default: ListQuotationsStatus.PENDING.
         x_user_api_otp (str | Unset):
 
     Raises:

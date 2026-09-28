@@ -7,10 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.affiliate_referral_status import (
-    AffiliateReferralStatus,
-    check_affiliate_referral_status,
-)
+from ..models.affiliate_referral_status import AffiliateReferralStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AffiliateReferral")
@@ -31,7 +28,7 @@ class AffiliateReferral:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status: str = self.status
+        status = self.status.value
 
         amount = self.amount
 
@@ -76,7 +73,7 @@ class AffiliateReferral:
         d = dict(src_dict)
         id = d.pop("id")
 
-        status = check_affiliate_referral_status(d.pop("status"))
+        status = AffiliateReferralStatus(d.pop("status"))
 
         amount = d.pop("amount")
 

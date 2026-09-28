@@ -7,7 +7,7 @@ from uuid import UUID
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.problem_x_error_code import ProblemXErrorCode, check_problem_x_error_code
+from ..models.problem_x_error_code import ProblemXErrorCode
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class Problem:
 
         instance = self.instance
 
-        x_error_code: str = self.x_error_code
+        x_error_code = self.x_error_code.value
 
         request_id: str | Unset = UNSET
         if not isinstance(self.request_id, Unset):
@@ -127,7 +127,7 @@ class Problem:
 
         instance = d.pop("instance")
 
-        x_error_code = check_problem_x_error_code(d.pop("x-error-code"))
+        x_error_code = ProblemXErrorCode(d.pop("x-error-code"))
 
         _request_id = d.pop("requestId", UNSET)
         request_id: UUID | Unset

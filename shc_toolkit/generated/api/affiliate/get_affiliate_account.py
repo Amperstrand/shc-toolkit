@@ -97,12 +97,12 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetAffiliateAccountResponse200]:
-    r"""Get the affiliate account overview
+    """Get the affiliate account overview
 
      Returns the authenticated client's affiliate account: status, referral code and full referral link,
     lifetime stats (visits, sales, conversion rate), available Bitcoin balance, and the program terms
     (commission, withdrawal limits, cookie window). If the client is not enrolled, returns `{
-    \"enrolled\": false, \"status\": \"not_enrolled\", \"eligible\": <bool>, \"program\": {...} }` where
+    "enrolled": false, "status": "not_enrolled", "eligible": <bool>, "program": {...} }` where
     `eligible` reflects the same active-service gate that `POST /affiliate/enroll` enforces. Self-
     scoped: the affiliate is resolved strictly from the authenticated client; no other affiliate is ever
     visible. Reports figures only; moves no money. Balances are BTC-native (8 decimal places); the BTC
@@ -135,12 +135,12 @@ def sync(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetAffiliateAccountResponse200 | None:
-    r"""Get the affiliate account overview
+    """Get the affiliate account overview
 
      Returns the authenticated client's affiliate account: status, referral code and full referral link,
     lifetime stats (visits, sales, conversion rate), available Bitcoin balance, and the program terms
     (commission, withdrawal limits, cookie window). If the client is not enrolled, returns `{
-    \"enrolled\": false, \"status\": \"not_enrolled\", \"eligible\": <bool>, \"program\": {...} }` where
+    "enrolled": false, "status": "not_enrolled", "eligible": <bool>, "program": {...} }` where
     `eligible` reflects the same active-service gate that `POST /affiliate/enroll` enforces. Self-
     scoped: the affiliate is resolved strictly from the authenticated client; no other affiliate is ever
     visible. Reports figures only; moves no money. Balances are BTC-native (8 decimal places); the BTC
@@ -168,12 +168,12 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetAffiliateAccountResponse200]:
-    r"""Get the affiliate account overview
+    """Get the affiliate account overview
 
      Returns the authenticated client's affiliate account: status, referral code and full referral link,
     lifetime stats (visits, sales, conversion rate), available Bitcoin balance, and the program terms
     (commission, withdrawal limits, cookie window). If the client is not enrolled, returns `{
-    \"enrolled\": false, \"status\": \"not_enrolled\", \"eligible\": <bool>, \"program\": {...} }` where
+    "enrolled": false, "status": "not_enrolled", "eligible": <bool>, "program": {...} }` where
     `eligible` reflects the same active-service gate that `POST /affiliate/enroll` enforces. Self-
     scoped: the affiliate is resolved strictly from the authenticated client; no other affiliate is ever
     visible. Reports figures only; moves no money. Balances are BTC-native (8 decimal places); the BTC
@@ -204,12 +204,12 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetAffiliateAccountResponse200 | None:
-    r"""Get the affiliate account overview
+    """Get the affiliate account overview
 
      Returns the authenticated client's affiliate account: status, referral code and full referral link,
     lifetime stats (visits, sales, conversion rate), available Bitcoin balance, and the program terms
     (commission, withdrawal limits, cookie window). If the client is not enrolled, returns `{
-    \"enrolled\": false, \"status\": \"not_enrolled\", \"eligible\": <bool>, \"program\": {...} }` where
+    "enrolled": false, "status": "not_enrolled", "eligible": <bool>, "program": {...} }` where
     `eligible` reflects the same active-service gate that `POST /affiliate/enroll` enforces. Self-
     scoped: the affiliate is resolved strictly from the authenticated client; no other affiliate is ever
     visible. Reports figures only; moves no money. Balances are BTC-native (8 decimal places); the BTC

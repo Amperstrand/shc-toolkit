@@ -19,7 +19,8 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     service_id: int,
     *,
-    timeframe: GetVirtualMachineMetricsTimeframe | Unset = "hour",
+    timeframe: GetVirtualMachineMetricsTimeframe
+    | Unset = GetVirtualMachineMetricsTimeframe.HOUR,
     x_user_api_otp: str | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -30,7 +31,7 @@ def _get_kwargs(
 
     json_timeframe: str | Unset = UNSET
     if not isinstance(timeframe, Unset):
-        json_timeframe = timeframe
+        json_timeframe = timeframe.value
 
     params["timeframe"] = json_timeframe
 
@@ -112,7 +113,8 @@ def sync_detailed(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    timeframe: GetVirtualMachineMetricsTimeframe | Unset = "hour",
+    timeframe: GetVirtualMachineMetricsTimeframe
+    | Unset = GetVirtualMachineMetricsTimeframe.HOUR,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetVirtualMachineMetricsResponse200]:
     """Get VM time-series metrics
@@ -125,7 +127,8 @@ def sync_detailed(
 
     Args:
         service_id (int):
-        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default: 'hour'.
+        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default:
+            GetVirtualMachineMetricsTimeframe.HOUR.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -153,7 +156,8 @@ def sync(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    timeframe: GetVirtualMachineMetricsTimeframe | Unset = "hour",
+    timeframe: GetVirtualMachineMetricsTimeframe
+    | Unset = GetVirtualMachineMetricsTimeframe.HOUR,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetVirtualMachineMetricsResponse200 | None:
     """Get VM time-series metrics
@@ -166,7 +170,8 @@ def sync(
 
     Args:
         service_id (int):
-        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default: 'hour'.
+        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default:
+            GetVirtualMachineMetricsTimeframe.HOUR.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -189,7 +194,8 @@ async def asyncio_detailed(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    timeframe: GetVirtualMachineMetricsTimeframe | Unset = "hour",
+    timeframe: GetVirtualMachineMetricsTimeframe
+    | Unset = GetVirtualMachineMetricsTimeframe.HOUR,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | GetVirtualMachineMetricsResponse200]:
     """Get VM time-series metrics
@@ -202,7 +208,8 @@ async def asyncio_detailed(
 
     Args:
         service_id (int):
-        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default: 'hour'.
+        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default:
+            GetVirtualMachineMetricsTimeframe.HOUR.
         x_user_api_otp (str | Unset):
 
     Raises:
@@ -228,7 +235,8 @@ async def asyncio(
     service_id: int,
     *,
     client: AuthenticatedClient | Client,
-    timeframe: GetVirtualMachineMetricsTimeframe | Unset = "hour",
+    timeframe: GetVirtualMachineMetricsTimeframe
+    | Unset = GetVirtualMachineMetricsTimeframe.HOUR,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | GetVirtualMachineMetricsResponse200 | None:
     """Get VM time-series metrics
@@ -241,7 +249,8 @@ async def asyncio(
 
     Args:
         service_id (int):
-        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default: 'hour'.
+        timeframe (GetVirtualMachineMetricsTimeframe | Unset):  Default:
+            GetVirtualMachineMetricsTimeframe.HOUR.
         x_user_api_otp (str | Unset):
 
     Raises:

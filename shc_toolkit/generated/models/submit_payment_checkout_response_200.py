@@ -41,7 +41,9 @@ class SubmitPaymentCheckoutResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.checkout_redirect_response import CheckoutRedirectResponse
+        from ..models.checkout_redirect_response import (
+            CheckoutRedirectResponse,
+        )
         from ..models.paid_response import PaidResponse
 
         d = dict(src_dict)

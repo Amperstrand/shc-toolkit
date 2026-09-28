@@ -9,11 +9,9 @@ from typing_extensions import Self
 
 from ..models.get_support_ticket_response_200_data_priority import (
     GetSupportTicketResponse200DataPriority,
-    check_get_support_ticket_response_200_data_priority,
 )
 from ..models.get_support_ticket_response_200_data_status import (
     GetSupportTicketResponse200DataStatus,
-    check_get_support_ticket_response_200_data_status,
 )
 from ..types import UNSET, Unset
 
@@ -53,9 +51,9 @@ class GetSupportTicketResponse200Data:
         summary: None | str
         summary = self.summary
 
-        priority: str = self.priority
+        priority = self.priority.value
 
-        status: str = self.status
+        status = self.status.value
 
         replies = []
         for replies_item_data in self.replies:
@@ -148,11 +146,9 @@ class GetSupportTicketResponse200Data:
 
         summary = _parse_summary(d.pop("summary"))
 
-        priority = check_get_support_ticket_response_200_data_priority(
-            d.pop("priority")
-        )
+        priority = GetSupportTicketResponse200DataPriority(d.pop("priority"))
 
-        status = check_get_support_ticket_response_200_data_status(d.pop("status"))
+        status = GetSupportTicketResponse200DataStatus(d.pop("status"))
 
         replies = []
         _replies = d.pop("replies")

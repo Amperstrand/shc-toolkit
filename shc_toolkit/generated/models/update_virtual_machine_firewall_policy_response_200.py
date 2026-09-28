@@ -35,7 +35,9 @@ class UpdateVirtualMachineFirewallPolicyResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_firewall_policy_response import VmFirewallPolicyResponse
+        from ..models.vm_firewall_policy_response import (
+            VmFirewallPolicyResponse,
+        )
 
         d = dict(src_dict)
         data = VmFirewallPolicyResponse.from_dict(d.pop("data"))

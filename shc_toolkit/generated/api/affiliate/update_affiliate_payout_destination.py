@@ -125,12 +125,12 @@ def sync_detailed(
     body: AffiliatePayoutDestinationUpdate,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | UpdateAffiliatePayoutDestinationResponse200]:
-    r"""Set the affiliate payout destination
+    """Set the affiliate payout destination
 
      Sets, replaces, or clears the affiliate's Bitcoin payout destination(s). Send `payout_onchain` (an
     extended public key — xpub/ypub/zpub and testnet variants — or a single mainnet address) and/or
     `payout_lightning` (a Lightning Address, LNURL, or BOLT11 invoice). A field present with an empty
-    string `\"\"` clears that destination; a field omitted is left unchanged. Validation matches the
+    string `""` clears that destination; a field omitted is left unchanged. Validation matches the
     client portal exactly. Returns `404 not_found` if the client is not enrolled. Returns the resulting
     destination.
 
@@ -166,12 +166,12 @@ def sync(
     body: AffiliatePayoutDestinationUpdate,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | UpdateAffiliatePayoutDestinationResponse200 | None:
-    r"""Set the affiliate payout destination
+    """Set the affiliate payout destination
 
      Sets, replaces, or clears the affiliate's Bitcoin payout destination(s). Send `payout_onchain` (an
     extended public key — xpub/ypub/zpub and testnet variants — or a single mainnet address) and/or
     `payout_lightning` (a Lightning Address, LNURL, or BOLT11 invoice). A field present with an empty
-    string `\"\"` clears that destination; a field omitted is left unchanged. Validation matches the
+    string `""` clears that destination; a field omitted is left unchanged. Validation matches the
     client portal exactly. Returns `404 not_found` if the client is not enrolled. Returns the resulting
     destination.
 
@@ -202,12 +202,12 @@ async def asyncio_detailed(
     body: AffiliatePayoutDestinationUpdate,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error | UpdateAffiliatePayoutDestinationResponse200]:
-    r"""Set the affiliate payout destination
+    """Set the affiliate payout destination
 
      Sets, replaces, or clears the affiliate's Bitcoin payout destination(s). Send `payout_onchain` (an
     extended public key — xpub/ypub/zpub and testnet variants — or a single mainnet address) and/or
     `payout_lightning` (a Lightning Address, LNURL, or BOLT11 invoice). A field present with an empty
-    string `\"\"` clears that destination; a field omitted is left unchanged. Validation matches the
+    string `""` clears that destination; a field omitted is left unchanged. Validation matches the
     client portal exactly. Returns `404 not_found` if the client is not enrolled. Returns the resulting
     destination.
 
@@ -241,12 +241,12 @@ async def asyncio(
     body: AffiliatePayoutDestinationUpdate,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | UpdateAffiliatePayoutDestinationResponse200 | None:
-    r"""Set the affiliate payout destination
+    """Set the affiliate payout destination
 
      Sets, replaces, or clears the affiliate's Bitcoin payout destination(s). Send `payout_onchain` (an
     extended public key — xpub/ypub/zpub and testnet variants — or a single mainnet address) and/or
     `payout_lightning` (a Lightning Address, LNURL, or BOLT11 invoice). A field present with an empty
-    string `\"\"` clears that destination; a field omitted is left unchanged. Validation matches the
+    string `""` clears that destination; a field omitted is left unchanged. Validation matches the
     client portal exactly. Returns `404 not_found` if the client is not enrolled. Returns the resulting
     destination.
 

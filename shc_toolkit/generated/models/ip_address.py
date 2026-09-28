@@ -7,7 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.ip_address_type import IpAddressType, check_ip_address_type
+from ..models.ip_address_type import IpAddressType
 
 T = TypeVar("T", bound="IpAddress")
 
@@ -30,7 +30,7 @@ class IpAddress:
         gateway: None | str
         gateway = self.gateway
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -59,7 +59,7 @@ class IpAddress:
 
         gateway = _parse_gateway(d.pop("gateway"))
 
-        type_ = check_ip_address_type(d.pop("type"))
+        type_ = IpAddressType(d.pop("type"))
 
         ip_address = cls(
             ip=ip,

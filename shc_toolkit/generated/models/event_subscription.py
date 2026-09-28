@@ -9,27 +9,17 @@ from typing_extensions import Self
 
 from ..models.event_subscription_delivery_id_header import (
     EventSubscriptionDeliveryIdHeader,
-    check_event_subscription_delivery_id_header,
 )
-from ..models.event_subscription_event_id_header import (
-    EventSubscriptionEventIdHeader,
-    check_event_subscription_event_id_header,
-)
+from ..models.event_subscription_event_id_header import EventSubscriptionEventIdHeader
 from ..models.event_subscription_signature_header import (
     EventSubscriptionSignatureHeader,
-    check_event_subscription_signature_header,
 )
 from ..models.event_subscription_signing_algorithm import (
     EventSubscriptionSigningAlgorithm,
-    check_event_subscription_signing_algorithm,
 )
-from ..models.event_subscription_status import (
-    EventSubscriptionStatus,
-    check_event_subscription_status,
-)
+from ..models.event_subscription_status import EventSubscriptionStatus
 from ..models.event_subscription_timestamp_header import (
     EventSubscriptionTimestampHeader,
-    check_event_subscription_timestamp_header,
 )
 
 T = TypeVar("T", bound="EventSubscription")
@@ -67,17 +57,17 @@ class EventSubscription:
 
         event_types = self.event_types
 
-        signing_algorithm: str = self.signing_algorithm
+        signing_algorithm = self.signing_algorithm.value
 
-        signature_header: str = self.signature_header
+        signature_header = self.signature_header.value
 
-        timestamp_header: str = self.timestamp_header
+        timestamp_header = self.timestamp_header.value
 
-        event_id_header: str = self.event_id_header
+        event_id_header = self.event_id_header.value
 
-        delivery_id_header: str = self.delivery_id_header
+        delivery_id_header = self.delivery_id_header.value
 
-        status: str = self.status
+        status = self.status.value
 
         secret_preview = self.secret_preview
 
@@ -125,27 +115,19 @@ class EventSubscription:
 
         event_types = cast(list[str], d.pop("eventTypes"))
 
-        signing_algorithm = check_event_subscription_signing_algorithm(
-            d.pop("signingAlgorithm")
-        )
+        signing_algorithm = EventSubscriptionSigningAlgorithm(d.pop("signingAlgorithm"))
 
-        signature_header = check_event_subscription_signature_header(
-            d.pop("signatureHeader")
-        )
+        signature_header = EventSubscriptionSignatureHeader(d.pop("signatureHeader"))
 
-        timestamp_header = check_event_subscription_timestamp_header(
-            d.pop("timestampHeader")
-        )
+        timestamp_header = EventSubscriptionTimestampHeader(d.pop("timestampHeader"))
 
-        event_id_header = check_event_subscription_event_id_header(
-            d.pop("eventIdHeader")
-        )
+        event_id_header = EventSubscriptionEventIdHeader(d.pop("eventIdHeader"))
 
-        delivery_id_header = check_event_subscription_delivery_id_header(
+        delivery_id_header = EventSubscriptionDeliveryIdHeader(
             d.pop("deliveryIdHeader")
         )
 
-        status = check_event_subscription_status(d.pop("status"))
+        status = EventSubscriptionStatus(d.pop("status"))
 
         secret_preview = d.pop("secretPreview")
 

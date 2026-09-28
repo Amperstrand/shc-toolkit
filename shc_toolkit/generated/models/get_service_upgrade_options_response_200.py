@@ -36,7 +36,9 @@ class GetServiceUpgradeOptionsResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_upgrade_options_response import VmUpgradeOptionsResponse
+        from ..models.vm_upgrade_options_response import (
+            VmUpgradeOptionsResponse,
+        )
 
         d = dict(src_dict)
         data = VmUpgradeOptionsResponse.from_dict(d.pop("data"))

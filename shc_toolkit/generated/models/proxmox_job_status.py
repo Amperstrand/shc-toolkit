@@ -1,19 +1,12 @@
-from typing import Literal
-
-ProxmoxJobStatus = Literal["canceled", "completed", "failed", "pending", "running"]
-
-PROXMOX_JOB_STATUS_VALUES: set[ProxmoxJobStatus] = {
-    "canceled",
-    "completed",
-    "failed",
-    "pending",
-    "running",
-}
+from enum import StrEnum
 
 
-def check_proxmox_job_status(value: str) -> ProxmoxJobStatus:
-    if value in PROXMOX_JOB_STATUS_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {PROXMOX_JOB_STATUS_VALUES!r}"
-    )
+class ProxmoxJobStatus(StrEnum):
+    CANCELED = "canceled"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PENDING = "pending"
+    RUNNING = "running"
+
+    def __str__(self) -> str:
+        return str(self.value)

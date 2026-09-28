@@ -34,7 +34,9 @@ class ReplySupportTicketResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.support_ticket_reply_response import SupportTicketReplyResponse
+        from ..models.support_ticket_reply_response import (
+            SupportTicketReplyResponse,
+        )
 
         d = dict(src_dict)
         data = SupportTicketReplyResponse.from_dict(d.pop("data"))

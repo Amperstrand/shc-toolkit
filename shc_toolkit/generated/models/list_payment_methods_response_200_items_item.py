@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.list_payment_methods_response_200_items_item_status import (
     ListPaymentMethodsResponse200ItemsItemStatus,
-    check_list_payment_methods_response_200_items_item_status,
 )
 from ..models.list_payment_methods_response_200_items_item_type import (
     ListPaymentMethodsResponse200ItemsItemType,
-    check_list_payment_methods_response_200_items_item_type,
 )
 from ..types import UNSET, Unset
 
@@ -35,7 +33,7 @@ class ListPaymentMethodsResponse200ItemsItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         account_type = self.account_type
 
@@ -44,7 +42,7 @@ class ListPaymentMethodsResponse200ItemsItem:
 
         contact_id = self.contact_id
 
-        status: str = self.status
+        status = self.status.value
 
         expiration: None | str | Unset
         if isinstance(self.expiration, Unset):
@@ -82,7 +80,7 @@ class ListPaymentMethodsResponse200ItemsItem:
         d = dict(src_dict)
         id = d.pop("id")
 
-        type_ = check_list_payment_methods_response_200_items_item_type(d.pop("type"))
+        type_ = ListPaymentMethodsResponse200ItemsItemType(d.pop("type"))
 
         account_type = d.pop("account_type")
 
@@ -95,9 +93,7 @@ class ListPaymentMethodsResponse200ItemsItem:
 
         contact_id = d.pop("contact_id")
 
-        status = check_list_payment_methods_response_200_items_item_status(
-            d.pop("status")
-        )
+        status = ListPaymentMethodsResponse200ItemsItemStatus(d.pop("status"))
 
         def _parse_expiration(data: object) -> None | str | Unset:
             if data is None:

@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.list_managed_accounts_response_200_items_item_status import (
     ListManagedAccountsResponse200ItemsItemStatus,
-    check_list_managed_accounts_response_200_items_item_status,
 )
 from ..types import UNSET, Unset
 
@@ -27,7 +26,7 @@ class ListManagedAccountsResponse200ItemsItem:
     invitation_token: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         client_id: int | None | Unset
         if isinstance(self.client_id, Unset):
@@ -98,9 +97,7 @@ class ListManagedAccountsResponse200ItemsItem:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_list_managed_accounts_response_200_items_item_status(
-            d.pop("status")
-        )
+        status = ListManagedAccountsResponse200ItemsItemStatus(d.pop("status"))
 
         def _parse_client_id(data: object) -> int | None | Unset:
             if data is None:

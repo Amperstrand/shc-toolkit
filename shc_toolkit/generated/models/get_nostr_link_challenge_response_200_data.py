@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.get_nostr_link_challenge_response_200_data_expires_in_seconds import (
     GetNostrLinkChallengeResponse200DataExpiresInSeconds,
-    check_get_nostr_link_challenge_response_200_data_expires_in_seconds,
 )
 
 if TYPE_CHECKING:
@@ -37,7 +36,7 @@ class GetNostrLinkChallengeResponse200Data:
     def to_dict(self) -> dict[str, Any]:
         challenge = self.challenge
 
-        expires_in_seconds: int = self.expires_in_seconds
+        expires_in_seconds = self.expires_in_seconds.value
 
         single_use = self.single_use
 
@@ -72,10 +71,8 @@ class GetNostrLinkChallengeResponse200Data:
         d = dict(src_dict)
         challenge = d.pop("challenge")
 
-        expires_in_seconds = (
-            check_get_nostr_link_challenge_response_200_data_expires_in_seconds(
-                d.pop("expires_in_seconds")
-            )
+        expires_in_seconds = GetNostrLinkChallengeResponse200DataExpiresInSeconds(
+            d.pop("expires_in_seconds")
         )
 
         single_use = d.pop("single_use")

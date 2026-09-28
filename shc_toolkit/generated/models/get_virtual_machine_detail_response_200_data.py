@@ -8,8 +8,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.provisioning_state import ProvisioningState, check_provisioning_state
-from ..models.service_status import ServiceStatus, check_service_status
+from ..models.provisioning_state import ProvisioningState
+from ..models.service_status import ServiceStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -77,9 +77,9 @@ class GetVirtualMachineDetailResponse200Data:
         os_template: None | str
         os_template = self.os_template
 
-        service_status: str = self.service_status
+        service_status = self.service_status.value
 
-        provisioning_state: str = self.provisioning_state
+        provisioning_state = self.provisioning_state.value
 
         bootstrap_completed_at: None | str
         if isinstance(self.bootstrap_completed_at, datetime.datetime):
@@ -208,9 +208,9 @@ class GetVirtualMachineDetailResponse200Data:
 
         os_template = _parse_os_template(d.pop("os_template"))
 
-        service_status = check_service_status(d.pop("service_status"))
+        service_status = ServiceStatus(d.pop("service_status"))
 
-        provisioning_state = check_provisioning_state(d.pop("provisioning_state"))
+        provisioning_state = ProvisioningState(d.pop("provisioning_state"))
 
         def _parse_bootstrap_completed_at(data: object) -> datetime.datetime | None:
             if data is None:

@@ -8,15 +8,12 @@ from typing_extensions import Self
 
 from ..models.get_kb_article_response_200_data_content_type_type_1 import (
     GetKbArticleResponse200DataContentTypeType1,
-    check_get_kb_article_response_200_data_content_type_type_1,
 )
 from ..models.get_kb_article_response_200_data_content_type_type_2_type_1 import (
     GetKbArticleResponse200DataContentTypeType2Type1,
-    check_get_kb_article_response_200_data_content_type_type_2_type_1,
 )
 from ..models.get_kb_article_response_200_data_content_type_type_3_type_1 import (
     GetKbArticleResponse200DataContentTypeType3Type1,
-    check_get_kb_article_response_200_data_content_type_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -67,11 +64,15 @@ class GetKbArticleResponse200Data:
         if isinstance(self.content_type, Unset):
             content_type = UNSET
         elif (
-            isinstance(self.content_type, str)
-            or isinstance(self.content_type, str)
-            or isinstance(self.content_type, str)
+            isinstance(self.content_type, GetKbArticleResponse200DataContentTypeType1)
+            or isinstance(
+                self.content_type, GetKbArticleResponse200DataContentTypeType2Type1
+            )
+            or isinstance(
+                self.content_type, GetKbArticleResponse200DataContentTypeType3Type1
+            )
         ):
-            content_type = self.content_type
+            content_type = self.content_type.value
         else:
             content_type = self.content_type
 
@@ -144,9 +145,7 @@ class GetKbArticleResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                content_type_type_1 = (
-                    check_get_kb_article_response_200_data_content_type_type_1(data)
-                )
+                content_type_type_1 = GetKbArticleResponse200DataContentTypeType1(data)
 
                 return content_type_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -155,9 +154,7 @@ class GetKbArticleResponse200Data:
                 if not isinstance(data, str):
                     raise TypeError()
                 content_type_type_2_type_1 = (
-                    check_get_kb_article_response_200_data_content_type_type_2_type_1(
-                        data
-                    )
+                    GetKbArticleResponse200DataContentTypeType2Type1(data)
                 )
 
                 return content_type_type_2_type_1
@@ -167,9 +164,7 @@ class GetKbArticleResponse200Data:
                 if not isinstance(data, str):
                     raise TypeError()
                 content_type_type_3_type_1 = (
-                    check_get_kb_article_response_200_data_content_type_type_3_type_1(
-                        data
-                    )
+                    GetKbArticleResponse200DataContentTypeType3Type1(data)
                 )
 
                 return content_type_type_3_type_1

@@ -7,7 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.paid_response_status import PaidResponseStatus, check_paid_response_status
+from ..models.paid_response_status import PaidResponseStatus
 
 T = TypeVar("T", bound="PaidResponse")
 
@@ -31,7 +31,7 @@ class PaidResponse:
     """ Amount of client credit applied by this call. `0.00` for zero-value invoices and already-paid invoices. """
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         invoice_id = self.invoice_id
 
@@ -59,7 +59,7 @@ class PaidResponse:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_paid_response_status(d.pop("status"))
+        status = PaidResponseStatus(d.pop("status"))
 
         invoice_id = d.pop("invoice_id")
 

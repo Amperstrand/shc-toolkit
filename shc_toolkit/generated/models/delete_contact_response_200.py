@@ -34,7 +34,9 @@ class DeleteContactResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.contact_delete_response import ContactDeleteResponse
+        from ..models.contact_delete_response import (
+            ContactDeleteResponse,
+        )
 
         d = dict(src_dict)
         data = ContactDeleteResponse.from_dict(d.pop("data"))

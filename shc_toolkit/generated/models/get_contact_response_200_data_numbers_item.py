@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.get_contact_response_200_data_numbers_item_location import (
     GetContactResponse200DataNumbersItemLocation,
-    check_get_contact_response_200_data_numbers_item_location,
 )
 from ..models.get_contact_response_200_data_numbers_item_type import (
     GetContactResponse200DataNumbersItemType,
-    check_get_contact_response_200_data_numbers_item_type,
 )
 
 T = TypeVar("T", bound="GetContactResponse200DataNumbersItem")
@@ -28,9 +26,9 @@ class GetContactResponse200DataNumbersItem:
         number: None | str
         number = self.number
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
-        location: str = self.location
+        location = self.location.value
 
         field_dict: dict[str, Any] = {}
 
@@ -55,11 +53,9 @@ class GetContactResponse200DataNumbersItem:
 
         number = _parse_number(d.pop("number"))
 
-        type_ = check_get_contact_response_200_data_numbers_item_type(d.pop("type"))
+        type_ = GetContactResponse200DataNumbersItemType(d.pop("type"))
 
-        location = check_get_contact_response_200_data_numbers_item_location(
-            d.pop("location")
-        )
+        location = GetContactResponse200DataNumbersItemLocation(d.pop("location"))
 
         get_contact_response_200_data_numbers_item = cls(
             number=number,

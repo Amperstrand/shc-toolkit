@@ -7,18 +7,9 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.zk_backup_registration_config_alg import (
-    ZkBackupRegistrationConfigAlg,
-    check_zk_backup_registration_config_alg,
-)
-from ..models.zk_backup_registration_config_ctx import (
-    ZkBackupRegistrationConfigCtx,
-    check_zk_backup_registration_config_ctx,
-)
-from ..models.zk_backup_registration_config_v import (
-    ZkBackupRegistrationConfigV,
-    check_zk_backup_registration_config_v,
-)
+from ..models.zk_backup_registration_config_alg import ZkBackupRegistrationConfigAlg
+from ..models.zk_backup_registration_config_ctx import ZkBackupRegistrationConfigCtx
+from ..models.zk_backup_registration_config_v import ZkBackupRegistrationConfigV
 
 T = TypeVar("T", bound="ZkBackupRegistrationConfig")
 
@@ -38,11 +29,11 @@ class ZkBackupRegistrationConfig:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        v: int = self.v
+        v = self.v.value
 
-        alg: str = self.alg
+        alg = self.alg.value
 
-        ctx: str = self.ctx
+        ctx = self.ctx.value
 
         ops = self.ops
 
@@ -68,11 +59,11 @@ class ZkBackupRegistrationConfig:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        v = check_zk_backup_registration_config_v(d.pop("v"))
+        v = ZkBackupRegistrationConfigV(d.pop("v"))
 
-        alg = check_zk_backup_registration_config_alg(d.pop("alg"))
+        alg = ZkBackupRegistrationConfigAlg(d.pop("alg"))
 
-        ctx = check_zk_backup_registration_config_ctx(d.pop("ctx"))
+        ctx = ZkBackupRegistrationConfigCtx(d.pop("ctx"))
 
         ops = d.pop("ops")
 

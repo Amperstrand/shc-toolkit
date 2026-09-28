@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.error_detail_code import ErrorDetailCode, check_error_detail_code
+from ..models.error_detail_code import ErrorDetailCode
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ErrorDetail")
@@ -32,7 +32,7 @@ class ErrorDetail:
 
         code: str | Unset = UNSET
         if not isinstance(self.code, Unset):
-            code = self.code
+            code = self.code.value
 
         hint = self.hint
 
@@ -63,7 +63,7 @@ class ErrorDetail:
         if isinstance(_code, Unset):
             code = UNSET
         else:
-            code = check_error_detail_code(_code)
+            code = ErrorDetailCode(_code)
 
         hint = d.pop("hint", UNSET)
 

@@ -98,7 +98,9 @@ class VmDataPreferencesUpdateRequest:
         from ..models.vm_data_preferences_update_request_snapshot import (
             VmDataPreferencesUpdateRequestSnapshot,
         )
-        from ..models.zk_backup_registration import ZkBackupRegistration
+        from ..models.zk_backup_registration import (
+            ZkBackupRegistration,
+        )
 
         d = dict(src_dict)
         _backup = d.pop("backup", UNSET)

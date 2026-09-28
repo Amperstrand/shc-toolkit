@@ -1,25 +1,14 @@
-from typing import Literal
-
-QuotationSummaryStatusType3Type1 = Literal[
-    "approved", "dead", "draft", "expired", "invoiced", "lost", "pending"
-]
-
-QUOTATION_SUMMARY_STATUS_TYPE_3_TYPE_1_VALUES: set[QuotationSummaryStatusType3Type1] = {
-    "approved",
-    "dead",
-    "draft",
-    "expired",
-    "invoiced",
-    "lost",
-    "pending",
-}
+from enum import StrEnum
 
 
-def check_quotation_summary_status_type_3_type_1(
-    value: str,
-) -> QuotationSummaryStatusType3Type1:
-    if value in QUOTATION_SUMMARY_STATUS_TYPE_3_TYPE_1_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {QUOTATION_SUMMARY_STATUS_TYPE_3_TYPE_1_VALUES!r}"
-    )
+class QuotationSummaryStatusType3Type1(StrEnum):
+    APPROVED = "approved"
+    DEAD = "dead"
+    DRAFT = "draft"
+    EXPIRED = "expired"
+    INVOICED = "invoiced"
+    LOST = "lost"
+    PENDING = "pending"
+
+    def __str__(self) -> str:
+        return str(self.value)

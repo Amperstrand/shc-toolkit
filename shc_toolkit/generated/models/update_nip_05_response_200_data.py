@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.update_nip_05_response_200_data_status import (
     UpdateNip05Response200DataStatus,
-    check_update_nip_05_response_200_data_status,
 )
 
 T = TypeVar("T", bound="UpdateNip05Response200Data")
@@ -24,7 +23,7 @@ class UpdateNip05Response200Data:
     """ Linked Nostr public key in npub form. """
 
     def to_dict(self) -> dict[str, Any]:
-        status: str = self.status
+        status = self.status.value
 
         nip05_name = self.nip05_name
 
@@ -45,7 +44,7 @@ class UpdateNip05Response200Data:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        status = check_update_nip_05_response_200_data_status(d.pop("status"))
+        status = UpdateNip05Response200DataStatus(d.pop("status"))
 
         nip05_name = d.pop("nip05_name")
 

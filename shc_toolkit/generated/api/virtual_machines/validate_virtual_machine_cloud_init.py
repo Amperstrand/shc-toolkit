@@ -125,14 +125,15 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: CloudInitRequest,
 ) -> Response[Error | Problem | ValidateVirtualMachineCloudInitResponse200]:
-    r"""Validate VM cloud-init user-data
+    """Validate VM cloud-init user-data
 
      No-commit security lint for customer-supplied #cloud-config content. The operation accepts content
     only, derives node/storage/ISO identity server-side, and commits nothing.
 
     Args:
         virtual_machine_id (int):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,14 +161,15 @@ def sync(
     client: AuthenticatedClient | Client,
     body: CloudInitRequest,
 ) -> Error | Problem | ValidateVirtualMachineCloudInitResponse200 | None:
-    r"""Validate VM cloud-init user-data
+    """Validate VM cloud-init user-data
 
      No-commit security lint for customer-supplied #cloud-config content. The operation accepts content
     only, derives node/storage/ISO identity server-side, and commits nothing.
 
     Args:
         virtual_machine_id (int):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,14 +192,15 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: CloudInitRequest,
 ) -> Response[Error | Problem | ValidateVirtualMachineCloudInitResponse200]:
-    r"""Validate VM cloud-init user-data
+    """Validate VM cloud-init user-data
 
      No-commit security lint for customer-supplied #cloud-config content. The operation accepts content
     only, derives node/storage/ISO identity server-side, and commits nothing.
 
     Args:
         virtual_machine_id (int):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -223,14 +226,15 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: CloudInitRequest,
 ) -> Error | Problem | ValidateVirtualMachineCloudInitResponse200 | None:
-    r"""Validate VM cloud-init user-data
+    """Validate VM cloud-init user-data
 
      No-commit security lint for customer-supplied #cloud-config content. The operation accepts content
     only, derives node/storage/ISO identity server-side, and commits nothing.
 
     Args:
         virtual_machine_id (int):
-        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\npackage_update: true\n'}.
+        body (CloudInitRequest):  Example: {'cloudInit': '#cloud-config\\npackage_update:
+            true\\n'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

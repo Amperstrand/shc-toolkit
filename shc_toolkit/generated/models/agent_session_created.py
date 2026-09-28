@@ -7,10 +7,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.agent_session_created_scope import (
-    AgentSessionCreatedScope,
-    check_agent_session_created_scope,
-)
+from ..models.agent_session_created_scope import AgentSessionCreatedScope
 
 T = TypeVar("T", bound="AgentSessionCreated")
 
@@ -34,7 +31,7 @@ class AgentSessionCreated:
 
         key_prefix = self.key_prefix
 
-        scope: str = self.scope
+        scope = self.scope.value
 
         expires_at = self.expires_at.isoformat()
 
@@ -64,7 +61,7 @@ class AgentSessionCreated:
 
         key_prefix = d.pop("keyPrefix")
 
-        scope = check_agent_session_created_scope(d.pop("scope"))
+        scope = AgentSessionCreatedScope(d.pop("scope"))
 
         expires_at = datetime.datetime.fromisoformat(d.pop("expiresAt"))
 

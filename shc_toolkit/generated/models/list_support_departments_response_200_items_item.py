@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.list_support_departments_response_200_items_item_default_priority import (
     ListSupportDepartmentsResponse200ItemsItemDefaultPriority,
-    check_list_support_departments_response_200_items_item_default_priority,
 )
 from ..models.list_support_departments_response_200_items_item_priorities_item import (
     ListSupportDepartmentsResponse200ItemsItemPrioritiesItem,
-    check_list_support_departments_response_200_items_item_priorities_item,
 )
 from ..types import UNSET, Unset
 
@@ -40,13 +38,13 @@ class ListSupportDepartmentsResponse200ItemsItem:
 
         name = self.name
 
-        default_priority: str = self.default_priority
+        default_priority = self.default_priority.value
 
         clients_only = self.clients_only
 
         priorities = []
         for priorities_item_data in self.priorities:
-            priorities_item: str = priorities_item_data
+            priorities_item = priorities_item_data.value
             priorities.append(priorities_item)
 
         fields = []
@@ -88,10 +86,8 @@ class ListSupportDepartmentsResponse200ItemsItem:
 
         name = d.pop("name")
 
-        default_priority = (
-            check_list_support_departments_response_200_items_item_default_priority(
-                d.pop("default_priority")
-            )
+        default_priority = ListSupportDepartmentsResponse200ItemsItemDefaultPriority(
+            d.pop("default_priority")
         )
 
         clients_only = d.pop("clients_only")
@@ -99,10 +95,8 @@ class ListSupportDepartmentsResponse200ItemsItem:
         priorities = []
         _priorities = d.pop("priorities")
         for priorities_item_data in _priorities:
-            priorities_item = (
-                check_list_support_departments_response_200_items_item_priorities_item(
-                    priorities_item_data
-                )
+            priorities_item = ListSupportDepartmentsResponse200ItemsItemPrioritiesItem(
+                priorities_item_data
             )
 
             priorities.append(priorities_item)

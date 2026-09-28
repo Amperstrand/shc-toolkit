@@ -8,14 +8,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.transaction_summary_status import (
-    TransactionSummaryStatus,
-    check_transaction_summary_status,
-)
-from ..models.transaction_summary_type import (
-    TransactionSummaryType,
-    check_transaction_summary_type,
-)
+from ..models.transaction_summary_status import TransactionSummaryStatus
+from ..models.transaction_summary_type import TransactionSummaryType
 
 if TYPE_CHECKING:
     from ..models.transaction_applied_invoice_list import TransactionAppliedInvoiceList
@@ -51,7 +45,7 @@ class TransactionDetail:
 
         currency = self.currency
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         type_name: None | str
         type_name = self.type_name
@@ -59,7 +53,7 @@ class TransactionDetail:
         transaction_type_id: int | None
         transaction_type_id = self.transaction_type_id
 
-        status: str = self.status
+        status = self.status.value
 
         reference_id: None | str
         reference_id = self.reference_id
@@ -119,7 +113,7 @@ class TransactionDetail:
 
         currency = d.pop("currency")
 
-        type_ = check_transaction_summary_type(d.pop("type"))
+        type_ = TransactionSummaryType(d.pop("type"))
 
         def _parse_type_name(data: object) -> None | str:
             if data is None:
@@ -135,7 +129,7 @@ class TransactionDetail:
 
         transaction_type_id = _parse_transaction_type_id(d.pop("transaction_type_id"))
 
-        status = check_transaction_summary_status(d.pop("status"))
+        status = TransactionSummaryStatus(d.pop("status"))
 
         def _parse_reference_id(data: object) -> None | str:
             if data is None:

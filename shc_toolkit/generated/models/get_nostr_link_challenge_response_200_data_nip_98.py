@@ -8,15 +8,12 @@ from typing_extensions import Self
 
 from ..models.get_nostr_link_challenge_response_200_data_nip_98_kind import (
     GetNostrLinkChallengeResponse200DataNip98Kind,
-    check_get_nostr_link_challenge_response_200_data_nip_98_kind,
 )
 from ..models.get_nostr_link_challenge_response_200_data_nip_98_max_event_age_seconds import (
     GetNostrLinkChallengeResponse200DataNip98MaxEventAgeSeconds,
-    check_get_nostr_link_challenge_response_200_data_nip_98_max_event_age_seconds,
 )
 from ..models.get_nostr_link_challenge_response_200_data_nip_98_required_tags_item import (
     GetNostrLinkChallengeResponse200DataNip98RequiredTagsItem,
-    check_get_nostr_link_challenge_response_200_data_nip_98_required_tags_item,
 )
 
 T = TypeVar("T", bound="GetNostrLinkChallengeResponse200DataNip98")
@@ -34,14 +31,14 @@ class GetNostrLinkChallengeResponse200DataNip98:
     """ Handler-provided signing instruction. """
 
     def to_dict(self) -> dict[str, Any]:
-        kind: int = self.kind
+        kind = self.kind.value
 
         required_tags = []
         for required_tags_item_data in self.required_tags:
-            required_tags_item: str = required_tags_item_data
+            required_tags_item = required_tags_item_data.value
             required_tags.append(required_tags_item)
 
-        max_event_age_seconds: int = self.max_event_age_seconds
+        max_event_age_seconds = self.max_event_age_seconds.value
 
         note = self.note
 
@@ -61,21 +58,23 @@ class GetNostrLinkChallengeResponse200DataNip98:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = check_get_nostr_link_challenge_response_200_data_nip_98_kind(
-            d.pop("kind")
-        )
+        kind = GetNostrLinkChallengeResponse200DataNip98Kind(d.pop("kind"))
 
         required_tags = []
         _required_tags = d.pop("required_tags")
         for required_tags_item_data in _required_tags:
-            required_tags_item = check_get_nostr_link_challenge_response_200_data_nip_98_required_tags_item(
-                required_tags_item_data
+            required_tags_item = (
+                GetNostrLinkChallengeResponse200DataNip98RequiredTagsItem(
+                    required_tags_item_data
+                )
             )
 
             required_tags.append(required_tags_item)
 
-        max_event_age_seconds = check_get_nostr_link_challenge_response_200_data_nip_98_max_event_age_seconds(
-            d.pop("max_event_age_seconds")
+        max_event_age_seconds = (
+            GetNostrLinkChallengeResponse200DataNip98MaxEventAgeSeconds(
+                d.pop("max_event_age_seconds")
+            )
         )
 
         note = d.pop("note")

@@ -32,7 +32,9 @@ class DeleteVirtualMachineCloudInitResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cloud_init_delete_result import CloudInitDeleteResult
+        from ..models.cloud_init_delete_result import (
+            CloudInitDeleteResult,
+        )
 
         d = dict(src_dict)
         data = CloudInitDeleteResult.from_dict(d.pop("data"))

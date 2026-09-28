@@ -8,15 +8,12 @@ from typing_extensions import Self
 
 from ..models.get_auto_debit_response_200_data_type_type_1 import (
     GetAutoDebitResponse200DataTypeType1,
-    check_get_auto_debit_response_200_data_type_type_1,
 )
 from ..models.get_auto_debit_response_200_data_type_type_2_type_1 import (
     GetAutoDebitResponse200DataTypeType2Type1,
-    check_get_auto_debit_response_200_data_type_type_2_type_1,
 )
 from ..models.get_auto_debit_response_200_data_type_type_3_type_1 import (
     GetAutoDebitResponse200DataTypeType3Type1,
-    check_get_auto_debit_response_200_data_type_type_3_type_1,
 )
 
 T = TypeVar("T", bound="GetAutoDebitResponse200Data")
@@ -41,11 +38,11 @@ class GetAutoDebitResponse200Data:
 
         type_: None | str
         if (
-            isinstance(self.type_, str)
-            or isinstance(self.type_, str)
-            or isinstance(self.type_, str)
+            isinstance(self.type_, GetAutoDebitResponse200DataTypeType1)
+            or isinstance(self.type_, GetAutoDebitResponse200DataTypeType2Type1)
+            or isinstance(self.type_, GetAutoDebitResponse200DataTypeType3Type1)
         ):
-            type_ = self.type_
+            type_ = self.type_.value
         else:
             type_ = self.type_
 
@@ -86,7 +83,7 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_1 = check_get_auto_debit_response_200_data_type_type_1(data)
+                type_type_1 = GetAutoDebitResponse200DataTypeType1(data)
 
                 return type_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -94,9 +91,7 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_2_type_1 = (
-                    check_get_auto_debit_response_200_data_type_type_2_type_1(data)
-                )
+                type_type_2_type_1 = GetAutoDebitResponse200DataTypeType2Type1(data)
 
                 return type_type_2_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -104,9 +99,7 @@ class GetAutoDebitResponse200Data:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                type_type_3_type_1 = (
-                    check_get_auto_debit_response_200_data_type_type_3_type_1(data)
-                )
+                type_type_3_type_1 = GetAutoDebitResponse200DataTypeType3Type1(data)
 
                 return type_type_3_type_1
             except (TypeError, ValueError, AttributeError, KeyError):

@@ -35,7 +35,9 @@ class MintVmConsoleSessionResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.console_session_response import ConsoleSessionResponse
+        from ..models.console_session_response import (
+            ConsoleSessionResponse,
+        )
 
         d = dict(src_dict)
         data = ConsoleSessionResponse.from_dict(d.pop("data"))
