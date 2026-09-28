@@ -64,7 +64,7 @@ def test_download_lands_in_user_cache_atomically(tmp_path, monkeypatch):
 
     seen = {}
 
-    def fake_wget(cmd, check, timeout):  # noqa: ARG001
+    def fake_wget(cmd, check, timeout):
         target = cmd[cmd.index("-O") + 1]
         seen["target"] = target
         with open(target, "wb") as f:
@@ -74,11 +74,17 @@ def test_download_lands_in_user_cache_atomically(tmp_path, monkeypatch):
     result = tunnel._find_cloudflared()
 
     cache = tmp_path / "shc-toolkit"
-    assert result.startswith(str(cache)), "downloaded binary must live in the validated user cache"
-    assert seen["target"].startswith(str(cache)), "wget must write only inside the user cache"
+    assert result.startswith(str(cache)), (
+        "downloaded binary must live in the validated user cache"
+    )
+    assert seen["target"].startswith(str(cache)), (
+        "wget must write only inside the user cache"
+    )
     assert os.path.exists(result)
     assert stat.S_IMODE(os.stat(result).st_mode) & 0o111, "binary must be executable"
-    assert not os.path.exists(result + ".download"), "partial download must be renamed away"
+    assert not os.path.exists(result + ".download"), (
+        "partial download must be renamed away"
+    )
 
 
 def test_planted_executable_next_to_cache_is_not_returned(tmp_path, monkeypatch):
@@ -87,7 +93,7 @@ def test_planted_executable_next_to_cache_is_not_returned(tmp_path, monkeypatch)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     monkeypatch.setattr(tunnel, "_CF_BINARY_PATHS", [])
 
-    def no_download(*a, **kw):  # noqa: ARG001
+    def no_download(*a, **kw):
         raise AssertionError("network download must not run in this test")
 
     monkeypatch.setattr(subprocess, "run", no_download)
