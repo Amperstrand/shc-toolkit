@@ -227,12 +227,18 @@ def console_command(
     If login_user is None, assumes the console is already at a shell prompt
     (a previous console_command session leaves it logged in).
     """
+    import os
     import tempfile
 
     async def _run() -> tuple[str, str]:
         async with await open_console(client, service_id, ttl=ttl) as vnc:
-            pre = tempfile.mktemp(suffix=".png", prefix="console-pre-")
-            post = tempfile.mktemp(suffix=".png", prefix="console-post-")
+            # mkstemp, not mktemp: predictable /tmp names are a
+            # symlink/TOCTOU vector (bandit B306; same class as the
+            # cloudflared /tmp finding on PR #33).
+            pre_fd, pre = tempfile.mkstemp(suffix=".png", prefix="console-pre-")
+            post_fd, post = tempfile.mkstemp(suffix=".png", prefix="console-post-")
+            os.close(pre_fd)
+            os.close(post_fd)
 
             def _save(shot: Any, path: str) -> None:
                 if hasattr(shot, "save"):
