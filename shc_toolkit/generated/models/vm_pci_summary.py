@@ -25,7 +25,9 @@ class VmPciSummary:
     """ Null when no PCI devices are assigned. """
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
+        from ..models.vm_pci_summary_primary_type_0 import (
+            VmPciSummaryPrimaryType0,
+        )
 
         count = self.count
 
@@ -48,7 +50,9 @@ class VmPciSummary:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_pci_summary_primary_type_0 import VmPciSummaryPrimaryType0
+        from ..models.vm_pci_summary_primary_type_0 import (
+            VmPciSummaryPrimaryType0,
+        )
 
         d = dict(src_dict)
         count = d.pop("count")

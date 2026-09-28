@@ -1,21 +1,12 @@
-from typing import Literal
-
-ActivityItemType = Literal[
-    "contact_change", "login", "login_failed", "setting_change", "transaction"
-]
-
-ACTIVITY_ITEM_TYPE_VALUES: set[ActivityItemType] = {
-    "contact_change",
-    "login",
-    "login_failed",
-    "setting_change",
-    "transaction",
-}
+from enum import StrEnum
 
 
-def check_activity_item_type(value: str) -> ActivityItemType:
-    if value in ACTIVITY_ITEM_TYPE_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {ACTIVITY_ITEM_TYPE_VALUES!r}"
-    )
+class ActivityItemType(StrEnum):
+    CONTACT_CHANGE = "contact_change"
+    LOGIN = "login"
+    LOGIN_FAILED = "login_failed"
+    SETTING_CHANGE = "setting_change"
+    TRANSACTION = "transaction"
+
+    def __str__(self) -> str:
+        return str(self.value)

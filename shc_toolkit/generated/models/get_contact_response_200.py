@@ -32,7 +32,9 @@ class GetContactResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.get_contact_response_200_data import GetContactResponse200Data
+        from ..models.get_contact_response_200_data import (
+            GetContactResponse200Data,
+        )
 
         d = dict(src_dict)
         data = GetContactResponse200Data.from_dict(d.pop("data"))

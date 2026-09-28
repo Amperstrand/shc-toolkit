@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.managed_account_invitation_response_action import (
     ManagedAccountInvitationResponseAction,
-    check_managed_account_invitation_response_action,
 )
 from ..types import UNSET, Unset
 
@@ -28,7 +27,7 @@ class ManagedAccountInvitationResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        action: str = self.action
+        action = self.action.value
 
         managed_client_id = self.managed_client_id
 
@@ -50,7 +49,7 @@ class ManagedAccountInvitationResponse:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        action = check_managed_account_invitation_response_action(d.pop("action"))
+        action = ManagedAccountInvitationResponseAction(d.pop("action"))
 
         managed_client_id = d.pop("managed_client_id")
 

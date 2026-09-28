@@ -6,10 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.agent_recovery_action import (
-    AgentRecoveryAction,
-    check_agent_recovery_action,
-)
+from ..models.agent_recovery_action import AgentRecoveryAction
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -32,7 +29,7 @@ class AgentRecovery:
     rels. """
 
     def to_dict(self) -> dict[str, Any]:
-        action: str = self.action
+        action = self.action.value
 
         message = self.message
 
@@ -68,7 +65,7 @@ class AgentRecovery:
         from ..models.link_target import LinkTarget
 
         d = dict(src_dict)
-        action = check_agent_recovery_action(d.pop("action"))
+        action = AgentRecoveryAction(d.pop("action"))
 
         message = d.pop("message")
 

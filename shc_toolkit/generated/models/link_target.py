@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.link_target_method import LinkTargetMethod, check_link_target_method
+from ..models.link_target_method import LinkTargetMethod
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="LinkTarget")
@@ -27,7 +27,7 @@ class LinkTarget:
 
         method: str | Unset = UNSET
         if not isinstance(self.method, Unset):
-            method = self.method
+            method = self.method.value
 
         path = self.path
 
@@ -63,7 +63,7 @@ class LinkTarget:
         if isinstance(_method, Unset):
             method = UNSET
         else:
-            method = check_link_target_method(_method)
+            method = LinkTargetMethod(_method)
 
         path = d.pop("path", UNSET)
 

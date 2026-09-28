@@ -8,11 +8,9 @@ from typing_extensions import Self
 
 from ..models.vm_firewall_rule_update_request_action import (
     VmFirewallRuleUpdateRequestAction,
-    check_vm_firewall_rule_update_request_action,
 )
 from ..models.vm_firewall_rule_update_request_direction import (
     VmFirewallRuleUpdateRequestDirection,
-    check_vm_firewall_rule_update_request_direction,
 )
 from ..types import UNSET, Unset
 
@@ -59,11 +57,11 @@ class VmFirewallRuleUpdateRequest:
     def to_dict(self) -> dict[str, Any]:
         action: str | Unset = UNSET
         if not isinstance(self.action, Unset):
-            action = self.action
+            action = self.action.value
 
         direction: str | Unset = UNSET
         if not isinstance(self.direction, Unset):
-            direction = self.direction
+            direction = self.direction.value
 
         name: None | str | Unset
         if isinstance(self.name, Unset):
@@ -159,14 +157,14 @@ class VmFirewallRuleUpdateRequest:
         if isinstance(_action, Unset):
             action = UNSET
         else:
-            action = check_vm_firewall_rule_update_request_action(_action)
+            action = VmFirewallRuleUpdateRequestAction(_action)
 
         _direction = d.pop("direction", UNSET)
         direction: VmFirewallRuleUpdateRequestDirection | Unset
         if isinstance(_direction, Unset):
             direction = UNSET
         else:
-            direction = check_vm_firewall_rule_update_request_direction(_direction)
+            direction = VmFirewallRuleUpdateRequestDirection(_direction)
 
         def _parse_name(data: object) -> None | str | Unset:
             if data is None:

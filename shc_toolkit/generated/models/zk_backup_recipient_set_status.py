@@ -89,7 +89,9 @@ class ZkBackupRecipientSetStatus:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.zk_backup_recipient_status import ZkBackupRecipientStatus
+        from ..models.zk_backup_recipient_status import (
+            ZkBackupRecipientStatus,
+        )
 
         d = dict(src_dict)
         zk_enabled = d.pop("zk_enabled")

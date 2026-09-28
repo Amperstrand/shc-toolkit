@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.register_api_key_scope import (
-    RegisterApiKeyScope,
-    check_register_api_key_scope,
-)
+from ..models.register_api_key_scope import RegisterApiKeyScope
 
 T = TypeVar("T", bound="RegisterApiKey")
 
@@ -35,7 +32,7 @@ class RegisterApiKey:
 
         key_prefix = self.key_prefix
 
-        scope: str = self.scope
+        scope = self.scope.value
 
         expires_at = self.expires_at
 
@@ -59,7 +56,7 @@ class RegisterApiKey:
 
         key_prefix = d.pop("key_prefix")
 
-        scope = check_register_api_key_scope(d.pop("scope"))
+        scope = RegisterApiKeyScope(d.pop("scope"))
 
         expires_at = d.pop("expires_at")
 

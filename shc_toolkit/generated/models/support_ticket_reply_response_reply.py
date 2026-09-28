@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.support_ticket_reply_response_reply_author_type import (
     SupportTicketReplyResponseReplyAuthorType,
-    check_support_ticket_reply_response_reply_author_type,
 )
 
 T = TypeVar("T", bound="SupportTicketReplyResponseReply")
@@ -28,7 +27,7 @@ class SupportTicketReplyResponseReply:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        author_type: str = self.author_type
+        author_type = self.author_type.value
 
         author_name: None | str
         author_name = self.author_name
@@ -57,9 +56,7 @@ class SupportTicketReplyResponseReply:
         d = dict(src_dict)
         id = d.pop("id")
 
-        author_type = check_support_ticket_reply_response_reply_author_type(
-            d.pop("author_type")
-        )
+        author_type = SupportTicketReplyResponseReplyAuthorType(d.pop("author_type"))
 
         def _parse_author_name(data: object) -> None | str:
             if data is None:

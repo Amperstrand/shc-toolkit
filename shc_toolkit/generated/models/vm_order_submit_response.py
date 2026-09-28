@@ -112,7 +112,9 @@ class VmOrderSubmitResponse:
         from ..models.vm_detail import VmDetail
         from ..models.vm_order_invoice import VmOrderInvoice
         from ..models.vm_order_next import VmOrderNext
-        from ..models.vm_order_normalized_request import VmOrderNormalizedRequest
+        from ..models.vm_order_normalized_request import (
+            VmOrderNormalizedRequest,
+        )
         from ..models.vm_order_result import VmOrderResult
         from ..models.vm_order_submit_response_package import (
             VmOrderSubmitResponsePackage,

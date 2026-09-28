@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.managed_account_invitation_request_action import (
     ManagedAccountInvitationRequestAction,
-    check_managed_account_invitation_request_action,
 )
 
 T = TypeVar("T", bound="ManagedAccountInvitationRequest")
@@ -27,7 +26,7 @@ class ManagedAccountInvitationRequest:
     """ Whether to accept or decline the invitation. """
 
     def to_dict(self) -> dict[str, Any]:
-        action: str = self.action
+        action = self.action.value
 
         field_dict: dict[str, Any] = {}
 
@@ -42,7 +41,7 @@ class ManagedAccountInvitationRequest:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        action = check_managed_account_invitation_request_action(d.pop("action"))
+        action = ManagedAccountInvitationRequestAction(d.pop("action"))
 
         managed_account_invitation_request = cls(
             action=action,

@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.register_request_scope import (
-    RegisterRequestScope,
-    check_register_request_scope,
-)
+from ..models.register_request_scope import RegisterRequestScope
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="RegisterRequest")
@@ -32,7 +29,7 @@ class RegisterRequest:
     against the supported country list. """
     recovery_email: str | Unset = UNSET
     """ Optional alternate email for password-reset delivery. """
-    scope: RegisterRequestScope | Unset = "operate"
+    scope: RegisterRequestScope | Unset = RegisterRequestScope.OPERATE
     """ Optional scope for the API key minted at registration. Defaults to 'operate' (read + provision, never
     spend). The anonymous /register endpoint is capped to {read, operate}; full keys are issued only via your
     account settings (authenticated POST /account/api-keys) after you sign in. Note that no scope can reach
@@ -56,7 +53,7 @@ class RegisterRequest:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope
+            scope = self.scope.value
 
         field_dict: dict[str, Any] = {}
 
@@ -100,7 +97,7 @@ class RegisterRequest:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = check_register_request_scope(_scope)
+            scope = RegisterRequestScope(_scope)
 
         register_request = cls(
             email=email,

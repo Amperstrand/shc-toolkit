@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.vm_upgrade_response_change import (
-    VmUpgradeResponseChange,
-    check_vm_upgrade_response_change,
-)
+from ..models.vm_upgrade_response_change import VmUpgradeResponseChange
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -43,7 +40,7 @@ class VmUpgradeResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        change: str = self.change
+        change = self.change.value
 
         invoice_id = self.invoice_id
 
@@ -77,12 +74,14 @@ class VmUpgradeResponse:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.next_checkout import NextCheckout
-        from ..models.vm_upgrade_response_amount_due import VmUpgradeResponseAmountDue
+        from ..models.vm_upgrade_response_amount_due import (
+            VmUpgradeResponseAmountDue,
+        )
 
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        change = check_vm_upgrade_response_change(d.pop("change"))
+        change = VmUpgradeResponseChange(d.pop("change"))
 
         invoice_id = d.pop("invoice_id")
 

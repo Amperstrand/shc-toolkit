@@ -34,7 +34,9 @@ class SetVirtualMachineBackupProtectionResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_storage_protection_response import VmStorageProtectionResponse
+        from ..models.vm_storage_protection_response import (
+            VmStorageProtectionResponse,
+        )
 
         d = dict(src_dict)
         data = VmStorageProtectionResponse.from_dict(d.pop("data"))

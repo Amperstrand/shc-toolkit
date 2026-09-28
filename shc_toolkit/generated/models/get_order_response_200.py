@@ -34,7 +34,9 @@ class GetOrderResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.get_order_response_200_data import GetOrderResponse200Data
+        from ..models.get_order_response_200_data import (
+            GetOrderResponse200Data,
+        )
 
         d = dict(src_dict)
         data = GetOrderResponse200Data.from_dict(d.pop("data"))

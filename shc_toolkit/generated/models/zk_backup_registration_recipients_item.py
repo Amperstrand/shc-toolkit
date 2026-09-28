@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.zk_backup_registration_recipients_item_kind import (
     ZkBackupRegistrationRecipientsItemKind,
-    check_zk_backup_registration_recipients_item_kind,
 )
 from ..types import UNSET, Unset
 
@@ -37,7 +36,7 @@ class ZkBackupRegistrationRecipientsItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind: str = self.kind
+        kind = self.kind.value
 
         pubkey = self.pubkey
 
@@ -67,7 +66,7 @@ class ZkBackupRegistrationRecipientsItem:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = check_zk_backup_registration_recipients_item_kind(d.pop("kind"))
+        kind = ZkBackupRegistrationRecipientsItemKind(d.pop("kind"))
 
         pubkey = d.pop("pubkey")
 

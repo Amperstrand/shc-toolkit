@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.error_error_links_item_rel import (
-    ErrorErrorLinksItemRel,
-    check_error_error_links_item_rel,
-)
+from ..models.error_error_links_item_rel import ErrorErrorLinksItemRel
 
 T = TypeVar("T", bound="ErrorErrorLinksItem")
 
@@ -20,7 +17,7 @@ class ErrorErrorLinksItem:
     href: str
 
     def to_dict(self) -> dict[str, Any]:
-        rel: str = self.rel
+        rel = self.rel.value
 
         href = self.href
 
@@ -38,7 +35,7 @@ class ErrorErrorLinksItem:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        rel = check_error_error_links_item_rel(d.pop("rel"))
+        rel = ErrorErrorLinksItemRel(d.pop("rel"))
 
         href = d.pop("href")
 

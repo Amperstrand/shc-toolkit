@@ -6,10 +6,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.lint_finding_severity import (
-    LintFindingSeverity,
-    check_lint_finding_severity,
-)
+from ..models.lint_finding_severity import LintFindingSeverity
 
 T = TypeVar("T", bound="LintFinding")
 
@@ -24,7 +21,7 @@ class LintFinding:
     text. """
 
     def to_dict(self) -> dict[str, Any]:
-        severity: str = self.severity
+        severity = self.severity.value
 
         rule_id = self.rule_id
 
@@ -49,7 +46,7 @@ class LintFinding:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        severity = check_lint_finding_severity(d.pop("severity"))
+        severity = LintFindingSeverity(d.pop("severity"))
 
         rule_id = d.pop("ruleId")
 

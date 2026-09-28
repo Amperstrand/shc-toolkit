@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus, check_invoice_status
+from ..models.invoice_status import InvoiceStatus
 
 if TYPE_CHECKING:
     from ..models.invoice_line_list import InvoiceLineList
@@ -47,7 +47,7 @@ class InvoiceDetail:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        invoice_status: str = self.invoice_status
+        invoice_status = self.invoice_status.value
 
         subtotal = self.subtotal
 
@@ -107,7 +107,7 @@ class InvoiceDetail:
         d = dict(src_dict)
         id = d.pop("id")
 
-        invoice_status = check_invoice_status(d.pop("invoice_status"))
+        invoice_status = InvoiceStatus(d.pop("invoice_status"))
 
         subtotal = d.pop("subtotal")
 

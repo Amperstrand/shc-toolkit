@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.list_contacts_response_200_items_item_contact_type import (
     ListContactsResponse200ItemsItemContactType,
-    check_list_contacts_response_200_items_item_contact_type,
 )
 from ..types import UNSET, Unset
 
@@ -31,7 +30,7 @@ class ListContactsResponse200ItemsItem:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        contact_type: str = self.contact_type
+        contact_type = self.contact_type.value
 
         first_name: None | str
         first_name = self.first_name
@@ -88,7 +87,7 @@ class ListContactsResponse200ItemsItem:
         d = dict(src_dict)
         id = d.pop("id")
 
-        contact_type = check_list_contacts_response_200_items_item_contact_type(
+        contact_type = ListContactsResponse200ItemsItemContactType(
             d.pop("contact_type")
         )
 

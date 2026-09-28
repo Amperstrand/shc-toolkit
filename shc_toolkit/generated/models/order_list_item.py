@@ -6,10 +6,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.order_list_item_status import (
-    OrderListItemStatus,
-    check_order_list_item_status,
-)
+from ..models.order_list_item_status import OrderListItemStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="OrderListItem")
@@ -38,7 +35,7 @@ class OrderListItem:
 
         order_number = self.order_number
 
-        status: str = self.status
+        status = self.status.value
 
         date_added: None | str
         date_added = self.date_added
@@ -102,7 +99,7 @@ class OrderListItem:
 
         order_number = d.pop("order_number")
 
-        status = check_order_list_item_status(d.pop("status"))
+        status = OrderListItemStatus(d.pop("status"))
 
         def _parse_date_added(data: object) -> None | str:
             if data is None:

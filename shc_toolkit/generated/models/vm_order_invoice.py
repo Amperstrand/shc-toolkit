@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus, check_invoice_status
+from ..models.invoice_status import InvoiceStatus
 
 T = TypeVar("T", bound="VmOrderInvoice")
 
@@ -28,8 +28,8 @@ class VmOrderInvoice:
         invoice_id = self.invoice_id
 
         invoice_status: None | str
-        if isinstance(self.invoice_status, str):
-            invoice_status = self.invoice_status
+        if isinstance(self.invoice_status, InvoiceStatus):
+            invoice_status = self.invoice_status.value
         else:
             invoice_status = self.invoice_status
 
@@ -74,7 +74,7 @@ class VmOrderInvoice:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                invoice_status_type_0 = check_invoice_status(data)
+                invoice_status_type_0 = InvoiceStatus(data)
 
                 return invoice_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

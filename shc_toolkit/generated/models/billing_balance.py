@@ -62,8 +62,12 @@ class BillingBalance:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.billing_balance_credit_item import BillingBalanceCreditItem
-        from ..models.billing_currency_balance import BillingCurrencyBalance
+        from ..models.billing_balance_credit_item import (
+            BillingBalanceCreditItem,
+        )
+        from ..models.billing_currency_balance import (
+            BillingCurrencyBalance,
+        )
 
         d = dict(src_dict)
         default_currency = d.pop("default_currency")

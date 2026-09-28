@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.zk_backup_retention_rekey_request_ack import (
     ZkBackupRetentionRekeyRequestAck,
-    check_zk_backup_retention_rekey_request_ack,
 )
 
 if TYPE_CHECKING:
@@ -36,7 +35,7 @@ class ZkBackupRetentionRekeyRequest:
     recipient must be kind=password (the primary). The server never sees the password or private keys. """
 
     def to_dict(self) -> dict[str, Any]:
-        ack: str = self.ack
+        ack = self.ack.value
 
         retain_fingerprints = self.retain_fingerprints
 
@@ -56,10 +55,12 @@ class ZkBackupRetentionRekeyRequest:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.zk_backup_registration import ZkBackupRegistration
+        from ..models.zk_backup_registration import (
+            ZkBackupRegistration,
+        )
 
         d = dict(src_dict)
-        ack = check_zk_backup_retention_rekey_request_ack(d.pop("ack"))
+        ack = ZkBackupRetentionRekeyRequestAck(d.pop("ack"))
 
         retain_fingerprints = cast(list[str], d.pop("retain_fingerprints"))
 

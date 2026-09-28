@@ -1,19 +1,12 @@
-from typing import Literal
-
-RuntimeStatus = Literal["paused", "running", "stopped", "suspended", "unknown"]
-
-RUNTIME_STATUS_VALUES: set[RuntimeStatus] = {
-    "paused",
-    "running",
-    "stopped",
-    "suspended",
-    "unknown",
-}
+from enum import StrEnum
 
 
-def check_runtime_status(value: str) -> RuntimeStatus:
-    if value in RUNTIME_STATUS_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {RUNTIME_STATUS_VALUES!r}"
-    )
+class RuntimeStatus(StrEnum):
+    PAUSED = "paused"
+    RUNNING = "running"
+    STOPPED = "stopped"
+    SUSPENDED = "suspended"
+    UNKNOWN = "unknown"
+
+    def __str__(self) -> str:
+        return str(self.value)

@@ -34,7 +34,9 @@ class BuyVirtualMachineResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_order_submit_response import VmOrderSubmitResponse
+        from ..models.vm_order_submit_response import (
+            VmOrderSubmitResponse,
+        )
 
         d = dict(src_dict)
         data = VmOrderSubmitResponse.from_dict(d.pop("data"))

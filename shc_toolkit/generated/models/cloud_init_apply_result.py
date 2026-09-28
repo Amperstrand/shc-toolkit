@@ -6,13 +6,9 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.cloud_init_apply_result_format import (
-    CloudInitApplyResultFormat,
-    check_cloud_init_apply_result_format,
-)
+from ..models.cloud_init_apply_result_format import CloudInitApplyResultFormat
 from ..models.cloud_init_apply_result_volume_label import (
     CloudInitApplyResultVolumeLabel,
-    check_cloud_init_apply_result_volume_label,
 )
 
 if TYPE_CHECKING:
@@ -45,9 +41,9 @@ class CloudInitApplyResult:
 
         iso_name = self.iso_name
 
-        volume_label: str = self.volume_label
+        volume_label = self.volume_label.value
 
-        format_: str = self.format_
+        format_ = self.format_.value
 
         storage = self.storage
 
@@ -78,7 +74,9 @@ class CloudInitApplyResult:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cloud_init_attached_drive import CloudInitAttachedDrive
+        from ..models.cloud_init_attached_drive import (
+            CloudInitAttachedDrive,
+        )
         from ..models.lint_report import LintReport
 
         d = dict(src_dict)
@@ -90,9 +88,9 @@ class CloudInitApplyResult:
 
         iso_name = d.pop("isoName")
 
-        volume_label = check_cloud_init_apply_result_volume_label(d.pop("volumeLabel"))
+        volume_label = CloudInitApplyResultVolumeLabel(d.pop("volumeLabel"))
 
-        format_ = check_cloud_init_apply_result_format(d.pop("format"))
+        format_ = CloudInitApplyResultFormat(d.pop("format"))
 
         storage = d.pop("storage")
 

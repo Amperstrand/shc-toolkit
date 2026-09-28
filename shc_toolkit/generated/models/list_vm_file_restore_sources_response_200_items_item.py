@@ -10,7 +10,6 @@ from typing_extensions import Self
 
 from ..models.list_vm_file_restore_sources_response_200_items_item_kind import (
     ListVmFileRestoreSourcesResponse200ItemsItemKind,
-    check_list_vm_file_restore_sources_response_200_items_item_kind,
 )
 from ..types import UNSET, Unset
 
@@ -37,7 +36,7 @@ class ListVmFileRestoreSourcesResponse200ItemsItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind: str = self.kind
+        kind = self.kind.value
 
         backup_id = self.backup_id
 
@@ -111,9 +110,7 @@ class ListVmFileRestoreSourcesResponse200ItemsItem:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = check_list_vm_file_restore_sources_response_200_items_item_kind(
-            d.pop("kind")
-        )
+        kind = ListVmFileRestoreSourcesResponse200ItemsItemKind(d.pop("kind"))
 
         backup_id = d.pop("backup_id")
 

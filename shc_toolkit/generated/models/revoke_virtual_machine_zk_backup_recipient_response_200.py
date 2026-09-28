@@ -32,7 +32,9 @@ class RevokeVirtualMachineZkBackupRecipientResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.zk_backup_status_envelope import ZkBackupStatusEnvelope
+        from ..models.zk_backup_status_envelope import (
+            ZkBackupStatusEnvelope,
+        )
 
         d = dict(src_dict)
         data = ZkBackupStatusEnvelope.from_dict(d.pop("data"))

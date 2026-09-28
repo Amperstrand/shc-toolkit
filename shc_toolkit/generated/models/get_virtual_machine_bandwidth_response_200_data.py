@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.get_virtual_machine_bandwidth_response_200_data_count_direction import (
     GetVirtualMachineBandwidthResponse200DataCountDirection,
-    check_get_virtual_machine_bandwidth_response_200_data_count_direction,
 )
 
 T = TypeVar("T", bound="GetVirtualMachineBandwidthResponse200Data")
@@ -35,7 +34,7 @@ class GetVirtualMachineBandwidthResponse200Data:
 
         limit_gb = self.limit_gb
 
-        count_direction: str = self.count_direction
+        count_direction = self.count_direction.value
 
         as_of: None | str
         if isinstance(self.as_of, datetime.datetime):
@@ -73,10 +72,8 @@ class GetVirtualMachineBandwidthResponse200Data:
 
         limit_gb = d.pop("limit_gb")
 
-        count_direction = (
-            check_get_virtual_machine_bandwidth_response_200_data_count_direction(
-                d.pop("count_direction")
-            )
+        count_direction = GetVirtualMachineBandwidthResponse200DataCountDirection(
+            d.pop("count_direction")
         )
 
         def _parse_as_of(data: object) -> datetime.datetime | None:

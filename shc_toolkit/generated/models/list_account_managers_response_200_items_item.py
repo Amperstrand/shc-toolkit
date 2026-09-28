@@ -8,15 +8,12 @@ from typing_extensions import Self
 
 from ..models.list_account_managers_response_200_items_item_status_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType1,
-    check_list_account_managers_response_200_items_item_status_type_1,
 )
 from ..models.list_account_managers_response_200_items_item_status_type_2_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType2Type1,
-    check_list_account_managers_response_200_items_item_status_type_2_type_1,
 )
 from ..models.list_account_managers_response_200_items_item_status_type_3_type_1 import (
     ListAccountManagersResponse200ItemsItemStatusType3Type1,
-    check_list_account_managers_response_200_items_item_status_type_3_type_1,
 )
 from ..types import UNSET, Unset
 
@@ -45,11 +42,15 @@ class ListAccountManagersResponse200ItemsItem:
 
         status: None | str
         if (
-            isinstance(self.status, str)
-            or isinstance(self.status, str)
-            or isinstance(self.status, str)
+            isinstance(self.status, ListAccountManagersResponse200ItemsItemStatusType1)
+            or isinstance(
+                self.status, ListAccountManagersResponse200ItemsItemStatusType2Type1
+            )
+            or isinstance(
+                self.status, ListAccountManagersResponse200ItemsItemStatusType3Type1
+            )
         ):
-            status = self.status
+            status = self.status.value
         else:
             status = self.status
 
@@ -131,11 +132,7 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_1 = (
-                    check_list_account_managers_response_200_items_item_status_type_1(
-                        data
-                    )
-                )
+                status_type_1 = ListAccountManagersResponse200ItemsItemStatusType1(data)
 
                 return status_type_1
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -143,8 +140,8 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_2_type_1 = check_list_account_managers_response_200_items_item_status_type_2_type_1(
-                    data
+                status_type_2_type_1 = (
+                    ListAccountManagersResponse200ItemsItemStatusType2Type1(data)
                 )
 
                 return status_type_2_type_1
@@ -153,8 +150,8 @@ class ListAccountManagersResponse200ItemsItem:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                status_type_3_type_1 = check_list_account_managers_response_200_items_item_status_type_3_type_1(
-                    data
+                status_type_3_type_1 = (
+                    ListAccountManagersResponse200ItemsItemStatusType3Type1(data)
                 )
 
                 return status_type_3_type_1

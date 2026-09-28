@@ -7,10 +7,7 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.zk_backup_recipient_status_kind import (
-    ZkBackupRecipientStatusKind,
-    check_zk_backup_recipient_status_kind,
-)
+from ..models.zk_backup_recipient_status_kind import ZkBackupRecipientStatusKind
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ZkBackupRecipientStatus")
@@ -34,7 +31,7 @@ class ZkBackupRecipientStatus:
     reader_id: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        kind: str = self.kind
+        kind = self.kind.value
 
         label = self.label
 
@@ -97,7 +94,7 @@ class ZkBackupRecipientStatus:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        kind = check_zk_backup_recipient_status_kind(d.pop("kind"))
+        kind = ZkBackupRecipientStatusKind(d.pop("kind"))
 
         label = d.pop("label")
 

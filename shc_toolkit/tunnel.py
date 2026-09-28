@@ -51,10 +51,38 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _CF_BINARY_PATHS = [
-    "/tmp/cf-binary",  # nosec B108 — intentional cloudflared cache location
     "/usr/local/bin/cloudflared",
     os.path.expanduser("~/.local/bin/cloudflared"),
 ]
+
+_CLOUDFLARED_URL = (
+    "https://github.com/cloudflare/cloudflared/releases/latest/download/"
+    "cloudflared-linux-amd64"
+)
+
+
+def _cloudflared_cache_dir() -> str:
+    """User-owned cache dir for the downloaded cloudflared binary.
+
+    A world-writable location (e.g. /tmp) lets another local user plant or
+    replace an executable that connect_local() would then run with this
+    user's privileges (PR #33 review: arbitrary code execution). The cache
+    is created 0700 and validated for ownership and permissions before any
+    binary in it is trusted.
+    """
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+    cache = os.path.join(base, "shc-toolkit")
+    os.makedirs(cache, mode=0o700, exist_ok=True)
+    st = os.stat(cache)
+    if st.st_uid != os.geteuid():
+        raise TunnelError(
+            f"cloudflared cache dir {cache} is not owned by the current user — refusing to use it"
+        )
+    if st.st_mode & 0o022:
+        raise TunnelError(
+            f"cloudflared cache dir {cache} is group/world-writable — refusing to use it"
+        )
+    return cache
 
 
 class TunnelError(Exception):
@@ -390,25 +418,28 @@ def _check_ssh(
 
 
 def _find_cloudflared() -> str:
-    """Find or download the cloudflared binary."""
-    for path in _CF_BINARY_PATHS:
+    """Find or download the cloudflared binary.
+
+    Search order: system installs, then the validated user cache. The
+    download lands in the user-owned cache dir via an atomic
+    temp-file-and-rename — never in a shared directory where another
+    local user could plant or swap the executable that connect_local()
+    runs (PR #33 review).
+    """
+    cached = os.path.join(_cloudflared_cache_dir(), "cloudflared")
+    for path in [*_CF_BINARY_PATHS, cached]:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
-    path = "/tmp/cf-binary"  # nosec B108 — intentional cloudflared cache location
-    log.info("Downloading cloudflared binary...")
+    log.info("Downloading cloudflared binary to %s ...", cached)
+    partial = cached + ".download"
     subprocess.run(
-        [
-            "wget",
-            "-q",
-            "-O",
-            path,
-            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64",
-        ],
+        ["wget", "-q", "-O", partial, _CLOUDFLARED_URL],
         check=True,
         timeout=60,
     )
-    subprocess.run(["chmod", "+x", path], check=True)
-    return path
+    os.chmod(partial, 0o700)
+    os.replace(partial, cached)
+    return cached
 
 
 def ensure_ssh_access(

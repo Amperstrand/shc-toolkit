@@ -75,7 +75,9 @@ class RegisterResponseData:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.register_api_key import RegisterApiKey
-        from ..models.register_response_data_next import RegisterResponseDataNext
+        from ..models.register_response_data_next import (
+            RegisterResponseDataNext,
+        )
 
         d = dict(src_dict)
         client_id = d.pop("client_id")

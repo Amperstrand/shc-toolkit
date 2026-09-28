@@ -9,11 +9,9 @@ from typing_extensions import Self
 
 from ..models.list_support_tickets_response_200_items_item_priority import (
     ListSupportTicketsResponse200ItemsItemPriority,
-    check_list_support_tickets_response_200_items_item_priority,
 )
 from ..models.list_support_tickets_response_200_items_item_status import (
     ListSupportTicketsResponse200ItemsItemStatus,
-    check_list_support_tickets_response_200_items_item_status,
 )
 from ..types import UNSET, Unset
 
@@ -43,9 +41,9 @@ class ListSupportTicketsResponse200ItemsItem:
         summary: None | str
         summary = self.summary
 
-        priority: str = self.priority
+        priority = self.priority.value
 
-        status: str = self.status
+        status = self.status.value
 
         replies_count = self.replies_count
 
@@ -111,13 +109,9 @@ class ListSupportTicketsResponse200ItemsItem:
 
         summary = _parse_summary(d.pop("summary"))
 
-        priority = check_list_support_tickets_response_200_items_item_priority(
-            d.pop("priority")
-        )
+        priority = ListSupportTicketsResponse200ItemsItemPriority(d.pop("priority"))
 
-        status = check_list_support_tickets_response_200_items_item_status(
-            d.pop("status")
-        )
+        status = ListSupportTicketsResponse200ItemsItemStatus(d.pop("status"))
 
         replies_count = d.pop("replies_count")
 

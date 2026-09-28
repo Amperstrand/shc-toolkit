@@ -95,7 +95,9 @@ class AgentSessionAuditRecord:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.agent_session_audit_record_data import AgentSessionAuditRecordData
+        from ..models.agent_session_audit_record_data import (
+            AgentSessionAuditRecordData,
+        )
 
         d = dict(src_dict)
         audit_id = d.pop("auditId")

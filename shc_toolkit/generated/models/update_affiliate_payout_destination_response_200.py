@@ -34,7 +34,9 @@ class UpdateAffiliatePayoutDestinationResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.affiliate_payout_destination import AffiliatePayoutDestination
+        from ..models.affiliate_payout_destination import (
+            AffiliatePayoutDestination,
+        )
 
         d = dict(src_dict)
         data = AffiliatePayoutDestination.from_dict(d.pop("data"))

@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.vm_upgrade_preview_response_applies import (
-    VmUpgradePreviewResponseApplies,
-    check_vm_upgrade_preview_response_applies,
-)
+from ..models.vm_upgrade_preview_response_applies import VmUpgradePreviewResponseApplies
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -59,7 +56,7 @@ class VmUpgradePreviewResponse:
 
         currency = self.currency
 
-        applies: str = self.applies
+        applies = self.applies.value
 
         discounts: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.discounts, Unset):
@@ -96,7 +93,9 @@ class VmUpgradePreviewResponse:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_upgrade_preview_line import VmUpgradePreviewLine
+        from ..models.vm_upgrade_preview_line import (
+            VmUpgradePreviewLine,
+        )
 
         d = dict(src_dict)
         service_id = d.pop("service_id")
@@ -116,7 +115,7 @@ class VmUpgradePreviewResponse:
 
         currency = d.pop("currency")
 
-        applies = check_vm_upgrade_preview_response_applies(d.pop("applies"))
+        applies = VmUpgradePreviewResponseApplies(d.pop("applies"))
 
         _discounts = d.pop("discounts", UNSET)
         discounts: list[VmUpgradePreviewLine] | Unset = UNSET

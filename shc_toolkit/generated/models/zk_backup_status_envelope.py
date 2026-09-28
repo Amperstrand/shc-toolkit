@@ -42,7 +42,9 @@ class ZkBackupStatusEnvelope:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.zk_backup_recipient_set_status import ZkBackupRecipientSetStatus
+        from ..models.zk_backup_recipient_set_status import (
+            ZkBackupRecipientSetStatus,
+        )
 
         d = dict(src_dict)
         service_id = d.pop("service_id")

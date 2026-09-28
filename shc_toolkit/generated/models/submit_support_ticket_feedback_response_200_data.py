@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.submit_support_ticket_feedback_response_200_data_status import (
     SubmitSupportTicketFeedbackResponse200DataStatus,
-    check_submit_support_ticket_feedback_response_200_data_status,
 )
 
 T = TypeVar("T", bound="SubmitSupportTicketFeedbackResponse200Data")
@@ -31,7 +30,7 @@ class SubmitSupportTicketFeedbackResponse200Data:
 
         code = self.code
 
-        status: str = self.status
+        status = self.status.value
 
         rating = self.rating
 
@@ -59,9 +58,7 @@ class SubmitSupportTicketFeedbackResponse200Data:
 
         code = d.pop("code")
 
-        status = check_submit_support_ticket_feedback_response_200_data_status(
-            d.pop("status")
-        )
+        status = SubmitSupportTicketFeedbackResponse200DataStatus(d.pop("status"))
 
         rating = d.pop("rating")
 

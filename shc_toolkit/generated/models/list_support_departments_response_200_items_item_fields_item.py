@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.list_support_departments_response_200_items_item_fields_item_type import (
     ListSupportDepartmentsResponse200ItemsItemFieldsItemType,
-    check_list_support_departments_response_200_items_item_fields_item_type,
 )
 from ..types import UNSET, Unset
 
@@ -30,7 +29,7 @@ class ListSupportDepartmentsResponse200ItemsItemFieldsItem:
 
         label = self.label
 
-        type_: str = self.type_
+        type_ = self.type_.value
 
         required = self.required
 
@@ -73,9 +72,7 @@ class ListSupportDepartmentsResponse200ItemsItemFieldsItem:
 
         label = d.pop("label")
 
-        type_ = check_list_support_departments_response_200_items_item_fields_item_type(
-            d.pop("type")
-        )
+        type_ = ListSupportDepartmentsResponse200ItemsItemFieldsItemType(d.pop("type"))
 
         required = d.pop("required")
 

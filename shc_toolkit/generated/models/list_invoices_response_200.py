@@ -40,7 +40,9 @@ class ListInvoicesResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.account_invoice_summary import AccountInvoiceSummary
+        from ..models.account_invoice_summary import (
+            AccountInvoiceSummary,
+        )
         from ..models.pagination import Pagination
 
         d = dict(src_dict)

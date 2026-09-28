@@ -36,7 +36,9 @@ class BatchSubResponse:
     """ RFC 9457 problem detail envelope. Error responses use application/problem+json only. """
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.batch_sub_response_body_type_0 import BatchSubResponseBodyType0
+        from ..models.batch_sub_response_body_type_0 import (
+            BatchSubResponseBodyType0,
+        )
 
         id: None | str
         id = self.id
@@ -81,11 +83,15 @@ class BatchSubResponse:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.batch_sub_response_body_type_0 import BatchSubResponseBodyType0
+        from ..models.batch_sub_response_body_type_0 import (
+            BatchSubResponseBodyType0,
+        )
         from ..models.batch_sub_response_body_type_1_item import (
             BatchSubResponseBodyType1Item,
         )
-        from ..models.batch_sub_response_headers import BatchSubResponseHeaders
+        from ..models.batch_sub_response_headers import (
+            BatchSubResponseHeaders,
+        )
         from ..models.problem import Problem
 
         d = dict(src_dict)

@@ -32,7 +32,9 @@ class GetQuotationResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.get_quotation_response_200_data import GetQuotationResponse200Data
+        from ..models.get_quotation_response_200_data import (
+            GetQuotationResponse200Data,
+        )
 
         d = dict(src_dict)
         data = GetQuotationResponse200Data.from_dict(d.pop("data"))

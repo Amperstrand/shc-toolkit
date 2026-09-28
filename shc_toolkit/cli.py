@@ -1988,7 +1988,10 @@ def main():
     )
     p.add_argument("service_id", type=int)
     p.add_argument("command", help="command to type into the console")
-    p.add_argument("--login-user", help="console login user (e.g. root; requires cloud-init-set password)")
+    p.add_argument(
+        "--login-user",
+        help="console login user (e.g. root; requires cloud-init-set password)",
+    )
     p.add_argument("--login-password", help="console login password")
     p.add_argument("--ttl", type=int, default=120, help="console session TTL")
     p.set_defaults(func=cmd_console_command)

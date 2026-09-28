@@ -35,7 +35,9 @@ class GetContactPermissionOptionsResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.permission_options_envelope import PermissionOptionsEnvelope
+        from ..models.permission_options_envelope import (
+            PermissionOptionsEnvelope,
+        )
 
         d = dict(src_dict)
         data = PermissionOptionsEnvelope.from_dict(d.pop("data"))

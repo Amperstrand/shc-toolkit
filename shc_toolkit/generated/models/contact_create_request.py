@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.contact_create_request_contact_type_type_0 import (
     ContactCreateRequestContactTypeType0,
-    check_contact_create_request_contact_type_type_0,
 )
 from ..types import UNSET, Unset
 
@@ -27,7 +26,9 @@ class ContactCreateRequest:
     first_name: str
     last_name: str
     email: str
-    contact_type: ContactCreateRequestContactTypeType0 | int | Unset = "billing"
+    contact_type: ContactCreateRequestContactTypeType0 | int | Unset = (
+        ContactCreateRequestContactTypeType0.BILLING
+    )
     """ Non-primary contact type: 'billing' (default), 'other', or a numeric custom contact-type id (stored as
     'other'). """
     title: str | Unset = UNSET
@@ -66,8 +67,8 @@ class ContactCreateRequest:
         contact_type: int | str | Unset
         if isinstance(self.contact_type, Unset):
             contact_type = UNSET
-        elif isinstance(self.contact_type, str):
-            contact_type = self.contact_type
+        elif isinstance(self.contact_type, ContactCreateRequestContactTypeType0):
+            contact_type = self.contact_type.value
         else:
             contact_type = self.contact_type
 
@@ -160,9 +161,7 @@ class ContactCreateRequest:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                contact_type_type_0 = check_contact_create_request_contact_type_type_0(
-                    data
-                )
+                contact_type_type_0 = ContactCreateRequestContactTypeType0(data)
 
                 return contact_type_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

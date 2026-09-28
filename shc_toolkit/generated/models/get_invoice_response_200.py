@@ -33,7 +33,9 @@ class GetInvoiceResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.account_invoice_detail import AccountInvoiceDetail
+        from ..models.account_invoice_detail import (
+            AccountInvoiceDetail,
+        )
 
         d = dict(src_dict)
         data = AccountInvoiceDetail.from_dict(d.pop("data"))

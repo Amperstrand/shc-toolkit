@@ -1,17 +1,10 @@
-from typing import Literal
-
-VmFirewallActionsItem = Literal["ACCEPT", "DROP", "REJECT"]
-
-VM_FIREWALL_ACTIONS_ITEM_VALUES: set[VmFirewallActionsItem] = {
-    "ACCEPT",
-    "DROP",
-    "REJECT",
-}
+from enum import StrEnum
 
 
-def check_vm_firewall_actions_item(value: str) -> VmFirewallActionsItem:
-    if value in VM_FIREWALL_ACTIONS_ITEM_VALUES:
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {VM_FIREWALL_ACTIONS_ITEM_VALUES!r}"
-    )
+class VmFirewallActionsItem(StrEnum):
+    ACCEPT = "ACCEPT"
+    DROP = "DROP"
+    REJECT = "REJECT"
+
+    def __str__(self) -> str:
+        return str(self.value)

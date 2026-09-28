@@ -34,7 +34,9 @@ class UpdateNip05Response200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.update_nip_05_response_200_data import UpdateNip05Response200Data
+        from ..models.update_nip_05_response_200_data import (
+            UpdateNip05Response200Data,
+        )
 
         d = dict(src_dict)
         data = UpdateNip05Response200Data.from_dict(d.pop("data"))

@@ -36,7 +36,9 @@ class DeleteManagerResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.manager_delete_response import ManagerDeleteResponse
+        from ..models.manager_delete_response import (
+            ManagerDeleteResponse,
+        )
 
         d = dict(src_dict)
         data = ManagerDeleteResponse.from_dict(d.pop("data"))

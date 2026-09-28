@@ -9,9 +9,7 @@ from ...models.error import Error
 from ...models.list_affiliate_payouts_response_200 import (
     ListAffiliatePayoutsResponse200,
 )
-from ...models.list_affiliate_payouts_status import (
-    ListAffiliatePayoutsStatus,
-)
+from ...models.list_affiliate_payouts_status import ListAffiliatePayoutsStatus
 from ...types import UNSET, Response, Unset
 
 
@@ -30,7 +28,7 @@ def _get_kwargs(
 
     json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
-        json_status = status
+        json_status = status.value
 
     params["status"] = json_status
 

@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.payment_checkout_request_gateway import (
-    PaymentCheckoutRequestGateway,
-    check_payment_checkout_request_gateway,
-)
+from ..models.payment_checkout_request_gateway import PaymentCheckoutRequestGateway
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -34,7 +31,9 @@ class PaymentCheckoutRequest:
     idempotency_key: str
     """ Invoice-scoped idempotency key. Reuse the same value with the same body to replay the original response for
     this invoice. """
-    gateway: PaymentCheckoutRequestGateway | Unset = "btcpay_server"
+    gateway: PaymentCheckoutRequestGateway | Unset = (
+        PaymentCheckoutRequestGateway.BTCPAY_SERVER
+    )
     """ Gateway class selector. Only the enabled BTCPay nonmerchant gateway is currently accepted; other values
     return 400. """
     return_url: None | str | Unset = UNSET
@@ -64,7 +63,7 @@ class PaymentCheckoutRequest:
 
         gateway: str | Unset = UNSET
         if not isinstance(self.gateway, Unset):
-            gateway = self.gateway
+            gateway = self.gateway.value
 
         return_url: None | str | Unset
         if isinstance(self.return_url, Unset):
@@ -116,7 +115,7 @@ class PaymentCheckoutRequest:
         if isinstance(_gateway, Unset):
             gateway = UNSET
         else:
-            gateway = check_payment_checkout_request_gateway(_gateway)
+            gateway = PaymentCheckoutRequestGateway(_gateway)
 
         def _parse_return_url(data: object) -> None | str | Unset:
             if data is None:

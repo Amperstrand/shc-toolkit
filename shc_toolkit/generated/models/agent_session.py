@@ -7,11 +7,8 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.agent_session_proof_of_possession import (
-    AgentSessionProofOfPossession,
-    check_agent_session_proof_of_possession,
-)
-from ..models.agent_session_scope import AgentSessionScope, check_agent_session_scope
+from ..models.agent_session_proof_of_possession import AgentSessionProofOfPossession
+from ..models.agent_session_scope import AgentSessionScope
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="AgentSession")
@@ -43,9 +40,9 @@ class AgentSession:
 
         key_prefix = self.key_prefix
 
-        scope: str = self.scope
+        scope = self.scope.value
 
-        proof_of_possession: str = self.proof_of_possession
+        proof_of_possession = self.proof_of_possession.value
 
         created_at = self.created_at.isoformat()
 
@@ -107,11 +104,9 @@ class AgentSession:
 
         key_prefix = d.pop("keyPrefix")
 
-        scope = check_agent_session_scope(d.pop("scope"))
+        scope = AgentSessionScope(d.pop("scope"))
 
-        proof_of_possession = check_agent_session_proof_of_possession(
-            d.pop("proofOfPossession")
-        )
+        proof_of_possession = AgentSessionProofOfPossession(d.pop("proofOfPossession"))
 
         created_at = datetime.datetime.fromisoformat(d.pop("createdAt"))
 

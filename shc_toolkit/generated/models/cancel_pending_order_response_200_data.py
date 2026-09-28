@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.cancel_pending_order_response_200_data_status import (
     CancelPendingOrderResponse200DataStatus,
-    check_cancel_pending_order_response_200_data_status,
 )
 
 T = TypeVar("T", bound="CancelPendingOrderResponse200Data")
@@ -31,7 +30,7 @@ class CancelPendingOrderResponse200Data:
 
         order_number = self.order_number
 
-        status: str = self.status
+        status = self.status.value
 
         invoice_id = self.invoice_id
 
@@ -62,7 +61,7 @@ class CancelPendingOrderResponse200Data:
 
         order_number = d.pop("order_number")
 
-        status = check_cancel_pending_order_response_200_data_status(d.pop("status"))
+        status = CancelPendingOrderResponse200DataStatus(d.pop("status"))
 
         invoice_id = d.pop("invoice_id")
 

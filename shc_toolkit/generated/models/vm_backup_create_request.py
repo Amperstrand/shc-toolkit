@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.vm_backup_create_request_mode import (
-    VmBackupCreateRequestMode,
-    check_vm_backup_create_request_mode,
-)
+from ..models.vm_backup_create_request_mode import VmBackupCreateRequestMode
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -54,7 +51,7 @@ class VmBackupCreateRequest:
 
         mode: str | Unset = UNSET
         if not isinstance(self.mode, Unset):
-            mode = self.mode
+            mode = self.mode.value
 
         encryption_key = self.encryption_key
 
@@ -92,7 +89,7 @@ class VmBackupCreateRequest:
         if isinstance(_mode, Unset):
             mode = UNSET
         else:
-            mode = check_vm_backup_create_request_mode(_mode)
+            mode = VmBackupCreateRequestMode(_mode)
 
         encryption_key = d.pop("encryption_key", UNSET)
 

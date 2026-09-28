@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.invoice_status import InvoiceStatus, check_invoice_status
+from ..models.invoice_status import InvoiceStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ class AccountInvoiceDetail:
 
         id_code = self.id_code
 
-        invoice_status: str = self.invoice_status
+        invoice_status = self.invoice_status.value
 
         subtotal = self.subtotal
 
@@ -121,7 +121,7 @@ class AccountInvoiceDetail:
 
         id_code = d.pop("id_code")
 
-        invoice_status = check_invoice_status(d.pop("invoice_status"))
+        invoice_status = InvoiceStatus(d.pop("invoice_status"))
 
         subtotal = d.pop("subtotal")
 

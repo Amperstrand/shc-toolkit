@@ -6,10 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.cloud_init_attached_drive_media import (
-    CloudInitAttachedDriveMedia,
-    check_cloud_init_attached_drive_media,
-)
+from ..models.cloud_init_attached_drive_media import CloudInitAttachedDriveMedia
 
 T = TypeVar("T", bound="CloudInitAttachedDrive")
 
@@ -25,7 +22,7 @@ class CloudInitAttachedDrive:
 
         volid = self.volid
 
-        media: str = self.media
+        media = self.media.value
 
         field_dict: dict[str, Any] = {}
 
@@ -46,7 +43,7 @@ class CloudInitAttachedDrive:
 
         volid = d.pop("volid")
 
-        media = check_cloud_init_attached_drive_media(d.pop("media"))
+        media = CloudInitAttachedDriveMedia(d.pop("media"))
 
         cloud_init_attached_drive = cls(
             drive=drive,

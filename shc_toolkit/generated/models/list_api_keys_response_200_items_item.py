@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.list_api_keys_response_200_items_item_scope import (
     ListApiKeysResponse200ItemsItemScope,
-    check_list_api_keys_response_200_items_item_scope,
 )
 from ..types import UNSET, Unset
 
@@ -40,7 +39,7 @@ class ListApiKeysResponse200ItemsItem:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope
+            scope = self.scope.value
 
         key_prefix = self.key_prefix
 
@@ -97,7 +96,7 @@ class ListApiKeysResponse200ItemsItem:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = check_list_api_keys_response_200_items_item_scope(_scope)
+            scope = ListApiKeysResponse200ItemsItemScope(_scope)
 
         key_prefix = d.pop("key_prefix", UNSET)
 

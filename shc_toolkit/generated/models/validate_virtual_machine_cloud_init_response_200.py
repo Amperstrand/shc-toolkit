@@ -32,7 +32,9 @@ class ValidateVirtualMachineCloudInitResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cloud_init_validate_result import CloudInitValidateResult
+        from ..models.cloud_init_validate_result import (
+            CloudInitValidateResult,
+        )
 
         d = dict(src_dict)
         data = CloudInitValidateResult.from_dict(d.pop("data"))

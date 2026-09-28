@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from ..models.vm_ssh_key_apply_live_response_live_inject import (
     VmSshKeyApplyLiveResponseLiveInject,
-    check_vm_ssh_key_apply_live_response_live_inject,
 )
 
 T = TypeVar("T", bound="VmSshKeyApplyLiveResponse")
@@ -32,7 +31,7 @@ class VmSshKeyApplyLiveResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        live_inject: str = self.live_inject
+        live_inject = self.live_inject.value
 
         key_fingerprint: None | str
         key_fingerprint = self.key_fingerprint
@@ -54,9 +53,7 @@ class VmSshKeyApplyLiveResponse:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        live_inject = check_vm_ssh_key_apply_live_response_live_inject(
-            d.pop("live_inject")
-        )
+        live_inject = VmSshKeyApplyLiveResponseLiveInject(d.pop("live_inject"))
 
         def _parse_key_fingerprint(data: object) -> None | str:
             if data is None:

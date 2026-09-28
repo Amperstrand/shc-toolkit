@@ -7,7 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.runtime_status import RuntimeStatus, check_runtime_status
+from ..models.runtime_status import RuntimeStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class VmActionResponse:
 
         action = self.action
 
-        runtime_status: str = self.runtime_status
+        runtime_status = self.runtime_status.value
 
         confirmed = self.confirmed
 
@@ -44,7 +44,7 @@ class VmActionResponse:
 
         expected_runtime_status: str | Unset = UNSET
         if not isinstance(self.expected_runtime_status, Unset):
-            expected_runtime_status = self.expected_runtime_status
+            expected_runtime_status = self.expected_runtime_status.value
 
         next_: dict[str, Any] | Unset = UNSET
         if not isinstance(self.next_, Unset):
@@ -77,7 +77,7 @@ class VmActionResponse:
 
         action = d.pop("action")
 
-        runtime_status = check_runtime_status(d.pop("runtime_status"))
+        runtime_status = RuntimeStatus(d.pop("runtime_status"))
 
         confirmed = d.pop("confirmed")
 
@@ -88,7 +88,7 @@ class VmActionResponse:
         if isinstance(_expected_runtime_status, Unset):
             expected_runtime_status = UNSET
         else:
-            expected_runtime_status = check_runtime_status(_expected_runtime_status)
+            expected_runtime_status = RuntimeStatus(_expected_runtime_status)
 
         _next_ = d.pop("next", UNSET)
         next_: NextVerify | Unset

@@ -8,7 +8,6 @@ from typing_extensions import Self
 
 from ..models.affiliate_program_terms_commission_type import (
     AffiliateProgramTermsCommissionType,
-    check_affiliate_program_terms_commission_type,
 )
 from ..types import UNSET, Unset
 
@@ -33,7 +32,7 @@ class AffiliateProgramTerms:
     """ Days before a referral commission matures. """
 
     def to_dict(self) -> dict[str, Any]:
-        commission_type: str = self.commission_type
+        commission_type = self.commission_type.value
 
         commission_amount = self.commission_amount
 
@@ -67,9 +66,7 @@ class AffiliateProgramTerms:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        commission_type = check_affiliate_program_terms_commission_type(
-            d.pop("commission_type")
-        )
+        commission_type = AffiliateProgramTermsCommissionType(d.pop("commission_type"))
 
         commission_amount = d.pop("commission_amount")
 

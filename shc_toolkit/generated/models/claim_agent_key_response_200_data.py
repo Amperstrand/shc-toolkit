@@ -10,7 +10,6 @@ from typing_extensions import Self
 
 from ..models.claim_agent_key_response_200_data_scope import (
     ClaimAgentKeyResponse200DataScope,
-    check_claim_agent_key_response_200_data_scope,
 )
 from ..types import UNSET, Unset
 
@@ -34,7 +33,7 @@ class ClaimAgentKeyResponse200Data:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope
+            scope = self.scope.value
 
         expires_at: None | str | Unset
         if isinstance(self.expires_at, Unset):
@@ -70,7 +69,7 @@ class ClaimAgentKeyResponse200Data:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = check_claim_agent_key_response_200_data_scope(_scope)
+            scope = ClaimAgentKeyResponse200DataScope(_scope)
 
         def _parse_expires_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:

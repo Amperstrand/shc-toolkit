@@ -11,9 +11,9 @@ T = TypeVar("T", bound="CloudInitRequest")
 
 @_attrs_define
 class CloudInitRequest:
-    r"""
+    """
     Example:
-        {'cloudInit': '#cloud-config\npackage_update: true\n'}
+        {'cloudInit': '#cloud-config\\npackage_update: true\\n'}
 
     """
 

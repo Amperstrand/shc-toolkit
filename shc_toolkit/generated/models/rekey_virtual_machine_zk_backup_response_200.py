@@ -37,7 +37,9 @@ class RekeyVirtualMachineZkBackupResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.cancel_vm_response_data import CancelVmResponseData
+        from ..models.cancel_vm_response_data import (
+            CancelVmResponseData,
+        )
 
         d = dict(src_dict)
         data = CancelVmResponseData.from_dict(d.pop("data"))

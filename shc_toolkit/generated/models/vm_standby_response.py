@@ -6,18 +6,9 @@ from typing import Any, TypeVar, cast
 from attrs import define as _attrs_define
 from typing_extensions import Self
 
-from ..models.vm_standby_response_ip_disposition import (
-    VmStandbyResponseIpDisposition,
-    check_vm_standby_response_ip_disposition,
-)
-from ..models.vm_standby_response_lifecycle_state import (
-    VmStandbyResponseLifecycleState,
-    check_vm_standby_response_lifecycle_state,
-)
-from ..models.vm_standby_response_state import (
-    VmStandbyResponseState,
-    check_vm_standby_response_state,
-)
+from ..models.vm_standby_response_ip_disposition import VmStandbyResponseIpDisposition
+from ..models.vm_standby_response_lifecycle_state import VmStandbyResponseLifecycleState
+from ..models.vm_standby_response_state import VmStandbyResponseState
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="VmStandbyResponse")
@@ -38,15 +29,15 @@ class VmStandbyResponse:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        state: str = self.state
+        state = self.state.value
 
-        lifecycle_state: str = self.lifecycle_state
+        lifecycle_state = self.lifecycle_state.value
 
         standby_recurring = self.standby_recurring
 
         park_credit = self.park_credit
 
-        ip_disposition: str = self.ip_disposition
+        ip_disposition = self.ip_disposition.value
 
         keep_ip = self.keep_ip
 
@@ -87,19 +78,15 @@ class VmStandbyResponse:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        state = check_vm_standby_response_state(d.pop("state"))
+        state = VmStandbyResponseState(d.pop("state"))
 
-        lifecycle_state = check_vm_standby_response_lifecycle_state(
-            d.pop("lifecycle_state")
-        )
+        lifecycle_state = VmStandbyResponseLifecycleState(d.pop("lifecycle_state"))
 
         standby_recurring = d.pop("standby_recurring")
 
         park_credit = d.pop("park_credit")
 
-        ip_disposition = check_vm_standby_response_ip_disposition(
-            d.pop("ip_disposition")
-        )
+        ip_disposition = VmStandbyResponseIpDisposition(d.pop("ip_disposition"))
 
         keep_ip = d.pop("keep_ip")
 

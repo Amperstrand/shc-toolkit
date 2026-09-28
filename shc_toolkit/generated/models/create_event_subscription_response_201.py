@@ -33,7 +33,9 @@ class CreateEventSubscriptionResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.event_subscription_created import EventSubscriptionCreated
+        from ..models.event_subscription_created import (
+            EventSubscriptionCreated,
+        )
 
         d = dict(src_dict)
         data = EventSubscriptionCreated.from_dict(d.pop("data"))

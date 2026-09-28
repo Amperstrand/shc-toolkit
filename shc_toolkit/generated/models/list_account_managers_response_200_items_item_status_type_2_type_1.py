@@ -1,26 +1,10 @@
-from typing import Literal
-
-ListAccountManagersResponse200ItemsItemStatusType2Type1 = Literal[
-    "active", "invalid", "pending"
-]
-
-LIST_ACCOUNT_MANAGERS_RESPONSE_200_ITEMS_ITEM_STATUS_TYPE_2_TYPE_1_VALUES: set[
-    ListAccountManagersResponse200ItemsItemStatusType2Type1
-] = {
-    "active",
-    "invalid",
-    "pending",
-}
+from enum import StrEnum
 
 
-def check_list_account_managers_response_200_items_item_status_type_2_type_1(
-    value: str,
-) -> ListAccountManagersResponse200ItemsItemStatusType2Type1:
-    if (
-        value
-        in LIST_ACCOUNT_MANAGERS_RESPONSE_200_ITEMS_ITEM_STATUS_TYPE_2_TYPE_1_VALUES
-    ):
-        return value
-    raise TypeError(
-        f"Unexpected value {value!r}. Expected one of {LIST_ACCOUNT_MANAGERS_RESPONSE_200_ITEMS_ITEM_STATUS_TYPE_2_TYPE_1_VALUES!r}"
-    )
+class ListAccountManagersResponse200ItemsItemStatusType2Type1(StrEnum):
+    ACTIVE = "active"
+    INVALID = "invalid"
+    PENDING = "pending"
+
+    def __str__(self) -> str:
+        return str(self.value)

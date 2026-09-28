@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.vm_order_result_status import (
-    VmOrderResultStatus,
-    check_vm_order_result_status,
-)
+from ..models.vm_order_result_status import VmOrderResultStatus
 
 T = TypeVar("T", bound="VmOrderResult")
 
@@ -32,7 +29,7 @@ class VmOrderResult:
 
         order_number = self.order_number
 
-        status: str = self.status
+        status = self.status.value
 
         order_form_id = self.order_form_id
 
@@ -62,7 +59,7 @@ class VmOrderResult:
 
         order_number = d.pop("order_number")
 
-        status = check_vm_order_result_status(d.pop("status"))
+        status = VmOrderResultStatus(d.pop("status"))
 
         order_form_id = d.pop("order_form_id")
 

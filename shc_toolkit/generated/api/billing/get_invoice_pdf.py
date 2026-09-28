@@ -76,11 +76,11 @@ def sync_detailed(
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error]:
-    r"""Download invoice PDF
+    """Download invoice PDF
 
      Downloads the authenticated client's own invoice as a PDF document. The invoice is rendered server-
     side (TCPDF) and streamed as a binary `application/pdf` attachment — this is a binary download,
-    **not** the standard JSON `{ \"data\": ... }` envelope returned by the other endpoints. Ownership is
+    **not** the standard JSON `{ "data": ... }` envelope returned by the other endpoints. Ownership is
     enforced at the SQL layer (`WHERE i.id = ? AND i.client_id = ?`) before any byte is emitted.
     Reachable with a read-, operate-, or full-scope customer API key whose permitted areas include
     billing (service-scoped keys are not eligible), or with HTTP Basic (plus `X-User-Api-OTP` when 2FA
@@ -118,11 +118,11 @@ def sync(
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | None:
-    r"""Download invoice PDF
+    """Download invoice PDF
 
      Downloads the authenticated client's own invoice as a PDF document. The invoice is rendered server-
     side (TCPDF) and streamed as a binary `application/pdf` attachment — this is a binary download,
-    **not** the standard JSON `{ \"data\": ... }` envelope returned by the other endpoints. Ownership is
+    **not** the standard JSON `{ "data": ... }` envelope returned by the other endpoints. Ownership is
     enforced at the SQL layer (`WHERE i.id = ? AND i.client_id = ?`) before any byte is emitted.
     Reachable with a read-, operate-, or full-scope customer API key whose permitted areas include
     billing (service-scoped keys are not eligible), or with HTTP Basic (plus `X-User-Api-OTP` when 2FA
@@ -155,11 +155,11 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Response[Error]:
-    r"""Download invoice PDF
+    """Download invoice PDF
 
      Downloads the authenticated client's own invoice as a PDF document. The invoice is rendered server-
     side (TCPDF) and streamed as a binary `application/pdf` attachment — this is a binary download,
-    **not** the standard JSON `{ \"data\": ... }` envelope returned by the other endpoints. Ownership is
+    **not** the standard JSON `{ "data": ... }` envelope returned by the other endpoints. Ownership is
     enforced at the SQL layer (`WHERE i.id = ? AND i.client_id = ?`) before any byte is emitted.
     Reachable with a read-, operate-, or full-scope customer API key whose permitted areas include
     billing (service-scoped keys are not eligible), or with HTTP Basic (plus `X-User-Api-OTP` when 2FA
@@ -195,11 +195,11 @@ async def asyncio(
     client: AuthenticatedClient,
     x_user_api_otp: str | Unset = UNSET,
 ) -> Error | None:
-    r"""Download invoice PDF
+    """Download invoice PDF
 
      Downloads the authenticated client's own invoice as a PDF document. The invoice is rendered server-
     side (TCPDF) and streamed as a binary `application/pdf` attachment — this is a binary download,
-    **not** the standard JSON `{ \"data\": ... }` envelope returned by the other endpoints. Ownership is
+    **not** the standard JSON `{ "data": ... }` envelope returned by the other endpoints. Ownership is
     enforced at the SQL layer (`WHERE i.id = ? AND i.client_id = ?`) before any byte is emitted.
     Reachable with a read-, operate-, or full-scope customer API key whose permitted areas include
     billing (service-scoped keys are not eligible), or with HTTP Basic (plus `X-User-Api-OTP` when 2FA

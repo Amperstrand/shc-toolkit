@@ -7,14 +7,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.create_api_key_body_areas_item import (
-    CreateApiKeyBodyAreasItem,
-    check_create_api_key_body_areas_item,
-)
-from ..models.create_api_key_body_scope import (
-    CreateApiKeyBodyScope,
-    check_create_api_key_body_scope,
-)
+from ..models.create_api_key_body_areas_item import CreateApiKeyBodyAreasItem
+from ..models.create_api_key_body_scope import CreateApiKeyBodyScope
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreateApiKeyBody")
@@ -46,7 +40,7 @@ class CreateApiKeyBody:
 
         scope: str | Unset = UNSET
         if not isinstance(self.scope, Unset):
-            scope = self.scope
+            scope = self.scope.value
 
         expires_in_days = self.expires_in_days
 
@@ -54,7 +48,7 @@ class CreateApiKeyBody:
         if not isinstance(self.areas, Unset):
             areas = []
             for areas_item_data in self.areas:
-                areas_item: str = areas_item_data
+                areas_item = areas_item_data.value
                 areas.append(areas_item)
 
         field_dict: dict[str, Any] = {}
@@ -83,7 +77,7 @@ class CreateApiKeyBody:
         if isinstance(_scope, Unset):
             scope = UNSET
         else:
-            scope = check_create_api_key_body_scope(_scope)
+            scope = CreateApiKeyBodyScope(_scope)
 
         expires_in_days = d.pop("expires_in_days", UNSET)
 
@@ -92,7 +86,7 @@ class CreateApiKeyBody:
         if _areas is not UNSET:
             areas = []
             for areas_item_data in _areas:
-                areas_item = check_create_api_key_body_areas_item(areas_item_data)
+                areas_item = CreateApiKeyBodyAreasItem(areas_item_data)
 
                 areas.append(areas_item)
 

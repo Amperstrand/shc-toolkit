@@ -36,7 +36,9 @@ class ApplyLiveServiceSshKeyResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_ssh_key_apply_live_response import VmSshKeyApplyLiveResponse
+        from ..models.vm_ssh_key_apply_live_response import (
+            VmSshKeyApplyLiveResponse,
+        )
 
         d = dict(src_dict)
         data = VmSshKeyApplyLiveResponse.from_dict(d.pop("data"))

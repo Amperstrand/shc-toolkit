@@ -7,10 +7,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.manager_delete_response_status import (
-    ManagerDeleteResponseStatus,
-    check_manager_delete_response_status,
-)
+from ..models.manager_delete_response_status import ManagerDeleteResponseStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ManagerDeleteResponse")
@@ -37,7 +34,7 @@ class ManagerDeleteResponse:
 
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
-            status = self.status
+            status = self.status.value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -65,7 +62,7 @@ class ManagerDeleteResponse:
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = check_manager_delete_response_status(_status)
+            status = ManagerDeleteResponseStatus(_status)
 
         manager_delete_response = cls(
             revoked=revoked,

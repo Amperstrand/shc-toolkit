@@ -34,7 +34,9 @@ class SetServiceSshKeyResponse201:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.ssh_key_stored_response import SshKeyStoredResponse
+        from ..models.ssh_key_stored_response import (
+            SshKeyStoredResponse,
+        )
 
         d = dict(src_dict)
         data = SshKeyStoredResponse.from_dict(d.pop("data"))

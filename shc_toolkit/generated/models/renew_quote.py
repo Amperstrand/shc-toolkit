@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 from typing_extensions import Self
 
-from ..models.service_status import ServiceStatus, check_service_status
+from ..models.service_status import ServiceStatus
 
 T = TypeVar("T", bound="RenewQuote")
 
@@ -36,7 +36,7 @@ class RenewQuote:
     def to_dict(self) -> dict[str, Any]:
         service_id = self.service_id
 
-        service_status: str = self.service_status
+        service_status = self.service_status.value
 
         date_renews: None | str
         if isinstance(self.date_renews, datetime.datetime):
@@ -73,7 +73,7 @@ class RenewQuote:
         d = dict(src_dict)
         service_id = d.pop("service_id")
 
-        service_status = check_service_status(d.pop("service_status"))
+        service_status = ServiceStatus(d.pop("service_status"))
 
         def _parse_date_renews(data: object) -> datetime.datetime | None:
             if data is None:

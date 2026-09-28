@@ -35,7 +35,9 @@ class DeleteLiveServiceSshKeyResponse200:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.vm_ssh_key_delete_live_response import VmSshKeyDeleteLiveResponse
+        from ..models.vm_ssh_key_delete_live_response import (
+            VmSshKeyDeleteLiveResponse,
+        )
 
         d = dict(src_dict)
         data = VmSshKeyDeleteLiveResponse.from_dict(d.pop("data"))
