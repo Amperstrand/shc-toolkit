@@ -20,8 +20,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - run: pip install -e ".[nodns]" -q && pip install pytest -q
-      - run: python -m pytest tests/test_unit.py -v --tb=short
+      - run: pip install -e ".[nodns,generated]" -q && pip install pytest -q
+      - run: python -m pytest tests/test_unit.py tests/test_generated_enum_contract.py tests/test_tunnel_security.py -v --tb=short
 
   smoke-tests:
     name: Read-only smoke tests (no VM creation)
