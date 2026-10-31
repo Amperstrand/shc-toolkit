@@ -89,9 +89,9 @@ from the release's `SHA256SUMS` asset):
 CDK_VERSION=0.18.3
 CDK_SHA256_X86_64=bb7a8b0f1b9c6a164c7e50f931b25c3e6232cdaedbb18df22368ebb0c024b337
 curl -fsSL -o /usr/local/bin/cdk-cli \
-  "https://github.com/cashubtc/cdk/releases/download/v${CDK_VERSION}/cdk-cli-${CDK_VERSION}-x86_64"
-echo "${CDK_SHA256_X86_64}  /usr/local/bin/cdk-cli" | sha256sum -c -
-chmod +x /usr/local/bin/cdk-cli
+  "https://github.com/cashubtc/cdk/releases/download/v${CDK_VERSION}/cdk-cli-${CDK_VERSION}-x86_64" \
+  && echo "${CDK_SHA256_X86_64}  /usr/local/bin/cdk-cli" | sha256sum -c - \
+  && chmod +x /usr/local/bin/cdk-cli
 ```
 
 ### 4. Create the wallet user
