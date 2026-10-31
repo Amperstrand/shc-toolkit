@@ -11,14 +11,16 @@ BINARY_SRC="/tmp/cashu-tollgate"
 INSTALL_DIR="/opt/cashu-tollgate"
 WALLET_USER="cashu-wallet"
 WALLET_HOME="/var/lib/cashu-wallet"
-CDK_VERSION="0.17.1"
+CDK_VERSION="0.18.3"
+CDK_SHA256_X86_64="bb7a8b0f1b9c6a164c7e50f931b25c3e6232cdaedbb18df22368ebb0c024b337"
 
 echo "=== 1. Install cdk-cli ==="
 if ! command -v cdk-cli >/dev/null 2>&1; then
-    curl -sL -o /usr/local/bin/cdk-cli \
+    curl -fsSL -o /usr/local/bin/cdk-cli \
         "https://github.com/cashubtc/cdk/releases/download/v${CDK_VERSION}/cdk-cli-${CDK_VERSION}-x86_64"
+    echo "${CDK_SHA256_X86_64}  /usr/local/bin/cdk-cli" | sha256sum -c -
     chmod +x /usr/local/bin/cdk-cli
-    echo "  installed cdk-cli ${CDK_VERSION}"
+    echo "  installed cdk-cli ${CDK_VERSION} (sha256 verified)"
 else
     echo "  cdk-cli already installed"
 fi

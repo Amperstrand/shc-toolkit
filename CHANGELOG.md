@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Security
+- **`scripts/deploy-tollgate.sh`: cdk-cli 0.17.1 → 0.18.3, sha256-verified before install.** The download was the last unguarded cdk-cli fetch in the org (same class as tollgate-auth SECURITY_AUDIT_WINDOW3 M1: `curl -sL` straight to `/usr/local/bin` — a replaced GitHub release asset or build-path MITM would land in the wallet-running path undetected). The pinned SHA (`bb7a8b0f…`, x86_64) is cross-checked against the release's official `SHA256SUMS`; org-wide 0.18.3 alignment (tollgate-auth #30, cashu-audit #61). `tollgate/README.md` manual-install section mirrors the verified flow.
+
 ### Fixed
 - **CI: regression test files outside every mandatory suite (#56).** `tests/test_generated_enum_contract.py` and `tests/test_tunnel_security.py` (both from the #51 security arc) were collected by neither `shc-tests.yml` (unit job ran only `tests/test_unit.py`) nor `coverage.yml` (the four legacy files) — enum/tunnel-cache regressions could pass CI unexecuted. Both files are now in both workflow commands, and the jobs install the `generated` extra (`attrs`, `python-dateutil`) the enum-contract file imports. AGENTS.md's mandated local suite updated to match.
 - **typecheck.yml no longer ran on PRs at all (#58).** The trigger was `workflow_dispatch` + tag push only, so ruff/mypy config changes merged with no lint running. `pull_request` (targeting `main`) restored; stale "245 tests" verification figures in `pyproject.toml` and the 2026-07-24 CHANGELOG entry corrected to the actual collected count (491, `pytest tests/ --collect-only -q`).
