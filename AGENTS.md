@@ -179,7 +179,7 @@ shc-pulumi (Python, maintenance mode)
 5. Add method signatures to `shc_toolkit/transport.py` (the Protocol ABC).
 6. Add Go methods to `terraform-provider-shc/provider/client.go`.
 7. Update `tests/test_unit.py` — bump `test_core_tool_count` to match new TOOL_MAP size.
-8. Run: `python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py`
+8. Run: `python3 -m pytest tests/test_unit.py tests/test_generated_enum_contract.py tests/test_tunnel_security.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py`
 9. Run: `ruff check shc_toolkit/ && ruff format --check shc_toolkit/` (AGENTS.md mandates both).
 10. Run: `mypy shc_toolkit/ --ignore-missing-imports --no-strict-optional`
 11. Run: `python3 scripts/audit_cross_repo.py`
@@ -251,14 +251,14 @@ Semantic parity: `docs/cross-repo-audit-prompts.md` contains four AI-agent promp
 
 ## CI workflows (13 total)
 
-**Trigger policy**: nothing runs on push/PR — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. The one deliberate weekly exception is `dev-zone-watch.yml` (~$0.02/run, self-cancelling — the #39 evidence trail is worth it while the outage runs). To run any suite: `gh workflow run <name>` or ask the agent.
+**Trigger policy**: nothing runs on plain pushes/PRs except lint — the API changes rarely and per-commit CI is noise. Everything is `workflow_dispatch` (run on demand) + tag push (`v*`, pre-release verification) + a staggered monthly schedule. The one PR exception is `typecheck.yml` (cheap lint gate; restored 2026-10-30, #58 — ruff/mypy config changes must not merge unlinted). No high-frequency jobs remain: the reaper was eased from hourly to daily (2026-08-27) — primary cleanup is the on-VM self-destruct timers plus the lab machine's local cron. The one deliberate weekly exception is `dev-zone-watch.yml` (~$0.02/run, self-cancelling — the #39 evidence trail is worth it while the outage runs). To run any suite: `gh workflow run <name>` or ask the agent.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `shc-tests.yml` | dispatch, tag, monthly (1st) | Unit + smoke + integration + drift detection |
 | `api-drift.yml` | dispatch, monthly (1st 08:00) | OpenAPI + llms corpus (whole-file) + lean llms.txt release-header drift + catalog model validation + live order smoke → auto-creates issue |
 | `cross-repo-parity.yml` | dispatch, tag, monthly (2nd) | Size map + resolve_addons contract parity |
-| `typecheck.yml` | dispatch, tag | mypy + ruff lint + ruff format check (3 parallel jobs) |
+| `typecheck.yml` | PR (main), dispatch, tag | mypy + ruff lint + ruff format check (3 parallel jobs) |
 | `coverage.yml` | dispatch, tag | pytest --cov coverage reporting (baseline, no thresholds yet) |
 | `security.yml` | dispatch, tag | bandit + safety + pip-audit security scanning |
 | `ansible.yml` | dispatch, tag | ansible-lint + molecule caddy scenario |
@@ -406,7 +406,7 @@ When ANY change is made to shc-toolkit, the following MUST be run:
 
 ### 1. Unit Tests
 ```bash
-python3 -m pytest tests/test_unit.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
+python3 -m pytest tests/test_unit.py tests/test_generated_enum_contract.py tests/test_tunnel_security.py tests/test_github_runner.py tests/test_ansible.py tests/test_network_fixture.py -v --timeout=60
 ```
 All tests must pass. (Exact test counts are deliberately not pinned here — they drift within days; `python3 -m pytest tests/ --collect-only -q` prints the current number.)
 

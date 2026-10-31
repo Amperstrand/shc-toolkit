@@ -59,7 +59,7 @@ extend-exclude = ["shc_toolkit/generated"]
 [tool.ruff.lint]
 # Rules newly enabled by ruff 0.16 default set that this codebase predates.
 # Each family is either an intentional pattern or deferred for incremental
-# cleanup — none are bugs (245 tests pass with these patterns).
+# cleanup — none are bugs (491 tests pass with these patterns).
 ignore = [
     "BLE001",   # blind-except — intentional in API-client retry/cleanup paths
     "S110",     # try-except-pass — intentional fire-and-forget cleanup (reap, telemetry)
