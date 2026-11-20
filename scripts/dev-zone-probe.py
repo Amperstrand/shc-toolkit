@@ -36,10 +36,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shc_toolkit import create_client
 
 PKG_ID = 80
-PRICING_ID = 241
 ORDER_FORM_ID = 11
 PACKAGE_GROUP_ID = 14
 MODULE_GROUP_ID = 7
+
+# Valid (package, pricing) pairs on the order form (PR #35 review debt:
+# pricing 241 belongs to package 80's tier — submitting package 81 with
+# pricing 241 is an invalid pair the server rejects before probing).
+# The pricing tier is DERIVED from the selected package; unknown packages
+# are refused rather than paired with a wrong-tier pricing id.
+PACKAGE_PRICING = {
+    80: 241,  # daily
+    81: 245,
+    82: 249,
+    83: 253,
+    84: 257,
+}
+PRICING_ID = PACKAGE_PRICING[PKG_ID]
 
 
 def _wait_tcp22(ip: str, timeout: int) -> tuple[bool, float]:
@@ -87,8 +100,8 @@ def main() -> int:
     parser.add_argument(
         "--pricing-id",
         type=int,
-        default=PRICING_ID,
-        help="pricing tier (default 241 = daily)",
+        default=None,
+        help="pricing tier; derived from the package when omitted (241 = package 80 daily). Must agree with the derived value if given",
     )
     parser.add_argument(
         "--net-timeout",
@@ -107,6 +120,26 @@ def main() -> int:
     hostname = f"devprobe-{run_id}"
     sid: int | None = None
     t0 = time.time()
+
+    # Pricing tier is derived from the package; an explicit --pricing-id
+    # must agree with the derived value (anything else is an invalid pair
+    # the server rejects before probing — PR #35 review debt).
+    derived_pricing = PACKAGE_PRICING.get(args.package_id)
+    if derived_pricing is None:
+        print(
+            f"FATAL: package {args.package_id} has no known pricing tier "
+            f"(known: {', '.join(f'{k}->{v}' for k, v in sorted(PACKAGE_PRICING.items()))})",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    if args.pricing_id is not None and args.pricing_id != derived_pricing:
+        print(
+            f"FATAL: --pricing-id {args.pricing_id} does not match package "
+            f"{args.package_id}'s tier ({derived_pricing})",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    pricing_id = derived_pricing
 
     def _cancel(*_args):
         if sid:
@@ -127,7 +160,7 @@ def main() -> int:
     try:
         result = c.submit_order(
             package_id=args.package_id,
-            pricing_id=args.pricing_id,
+            pricing_id=pricing_id,
             order_form_id=ORDER_FORM_ID,
             package_group_id=PACKAGE_GROUP_ID,
             module_group_id=MODULE_GROUP_ID,

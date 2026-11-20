@@ -39,6 +39,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import uuid
 import time
 from typing import TYPE_CHECKING
 
@@ -420,18 +421,24 @@ def _check_ssh(
 def _find_cloudflared() -> str:
     """Find or download the cloudflared binary.
 
-    Search order: system installs, then the validated user cache. The
-    download lands in the user-owned cache dir via an atomic
-    temp-file-and-rename — never in a shared directory where another
-    local user could plant or swap the executable that connect_local()
-    runs (PR #33 review).
+    Search order: system installs first; only when none is found is the
+    user cache dir consulted (and created) — a missing/read-only/foreign-
+    owned cache dir must never shadow an already-installed binary (PR #51
+    review). The download lands in the user-owned cache dir via an
+    atomic temp-file-and-rename with a UNIQUE temp name per download —
+    never in a shared directory where another local user could plant or
+    swap the executable that connect_local() runs, and never on a shared
+    partial path two racing invocations would fight over (PR #33/#51
+    review).
     """
-    cached = os.path.join(_cloudflared_cache_dir(), "cloudflared")
-    for path in [*_CF_BINARY_PATHS, cached]:
+    for path in _CF_BINARY_PATHS:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
+    cached = os.path.join(_cloudflared_cache_dir(), "cloudflared")
+    if os.path.isfile(cached) and os.access(cached, os.X_OK):
+        return cached
     log.info("Downloading cloudflared binary to %s ...", cached)
-    partial = cached + ".download"
+    partial = cached + f".download.{os.getpid()}.{uuid.uuid4().hex[:8]}"
     subprocess.run(
         ["wget", "-q", "-O", partial, _CLOUDFLARED_URL],
         check=True,
